@@ -1,5 +1,110 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 
+// ─── Supabase ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://kgclapivcpjqxbtomaue.supabase.co";
+const SUPABASE_KEY = "sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B";
+
+// Cliente Supabase leve (sem SDK, usa fetch direto)
+const supa = {
+  headers: (extra = {}) => ({
+    "Content-Type": "application/json",
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${supa._token || SUPABASE_KEY}`,
+    ...extra,
+  }),
+  _token: null,
+  _user: null,
+
+  async signUp(email, password) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method: "POST",
+      headers: supa.headers(),
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message || d.msg || "Erro ao registar");
+    if (d.access_token) { supa._token = d.access_token; supa._user = d.user; }
+    return d;
+  },
+
+  async signIn(email, password) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: supa.headers(),
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message || d.msg || "Email ou password incorretos");
+    supa._token = d.access_token;
+    supa._user = d.user;
+    localStorage.setItem("ta-session", JSON.stringify({ token: d.access_token, user: d.user, refresh: d.refresh_token }));
+    return d;
+  },
+
+  async signOut() {
+    try {
+      await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: "POST", headers: supa.headers() });
+    } catch {}
+    supa._token = null; supa._user = null;
+    localStorage.removeItem("ta-session");
+  },
+
+  async refreshSession(refreshToken) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST",
+        headers: supa.headers(),
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      const d = await r.json();
+      if (d.access_token) {
+        supa._token = d.access_token; supa._user = d.user;
+        localStorage.setItem("ta-session", JSON.stringify({ token: d.access_token, user: d.user, refresh: d.refresh_token }));
+        return d;
+      }
+    } catch {}
+    return null;
+  },
+
+  async getProfile(userId) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, { headers: supa.headers() });
+    const d = await r.json();
+    return Array.isArray(d) ? d[0] : null;
+  },
+
+  async upsertProfile(userId, data) {
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: "PATCH",
+      headers: supa.headers({ "Prefer": "return=minimal" }),
+      body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
+    });
+  },
+
+  async getLibrary(userId) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/library?user_id=eq.${userId}&select=media_id,data`, { headers: supa.headers() });
+    const d = await r.json();
+    if (!Array.isArray(d)) return {};
+    const lib = {};
+    d.forEach(row => { lib[row.media_id] = row.data; });
+    return lib;
+  },
+
+  async upsertLibraryItem(userId, mediaId, data) {
+    await fetch(`${SUPABASE_URL}/rest/v1/library`, {
+      method: "POST",
+      headers: supa.headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
+      body: JSON.stringify({ user_id: userId, media_id: mediaId, data, updated_at: new Date().toISOString() }),
+    });
+  },
+
+  async deleteLibraryItem(userId, mediaId) {
+    await fetch(`${SUPABASE_URL}/rest/v1/library?user_id=eq.${userId}&media_id=eq.${mediaId}`, {
+      method: "DELETE",
+      headers: supa.headers(),
+    });
+  },
+};
+
 // ─── Theme Context ────────────────────────────────────────────────────────────
 const ThemeContext = createContext(null);
 const useTheme = () => useContext(ThemeContext);
@@ -647,7 +752,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAccentChange, onBgChange, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl }) {
+function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAccentChange, onBgChange, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -766,11 +871,20 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
           <>
             <h2 style={{ fontSize: 22, fontWeight: 800 }}>{profile.name || "Utilizador"}</h2>
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
-            <p style={{ color: "#484f58", fontSize: 12, marginTop: 6 }}>TrackAll · {items.length} na biblioteca</p>
-            <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
-              marginTop: 14, padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
-              background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-            }}>✏ Editar Perfil</button>
+            {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
+            <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, flexWrap: "wrap" }}>
+              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
+                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
+                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              }}>✏ Editar Perfil</button>
+              {onSignOut && (
+                <button onClick={onSignOut} style={{
+                  padding: "8px 20px", borderRadius: 8, border: "1px solid #ef444444",
+                  background: "#ef444415", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+                }}>⏻ Sair</button>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -989,6 +1103,107 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   );
 }
 
+// ─── Auth Screen ──────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth, accent }) {
+  const [mode, setMode] = useState("login"); // login | register
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
+    if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      if (mode === "register") {
+        await supa.signUp(email.trim(), password);
+        setSuccess("Conta criada! Verifica o teu email para confirmar e depois faz login.");
+        setMode("login");
+      } else {
+        const d = await supa.signIn(email.trim(), password);
+        onAuth(d.user, d.access_token);
+      }
+    } catch (e) {
+      setError(e.message || "Erro desconhecido.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ width: 64, height: 64, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "white", marginBottom: 16 }}>T</div>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px" }}>TrackAll</h1>
+          <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>Organiza toda a tua mídia num só lugar</p>
+        </div>
+
+        {/* Card */}
+        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: 28 }}>
+          {/* Tabs */}
+          <div style={{ display: "flex", background: "#0d1117", borderRadius: 10, padding: 4, marginBottom: 24 }}>
+            {["login", "register"].map(m => (
+              <button key={m} onClick={() => { setMode(m); setError(""); setSuccess(""); }} style={{
+                flex: 1, padding: "8px", borderRadius: 8, border: "none", cursor: "pointer",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 700, transition: "all 0.15s",
+                background: mode === m ? accent : "transparent",
+                color: mode === m ? "white" : "#484f58",
+              }}>{m === "login" ? "Entrar" : "Criar Conta"}</button>
+            ))}
+          </div>
+
+          {/* Fields */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>EMAIL</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="o-teu@email.com"
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>PASSWORD</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="mínimo 6 caracteres"
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }}
+              />
+            </div>
+          </div>
+
+          {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#ef444415", borderRadius: 8 }}>{error}</p>}
+          {success && <p style={{ color: "#10b981", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#10b98115", borderRadius: 8 }}>{success}</p>}
+
+          <button
+            onClick={handleSubmit} disabled={loading}
+            style={{
+              width: "100%", padding: "13px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer",
+              background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: "white",
+              fontFamily: "inherit", fontSize: 15, fontWeight: 700,
+              opacity: loading ? 0.7 : 1, transition: "all 0.2s",
+              boxShadow: `0 4px 20px rgba(${accentRgb},0.3)`,
+            }}
+          >{loading ? "A processar..." : mode === "login" ? "Entrar" : "Criar Conta"}</button>
+        </div>
+
+        <p style={{ textAlign: "center", color: "#30363d", fontSize: 11, marginTop: 20 }}>
+          Os teus dados ficam guardados em segurança na nuvem
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
@@ -1007,41 +1222,113 @@ export default function TrackAll() {
   const [notif, setNotif] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Load from storage (funciona em Claude artifact + Capacitor APK)
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
-    const load = async () => {
-      try { const v = await DB.get("ta-library"); if (v) setLibrary(JSON.parse(v)); } catch {}
+    const restore = async () => {
       try {
-        const v = await DB.get("ta-profile");
-        const avatar = await DB.get("ta-avatar");
-        const banner = await DB.get("ta-banner");
-        if (v) setProfile({ ...JSON.parse(v), avatar: avatar || "", banner: banner || "" });
+        const saved = localStorage.getItem("ta-session");
+        if (saved) {
+          const { token, user: u, refresh } = JSON.parse(saved);
+          supa._token = token; supa._user = u;
+          // Tenta refresh para garantir token válido
+          const refreshed = await supa.refreshSession(refresh);
+          const activeUser = refreshed?.user || u;
+          supa._token = refreshed?.access_token || token;
+          setUser(activeUser);
+          await loadUserData(activeUser.id);
+        }
       } catch {}
-      try { const v = await DB.get("ta-accent"); if (v) setAccent(v); } catch {}
-      try { const v = await DB.get("ta-bg"); if (v) setBgColor(v); } catch {}
-      try { const v = await DB.get("ta-tmdb"); if (v) setTmdbKey(v); } catch {}
-      try { const v = await DB.get("ta-worker"); if (v) setWorkerUrl(v); } catch {}
+      setAuthLoading(false);
     };
-    load();
+    restore();
   }, []);
 
-  const persist = async (key, val) => { await DB.set(key, typeof val === "string" ? val : JSON.stringify(val)); };
-
-  const saveLibrary = (lib) => { setLibrary(lib); persist("ta-library", lib); };
-  const saveProfile = async (p) => {
-    // Guarda avatar e banner em chaves separadas para não ultrapassar o limite de 5MB
-    const { avatar, banner, ...rest } = p;
-    setProfile(p);
-    await persist("ta-profile", rest);
-    if (avatar !== undefined) await persist("ta-avatar", avatar || "");
-    if (banner !== undefined) await persist("ta-banner", banner || "");
+  const loadUserData = async (userId) => {
+    try {
+      const [prof, lib] = await Promise.all([
+        supa.getProfile(userId),
+        supa.getLibrary(userId),
+      ]);
+      if (prof) {
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
+        if (prof.accent) setAccent(prof.accent);
+        if (prof.bg_color) setBgColor(prof.bg_color);
+        if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
+        if (prof.worker_url) setWorkerUrl(prof.worker_url);
+      }
+      if (lib) setLibrary(lib);
+    } catch {}
   };
-  const saveAccent = (c) => { setAccent(c); persist("ta-accent", c); };
-  const saveBg = (c) => { setBgColor(c); persist("ta-bg", c); };
-  const saveTmdbKey = (k) => { setTmdbKey(k); persist("ta-tmdb", k); };
-  const saveWorkerUrl = (k) => { setWorkerUrl(k); persist("ta-worker", k); };
+
+  const handleAuth = async (u) => {
+    setUser(u);
+    await loadUserData(u.id);
+  };
+
+  const handleSignOut = async () => {
+    await supa.signOut();
+    setUser(null);
+    setLibrary({});
+    setProfile({ name: "", bio: "", avatar: "" });
+    setView("home");
+  };
 
   const showNotif = (msg, color) => { setNotif({ msg, color }); setTimeout(() => setNotif(null), 2500); };
+
+  const saveLibrary = async (lib) => {
+    setLibrary(lib);
+    // Guarda no Supabase em background
+    if (user) {
+      try {
+        const prev = library;
+        // Items novos ou atualizados
+        for (const [id, item] of Object.entries(lib)) {
+          if (JSON.stringify(prev[id]) !== JSON.stringify(item)) {
+            await supa.upsertLibraryItem(user.id, id, item);
+          }
+        }
+        // Items removidos
+        for (const id of Object.keys(prev)) {
+          if (!lib[id]) await supa.deleteLibraryItem(user.id, id);
+        }
+      } catch {}
+    }
+  };
+
+  const saveProfile = async (p) => {
+    setProfile(p);
+    if (user) {
+      try {
+        await supa.upsertProfile(user.id, {
+          name: p.name || "",
+          bio: p.bio || "",
+          avatar: p.avatar || "",
+          banner: p.banner || "",
+        });
+      } catch {}
+    }
+  };
+
+  const saveAccent = async (c) => {
+    setAccent(c);
+    if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch {}
+  };
+  const saveBg = async (c) => {
+    setBgColor(c);
+    if (user) try { await supa.upsertProfile(user.id, { bg_color: c }); } catch {}
+  };
+  const saveTmdbKey = async (k) => {
+    setTmdbKey(k);
+    if (user) try { await supa.upsertProfile(user.id, { tmdb_key: k }); } catch {}
+  };
+  const saveWorkerUrl = async (k) => {
+    setWorkerUrl(k);
+    if (user) try { await supa.upsertProfile(user.id, { worker_url: k }); } catch {}
+  };
 
   const addToLibrary = (item, status, rating = 0) => {
     const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
@@ -1123,6 +1410,22 @@ export default function TrackAll() {
   });
 
   const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
+
+  // Loading screen
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 56, height: 56, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 16, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "white", fontWeight: 900, marginBottom: 16 }}>T</div>
+          <div className="spin" style={{ fontSize: 28, color: accent, display: "block" }}>◌</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spin { animation: spin 0.7s linear infinite; display: inline-block; }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth screen
+  if (!user) return <AuthScreen onAuth={handleAuth} accent={accent} />;
 
   return (
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
@@ -1398,6 +1701,8 @@ export default function TrackAll() {
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
             onWorkerUrl={saveWorkerUrl}
+            onSignOut={handleSignOut}
+            userEmail={user?.email || ""}
           />
         )}
 
