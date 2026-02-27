@@ -84,13 +84,8 @@ const supa = {
     return data || [];
   },
 
-  // ✅ FIX: Adicionado status: 'pending' explicitamente
   async sendFriendRequest(requesterId, addresseeId) {
-    const { error } = await supabase.from('friendships').insert({
-      requester_id: requesterId,
-      addressee_id: addresseeId,
-      status: 'pending',
-    });
+    const { error } = await supabase.from('friendships').insert({ requester_id: requesterId, addressee_id: addresseeId });
     if (error) throw new Error(error.message);
   },
 
@@ -172,37 +167,42 @@ const STATUS_OPTIONS = [
   { id: "pausado", label: "Pausado", color: "#eab308", emoji: "⏸" },
 ];
 
-// ─── Storage ──────────────────────────────────────────────────────────────────
+// ─── Storage (Claude artifact + localStorage para APK/Capacitor) ──────────────
 const DB = {
   async get(key) {
+    // Tenta window.storage (Claude artifact)
     try {
       if (window.storage) {
         const r = await window.storage.get(key);
         if (r?.value != null) return r.value;
       }
     } catch {}
+    // Fallback localStorage (APK / browser normal)
     try { return localStorage.getItem(key); } catch {}
     return null;
   },
   async set(key, val) {
     let ok = false;
+    // Tenta window.storage primeiro
     try {
       if (window.storage) {
         const result = await window.storage.set(key, val);
         if (result) ok = true;
       }
     } catch {}
+    // localStorage sempre (como backup e para APK)
     try { localStorage.setItem(key, val); ok = true; } catch {}
     return ok;
   },
 };
 
-// ─── Simple in-memory search cache ────────────────────────────────────────────
+// ─── Simple in-memory search cache (evita re-fetch da mesma query) ────────────
 const CACHE = new Map();
 function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 
 // ─── APIs ─────────────────────────────────────────────────────────────────────
 
+// 1. AniList — Anime, Manga, Manhwa, Light Novels (sem chave, CORS aberto)
 async function searchAniList(query, type) {
   const mediaType = type === "anime" ? "ANIME" : "MANGA";
   const res = await fetch("https://graphql.anilist.co", {
@@ -232,6 +232,7 @@ async function searchAniList(query, type) {
   }));
 }
 
+// 2. TMDB — Filmes & Séries (chave grátis: themoviedb.org/settings/api)
 async function searchTMDB(query, type, key) {
   if (!key) return null;
   const ep = type === "filmes" ? "movie" : "tv";
@@ -254,6 +255,7 @@ async function searchTMDB(query, type, key) {
   }));
 }
 
+// 3. OpenLibrary — Livros (sem chave, CORS aberto)
 async function searchOpenLibrary(query) {
   const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=15&fields=key,title,author_name,first_publish_year,cover_i,subject,ratings_average`);
   if (!res.ok) return null;
@@ -273,6 +275,9 @@ async function searchOpenLibrary(query) {
   }));
 }
 
+// 4. IGDB via Proxy Worker + Steam fallback
+// O Worker esconde as chaves e resolve o CORS.
+// workerUrl = "https://trackall-proxy.teu-nome.workers.dev"
 const SC = (id) => id ? `https://cdn.akamai.steamstatic.com/steam/apps/${id}/library_600x900.jpg` : "";
 const SB = (id) => id ? `https://cdn.akamai.steamstatic.com/steam/apps/${id}/header.jpg` : "";
 
@@ -331,6 +336,8 @@ async function searchSteam(query) {
   }));
 }
 
+// 5. ComicVine via Proxy Worker
+// O Worker resolve o CORS que bloqueia chamadas diretas de browser/webview.
 async function searchComicVine(query, workerUrl) {
   if (!workerUrl) return null;
   const url = workerUrl.replace(/\/$/, "") + `/comicvine?q=${encodeURIComponent(query)}`;
@@ -352,6 +359,7 @@ async function searchComicVine(query, workerUrl) {
   }));
 }
 
+// ─── smartSearch — escolhe a melhor API por tipo ──────────────────────────────
 async function smartSearch(query, mediaType, keys = {}) {
   const ck = cacheKey(query, mediaType);
   if (CACHE.has(ck)) return CACHE.get(ck);
@@ -366,6 +374,7 @@ async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb);
     else if (mediaType === "livros") results = await searchOpenLibrary(query);
     else if (mediaType === "jogos") {
+      // Tenta IGDB via Worker primeiro; fallback para Steam
       results = await searchIGDB(query, keys.workerUrl);
       if (!results?.length) results = await searchSteam(query);
     }
@@ -397,6 +406,8 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
   const [hover, setHover] = useState(0);
   const active = hover || value;
 
+  // Each star = 1 point, but we support 0.5 increments
+  // We render 10 stars, each star can be empty, half, or full
   return (
     <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
       {[1,2,3,4,5,6,7,8,9,10].map((star) => {
@@ -408,18 +419,22 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
             style={{ position: "relative", width: size, height: size, cursor: readOnly ? "default" : "pointer", flexShrink: 0 }}
             onMouseLeave={() => !readOnly && setHover(0)}
           >
+            {/* Background star */}
             <span style={{ fontSize: size, color: "#374151", lineHeight: 1, userSelect: "none" }}>★</span>
+            {/* Filled overlay */}
             {(full || half) && (
               <span style={{
                 position: "absolute", left: 0, top: 0, fontSize: size, color: "#f59e0b",
                 lineHeight: 1, overflow: "hidden", width: full ? "100%" : "50%", userSelect: "none",
               }}>★</span>
             )}
+            {/* Left half hitbox (X - 0.5) */}
             <div
               style={{ position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star - 0.5)}
               onClick={() => !readOnly && onChange && onChange(value === star - 0.5 ? 0 : star - 0.5)}
             />
+            {/* Right half hitbox (X) */}
             <div
               style={{ position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star)}
@@ -455,6 +470,7 @@ function Notification({ notif }) {
 }
 
 // ─── Image utils ───────────────────────────────────────────────────────────────
+// Compresses an image File to a base64 JPEG ≤ 300 KB (portrait 400×600)
 function compressImage(file, maxW = 400, maxH = 600, quality = 0.82) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -474,6 +490,7 @@ function compressImage(file, maxW = 400, maxH = 600, quality = 0.82) {
   });
 }
 
+// Same but for banners (wide, 900×340)
 function compressBanner(file) {
   return compressImage(file, 900, 340, 0.80);
 }
@@ -602,6 +619,7 @@ function CoverEditModal({ item, onSave, onClose }) {
       <div className="modal fade-in" style={{ maxWidth: 440, padding: 24 }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ marginBottom: 20, fontSize: 18, fontWeight: 700 }}>🖼 Alterar Capa</h3>
         <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+          {/* Preview */}
           <div style={{
             width: 110, height: 158, borderRadius: 10, overflow: "hidden", flexShrink: 0,
             background: gradientFor(item.id), border: "2px dashed #30363d",
@@ -671,6 +689,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     <>
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
+        {/* Hero backdrop */}
         <div style={{
           height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)),
           position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden",
@@ -684,6 +703,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
         <div style={{ padding: "0 24px 24px" }}>
           <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
+            {/* Cover */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(item.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
                 {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -717,6 +737,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             </div>
           </div>
 
+          {/* Stats row */}
           <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderTop: "1px solid #21262d", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
             {item.episodes && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Episódios</div></div>}
             {item.chapters && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Capítulos</div></div>}
@@ -724,6 +745,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             {item.status && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Estado</div></div>}
           </div>
 
+          {/* Genres */}
           {item.genres?.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
               {item.genres.slice(0, 6).map((g) => (
@@ -732,12 +754,14 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             </div>
           )}
 
+          {/* Synopsis */}
           {item.synopsis && (
             <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
               {item.synopsis.slice(0, 500)}{item.synopsis.length > 500 ? "…" : ""}
             </p>
           )}
 
+          {/* Library section */}
           <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
             {inLib ? (
               <>
@@ -835,6 +859,7 @@ function MediaCard({ item, library, onOpen, accent }) {
   return (
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
       <div style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id), position: "relative", overflow: "hidden" }}>
+        {/* Shimmer while loading */}
         {coverSrc && !imgLoaded && !imgError && (
           <div className="shimmer" style={{ position: "absolute", inset: 0 }} />
         )}
@@ -853,6 +878,7 @@ function MediaCard({ item, library, onOpen, accent }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
           </div>
         )}
+        {/* Badges */}
         <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           {item.score && (
             <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
@@ -897,7 +923,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
   const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
   const [cropSrc, setCropSrc] = useState(null);
-  const [cropType, setCropType] = useState(null);
+  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
   const avatarRef = useRef();
   const bannerRef = useRef();
   const items = Object.values(library);
@@ -939,13 +965,17 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   return (
     <>
     <div style={{ paddingBottom: 32, maxWidth: 600, margin: "0 auto" }}>
+
+      {/* ── Banner + Avatar header ── */}
       <div style={{ position: "relative", marginBottom: 60 }}>
+        {/* Banner */}
         <div style={{
           height: 160, borderRadius: "0 0 0 0", overflow: "hidden", position: "relative",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
             : `linear-gradient(135deg, ${accent}33 0%, ${bgColor} 100%)`,
         }}>
+          {/* Overlay */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(13,17,23,0.85) 100%)" }} />
           {editing && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -970,6 +1000,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
           )}
         </div>
 
+        {/* Avatar — overlaps banner */}
         <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
           <div style={{ position: "relative", display: "inline-block" }}>
             <div style={{
@@ -997,6 +1028,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         </div>
       </div>
 
+      {/* Name / bio / edit */}
       <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
         {editing ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
@@ -1029,168 +1061,177 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         )}
       </div>
 
+      {/* Stats and settings */}
       <div style={{ padding: "0 16px" }}>
-        {items.length > 0 && (() => {
-          const recent = [...items].sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
-          return (
-            <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-                {recent.map((item) => {
-                  const coverSrc = item.customCover || item.cover;
-                  return (
-                    <div key={item.id} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
-                      <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "2px solid #21262d", marginBottom: 6 }}>
-                        {coverSrc
-                          ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                        }
-                      </div>
-                      <p style={{ fontSize: 10, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
 
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>FAVORITOS</h3>
-            <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
-          </div>
-          {favorites.length === 0 ? (
-            <div style={{ background: "#161b22", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-              <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {favorites.map((item, idx) => {
+      {/* ── Vistos Recentemente ── */}
+      {items.length > 0 && (() => {
+        const recent = [...items].sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+              {recent.map((item) => {
                 const coverSrc = item.customCover || item.cover;
-                const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
                 return (
-                  <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #f59e0b22", borderRadius: 12, padding: "10px 14px" }}>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#9ca3af" : idx === 2 ? "#cd7c2f" : "#484f58", width: 24, textAlign: "center", flexShrink: 0 }}>{idx + 1}</div>
-                    <div style={{ width: 44, height: 62, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                  <div key={item.id} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
+                    <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "2px solid #21262d", marginBottom: 6 }}>
                       {coverSrc
                         ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                       }
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {item.userRating > 0 && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 12, color: "#f59e0b" }}>★</span>
-                            <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
-                          </div>
-                        )}
-                        {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 600 }}>{status.emoji} {status.label}</span>}
-                      </div>
-                    </div>
-                    <button onClick={() => onToggleFavorite && onToggleFavorite(item)} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 16, padding: 4 }} title="Remover dos favoritos">✕</button>
+                    <p style={{ fontSize: 10, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
+        );
+      })()}
 
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
-          {STATUS_OPTIONS.map((s) => (
-            <div key={s.id} style={{ background: "#161b22", border: `1px solid ${s.color}22`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
-            <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
-          </div>
-          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
-            <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
-          </div>
-          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
-            <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
-          </div>
+      {/* ── Favoritos Manuais ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>FAVORITOS</h3>
+          <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
         </div>
-
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>POR TIPO</h3>
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          {MEDIA_TYPES.slice(1).map((t) => {
-            const count = byType[t.id] || 0;
-            const pct = items.length ? (count / items.length) * 100 : 0;
-            return (
-              <div key={t.id} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{count}</span>
+        {favorites.length === 0 ? (
+          <div style={{ background: "#161b22", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+            <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {favorites.map((item, idx) => {
+              const coverSrc = item.customCover || item.cover;
+              const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
+              return (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #f59e0b22", borderRadius: 12, padding: "10px 14px" }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#9ca3af" : idx === 2 ? "#cd7c2f" : "#484f58", width: 24, textAlign: "center", flexShrink: 0 }}>{idx + 1}</div>
+                  <div style={{ width: 44, height: 62, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    {coverSrc
+                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                    }
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {item.userRating > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ fontSize: 12, color: "#f59e0b" }}>★</span>
+                          <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
+                        </div>
+                      )}
+                      {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 600 }}>{status.emoji} {status.label}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => onToggleFavorite && onToggleFavorite(item)} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 16, padding: 4 }} title="Remover dos favoritos">✕</button>
                 </div>
-                <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>APARÊNCIA</h3>
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Cor de destaque</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {ACCENT_PRESETS.map((p) => (
-                <button key={p.name} onClick={() => onAccentChange(p.color)} style={{
-                  width: 36, height: 36, borderRadius: 999, background: p.color,
-                  border: accent === p.color ? `3px solid white` : "3px solid transparent",
-                  cursor: "pointer", transition: "transform 0.1s",
-                }} title={p.name} />
-              ))}
-              <label style={{ width: 36, height: 36, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16 }} title="Cor personalizada">
-                +
-                <input type="color" value={accent} onChange={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-              </label>
-            </div>
+              );
+            })}
           </div>
-          <div>
-            <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Fundo</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              {BG_PRESETS.map((p) => (
-                <button key={p.name} onClick={() => onBgChange(p.value)} style={{
-                  width: 36, height: 36, borderRadius: 10, background: p.value,
-                  border: bgColor === p.value ? `2px solid ${accent}` : "2px solid #30363d",
-                  cursor: "pointer",
-                }} title={p.name} />
-              ))}
+        )}
+      </div>
+
+      {/* Stats grid */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+        {STATUS_OPTIONS.map((s) => (
+          <div key={s.id} style={{ background: "#161b22", border: `1px solid ${s.color}22`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
+            <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
+          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
+        </div>
+        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
+          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
+        </div>
+        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
+          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
+        </div>
+      </div>
+
+      {/* Por tipo */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>POR TIPO</h3>
+      <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        {MEDIA_TYPES.slice(1).map((t) => {
+          const count = byType[t.id] || 0;
+          const pct = items.length ? (count / items.length) * 100 : 0;
+          return (
+            <div key={t.id} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{count}</span>
+              </div>
+              <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
+              </div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Temas */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>APARÊNCIA</h3>
+      <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Cor de destaque</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {ACCENT_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => onAccentChange(p.color)} style={{
+                width: 36, height: 36, borderRadius: 999, background: p.color,
+                border: accent === p.color ? `3px solid white` : "3px solid transparent",
+                cursor: "pointer", transition: "transform 0.1s",
+              }} title={p.name} />
+            ))}
+            <label style={{ width: 36, height: 36, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16 }} title="Cor personalizada">
+              +
+              <input type="color" value={accent} onChange={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
           </div>
         </div>
-
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>CONFIGURAÇÕES API</h3>
-        <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {[
-              { icon: "⛩", label: "Anime/Manga", sub: "AniList" },
-              { icon: "📚", label: "Livros", sub: "OpenLibrary" },
-              { icon: "🎮", label: "Jogos", sub: "IGDB + Steam" },
-              { icon: "🎬", label: "Filmes/Séries", sub: "TMDB" },
-              { icon: "💬", label: "Comics", sub: "ComicVine" },
-              { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList" },
-            ].map(s => (
-              <div key={s.label} style={{ background: "#0d1117", border: "1px solid #10b98122", borderRadius: 8, padding: "8px 10px" }}>
-                <div style={{ fontWeight: 700, fontSize: 12 }}><span style={{ color: "#10b981" }}>✓ </span>{s.icon} {s.label}</div>
-                <div style={{ color: "#484f58", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
-              </div>
+        <div>
+          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Fundo</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            {BG_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => onBgChange(p.value)} style={{
+                width: 36, height: 36, borderRadius: 10, background: p.value,
+                border: bgColor === p.value ? `2px solid ${accent}` : "2px solid #30363d",
+                cursor: "pointer",
+              }} title={p.name} />
             ))}
           </div>
         </div>
       </div>
+
+      {/* API Status — tudo pré-configurado */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>CONFIGURAÇÕES API</h3>
+      <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {[
+            { icon: "⛩", label: "Anime/Manga", sub: "AniList" },
+            { icon: "📚", label: "Livros", sub: "OpenLibrary" },
+            { icon: "🎮", label: "Jogos", sub: "IGDB + Steam" },
+            { icon: "🎬", label: "Filmes/Séries", sub: "TMDB" },
+            { icon: "💬", label: "Comics", sub: "ComicVine" },
+            { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList" },
+          ].map(s => (
+            <div key={s.label} style={{ background: "#0d1117", border: "1px solid #10b98122", borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontWeight: 700, fontSize: 12 }}><span style={{ color: "#10b981" }}>✓ </span>{s.icon} {s.label}</div>
+              <div style={{ color: "#484f58", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+            </div>{/* end padding div */}
     </div>
     {cropSrc && (
       <CropModal
@@ -1207,7 +1248,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
 function FriendsView({ user, accent }) {
-  const [tab, setTab] = useState("friends");
+  const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -1219,49 +1260,14 @@ function FriendsView({ user, accent }) {
 
   const showNotif = (msg) => { setNotif(msg); setTimeout(() => setNotif(""), 2500); };
 
+  useEffect(() => { loadFriendships(); }, []);
+
   const loadFriendships = async () => {
     setLoading(true);
     const data = await supa.getFriendships(user.id);
     setFriendships(data);
     setLoading(false);
   };
-
-  // ✅ FIX: Supabase Realtime para notificações instantâneas de pedidos
-  useEffect(() => {
-    loadFriendships();
-
-    const channel = supabase
-      .channel(`friendships-user-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `addressee_id=eq.${user.id}`,
-        },
-        () => {
-          loadFriendships();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `requester_id=eq.${user.id}`,
-        },
-        () => {
-          loadFriendships();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user.id]);
 
   const accepted = friendships.filter(f => f.status === "accepted");
   const pending = friendships.filter(f => f.status === "pending" && f.addressee_id === user.id);
@@ -1374,28 +1380,23 @@ function FriendsView({ user, accent }) {
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "16px 0 20px" }}>
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
-      {/* ✅ Badge de pedidos pendentes visível na tab */}
+      {/* Tabs */}
       <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20 }}>
         {[
           { id: "friends", label: `Amigos (${accepted.length})` },
           { id: "search", label: "Pesquisar" },
-          { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}`, highlight: pending.length > 0 },
+          { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: "8px 14px", borderRadius: 8, border: t.highlight ? `1px solid #ef4444` : "none",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-            background: tab === t.id ? accent : t.highlight ? "#ef444415" : "#21262d",
-            color: tab === t.id ? "white" : t.highlight ? "#ef4444" : "#8b949e",
-            position: "relative",
-          }}>
-            {t.label}
-            {t.highlight && tab !== t.id && (
-              <span style={{ position: "absolute", top: -4, right: -4, width: 10, height: 10, background: "#ef4444", borderRadius: "50%", border: "2px solid #0d1117" }} />
-            )}
-          </button>
+            padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+            background: tab === t.id ? accent : "#21262d",
+            color: tab === t.id ? "white" : "#8b949e",
+          }}>{t.label}</button>
         ))}
       </div>
 
+      {/* Friends list */}
       {tab === "friends" && (
         <div style={{ padding: "0 16px" }}>
           {loading ? <p style={{ color: "#484f58", textAlign: "center" }}>A carregar...</p>
@@ -1419,6 +1420,7 @@ function FriendsView({ user, accent }) {
         </div>
       )}
 
+      {/* Search */}
       {tab === "search" && (
         <div style={{ padding: "0 16px" }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -1455,6 +1457,7 @@ function FriendsView({ user, accent }) {
         </div>
       )}
 
+      {/* Requests */}
       {tab === "requests" && (
         <div style={{ padding: "0 16px" }}>
           {pending.length === 0 && sent.length === 0 && <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Sem pedidos pendentes.</p>}
@@ -1503,7 +1506,7 @@ function FriendsView({ user, accent }) {
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
 function AuthScreen({ onAuth, accent }) {
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState("login"); // login | register
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1540,13 +1543,16 @@ function AuthScreen({ onAuth, accent }) {
     <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
       <div style={{ width: "100%", maxWidth: 400 }}>
+        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ width: 64, height: 64, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "white", marginBottom: 16 }}>T</div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px" }}>TrackAll</h1>
           <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>Organiza toda a tua mídia num só lugar</p>
         </div>
 
+        {/* Card */}
         <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: 28 }}>
+          {/* Tabs */}
           <div style={{ display: "flex", background: "#0d1117", borderRadius: 10, padding: 4, marginBottom: 24 }}>
             {["login", "register"].map(m => (
               <button key={m} onClick={() => { setMode(m); setError(""); setSuccess(""); }} style={{
@@ -1558,6 +1564,7 @@ function AuthScreen({ onAuth, accent }) {
             ))}
           </div>
 
+          {/* Fields */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
             <div>
               <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>EMAIL</label>
@@ -1607,6 +1614,7 @@ const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 async function fetchTrendingAnime() {
   try {
+    // Busca 2 listas diferentes e mistura
     const [trending, popular] = await Promise.all([
       fetch("https://graphql.anilist.co", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -1677,6 +1685,7 @@ async function fetchTrendingGames(workerUrl) {
   if (!workerUrl) return [];
   try {
     const url = workerUrl.replace(/\/$/, "") + "/igdb";
+    // Duas queries com offsets diferentes, misturadas
     const offsets = [0, Math.floor(Math.random() * 100)];
     const results = await Promise.all(offsets.map(offset =>
       fetch(url, {
@@ -1707,6 +1716,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
   );
   if (!items || items.length === 0) return null;
 
+  // Filter out items already in library — as user adds, new ones slide in
   const toShow = items.filter(i => !library[i.id]);
   if (toShow.length === 0) return null;
 
@@ -1757,9 +1767,11 @@ export default function TrackAll() {
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
 
+  // Auth state
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
     const restore = async () => {
       try {
@@ -1792,12 +1804,14 @@ export default function TrackAll() {
       }
       if (lib) setLibrary(lib);
     } catch {}
+    // Load recommendations in background
     loadRecos();
   };
 
   const loadRecos = async () => {
     setRecoLoading(true);
     try {
+      // Carrega sequencialmente para evitar rate limiting
       const anime = await fetchTrendingAnime();
       const manga = await fetchTrendingManga();
       const [filmes, series, jogos] = await Promise.all([
@@ -1827,14 +1841,17 @@ export default function TrackAll() {
 
   const saveLibrary = async (lib) => {
     setLibrary(lib);
+    // Guarda no Supabase em background
     if (user) {
       try {
         const prev = library;
+        // Items novos ou atualizados
         for (const [id, item] of Object.entries(lib)) {
           if (JSON.stringify(prev[id]) !== JSON.stringify(item)) {
             await supa.upsertLibraryItem(user.id, id, item);
           }
         }
+        // Items removidos
         for (const id of Object.keys(prev)) {
           if (!lib[id]) await supa.deleteLibraryItem(user.id, id);
         }
@@ -1919,11 +1936,13 @@ export default function TrackAll() {
     try {
       let results = [];
       if (type === "all") {
+        // Pesquisa em paralelo nos tipos principais sem chave
         const [anime, manga, livros] = await Promise.allSettled([
           smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "livros", { tmdb: tmdbKey, workerUrl }),
         ]);
+        // Adiciona filmes/séries se tiver TMDB, jogos Steam sempre
         const extras = await Promise.allSettled([
           tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
           tmdbKey ? smartSearch(q, "series", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
@@ -1937,6 +1956,7 @@ export default function TrackAll() {
           ...(extras[1].status === "fulfilled" ? extras[1].value : []),
           ...(extras[2].status === "fulfilled" ? extras[2].value : []),
         ];
+        // Deduplica por id
         const seen = new Set();
         results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
       } else {
@@ -1966,6 +1986,7 @@ export default function TrackAll() {
 
   const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
 
+  // Loading screen
   if (authLoading) {
     return (
       <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Outfit', sans-serif" }}>
@@ -1978,6 +1999,7 @@ export default function TrackAll() {
     );
   }
 
+  // Auth screen
   if (!user) return <AuthScreen onAuth={handleAuth} accent={accent} />;
 
   return (
@@ -2022,6 +2044,9 @@ export default function TrackAll() {
 
         <Notification notif={notif} />
 
+
+
+        {/* Detail Modal */}
         {selectedItem && (
           <DetailModal
             item={selectedItem}
@@ -2038,6 +2063,7 @@ export default function TrackAll() {
           />
         )}
 
+        {/* NAV TOP */}
         <nav style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
           <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
@@ -2063,6 +2089,7 @@ export default function TrackAll() {
             </div>
           </div>
 
+          {/* Avatar */}
           <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
             <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {profile.avatar
@@ -2072,8 +2099,11 @@ export default function TrackAll() {
           </button>
         </nav>
 
+        {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in">
+            {/* Setup banner — só aparece quando faltam chaves importantes */}
+            {/* Setup banner removido — configurações pré-definidas */}
             <div className="hero-gradient" style={{ padding: "56px 20px 48px", textAlign: "center" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `rgba(${accentRgb},0.1)`, border: `1px solid rgba(${accentRgb},0.2)`, borderRadius: 999, padding: "5px 14px", marginBottom: 24, fontSize: 12, color: accent, fontWeight: 600 }}>
                 ✦ Organiza toda a tua mídia num só lugar
@@ -2087,6 +2117,7 @@ export default function TrackAll() {
                 Anime, séries, filmes, manga, livros, manhwa, light novels, jogos e comics.
               </p>
 
+              {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 480, margin: "0 auto 40px" }}>
                 {[
                   { l: "Em Curso", v: stats.assistindo, c: accent, e: "▶" },
@@ -2101,6 +2132,7 @@ export default function TrackAll() {
                 ))}
               </div>
 
+              {/* Media type shortcuts */}
               <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
                 {MEDIA_TYPES.slice(1).map((t) => (
                   <button key={t.id} onClick={() => { setActiveTab(t.id); doSearch(t.label, t.id); }} style={{ background: "#161b22", border: "1px solid #21262d", color: "#e6edf3", padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6 }}
@@ -2112,6 +2144,7 @@ export default function TrackAll() {
               </div>
             </div>
 
+            {/* Recent */}
             {items.length > 0 && (
               <div style={{ padding: "28px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -2126,8 +2159,10 @@ export default function TrackAll() {
               </div>
             )}
 
+            {/* Divider */}
             <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
 
+            {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
@@ -2198,6 +2233,7 @@ export default function TrackAll() {
           </div>
         )}
 
+        {/* ── LIBRARY ── */}
         {view === "library" && (
           <div style={{ padding: "20px 16px" }} className="fade-in">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -2242,6 +2278,7 @@ export default function TrackAll() {
           </div>
         )}
 
+        {/* ── PROFILE ── */}
         {view === "friends" && (
           <FriendsView user={user} accent={accent} />
         )}
@@ -2265,6 +2302,7 @@ export default function TrackAll() {
           />
         )}
 
+        {/* BOTTOM NAV */}
         <nav className="bottom-nav">
           {[
             { id: "home", icon: "⌂", label: "Início" },
