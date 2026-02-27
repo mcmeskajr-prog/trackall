@@ -1609,6 +1609,123 @@ function AuthScreen({ onAuth, accent }) {
   );
 }
 
+// ─── Recommendations ──────────────────────────────────────────────────────────
+async function fetchTrendingAnime() {
+  try {
+    const r = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: `{ Page(page:1,perPage:50) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
+    });
+    const d = await r.json();
+    return (d.data?.Page?.media || []).map(m => ({
+      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
+      type: "anime", source: "AniList", score: m.averageScore,
+    }));
+  } catch { return []; }
+}
+
+async function fetchTrendingManga() {
+  try {
+    const r = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: `{ Page(page:1,perPage:50) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
+    });
+    const d = await r.json();
+    return (d.data?.Page?.media || []).map(m => ({
+      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
+      type: "manga", source: "AniList", score: m.averageScore,
+    }));
+  } catch { return []; }
+}
+
+async function fetchTrendingMovies(tmdbKey) {
+  if (!tmdbKey) return [];
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT`);
+    const d = await r.json();
+    return (d.results || []).slice(0, 50).map(m => ({
+      id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+      type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10),
+    }));
+  } catch { return []; }
+}
+
+async function fetchTrendingSeries(tmdbKey) {
+  if (!tmdbKey) return [];
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT`);
+    const d = await r.json();
+    return (d.results || []).slice(0, 50).map(m => ({
+      id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+      type: "series", source: "TMDB", score: Math.round(m.vote_average * 10),
+    }));
+  } catch { return []; }
+}
+
+async function fetchTrendingGames(workerUrl) {
+  if (!workerUrl) return [];
+  try {
+    const url = workerUrl.replace(/\/$/, "") + "/igdb";
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 80 & rating_count > 100 & first_release_date > ${Math.floor(Date.now()/1000) - 60*60*24*365}; sort rating desc; limit 50;` }),
+    });
+    const d = await r.json();
+    return (d || []).map(g => ({
+      id: `igdb-${g.id}`, title: g.name,
+      cover: g.cover?.url ? g.cover.url.replace("t_thumb", "t_cover_big").replace("http://", "https://") : null,
+      type: "jogos", source: "IGDB", score: Math.round(g.rating),
+    }));
+  } catch { return []; }
+}
+
+// ─── Recommendation Carousel ──────────────────────────────────────────────────
+function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) {
+  if (loading) return (
+    <div style={{ padding: "0 16px 28px" }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+        {[1,2,3,4,5].map(i => (
+          <div key={i} style={{ flexShrink: 0, width: 100, height: 148, borderRadius: 10, background: "#161b22", animation: "pulse 1.5s ease-in-out infinite" }} />
+        ))}
+      </div>
+    </div>
+  );
+  if (!items || items.length === 0) return null;
+
+  // Always show 10 items not in library — as user adds items, new ones appear
+  const toShow = items.filter(i => !library[i.id]).slice(0, 10);
+  if (toShow.length === 0) return null;
+
+  return (
+    <div style={{ padding: "0 16px 28px" }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        {toShow.map(item => (
+          <div key={item.id} onClick={() => onOpen(item)} style={{ flexShrink: 0, width: 100, cursor: "pointer" }}>
+            <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
+              {item.cover
+                ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+              }
+              {item.score > 0 && (
+                <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
+                  ★ {item.score}
+                </div>
+              )}
+            </div>
+            <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
@@ -1627,6 +1744,8 @@ export default function TrackAll() {
   const [notif, setNotif] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [favorites, setFavorites] = useState([]);
+  const [recos, setRecos] = useState({});
+  const [recoLoading, setRecoLoading] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -1665,6 +1784,29 @@ export default function TrackAll() {
       }
       if (lib) setLibrary(lib);
     } catch {}
+    // Load recommendations in background
+    loadRecos();
+  };
+
+  const loadRecos = async () => {
+    setRecoLoading(true);
+    try {
+      const [anime, manga, filmes, series, jogos] = await Promise.allSettled([
+        fetchTrendingAnime(),
+        fetchTrendingManga(),
+        fetchTrendingMovies(DEFAULT_TMDB_KEY),
+        fetchTrendingSeries(DEFAULT_TMDB_KEY),
+        fetchTrendingGames(DEFAULT_WORKER_URL),
+      ]);
+      setRecos({
+        anime: anime.value || [],
+        manga: manga.value || [],
+        filmes: filmes.value || [],
+        series: series.value || [],
+        jogos: jogos.value || [],
+      });
+    } catch {}
+    setRecoLoading(false);
   };
 
   const handleAuth = async (u) => {
@@ -2001,6 +2143,35 @@ export default function TrackAll() {
                 </div>
               </div>
             )}
+
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
+
+            {/* Recommendations */}
+            <div style={{ paddingBottom: 8 }}>
+              <div style={{ padding: "0 16px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 900 }}>📡 Em Destaque</h2>
+                  <p style={{ fontSize: 13, color: "#484f58", marginTop: 4 }}>Tendências desta semana</p>
+                </div>
+                <button onClick={loadRecos} disabled={recoLoading} style={{
+                  background: recoLoading ? "#21262d" : `${accent}22`,
+                  border: `1px solid ${recoLoading ? "#30363d" : accent + "44"}`,
+                  color: recoLoading ? "#484f58" : accent,
+                  borderRadius: 10, padding: "8px 14px", cursor: recoLoading ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
+                  transition: "all 0.2s",
+                }}>
+                  <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none" }}>↻</span>
+                  {recoLoading ? "A carregar..." : "Atualizar"}
+                </button>
+              </div>
+              <RecoCarousel title="Anime em Tendência" icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Manga em Tendência" icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Filmes desta Semana" icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Séries desta Semana" icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Jogos Mais Bem Avaliados" icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+            </div>
           </div>
         )}
 
