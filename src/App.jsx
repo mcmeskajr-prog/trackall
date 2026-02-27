@@ -1685,13 +1685,12 @@ async function fetchTrendingGames(workerUrl) {
   if (!workerUrl) return [];
   try {
     const url = workerUrl.replace(/\/$/, "") + "/igdb";
-    // Duas queries com offsets diferentes, misturadas
-    const offsets = [0, Math.floor(Math.random() * 100)];
-    const results = await Promise.all(offsets.map(offset =>
+    const offset = Math.floor(Math.random() * 100);
+    const results = await Promise.all([0, offset].map(off =>
       fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 75 & rating_count > 30 & cover != null; sort rating desc; limit 30; offset ${offset};` }),
+        headers: { "Content-Type": "text/plain" },
+        body: `fields name,cover.url,rating; where rating > 75 & rating_count > 30 & cover != null; sort rating desc; limit 30; offset ${off};`,
       }).then(r => r.json()).then(d => Array.isArray(d) ? d : []).catch(() => [])
     ));
     return shuffle(results.flat()).map(g => ({
