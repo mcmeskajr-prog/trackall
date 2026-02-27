@@ -6,6 +6,10 @@ const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── Configurações padrão (pré-definidas para todos os utilizadores) ──────────
+const DEFAULT_TMDB_KEY = "a678e98d2bdf3f7065d2cd5b5ab6aa54";
+const DEFAULT_WORKER_URL = "https://trackall-proxy.mcmeskajr.workers.dev";
+
 // Wrapper simples para manter compatibilidade com o resto do código
 const supa = {
   _user: null,
@@ -994,70 +998,28 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         </div>
       </div>
 
-      {/* API Keys */}
+      {/* API Status — tudo pré-configurado */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>CONFIGURAÇÕES API</h3>
-
-      {/* Status grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
-        {[
-          { icon: "⛩", label: "Anime/Manga", sub: "AniList — automático", ok: true },
-          { icon: "📚", label: "Livros", sub: "OpenLibrary — automático", ok: true },
-          { icon: "🎮", label: "Jogos", sub: workerUrl ? "IGDB+Steam ✓" : "Steam only (sem Worker)", ok: !!workerUrl, warn: !workerUrl },
-          { icon: "🎬", label: "Filmes/Séries", sub: tmdbKey ? "TMDB ativo ✓" : "Chave necessária", ok: !!tmdbKey },
-          { icon: "💬", label: "Comics", sub: workerUrl ? "ComicVine ✓" : "Worker necessário", ok: !!workerUrl, warn: !workerUrl },
-          { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList — automático", ok: true },
-        ].map(s => (
-          <div key={s.label} style={{ background: "#0d1117", border: `1px solid ${s.ok ? "#10b98133" : s.warn ? "#eab30833" : "#ef444433"}`, borderRadius: 8, padding: "8px 10px" }}>
-            <div style={{ fontWeight: 700, fontSize: 12 }}>
-              <span style={{ color: s.ok ? "#10b981" : s.warn ? "#eab308" : "#ef4444" }}>{s.ok ? "✓ " : s.warn ? "⚡ " : "! "}</span>
-              {s.icon} {s.label}
+      <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {[
+            { icon: "⛩", label: "Anime/Manga", sub: "AniList" },
+            { icon: "📚", label: "Livros", sub: "OpenLibrary" },
+            { icon: "🎮", label: "Jogos", sub: "IGDB + Steam" },
+            { icon: "🎬", label: "Filmes/Séries", sub: "TMDB" },
+            { icon: "💬", label: "Comics", sub: "ComicVine" },
+            { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList" },
+          ].map(s => (
+            <div key={s.label} style={{ background: "#0d1117", border: "1px solid #10b98122", borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontWeight: 700, fontSize: 12 }}><span style={{ color: "#10b981" }}>✓ </span>{s.icon} {s.label}</div>
+              <div style={{ color: "#484f58", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
             </div>
-            <div style={{ color: "#484f58", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Worker URL + TMDB */}
-      {[
-        {
-          icon: "☁", title: "Cloudflare Worker — Proxy (IGDB + ComicVine)",
-          desc: <>
-            O Worker esconde as tuas chaves de API e resolve o CORS para IGDB e ComicVine.<br />
-            Após o deploy cola aqui o URL do teu Worker.<br />
-            Formato: <span style={{ color: "#6e9cf7", fontFamily: "monospace" }}>https://trackall-proxy.teu-nome.workers.dev</span>
-          </>,
-          val: workerUrl, onSave: onWorkerUrl, placeholder: "https://trackall-proxy.teu-nome.workers.dev",
-          warn: !workerUrl ? "⚡ Sem Worker: jogos limitados a Steam (só PC) e comics sem resultados." : null,
-          isUrl: true,
-        },
-        {
-          icon: "🎬", title: "TMDB — Filmes & Séries",
-          desc: <>Regista em <span style={{ color: "#6e9cf7" }}>themoviedb.org/settings/api</span> — menos de 5 min, totalmente grátis.</>,
-          val: tmdbKey, onSave: onTmdbKey, placeholder: "Chave TMDB...",
-          warn: !tmdbKey ? "! Sem TMDB, filmes e séries não têm resultados." : null,
-          isUrl: false,
-        },
-      ].map(({ icon, title, desc, val, onSave, placeholder, warn, isUrl }) => (
-        <div key={title} style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{icon} {title}</p>
-          <p style={{ fontSize: 11, color: "#8b949e", marginBottom: 10, lineHeight: 1.6 }}>{desc}</p>
-          <input
-            key={val}
-            defaultValue={val}
-            placeholder={placeholder}
-            onBlur={(e) => onSave(e.target.value.trim())}
-            style={{ width: "100%", padding: "10px 12px", fontSize: 12, fontFamily: isUrl ? "monospace" : "inherit" }}
-            type={isUrl ? "url" : "password"}
-          />
-          {warn && <p style={{ fontSize: 11, color: warn.startsWith("!") ? "#ef4444" : "#eab308", marginTop: 6 }}>{warn}</p>}
-        </div>
-      ))}
-
-      <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginTop: 8, marginBottom: 20 }}>
-        Chaves inseridas aqui ficam guardadas localmente no dispositivo — nunca saem da app.
-      </p>
-
-      </div>{/* end padding div */}
+            </div>{/* end padding div */}
     </div>
   );
 }
@@ -1173,8 +1135,8 @@ export default function TrackAll() {
   const [bgColor, setBgColor] = useState("#0d1117");
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
-  const [tmdbKey, setTmdbKey] = useState("");
-  const [workerUrl, setWorkerUrl] = useState("");
+  const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
+  const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1215,7 +1177,9 @@ export default function TrackAll() {
         if (prof.accent) setAccent(prof.accent);
         if (prof.bg_color) setBgColor(prof.bg_color);
         if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
+        else setTmdbKey(DEFAULT_TMDB_KEY);
         if (prof.worker_url) setWorkerUrl(prof.worker_url);
+        else setWorkerUrl(DEFAULT_WORKER_URL);
       }
       if (lib) setLibrary(lib);
     } catch {}
@@ -1483,22 +1447,7 @@ export default function TrackAll() {
         {view === "home" && (
           <div className="fade-in">
             {/* Setup banner — só aparece quando faltam chaves importantes */}
-            {(!tmdbKey || !workerUrl) && (
-              <div onClick={() => setView("profile")} style={{
-                margin: "12px 16px 0", padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-                background: "linear-gradient(135deg, #1a1f2e, #0d1117)",
-                border: "1px solid #eab30844", display: "flex", alignItems: "center", gap: 12,
-              }}>
-                <span style={{ fontSize: 22 }}>⚙️</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#eab308" }}>Configuração recomendada</p>
-                  <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>
-                    {[!tmdbKey && "Filmes/Séries", !workerUrl && "Jogos PS/Xbox/Nintendo + Comics"].filter(Boolean).join(" · ")} precisam de configuração
-                  </p>
-                </div>
-                <span style={{ color: "#eab308", fontSize: 18 }}>→</span>
-              </div>
-            )}
+            {/* Setup banner removido — configurações pré-definidas */}
             <div className="hero-gradient" style={{ padding: "56px 20px 48px", textAlign: "center" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `rgba(${accentRgb},0.1)`, border: `1px solid rgba(${accentRgb},0.2)`, borderRadius: 999, padding: "5px 14px", marginBottom: 24, fontSize: 12, color: accent, fontWeight: 600 }}>
                 ✦ Organiza toda a tua mídia num só lugar
