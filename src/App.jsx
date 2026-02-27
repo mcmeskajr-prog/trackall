@@ -1610,15 +1610,18 @@ function AuthScreen({ onAuth, accent }) {
 }
 
 // ─── Recommendations ──────────────────────────────────────────────────────────
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
 async function fetchTrendingAnime() {
   try {
-    const r = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: `{ Page(page:1,perPage:50) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
-    });
-    const d = await r.json();
-    return (d.data?.Page?.media || []).map(m => ({
+    const pages = await Promise.all([1,2,3].map(page =>
+      fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:${page},perPage:20) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => [])
+    ));
+    return shuffle(pages.flat()).map(m => ({
       id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
       type: "anime", source: "AniList", score: m.averageScore,
     }));
@@ -1627,13 +1630,14 @@ async function fetchTrendingAnime() {
 
 async function fetchTrendingManga() {
   try {
-    const r = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: `{ Page(page:1,perPage:50) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
-    });
-    const d = await r.json();
-    return (d.data?.Page?.media || []).map(m => ({
+    const pages = await Promise.all([1,2,3].map(page =>
+      fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:${page},perPage:20) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => [])
+    ));
+    return shuffle(pages.flat()).map(m => ({
       id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
       type: "manga", source: "AniList", score: m.averageScore,
     }));
@@ -1643,9 +1647,11 @@ async function fetchTrendingManga() {
 async function fetchTrendingMovies(tmdbKey) {
   if (!tmdbKey) return [];
   try {
-    const r = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT`);
-    const d = await r.json();
-    return (d.results || []).slice(0, 50).map(m => ({
+    const pages = await Promise.all([1,2,3].map(page =>
+      fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`)
+        .then(r => r.json()).then(d => d.results || []).catch(() => [])
+    ));
+    return shuffle(pages.flat()).map(m => ({
       id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
       type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10),
     }));
@@ -1655,9 +1661,11 @@ async function fetchTrendingMovies(tmdbKey) {
 async function fetchTrendingSeries(tmdbKey) {
   if (!tmdbKey) return [];
   try {
-    const r = await fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT`);
-    const d = await r.json();
-    return (d.results || []).slice(0, 50).map(m => ({
+    const pages = await Promise.all([1,2,3].map(page =>
+      fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`)
+        .then(r => r.json()).then(d => d.results || []).catch(() => [])
+    ));
+    return shuffle(pages.flat()).map(m => ({
       id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
       type: "series", source: "TMDB", score: Math.round(m.vote_average * 10),
     }));
@@ -1668,17 +1676,18 @@ async function fetchTrendingGames(workerUrl) {
   if (!workerUrl) return [];
   try {
     const url = workerUrl.replace(/\/$/, "") + "/igdb";
+    const offset = Math.floor(Math.random() * 150);
     const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 80 & rating_count > 100 & first_release_date > ${Math.floor(Date.now()/1000) - 60*60*24*365}; sort rating desc; limit 50;` }),
+      body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 75 & rating_count > 50 & cover != null; sort rating desc; limit 50; offset ${offset};` }),
     });
     const d = await r.json();
-    return (d || []).map(g => ({
+    return shuffle(d || []).map(g => ({
       id: `igdb-${g.id}`, title: g.name,
-      cover: g.cover?.url ? g.cover.url.replace("t_thumb", "t_cover_big").replace("http://", "https://") : null,
+      cover: g.cover?.url ? "https:" + g.cover.url.replace("t_thumb", "t_cover_big") : null,
       type: "jogos", source: "IGDB", score: Math.round(g.rating),
-    }));
+    })).filter(g => g.cover);
   } catch { return []; }
 }
 
@@ -1696,8 +1705,8 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
   );
   if (!items || items.length === 0) return null;
 
-  // Always show 10 items not in library — as user adds items, new ones appear
-  const toShow = items.filter(i => !library[i.id]).slice(0, 10);
+  // Filter out items already in library — as user adds, new ones slide in
+  const toShow = items.filter(i => !library[i.id]);
   if (toShow.length === 0) return null;
 
   return (
