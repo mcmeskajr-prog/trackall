@@ -104,9 +104,24 @@ const supa = {
 
   async getFriendships(userId) {
     const { data } = await supabase.from('friendships')
-      .select('*, requester:requester_id(id,name,username,avatar), addressee:addressee_id(id,name,username,avatar)')
+      .select('id, requester_id, addressee_id, status, created_at')
       .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-    return data || [];
+    if (!data || data.length === 0) return [];
+
+    // Collect all unique user IDs to fetch profiles for
+    const userIds = [...new Set(data.flatMap(f => [f.requester_id, f.addressee_id]).filter(id => id !== userId))];
+    const { data: profiles } = await supabase.from('profiles')
+      .select('id, name, username, avatar')
+      .in('id', userIds);
+
+    const profileMap = {};
+    (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+    return data.map(f => ({
+      ...f,
+      requester: profileMap[f.requester_id] || { id: f.requester_id, name: "Utilizador", username: "", avatar: "" },
+      addressee: profileMap[f.addressee_id] || { id: f.addressee_id, name: "Utilizador", username: "", avatar: "" },
+    }));
   },
 
   async getFriendLibrary(userId) {
