@@ -486,7 +486,7 @@ function Notification({ notif }) {
 
 // ─── Image utils ───────────────────────────────────────────────────────────────
 // Compresses an image File to a base64 JPEG ≤ 300 KB (portrait 400×600)
-function compressImage(file, maxW = 400, maxH = 600, quality = 0.82) {
+function compressImage(file, maxW = 600, maxH = 900, quality = 0.92) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -496,7 +496,10 @@ function compressImage(file, maxW = 400, maxH = 600, quality = 0.82) {
       const h = Math.round(img.height * ratio);
       const canvas = document.createElement("canvas");
       canvas.width = w; canvas.height = h;
-      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL("image/jpeg", quality));
     };
@@ -505,9 +508,9 @@ function compressImage(file, maxW = 400, maxH = 600, quality = 0.82) {
   });
 }
 
-// Same but for banners (wide, 900×340)
+// Banner — alta qualidade
 function compressBanner(file) {
-  return compressImage(file, 900, 340, 0.80);
+  return compressImage(file, 1200, 400, 0.90);
 }
 
 // ─── Crop Modal ───────────────────────────────────────────────────────────────
@@ -1205,10 +1208,19 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
                 cursor: "pointer", transition: "transform 0.1s",
               }} title={p.name} />
             ))}
-            <label style={{ width: 36, height: 36, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16 }} title="Cor personalizada">
-              +
-              <input type="color" value={accent} onChange={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-            </label>
+              <label style={{ width: 36, height: 36, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, position: "relative" }} title="Cor personalizada">
+                +
+                <input
+                  type="color"
+                  defaultValue={accent}
+                  onBlur={(e) => onAccentChange(e.target.value)}
+                  onChange={(e) => {
+                    // Update preview in real-time but only save on blur
+                    document.documentElement.style.setProperty('--accent-preview', e.target.value);
+                  }}
+                  style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                />
+              </label>
           </div>
         </div>
         <div>
@@ -1225,11 +1237,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
               width: 36, height: 36, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18,
               background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden",
-            }} title="Imagem de fundo">
+            }} title="Imagem de fundo (recomendado: 1920×1080)">
               {!bgImage && "🖼"}
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                 const file = e.target.files[0]; if (!file) return;
-                const compressed = await compressImage(file, 1920, 1080, 0.75);
+                const compressed = await compressImage(file, 1920, 1080, 0.90);
                 if (compressed) onBgImage(compressed);
               }} />
             </label>
@@ -1237,6 +1249,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
               <button onClick={() => onBgImage("")} style={{ fontSize: 12, padding: "4px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ Remover</button>
             )}
           </div>
+          <p style={{ fontSize: 11, color: "#484f58", marginTop: 6 }}>💡 Melhor qualidade com 1920×1080px (16:9). A imagem fica fixa ao fazer scroll.</p>
         </div>
       </div>
 
@@ -1425,7 +1438,7 @@ function FriendsView({ user, accent }) {
 
         {/* Recentes com rating */}
         {recentItems.length > 0 && (
-          <div style={{ padding: "0 16px" }}>
+          <div style={{ padding: "0 16px", marginBottom: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>ADICIONADO RECENTEMENTE</h3>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
               {recentItems.map(item => {
@@ -1451,6 +1464,34 @@ function FriendsView({ user, accent }) {
             </div>
           </div>
         )}
+
+        {/* Já viram / Concluídos */}
+        {(() => {
+          const completed = libItems.filter(i => i.userStatus === "completo").sort((a,b) => b.addedAt - a.addedAt);
+          if (completed.length === 0) return null;
+          return (
+            <div style={{ padding: "0 16px", marginBottom: 24 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ JÁ VIRAM / CONCLUÍRAM</h3>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                {completed.map(item => (
+                  <div key={item.id} style={{ flexShrink: 0, width: 84 }}>
+                    <div style={{ width: 84, height: 120, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative", border: "1px solid #10b98133" }}>
+                      {item.cover ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
+                      {item.userRating > 0 && (
+                        <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.8)", borderRadius: 5, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
+                          <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
+                          <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
+                        </div>
+                      )}
+                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 4px", fontSize: 10 }}>✓</div>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#8b949e", marginTop: 5, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
