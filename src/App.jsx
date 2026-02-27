@@ -495,6 +495,107 @@ function compressBanner(file) {
   return compressImage(file, 900, 340, 0.80);
 }
 
+// ─── Crop Modal ───────────────────────────────────────────────────────────────
+function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+  const canvasRef = useRef(null);
+  const [drag, setDrag] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  const [startDrag, setStartDrag] = useState(null);
+  const imgRef = useRef(null);
+
+  const CANVAS_W = 320;
+  const CANVAS_H = Math.round(CANVAS_W / aspectRatio);
+
+  useEffect(() => {
+    const img = new window.Image();
+    img.onload = () => {
+      imgRef.current = img;
+      const initScale = Math.max(CANVAS_W / img.width, CANVAS_H / img.height);
+      setScale(initScale);
+      setOffset({ x: (CANVAS_W - img.width * initScale) / 2, y: (CANVAS_H - img.height * initScale) / 2 });
+      setImgSize({ w: img.width, h: img.height });
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
+
+  useEffect(() => { drawCanvas(); }, [offset, scale, imgSize]);
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imgRef.current) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
+  };
+
+  const clampOffset = (ox, oy, s) => {
+    const iw = imgSize.w * s, ih = imgSize.h * s;
+    return {
+      x: Math.min(0, Math.max(CANVAS_W - iw, ox)),
+      y: Math.min(0, Math.max(CANVAS_H - ih, oy)),
+    };
+  };
+
+  const onMouseDown = (e) => { setDrag(true); setStartDrag({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
+  const onMouseMove = (e) => {
+    if (!drag || !startDrag) return;
+    const newOff = clampOffset(e.clientX - startDrag.x, e.clientY - startDrag.y, scale);
+    setOffset(newOff);
+  };
+  const onMouseUp = () => { setDrag(false); setStartDrag(null); };
+  const onTouchStart = (e) => { const t = e.touches[0]; setDrag(true); setStartDrag({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
+  const onTouchMove = (e) => {
+    if (!drag || !startDrag) return;
+    const t = e.touches[0];
+    const newOff = clampOffset(t.clientX - startDrag.x, t.clientY - startDrag.y, scale);
+    setOffset(newOff);
+  };
+
+  const handleZoom = (delta) => {
+    const newScale = Math.max(scale + delta, Math.max(CANVAS_W / imgSize.w, CANVAS_H / imgSize.h));
+    const newOff = clampOffset(offset.x, offset.y, newScale);
+    setScale(newScale);
+    setOffset(newOff);
+  };
+
+  const handleSave = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
+    onSave(canvas.toDataURL("image/jpeg", 0.85));
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#161b22", borderRadius: 16, padding: 20, width: "100%", maxWidth: 380 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, textAlign: "center" }}>{title}</h3>
+        <div style={{ borderRadius: 12, overflow: "hidden", cursor: drag ? "grabbing" : "grab", marginBottom: 16, touchAction: "none" }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_W} height={CANVAS_H}
+            style={{ display: "block", width: "100%" }}
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}
+          />
+        </div>
+        <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginBottom: 12 }}>Arrasta para reposicionar</p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16 }}>
+          <button onClick={() => handleZoom(-0.1)} style={{ padding: "6px 16px", background: "#21262d", border: "none", borderRadius: 8, color: "#e6edf3", cursor: "pointer", fontSize: 18, fontFamily: "inherit" }}>−</button>
+          <span style={{ color: "#8b949e", fontSize: 12, alignSelf: "center" }}>Zoom</span>
+          <button onClick={() => handleZoom(0.1)} style={{ padding: "6px 16px", background: "#21262d", border: "none", borderRadius: 8, color: "#e6edf3", cursor: "pointer", fontSize: 18, fontFamily: "inherit" }}>+</button>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={handleSave} style={{ flex: 1, padding: 12, background: "#f97316", border: "none", borderRadius: 10, color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14 }}>✓ Guardar</button>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Cover Edit Modal ──────────────────────────────────────────────────────────
 function CoverEditModal({ item, onSave, onClose }) {
   const [url, setUrl] = useState(item.customCover || item.cover || "");
@@ -821,6 +922,8 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
   const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
   const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
   const avatarRef = useRef();
   const bannerRef = useRef();
   const items = Object.values(library);
@@ -831,18 +934,24 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   const totalRatings = items.filter((i) => i.userRating > 0);
   const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
 
-  const handleAvatarFile = async (e) => {
+  const handleAvatarFile = (e) => {
     const file = e.target.files[0]; if (!file) return;
-    // 160x160, qualidade 0.72 → ~15-40KB, bem abaixo do limite de 5MB
-    const compressed = await compressImage(file, 160, 160, 0.72);
-    if (compressed) setAvatarPreview(compressed);
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("avatar");
   };
 
-  const handleBannerFile = async (e) => {
+  const handleBannerFile = (e) => {
     const file = e.target.files[0]; if (!file) return;
-    // 800x280, qualidade 0.72 → ~80-250KB
-    const compressed = await compressImage(file, 800, 280, 0.72);
-    if (compressed) { setBannerPreview(compressed); setBannerUrl(compressed); }
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("banner");
+  };
+
+  const handleCropSave = (dataUrl) => {
+    if (cropType === "avatar") setAvatarPreview(dataUrl);
+    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
+    setCropSrc(null); setCropType(null);
   };
 
   const handleSave = async () => {
@@ -1123,6 +1232,15 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
 
             </div>{/* end padding div */}
     </div>
+    {cropSrc && (
+      <CropModal
+        imageSrc={cropSrc}
+        aspectRatio={cropType === "banner" ? 800/280 : 1}
+        title={cropType === "banner" ? "Recortar Banner" : "Recortar Avatar"}
+        onSave={handleCropSave}
+        onClose={() => { setCropSrc(null); setCropType(null); }}
+      />
+    )}
   );
 }
 
@@ -1168,7 +1286,14 @@ function FriendsView({ user, accent }) {
       await supa.sendFriendRequest(user.id, targetId);
       showNotif("Pedido enviado!");
       await loadFriendships();
-    } catch (e) { showNotif("Erro: " + e.message); }
+    } catch (e) {
+      if (e.message?.includes("duplicate")) {
+        showNotif("Pedido já enviado!");
+      } else {
+        showNotif("Erro: " + e.message);
+      }
+      await loadFriendships();
+    }
   };
 
   const handleAccept = async (fId) => {
