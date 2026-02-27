@@ -963,6 +963,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
   return (
+    <>
     <div style={{ paddingBottom: 32, maxWidth: 600, margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
@@ -1241,6 +1242,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         onClose={() => { setCropSrc(null); setCropType(null); }}
       />
     )}
+    </>
   );
 }
 
