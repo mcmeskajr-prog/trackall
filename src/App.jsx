@@ -1614,15 +1614,19 @@ const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 async function fetchTrendingAnime() {
   try {
-    const pages = await Promise.all([1,2,3].map(page =>
+    // Busca 2 listas diferentes e mistura
+    const [trending, popular] = await Promise.all([
       fetch("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Page(page:${page},perPage:20) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
-      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => [])
-    ));
-    return shuffle(pages.flat()).map(m => ({
-      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => []),
+      fetch("https://graphql.anilist.co", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => []),
+    ]);
+    return shuffle([...trending, ...popular]).map(m => ({
+      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large,
       type: "anime", source: "AniList", score: m.averageScore,
     }));
   } catch { return []; }
@@ -1630,15 +1634,18 @@ async function fetchTrendingAnime() {
 
 async function fetchTrendingManga() {
   try {
-    const pages = await Promise.all([1,2,3].map(page =>
+    const [p1, p2] = await Promise.all([
       fetch("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Page(page:${page},perPage:20) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
-      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => [])
-    ));
-    return shuffle(pages.flat()).map(m => ({
-      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage.large,
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => []),
+      fetch("https://graphql.anilist.co", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
+      }).then(r => r.json()).then(d => d.data?.Page?.media || []).catch(() => []),
+    ]);
+    return shuffle([...p1, ...p2]).map(m => ({
+      id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large,
       type: "manga", source: "AniList", score: m.averageScore,
     }));
   } catch { return []; }
@@ -1647,12 +1654,13 @@ async function fetchTrendingManga() {
 async function fetchTrendingMovies(tmdbKey) {
   if (!tmdbKey) return [];
   try {
-    const pages = await Promise.all([1,2,3].map(page =>
+    const [p1, p2, p3] = await Promise.all([1,2,3].map(page =>
       fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`)
         .then(r => r.json()).then(d => d.results || []).catch(() => [])
     ));
-    return shuffle(pages.flat()).map(m => ({
-      id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+    return shuffle([...p1, ...p2, ...p3]).map(m => ({
+      id: `tmdb-movie-${m.id}`, title: m.title,
+      cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
       type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10),
     }));
   } catch { return []; }
@@ -1661,12 +1669,13 @@ async function fetchTrendingMovies(tmdbKey) {
 async function fetchTrendingSeries(tmdbKey) {
   if (!tmdbKey) return [];
   try {
-    const pages = await Promise.all([1,2,3].map(page =>
+    const [p1, p2, p3] = await Promise.all([1,2,3].map(page =>
       fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`)
         .then(r => r.json()).then(d => d.results || []).catch(() => [])
     ));
-    return shuffle(pages.flat()).map(m => ({
-      id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+    return shuffle([...p1, ...p2, ...p3]).map(m => ({
+      id: `tmdb-tv-${m.id}`, title: m.name,
+      cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
       type: "series", source: "TMDB", score: Math.round(m.vote_average * 10),
     }));
   } catch { return []; }
@@ -1676,14 +1685,16 @@ async function fetchTrendingGames(workerUrl) {
   if (!workerUrl) return [];
   try {
     const url = workerUrl.replace(/\/$/, "") + "/igdb";
-    const offset = Math.floor(Math.random() * 150);
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 75 & rating_count > 50 & cover != null; sort rating desc; limit 50; offset ${offset};` }),
-    });
-    const d = await r.json();
-    return shuffle(d || []).map(g => ({
+    // Duas queries com offsets diferentes, misturadas
+    const offsets = [0, Math.floor(Math.random() * 100)];
+    const results = await Promise.all(offsets.map(offset =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `fields name,cover.url,rating; where rating > 75 & rating_count > 30 & cover != null; sort rating desc; limit 30; offset ${offset};` }),
+      }).then(r => r.json()).then(d => Array.isArray(d) ? d : []).catch(() => [])
+    ));
+    return shuffle(results.flat()).map(g => ({
       id: `igdb-${g.id}`, title: g.name,
       cover: g.cover?.url ? "https:" + g.cover.url.replace("t_thumb", "t_cover_big") : null,
       type: "jogos", source: "IGDB", score: Math.round(g.rating),
@@ -1800,20 +1811,15 @@ export default function TrackAll() {
   const loadRecos = async () => {
     setRecoLoading(true);
     try {
-      const [anime, manga, filmes, series, jogos] = await Promise.allSettled([
-        fetchTrendingAnime(),
-        fetchTrendingManga(),
+      // Carrega sequencialmente para evitar rate limiting
+      const anime = await fetchTrendingAnime();
+      const manga = await fetchTrendingManga();
+      const [filmes, series, jogos] = await Promise.all([
         fetchTrendingMovies(DEFAULT_TMDB_KEY),
         fetchTrendingSeries(DEFAULT_TMDB_KEY),
         fetchTrendingGames(DEFAULT_WORKER_URL),
       ]);
-      setRecos({
-        anime: anime.value || [],
-        manga: manga.value || [],
-        filmes: filmes.value || [],
-        series: series.value || [],
-        jogos: jogos.value || [],
-      });
+      setRecos({ anime, manga, filmes, series, jogos });
     } catch {}
     setRecoLoading(false);
   };
