@@ -930,7 +930,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAccentChange, onBgChange, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -1081,7 +1081,7 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
 
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && (() => {
-        const recent = [...items].sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
+        const recent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
         return (
           <div style={{ marginBottom: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
@@ -1213,14 +1213,29 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         </div>
         <div>
           <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Fundo</p>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {BG_PRESETS.map((p) => (
-              <button key={p.name} onClick={() => onBgChange(p.value)} style={{
+              <button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{
                 width: 36, height: 36, borderRadius: 10, background: p.value,
-                border: bgColor === p.value ? `2px solid ${accent}` : "2px solid #30363d",
+                border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d",
                 cursor: "pointer",
               }} title={p.name} />
             ))}
+            <label style={{
+              width: 36, height: 36, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18,
+              background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden",
+            }} title="Imagem de fundo">
+              {!bgImage && "🖼"}
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const compressed = await compressImage(file, 1920, 1080, 0.75);
+                if (compressed) onBgImage(compressed);
+              }} />
+            </label>
+            {bgImage && (
+              <button onClick={() => onBgImage("")} style={{ fontSize: 12, padding: "4px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ Remover</button>
+            )}
           </div>
         </div>
       </div>
@@ -1349,44 +1364,93 @@ function FriendsView({ user, accent }) {
   if (selectedFriend && friendData) {
     const libItems = Object.values(friendData.library || {});
     const favs = friendData.profile?.favorites || [];
+    const byStatus = {};
+    STATUS_OPTIONS.forEach(s => { byStatus[s.id] = libItems.filter(i => i.userStatus === s.id).length; });
+    const rated = libItems.filter(i => i.userRating > 0);
+    const avgRating = rated.length ? (rated.reduce((a, i) => a + i.userRating, 0) / rated.length).toFixed(1) : "—";
+    const recentItems = [...libItems].filter(i => i.userStatus !== "planejado").sort((a,b) => b.addedAt - a.addedAt).slice(0, 20);
+
     return (
-      <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 0 20px" }}>
+      <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 20 }}>
         <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "16px" }}>← Voltar</button>
-        <div style={{ textAlign: "center", padding: "10px 16px 20px" }}>
-          <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", margin: "0 auto 10px", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", padding: "10px 16px 24px" }}>
+          <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", margin: "0 auto 14px", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, border: `3px solid ${accent}44` }}>
             {friendData.profile?.avatar ? <img src={friendData.profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 800 }}>{friendData.profile?.name || selectedFriend.name || "Utilizador"}</h2>
-          {friendData.profile?.bio && <p style={{ color: "#8b949e", fontSize: 13, marginTop: 4 }}>{friendData.profile.bio}</p>}
-          <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>{libItems.length} na biblioteca</p>
+          <h2 style={{ fontSize: 24, fontWeight: 900 }}>{friendData.profile?.name || selectedFriend.name || "Utilizador"}</h2>
+          {friendData.profile?.username && <p style={{ color: "#484f58", fontSize: 14, marginTop: 2 }}>@{friendData.profile.username}</p>}
+          {friendData.profile?.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>{friendData.profile.bio}</p>}
         </div>
+
+        {/* Stats */}
+        <div style={{ padding: "0 16px", marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+            {STATUS_OPTIONS.map(s => (
+              <div key={s.id} style={{ background: "#161b22", border: `1px solid ${s.color}22`, borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
+                <div style={{ fontSize: 11, color: "#484f58", marginTop: 2 }}>{s.emoji} {s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+            <div style={{ background: "#161b22", border: "1px solid #f59e0b22", borderRadius: 12, padding: "12px", textAlign: "center" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#f59e0b" }}>{avgRating}</div>
+              <div style={{ fontSize: 11, color: "#484f58", marginTop: 2 }}>★ Média de Rating</div>
+            </div>
+            <div style={{ background: "#161b22", border: "1px solid #a855f722", borderRadius: 12, padding: "12px", textAlign: "center" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#a855f7" }}>{libItems.length}</div>
+              <div style={{ fontSize: 11, color: "#484f58", marginTop: 2 }}>📚 Total na Biblioteca</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Favoritos */}
         {favs.length > 0 && (
-          <div style={{ padding: "0 16px", marginBottom: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#8b949e", marginBottom: 10 }}>FAVORITOS</h3>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+          <div style={{ padding: "0 16px", marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>FAVORITOS</h3>
+            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
               {favs.map(item => (
-                <div key={item.id} style={{ flexShrink: 0, width: 72 }}>
-                  <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: "#21262d" }}>
-                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🎭</div>}
+                <div key={item.id} style={{ flexShrink: 0, width: 90 }}>
+                  <div style={{ width: 90, height: 130, borderRadius: 10, overflow: "hidden", background: "#21262d", border: `1px solid ${accent}33` }}>
+                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎭</div>}
                   </div>
-                  <p style={{ fontSize: 10, color: "#8b949e", marginTop: 4, lineHeight: 1.3 }}>{item.title?.slice(0,20)}</p>
+                  <p style={{ fontSize: 11, color: "#8b949e", marginTop: 6, lineHeight: 1.3 }}>{item.title?.slice(0,22)}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
-        <div style={{ padding: "0 16px" }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#8b949e", marginBottom: 10 }}>BIBLIOTECA RECENTE</h3>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
-            {[...libItems].sort((a,b) => b.addedAt - a.addedAt).slice(0,12).map(item => (
-              <div key={item.id} style={{ flexShrink: 0, width: 64 }}>
-                <div style={{ width: 64, height: 90, borderRadius: 6, overflow: "hidden", background: "#21262d" }}>
-                  {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>🎭</div>}
-                </div>
-              </div>
-            ))}
+
+        {/* Recentes com rating */}
+        {recentItems.length > 0 && (
+          <div style={{ padding: "0 16px" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>ADICIONADO RECENTEMENTE</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+              {recentItems.map(item => {
+                const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
+                return (
+                  <div key={item.id} style={{ flexShrink: 0, width: 84 }}>
+                    <div style={{ width: 84, height: 120, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                      {item.cover ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
+                      {item.userRating > 0 && (
+                        <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.8)", borderRadius: 5, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
+                          <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
+                          <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
+                        </div>
+                      )}
+                      {status && (
+                        <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 4px", fontSize: 10 }}>{status.emoji}</div>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 11, color: "#8b949e", marginTop: 5, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -1764,6 +1828,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
+  const [bgImage, setBgImage] = useState("");
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
@@ -1810,6 +1875,7 @@ export default function TrackAll() {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
         if (prof.accent) setAccent(prof.accent);
         if (prof.bg_color) setBgColor(prof.bg_color);
+        if (prof.bg_image) setBgImage(prof.bg_image);
         if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
         else setTmdbKey(DEFAULT_TMDB_KEY);
         if (prof.worker_url) setWorkerUrl(prof.worker_url);
@@ -1894,6 +1960,10 @@ export default function TrackAll() {
   const saveBg = async (c) => {
     setBgColor(c);
     if (user) try { await supa.upsertProfile(user.id, { bg_color: c }); } catch {}
+  };
+  const saveBgImage = async (img) => {
+    setBgImage(img);
+    if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
   };
   const saveTmdbKey = async (k) => {
     setTmdbKey(k);
@@ -2018,7 +2088,13 @@ export default function TrackAll() {
 
   return (
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
-      <div style={{ minHeight: "100vh", background: bgColor, color: "#e6edf3", fontFamily: "'Outfit', 'Segoe UI', sans-serif", paddingBottom: 80 }}>
+      <div style={{
+        minHeight: "100vh",
+        background: bgImage ? `url(${bgImage}) center/cover fixed` : bgColor,
+        color: "#e6edf3",
+        fontFamily: "'Outfit', 'Segoe UI', sans-serif",
+        paddingBottom: 80,
+      }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2166,7 +2242,7 @@ export default function TrackAll() {
                   <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
                 </div>
                 <div className="media-grid">
-                  {items.sort((a,b)=>b.addedAt-a.addedAt).slice(0,12).map((item) => (
+                  {items.filter(i => i.userStatus !== "planejado").sort((a,b)=>b.addedAt-a.addedAt).slice(0,12).map((item) => (
                     <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />
                   ))}
                 </div>
@@ -2302,9 +2378,11 @@ export default function TrackAll() {
             library={library}
             accent={accent}
             bgColor={bgColor}
+            bgImage={bgImage}
             onUpdateProfile={saveProfile}
             onAccentChange={saveAccent}
             onBgChange={saveBg}
+            onBgImage={saveBgImage}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
