@@ -1,107 +1,66 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
+import { createClient } from '@supabase/supabase-js';
 
-// ─── Supabase ─────────────────────────────────────────────────────────────────
-const SUPABASE_URL = "https://kgclapivcpjqxbtomaue.supabase.co";
-const SUPABASE_KEY = "sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B";
+// ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
+const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Cliente Supabase leve (sem SDK, usa fetch direto)
+// Wrapper simples para manter compatibilidade com o resto do código
 const supa = {
-  headers: (extra = {}) => ({
-    "Content-Type": "application/json",
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${supa._token || SUPABASE_KEY}`,
-    ...extra,
-  }),
-  _token: null,
   _user: null,
 
   async signUp(email, password) {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-      method: "POST",
-      headers: supa.headers(),
-      body: JSON.stringify({ email, password }),
-    });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message || d.msg || "Erro ao registar");
-    if (d.access_token) { supa._token = d.access_token; supa._user = d.user; }
-    return d;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw new Error(error.message);
+    supa._user = data.user;
+    return data;
   },
 
   async signIn(email, password) {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: supa.headers(),
-      body: JSON.stringify({ email, password }),
-    });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message || d.msg || "Email ou password incorretos");
-    supa._token = d.access_token;
-    supa._user = d.user;
-    localStorage.setItem("ta-session", JSON.stringify({ token: d.access_token, user: d.user, refresh: d.refresh_token }));
-    return d;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    supa._user = data.user;
+    return data;
   },
 
   async signOut() {
-    try {
-      await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: "POST", headers: supa.headers() });
-    } catch {}
-    supa._token = null; supa._user = null;
-    localStorage.removeItem("ta-session");
+    await supabase.auth.signOut();
+    supa._user = null;
   },
 
-  async refreshSession(refreshToken) {
-    try {
-      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-        method: "POST",
-        headers: supa.headers(),
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-      const d = await r.json();
-      if (d.access_token) {
-        supa._token = d.access_token; supa._user = d.user;
-        localStorage.setItem("ta-session", JSON.stringify({ token: d.access_token, user: d.user, refresh: d.refresh_token }));
-        return d;
-      }
-    } catch {}
+  async getSession() {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.user) {
+      supa._user = data.session.user;
+      return data.session.user;
+    }
     return null;
   },
 
   async getProfile(userId) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, { headers: supa.headers() });
-    const d = await r.json();
-    return Array.isArray(d) ? d[0] : null;
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    return data;
   },
 
-  async upsertProfile(userId, data) {
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
-      method: "PATCH",
-      headers: supa.headers({ "Prefer": "return=minimal" }),
-      body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
-    });
+  async upsertProfile(userId, profileData) {
+    await supabase.from('profiles').update({ ...profileData, updated_at: new Date().toISOString() }).eq('id', userId);
   },
 
   async getLibrary(userId) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/library?user_id=eq.${userId}&select=media_id,data`, { headers: supa.headers() });
-    const d = await r.json();
-    if (!Array.isArray(d)) return {};
+    const { data } = await supabase.from('library').select('media_id, data').eq('user_id', userId);
+    if (!data) return {};
     const lib = {};
-    d.forEach(row => { lib[row.media_id] = row.data; });
+    data.forEach(row => { lib[row.media_id] = row.data; });
     return lib;
   },
 
   async upsertLibraryItem(userId, mediaId, data) {
-    await fetch(`${SUPABASE_URL}/rest/v1/library`, {
-      method: "POST",
-      headers: supa.headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
-      body: JSON.stringify({ user_id: userId, media_id: mediaId, data, updated_at: new Date().toISOString() }),
-    });
+    await supabase.from('library').upsert({ user_id: userId, media_id: mediaId, data, updated_at: new Date().toISOString() }, { onConflict: 'user_id,media_id' });
   },
 
   async deleteLibraryItem(userId, mediaId) {
-    await fetch(`${SUPABASE_URL}/rest/v1/library?user_id=eq.${userId}&media_id=eq.${mediaId}`, {
-      method: "DELETE",
-      headers: supa.headers(),
-    });
+    await supabase.from('library').delete().eq('user_id', userId).eq('media_id', mediaId);
   },
 };
 
@@ -1120,12 +1079,16 @@ function AuthScreen({ onAuth, accent }) {
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "register") {
-        await supa.signUp(email.trim(), password);
-        setSuccess("Conta criada! Verifica o teu email para confirmar e depois faz login.");
-        setMode("login");
+        const { user: u } = await supa.signUp(email.trim(), password);
+        if (u) {
+          onAuth(u);
+        } else {
+          setSuccess("Conta criada! Faz login para entrar.");
+          setMode("login");
+        }
       } else {
-        const d = await supa.signIn(email.trim(), password);
-        onAuth(d.user, d.access_token);
+        const { user: u } = await supa.signIn(email.trim(), password);
+        onAuth(u);
       }
     } catch (e) {
       setError(e.message || "Erro desconhecido.");
@@ -1230,16 +1193,10 @@ export default function TrackAll() {
   useEffect(() => {
     const restore = async () => {
       try {
-        const saved = localStorage.getItem("ta-session");
-        if (saved) {
-          const { token, user: u, refresh } = JSON.parse(saved);
-          supa._token = token; supa._user = u;
-          // Tenta refresh para garantir token válido
-          const refreshed = await supa.refreshSession(refresh);
-          const activeUser = refreshed?.user || u;
-          supa._token = refreshed?.access_token || token;
-          setUser(activeUser);
-          await loadUserData(activeUser.id);
+        const user = await supa.getSession();
+        if (user) {
+          setUser(user);
+          await loadUserData(user.id);
         }
       } catch {}
       setAuthLoading(false);
