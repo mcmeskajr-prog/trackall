@@ -66,6 +66,61 @@ const supa = {
   async deleteLibraryItem(userId, mediaId) {
     await supabase.from('library').delete().eq('user_id', userId).eq('media_id', mediaId);
   },
+
+  async updateFavorites(userId, favorites) {
+    await supabase.from('profiles').update({ favorites }).eq('id', userId);
+  },
+
+  async updateUsername(userId, username) {
+    await supabase.from('profiles').update({ username }).eq('id', userId);
+  },
+
+  // ── Friends ──
+  async searchUsers(query) {
+    const { data } = await supabase.from('profiles')
+      .select('id, name, username, avatar')
+      .or(`username.ilike.%${query}%,name.ilike.%${query}%`)
+      .limit(10);
+    return data || [];
+  },
+
+  async sendFriendRequest(requesterId, addresseeId) {
+    const { error } = await supabase.from('friendships').insert({ requester_id: requesterId, addressee_id: addresseeId });
+    if (error) throw new Error(error.message);
+  },
+
+  async acceptFriendRequest(friendshipId) {
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
+  },
+
+  async declineFriendRequest(friendshipId) {
+    await supabase.from('friendships').delete().eq('id', friendshipId);
+  },
+
+  async removeFriend(requesterId, addresseeId) {
+    await supabase.from('friendships').delete()
+      .or(`and(requester_id.eq.${requesterId},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${requesterId})`);
+  },
+
+  async getFriendships(userId) {
+    const { data } = await supabase.from('friendships')
+      .select('*, requester:requester_id(id,name,username,avatar), addressee:addressee_id(id,name,username,avatar)')
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+    return data || [];
+  },
+
+  async getFriendLibrary(userId) {
+    const { data } = await supabase.from('library').select('media_id, data').eq('user_id', userId);
+    if (!data) return {};
+    const lib = {};
+    data.forEach(row => { lib[row.media_id] = row.data; });
+    return lib;
+  },
+
+  async getFriendProfile(userId) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    return data;
+  },
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
@@ -349,21 +404,51 @@ const gradientFor = (id) => {
 // ─── Star Rating Component ─────────────────────────────────────────────────────
 function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
   const [hover, setHover] = useState(0);
+  const active = hover || value;
+
+  // Each star = 1 point, but we support 0.5 increments
+  // We render 10 stars, each star can be empty, half, or full
   return (
-    <div style={{ display: "flex", gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span
-          key={star}
-          onClick={() => !readOnly && onChange && onChange(star === value ? 0 : star)}
-          onMouseEnter={() => !readOnly && setHover(star)}
-          onMouseLeave={() => !readOnly && setHover(0)}
-          style={{
-            fontSize: size, cursor: readOnly ? "default" : "pointer",
-            color: (hover || value) >= star ? "#f59e0b" : "#374151",
-            transition: "color 0.1s", lineHeight: 1,
-          }}
-        >★</span>
-      ))}
+    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+      {[1,2,3,4,5,6,7,8,9,10].map((star) => {
+        const full = active >= star;
+        const half = !full && active >= star - 0.5;
+        return (
+          <div
+            key={star}
+            style={{ position: "relative", width: size, height: size, cursor: readOnly ? "default" : "pointer", flexShrink: 0 }}
+            onMouseLeave={() => !readOnly && setHover(0)}
+          >
+            {/* Background star */}
+            <span style={{ fontSize: size, color: "#374151", lineHeight: 1, userSelect: "none" }}>★</span>
+            {/* Filled overlay */}
+            {(full || half) && (
+              <span style={{
+                position: "absolute", left: 0, top: 0, fontSize: size, color: "#f59e0b",
+                lineHeight: 1, overflow: "hidden", width: full ? "100%" : "50%", userSelect: "none",
+              }}>★</span>
+            )}
+            {/* Left half hitbox (X - 0.5) */}
+            <div
+              style={{ position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }}
+              onMouseEnter={() => !readOnly && setHover(star - 0.5)}
+              onClick={() => !readOnly && onChange && onChange(value === star - 0.5 ? 0 : star - 0.5)}
+            />
+            {/* Right half hitbox (X) */}
+            <div
+              style={{ position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }}
+              onMouseEnter={() => !readOnly && setHover(star)}
+              onClick={() => !readOnly && onChange && onChange(value === star ? 0 : star)}
+            />
+          </div>
+        );
+      })}
+      {active > 0 && !readOnly && (
+        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{active}</span>
+      )}
+      {readOnly && value > 0 && (
+        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{value}</span>
+      )}
     </div>
   );
 }
@@ -491,13 +576,14 @@ function CoverEditModal({ item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onClose, accent }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onClose, accent, favorites = [], onToggleFavorite }) {
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const inLib = !!library[item.id];
   const libItem = library[item.id];
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
-
+  const isFavorite = favorites.some(f => f.id === item.id);
+  const canAddFavorite = !isFavorite && favorites.length < 5;
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
@@ -580,7 +666,21 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>NA TUA BIBLIOTECA</span>
-                  <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {inLib && onToggleFavorite && (
+                      <button onClick={() => onToggleFavorite(item)} style={{
+                        background: isFavorite ? "#f59e0b22" : "none",
+                        border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`,
+                        color: isFavorite ? "#f59e0b" : "#8b949e",
+                        cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed",
+                        fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600,
+                        opacity: !canAddFavorite && !isFavorite ? 0.4 : 1,
+                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : "Favoritos cheios (máx. 5)"}>
+                        {isFavorite ? "★ Favorito" : "☆ Favorito"}
+                      </button>
+                    )}
+                    <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
+                  </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>A TUA AVALIAÇÃO</div>
@@ -692,10 +792,9 @@ function MediaCard({ item, library, onOpen, accent }) {
         </div>
         {libItem?.userRating > 0 && (
           <div style={{ position: "absolute", bottom: 6, left: 6 }}>
-            <div style={{ display: "flex", gap: 1 }}>
-              {[1,2,3,4,5].map((s) => (
-                <span key={s} style={{ fontSize: 10, color: s <= libItem.userRating ? "#f59e0b" : "rgba(255,255,255,0.2)" }}>★</span>
-              ))}
+            <div style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
+              <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{libItem.userRating}</span>
             </div>
           </div>
         )}
@@ -715,7 +814,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAccentChange, onBgChange, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail }) {
+function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAccentChange, onBgChange, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -881,46 +980,49 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
         );
       })()}
 
-      {/* ── Top 5 Favoritos ── */}
-      {items.filter(i => i.userRating > 0).length > 0 && (() => {
-        const top5 = [...items].filter(i => i.userRating > 0).sort((a, b) => b.userRating - a.userRating).slice(0, 5);
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>TOP 5 FAVORITOS</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {top5.map((item, idx) => {
-                const coverSrc = item.customCover || item.cover;
-                const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
-                return (
-                  <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "10px 14px" }}>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#9ca3af" : idx === 2 ? "#cd7c2f" : "#484f58", width: 28, textAlign: "center", flexShrink: 0 }}>
-                      {idx + 1}
-                    </div>
-                    <div style={{ width: 44, height: 62, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                      {coverSrc
-                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ display: "flex", gap: 1 }}>
-                          {[1,2,3,4,5].map(s => (
-                            <span key={s} style={{ fontSize: 12, color: s <= item.userRating ? "#f59e0b" : "#30363d" }}>★</span>
-                          ))}
-                        </div>
-                        {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 600 }}>{status.emoji} {status.label}</span>}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</span>
-                  </div>
-                );
-              })}
-            </div>
+      {/* ── Favoritos Manuais ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>FAVORITOS</h3>
+          <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
+        </div>
+        {favorites.length === 0 ? (
+          <div style={{ background: "#161b22", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+            <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
           </div>
-        );
-      })()}
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {favorites.map((item, idx) => {
+              const coverSrc = item.customCover || item.cover;
+              const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
+              return (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #f59e0b22", borderRadius: 12, padding: "10px 14px" }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#9ca3af" : idx === 2 ? "#cd7c2f" : "#484f58", width: 24, textAlign: "center", flexShrink: 0 }}>{idx + 1}</div>
+                  <div style={{ width: 44, height: 62, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    {coverSrc
+                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                    }
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {item.userRating > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ fontSize: 12, color: "#f59e0b" }}>★</span>
+                          <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
+                        </div>
+                      )}
+                      {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 600 }}>{status.emoji} {status.label}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => onToggleFavorite && onToggleFavorite(item)} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 16, padding: 4 }} title="Remover dos favoritos">✕</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Stats grid */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
@@ -1020,6 +1122,257 @@ function ProfileView({ profile, library, accent, bgColor, onUpdateProfile, onAcc
       </div>
 
             </div>{/* end padding div */}
+    </div>
+  );
+}
+
+// ─── Friends View ─────────────────────────────────────────────────────────────
+function FriendsView({ user, accent }) {
+  const [tab, setTab] = useState("friends"); // friends | search | requests
+  const [friendships, setFriendships] = useState([]);
+  const [searchQ, setSearchQ] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [friendData, setFriendData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notif, setNotif] = useState("");
+
+  const showNotif = (msg) => { setNotif(msg); setTimeout(() => setNotif(""), 2500); };
+
+  useEffect(() => { loadFriendships(); }, []);
+
+  const loadFriendships = async () => {
+    setLoading(true);
+    const data = await supa.getFriendships(user.id);
+    setFriendships(data);
+    setLoading(false);
+  };
+
+  const accepted = friendships.filter(f => f.status === "accepted");
+  const pending = friendships.filter(f => f.status === "pending" && f.addressee_id === user.id);
+  const sent = friendships.filter(f => f.status === "pending" && f.requester_id === user.id);
+
+  const getFriendInfo = (f) => f.requester_id === user.id ? f.addressee : f.requester;
+
+  const handleSearch = async () => {
+    if (!searchQ.trim()) return;
+    setSearching(true);
+    const results = await supa.searchUsers(searchQ);
+    setSearchResults(results.filter(r => r.id !== user.id));
+    setSearching(false);
+  };
+
+  const handleSendRequest = async (targetId) => {
+    try {
+      await supa.sendFriendRequest(user.id, targetId);
+      showNotif("Pedido enviado!");
+      await loadFriendships();
+    } catch (e) { showNotif("Erro: " + e.message); }
+  };
+
+  const handleAccept = async (fId) => {
+    await supa.acceptFriendRequest(fId);
+    showNotif("Amigo adicionado!");
+    await loadFriendships();
+  };
+
+  const handleDecline = async (fId) => {
+    await supa.declineFriendRequest(fId);
+    await loadFriendships();
+  };
+
+  const handleRemove = async (f) => {
+    await supa.removeFriend(f.requester_id, f.addressee_id);
+    showNotif("Amigo removido.");
+    await loadFriendships();
+    setSelectedFriend(null);
+  };
+
+  const openFriendProfile = async (friendId, friendInfo) => {
+    setSelectedFriend(friendInfo);
+    const [prof, lib] = await Promise.all([supa.getFriendProfile(friendId), supa.getFriendLibrary(friendId)]);
+    setFriendData({ profile: prof, library: lib });
+  };
+
+  const friendshipStatus = (targetId) => {
+    const f = friendships.find(f =>
+      (f.requester_id === user.id && f.addressee_id === targetId) ||
+      (f.addressee_id === user.id && f.requester_id === targetId)
+    );
+    if (!f) return null;
+    return { status: f.status, isRequester: f.requester_id === user.id, id: f.id };
+  };
+
+  if (selectedFriend && friendData) {
+    const libItems = Object.values(friendData.library || {});
+    const favs = friendData.profile?.favorites || [];
+    return (
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 0 20px" }}>
+        <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "16px" }}>← Voltar</button>
+        <div style={{ textAlign: "center", padding: "10px 16px 20px" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", margin: "0 auto 10px", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+            {friendData.profile?.avatar ? <img src={friendData.profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 800 }}>{friendData.profile?.name || selectedFriend.name || "Utilizador"}</h2>
+          {friendData.profile?.bio && <p style={{ color: "#8b949e", fontSize: 13, marginTop: 4 }}>{friendData.profile.bio}</p>}
+          <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>{libItems.length} na biblioteca</p>
+        </div>
+        {favs.length > 0 && (
+          <div style={{ padding: "0 16px", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#8b949e", marginBottom: 10 }}>FAVORITOS</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+              {favs.map(item => (
+                <div key={item.id} style={{ flexShrink: 0, width: 72 }}>
+                  <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: "#21262d" }}>
+                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🎭</div>}
+                  </div>
+                  <p style={{ fontSize: 10, color: "#8b949e", marginTop: 4, lineHeight: 1.3 }}>{item.title?.slice(0,20)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{ padding: "0 16px" }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#8b949e", marginBottom: 10 }}>BIBLIOTECA RECENTE</h3>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+            {[...libItems].sort((a,b) => b.addedAt - a.addedAt).slice(0,12).map(item => (
+              <div key={item.id} style={{ flexShrink: 0, width: 64 }}>
+                <div style={{ width: 64, height: 90, borderRadius: 6, overflow: "hidden", background: "#21262d" }}>
+                  {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>🎭</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "16px 0 20px" }}>
+      {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20 }}>
+        {[
+          { id: "friends", label: `Amigos (${accepted.length})` },
+          { id: "search", label: "Pesquisar" },
+          { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}` },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+            background: tab === t.id ? accent : "#21262d",
+            color: tab === t.id ? "white" : "#8b949e",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Friends list */}
+      {tab === "friends" && (
+        <div style={{ padding: "0 16px" }}>
+          {loading ? <p style={{ color: "#484f58", textAlign: "center" }}>A carregar...</p>
+          : accepted.length === 0 ? <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Ainda não tens amigos. Pesquisa pelo nome ou username!</p>
+          : accepted.map(f => {
+            const info = getFriendInfo(f);
+            return (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}
+                onClick={() => openFriendProfile(info.id, info)}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#21262d", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                  {info?.avatar ? <img src={info.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>{info?.name || "Utilizador"}</p>
+                  {info?.username && <p style={{ fontSize: 12, color: "#484f58" }}>@{info.username}</p>}
+                </div>
+                <span style={{ color: "#484f58", fontSize: 18 }}>→</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Search */}
+      {tab === "search" && (
+        <div style={{ padding: "0 16px" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <input value={searchQ} onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSearch()}
+              placeholder="Pesquisar por nome ou username..."
+              style={{ flex: 1, padding: "10px 14px", background: "#161b22", border: "1px solid #30363d", borderRadius: 10, color: "#e6edf3", fontFamily: "inherit", fontSize: 14 }} />
+            <button onClick={handleSearch} style={{ padding: "10px 16px", background: accent, border: "none", borderRadius: 10, color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+              {searching ? "..." : "🔍"}
+            </button>
+          </div>
+          {searchResults.map(r => {
+            const fs = friendshipStatus(r.id);
+            return (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "12px 14px", marginBottom: 8 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#21262d", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                  {r.avatar ? <img src={r.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>{r.name || "Utilizador"}</p>
+                  {r.username && <p style={{ fontSize: 12, color: "#484f58" }}>@{r.username}</p>}
+                </div>
+                {!fs ? (
+                  <button onClick={() => handleSendRequest(r.id)} style={{ padding: "6px 12px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 8, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>+ Adicionar</button>
+                ) : fs.status === "accepted" ? (
+                  <span style={{ fontSize: 12, color: "#10b981", fontWeight: 700 }}>✓ Amigos</span>
+                ) : fs.isRequester ? (
+                  <span style={{ fontSize: 12, color: "#484f58" }}>Pendente</span>
+                ) : (
+                  <button onClick={() => handleAccept(fs.id)} style={{ padding: "6px 12px", background: "#10b98122", border: "1px solid #10b98144", borderRadius: 8, color: "#10b981", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>Aceitar</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Requests */}
+      {tab === "requests" && (
+        <div style={{ padding: "0 16px" }}>
+          {pending.length === 0 && sent.length === 0 && <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Sem pedidos pendentes.</p>}
+          {pending.length > 0 && (
+            <>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8 }}>PEDIDOS RECEBIDOS</p>
+              {pending.map(f => {
+                const info = f.requester;
+                return (
+                  <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "12px 14px", marginBottom: 8 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👤</div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700 }}>{info?.name || "Utilizador"}</p>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => handleAccept(f.id)} style={{ padding: "6px 10px", background: "#10b98122", border: "1px solid #10b98144", borderRadius: 8, color: "#10b981", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>✓</button>
+                      <button onClick={() => handleDecline(f.id)} style={{ padding: "6px 10px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 8, color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>✕</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+          {sent.length > 0 && (
+            <>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, marginTop: 16 }}>PEDIDOS ENVIADOS</p>
+              {sent.map(f => {
+                const info = f.addressee;
+                return (
+                  <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "12px 14px", marginBottom: 8 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👤</div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700 }}>{info?.name || "Utilizador"}</p>
+                    </div>
+                    <span style={{ fontSize: 12, color: "#484f58" }}>Aguarda...</span>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1146,6 +1499,7 @@ export default function TrackAll() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [notif, setNotif] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [favorites, setFavorites] = useState([]);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -1180,6 +1534,7 @@ export default function TrackAll() {
         else setTmdbKey(DEFAULT_TMDB_KEY);
         if (prof.worker_url) setWorkerUrl(prof.worker_url);
         else setWorkerUrl(DEFAULT_WORKER_URL);
+        if (prof.favorites) setFavorites(prof.favorites);
       }
       if (lib) setLibrary(lib);
     } catch {}
@@ -1274,6 +1629,21 @@ export default function TrackAll() {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], customCover: url } });
     showNotif("Capa atualizada!", accent);
+  };
+
+  const toggleFavorite = async (item) => {
+    const exists = favorites.some(f => f.id === item.id);
+    let newFavs;
+    if (exists) {
+      newFavs = favorites.filter(f => f.id !== item.id);
+      showNotif("Removido dos favoritos", "#8b949e");
+    } else {
+      if (favorites.length >= 5) { showNotif("Máximo de 5 favoritos!", "#ef4444"); return; }
+      newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, type: item.type }];
+      showNotif("Adicionado aos favoritos! ★", "#f59e0b");
+    }
+    setFavorites(newFavs);
+    if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
   };
 
   const doSearch = useCallback(async (q, type) => {
@@ -1404,6 +1774,8 @@ export default function TrackAll() {
             onChangeCover={updateCover}
             onClose={() => setSelectedItem(null)}
             accent={accent}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         )}
 
@@ -1594,6 +1966,9 @@ export default function TrackAll() {
         )}
 
         {/* ── PROFILE ── */}
+        {view === "friends" && (
+          <FriendsView user={user} accent={accent} />
+        )}
         {view === "profile" && (
           <ProfileView
             profile={profile}
@@ -1609,6 +1984,8 @@ export default function TrackAll() {
             onWorkerUrl={saveWorkerUrl}
             onSignOut={handleSignOut}
             userEmail={user?.email || ""}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         )}
 
@@ -1618,6 +1995,7 @@ export default function TrackAll() {
             { id: "home", icon: "⌂", label: "Início" },
             { id: "search", icon: "⌕", label: "Pesquisar" },
             { id: "library", icon: "▤", label: "Biblioteca" },
+            { id: "friends", icon: "👥", label: "Amigos" },
             { id: "profile", icon: "◉", label: "Perfil" },
           ].map((n) => (
             <button key={n.id} className={`nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)} style={{ color: view === n.id ? accent : undefined }}>
