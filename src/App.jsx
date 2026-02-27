@@ -154,11 +154,26 @@ const ACCENT_PRESETS = [
 ];
 
 const BG_PRESETS = [
-  { name: "Preto", value: "#080c10" },
-  { name: "Escuro", value: "#0d1117" },
-  { name: "Ardósia", value: "#0f172a" },
-  { name: "Grafite", value: "#111827" },
+  // Escuro
+  { name: "Preto", value: "#080c10", dark: true },
+  { name: "Escuro", value: "#0d1117", dark: true },
+  { name: "Ardósia", value: "#0f172a", dark: true },
+  { name: "Grafite", value: "#111827", dark: true },
+  // Claro
+  { name: "Branco", value: "#ffffff", dark: false },
+  { name: "Cinza", value: "#f1f5f9", dark: false },
+  { name: "Creme", value: "#fdf6e3", dark: false },
 ];
+
+// Detecta se uma cor hex é escura ou clara
+function isColorDark(hex) {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substr(0,2),16);
+  const g = parseInt(c.substr(2,2),16);
+  const b = parseInt(c.substr(4,2),16);
+  const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminance < 0.5;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
@@ -933,7 +948,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, darkMode, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -1002,6 +1017,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
                 padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
                 background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
               }}>🖼 Alterar Banner</button>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>Recomendado: 1200×400px · Telemóvel: 390×160px</p>
               <input
                 placeholder="ou cola URL do banner..."
                 value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
@@ -1224,20 +1240,42 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
           </div>
         </div>
         <div>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Fundo</p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Fundo</p>
+
+          {/* Mode toggle */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{
+              padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+              background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e",
+            }}>🌙 Noturno</button>
+            <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{
+              padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+              background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e",
+            }}>☀️ Diurno</button>
+          </div>
+
+          {/* Color swatches */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
             {BG_PRESETS.map((p) => (
               <button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{
-                width: 36, height: 36, borderRadius: 10, background: p.value,
+                width: 32, height: 32, borderRadius: 8, background: p.value,
                 border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d",
-                cursor: "pointer",
+                cursor: "pointer", flexShrink: 0,
               }} title={p.name} />
             ))}
+            {/* Custom color */}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14, position: "relative" }} title="Cor personalizada">
+              +
+              <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
+            {/* Image upload */}
             <label style={{
-              width: 36, height: 36, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
-              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18,
-              background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden",
-            }} title="Imagem de fundo (recomendado: 1920×1080)">
+              width: 32, height: 32, borderRadius: 8, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16,
+              background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0,
+            }} title="Imagem de fundo">
               {!bgImage && "🖼"}
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                 const file = e.target.files[0]; if (!file) return;
@@ -1246,10 +1284,36 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, onUpdateProfi
               }} />
             </label>
             {bgImage && (
-              <button onClick={() => onBgImage("")} style={{ fontSize: 12, padding: "4px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ Remover</button>
+              <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
             )}
           </div>
-          <p style={{ fontSize: 11, color: "#484f58", marginTop: 6 }}>💡 Melhor qualidade com 1920×1080px (16:9). A imagem fica fixa ao fazer scroll.</p>
+
+          {/* Overlay when image is set */}
+          {bgImage && (
+            <div style={{ marginBottom: 8 }}>
+              <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Escurecimento da imagem</p>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[
+                  { label: "Nenhum", val: "rgba(0,0,0,0)" },
+                  { label: "Suave", val: "rgba(0,0,0,0.3)" },
+                  { label: "Médio", val: "rgba(0,0,0,0.55)" },
+                  { label: "Forte", val: "rgba(0,0,0,0.75)" },
+                  { label: "Branco", val: "rgba(255,255,255,0.6)" },
+                ].map(o => (
+                  <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{
+                    padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay === o.val ? accent : "#30363d"}`,
+                    background: bgOverlay === o.val ? `${accent}22` : "transparent",
+                    color: bgOverlay === o.val ? accent : "#8b949e",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                  }}>{o.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ background: "#161b2266", borderRadius: 8, padding: "8px 10px", fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
+            💡 <strong style={{ color: "#8b949e" }}>Fundo:</strong> Recomendado 1920×1080px (16:9) · Telemóvel: 390×844px (iPhone) ou 360×800px (Android)
+          </div>
         </div>
       </div>
 
@@ -1870,6 +1934,8 @@ export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
   const [bgImage, setBgImage] = useState("");
+  const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
+  const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
@@ -1915,8 +1981,12 @@ export default function TrackAll() {
       if (prof) {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
         if (prof.accent) setAccent(prof.accent);
-        if (prof.bg_color) setBgColor(prof.bg_color);
+        if (prof.bg_color) {
+          setBgColor(prof.bg_color);
+          setDarkMode(isColorDark(prof.bg_color));
+        }
         if (prof.bg_image) setBgImage(prof.bg_image);
+        if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
         if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
         else setTmdbKey(DEFAULT_TMDB_KEY);
         if (prof.worker_url) setWorkerUrl(prof.worker_url);
@@ -2000,7 +2070,12 @@ export default function TrackAll() {
   };
   const saveBg = async (c) => {
     setBgColor(c);
+    setDarkMode(isColorDark(c));
     if (user) try { await supa.upsertProfile(user.id, { bg_color: c }); } catch {}
+  };
+  const saveBgOverlay = async (o) => {
+    setBgOverlay(o);
+    if (user) try { await supa.upsertProfile(user.id, { bg_overlay: o }); } catch {}
   };
   const saveBgImage = async (img) => {
     setBgImage(img);
@@ -2131,8 +2206,10 @@ export default function TrackAll() {
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
       <div style={{
         minHeight: "100vh",
-        background: bgImage ? `url(${bgImage}) center/cover fixed` : bgColor,
-        color: "#e6edf3",
+        background: bgImage
+          ? `linear-gradient(${bgOverlay}, ${bgOverlay}), url(${bgImage}) center/cover fixed`
+          : bgColor,
+        color: darkMode ? "#e6edf3" : "#0d1117",
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
       }}>
@@ -2142,35 +2219,35 @@ export default function TrackAll() {
           body { overscroll-behavior: none; }
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+          ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: #161b22; border: 1px solid #21262d; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
-          .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); border-color: #30363d; }
+          .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.85)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; backdrop-filter: blur(4px); }
+          .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
-          .tab-btn { background: transparent; border: none; color: #8b949e; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
-          .tab-btn:hover { color: #e6edf3; background: #21262d; }
+          .tab-btn { background: transparent; border: none; color: ${darkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
+          .tab-btn:hover { color: ${darkMode ? "#e6edf3" : "#0d1117"}; background: ${darkMode ? "#21262d" : "#e2e8f0"}; }
           .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
-          input, select, textarea { background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
-          input::placeholder { color: #484f58; }
+          input, select, textarea { background: ${darkMode ? "#0d1117" : "#ffffff"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
+          input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-          .modal { background: #161b22; border: 1px solid #30363d; border-radius: 16px; width: 100%; overflow: hidden; }
+          .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(22,27,34,0.95); backdrop-filter: blur(12px); border-top: 1px solid #21262d; display: flex; height: 64px; z-index: 50; }
-          .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: #484f58; }
+          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
+          .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
-          .nav-btn:hover { color: #8b949e; }
+          .nav-btn:hover { color: ${darkMode ? "#8b949e" : "#64748b"}; }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-          .shimmer { background: linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+          .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
           .fade-in { animation: fadeIn 0.3s ease; }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(${accentRgb},0.12) 0%, transparent 70%), ${bgColor}; }
+          .hero-gradient { background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(${accentRgb},0.12) 0%, transparent 70%), ${bgImage ? "transparent" : bgColor}; }
         `}</style>
 
         <Notification notif={notif} />
@@ -2420,10 +2497,13 @@ export default function TrackAll() {
             accent={accent}
             bgColor={bgColor}
             bgImage={bgImage}
+            bgOverlay={bgOverlay}
+            darkMode={darkMode}
             onUpdateProfile={saveProfile}
             onAccentChange={saveAccent}
             onBgChange={saveBg}
             onBgImage={saveBgImage}
+            onBgOverlay={saveBgOverlay}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
