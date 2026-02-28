@@ -971,10 +971,19 @@ function MediaCard({ item, library, onOpen, accent }) {
         )}
         {/* Badges */}
         <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          {item.score && (
-            <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-              ★ {item.score}
-            </span>
+          {/* Show user rating if in library, API score if not */}
+          {inLib ? (
+            libItem?.userRating > 0 && (
+              <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
+                ★ {libItem.userRating}
+              </span>
+            )
+          ) : (
+            item.score && (
+              <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
+                ★ {item.score}
+              </span>
+            )
           )}
           {status && (
             <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white", marginLeft: "auto" }}>
@@ -982,14 +991,6 @@ function MediaCard({ item, library, onOpen, accent }) {
             </span>
           )}
         </div>
-        {libItem?.userRating > 0 && (
-          <div style={{ position: "absolute", bottom: 6, left: 6 }}>
-            <div style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
-              <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{libItem.userRating}</span>
-            </div>
-          </div>
-        )}
         {/* Hover rating overlay */}
         <div className="rating-hover">
           {libItem?.userRating > 0 ? (
@@ -1176,7 +1177,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       {/* ── Favoritos — Letterboxd style ── */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 16px" }}>
-          <h3 style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#484f58" : "#94a3b8", letterSpacing: "0.08em" }}>FILMES & SÉRIES FAVORITOS</h3>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.08em" }}>FILMES & SÉRIES FAVORITOS</h3>
           <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
         </div>
         {favorites.length === 0 ? (
@@ -1227,22 +1228,46 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
 
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && (() => {
-        const recent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
+        const allRecent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt);
+        const [showAll, setShowAll] = React.useState(false);
+        const recent = showAll ? allRecent : allRecent.slice(0, 10);
         return (
           <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
+              {allRecent.length > 10 && (
+                <button onClick={() => setShowAll(v => !v)} style={{
+                  background: "none", border: `1px solid ${accent}44`, color: accent,
+                  padding: "4px 10px", borderRadius: 8, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                }}>
+                  {showAll ? "↑ Menos" : `Ver todos (${allRecent.length})`}
+                </button>
+              )}
+            </div>
+            <div style={{
+              display: showAll ? "grid" : "flex",
+              gridTemplateColumns: showAll ? "repeat(auto-fill, minmax(72px, 1fr))" : undefined,
+              gap: 10,
+              overflowX: showAll ? "visible" : "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+            }}>
               {recent.map((item) => {
                 const coverSrc = item.customCover || item.cover;
+                const userRating = item.userRating;
                 return (
-                  <div key={item.id} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
-                    <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "2px solid #21262d", marginBottom: 6 }}>
+                  <div key={item.id} style={{ flexShrink: 0, width: showAll ? "100%" : 72, cursor: "pointer" }}>
+                    <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
                       {coverSrc
                         ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                       }
+                      {userRating > 0 && (
+                        <div style={{ position: "absolute", bottom: 3, left: 3, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {userRating}</div>
+                      )}
                     </div>
-                    <p style={{ fontSize: 10, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                    <p style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                   </div>
                 );
               })}
@@ -2057,11 +2082,16 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
                 ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
               }
-              {item.score > 0 && (
-                <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
-                  ★ {item.score}
-                </div>
-              )}
+              {(() => {
+                const libItem = library[item.id];
+                const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
+                const color = libItem?.userRating > 0 ? "#f59e0b" : "#f59e0b";
+                return score > 0 ? (
+                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color, fontWeight: 700 }}>
+                    ★ {score}
+                  </div>
+                ) : null;
+              })()}
             </div>
             <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
           </div>
@@ -2522,21 +2552,23 @@ export default function TrackAll() {
                       </p>
                     </div>
                     {/* Stats grid — compact, 5 columns */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5 }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {[
                         { l: "Curso", v: stats.assistindo, c: accent },
                         { l: "Completo", v: stats.completo, c: "#10b981" },
                         { l: "Pausa", v: stats.pausa, c: "#f59e0b" },
                         { l: "Largado", v: stats.largado, c: "#ef4444" },
                         { l: "Planej.", v: stats.planejado, c: "#06b6d4" },
-                      ].map((s) => (
+                      ].filter(s => s.v > 0).map((s) => (
                         <div key={s.l} style={{
                           background: statsCardBg || (darkMode ? `${s.c}15` : `${s.c}18`),
-                          border: `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 4px", textAlign: "center",
+                          border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 6px", textAlign: "center",
+                          minWidth: 52, flex: "1 1 52px",
                         }}>
                           <div style={{ fontSize: 20, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
                           <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 9, marginTop: 2, fontWeight: 600 }}>{s.l}</div>
                         </div>
+                      ))}
                       ))}
                     </div>
                   </div>
