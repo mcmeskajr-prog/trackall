@@ -2440,7 +2440,17 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
-          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+          @media (min-width: 480px) { .media-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; } }
+          @media (min-width: 768px) { .media-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; } }
+          .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+          .recents-row > * { scroll-snap-align: start; }
+          img { will-change: auto; }
+          .card { will-change: transform; contain: layout style; }
+          @media (max-width: 480px) {
+            .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
+            .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+          }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
@@ -2558,7 +2568,7 @@ export default function TrackAll() {
                           minWidth: 52, flex: "1 1 52px",
                         }}>
                           <div style={{ fontSize: 20, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
-                          <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 9, marginTop: 2, fontWeight: 600 }}>{s.l}</div>
+                          <div style={{ color: darkMode ? "#8b949e" : "#64748b", fontSize: 9, marginTop: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.l}</div>
                         </div>
                       ))}
                     </div>
@@ -2603,15 +2613,15 @@ export default function TrackAll() {
                 .filter(i => i.userStatus !== "planejado")
                 .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
                 .sort((a,b) => b.addedAt - a.addedAt)
-                .slice(0, 12);
+                .slice(0, 20);
               if (filtered.length === 0 && homeFilter.length > 0) return (
                 <div style={{ padding: "28px 16px", textAlign: "center", color: darkMode ? "#484f58" : "#94a3b8" }}>
                   <p style={{ fontSize: 14 }}>Nenhum item com esse filtro nos recentes</p>
                 </div>
               );
               return (
-                <div style={{ padding: "24px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ padding: "24px 0 24px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingRight: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <h2 style={{ fontSize: 18, fontWeight: 800 }}>Recentes</h2>
                       {homeFilter.length > 0 && (
@@ -2620,11 +2630,14 @@ export default function TrackAll() {
                         </span>
                       )}
                     </div>
-                    <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
+                    <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>
                   </div>
-                  <div className="media-grid">
+                  {/* Horizontal scroll row on mobile */}
+                  <div className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                     {filtered.map((item) => (
-                      <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+                      <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
+                        <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+                      </div>
                     ))}
                   </div>
                 </div>
