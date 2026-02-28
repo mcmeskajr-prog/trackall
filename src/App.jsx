@@ -969,21 +969,12 @@ function MediaCard({ item, library, onOpen, accent }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
           </div>
         )}
-        {/* Badges */}
-        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          {/* Show user rating if in library, API score if not */}
-          {inLib ? (
-            libItem?.userRating > 0 && (
-              <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
-                ★ {libItem.userRating}
-              </span>
-            )
-          ) : (
-            item.score && (
-              <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-                ★ {item.score}
-              </span>
-            )
+        {/* Badges — status only, rating shown on hover */}
+        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start" }}>
+          {!inLib && item.score && (
+            <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
+              ★ {item.score}
+            </span>
           )}
           {status && (
             <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white", marginLeft: "auto" }}>
@@ -1281,20 +1272,20 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
         {STATUS_OPTIONS.map((s) => (
-          <div key={s.id} style={{ background: "#161b22", border: `1px solid ${s.color}22`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+          <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${s.color}22`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
             <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
         </div>
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
           <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
         </div>
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
         </div>
@@ -2569,7 +2560,6 @@ export default function TrackAll() {
                           <div style={{ fontSize: 20, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
                           <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 9, marginTop: 2, fontWeight: 600 }}>{s.l}</div>
                         </div>
-                      ))}
                       ))}
                     </div>
                   </div>
