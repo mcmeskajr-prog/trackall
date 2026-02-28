@@ -891,7 +891,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 
   return (
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
-      <div style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id), position: "relative", overflow: "hidden" }}>
+      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
         {/* Shimmer while loading */}
         {coverSrc && !imgLoaded && !imgError && (
           <div className="shimmer" style={{ position: "absolute", inset: 0 }} />
@@ -932,7 +932,21 @@ function MediaCard({ item, library, onOpen, accent }) {
             </div>
           </div>
         )}
-        <div className="card-overlay" style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${accent}33, transparent)`, opacity: 0, transition: "opacity 0.2s" }} />
+        {/* Hover rating overlay */}
+        <div className="rating-hover">
+          {libItem?.userRating > 0 ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28, color: "#f59e0b", fontWeight: 900, lineHeight: 1 }}>★</div>
+              <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>{libItem.userRating}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>A minha nota</div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 22, color: "rgba(255,255,255,0.4)" }}>★</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Sem nota</div>
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ padding: "10px 12px 12px" }}>
         <p style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
@@ -948,7 +962,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, darkMode, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -1000,18 +1014,20 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, da
     <div style={{ paddingBottom: 32, maxWidth: 600, margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: 60 }}>
-        {/* Banner */}
+      <div style={{ position: "relative", marginBottom: 64 }}>
+        {/* Banner — taller, more impactful */}
         <div style={{
-          height: 160, borderRadius: "0 0 0 0", overflow: "hidden", position: "relative",
+          height: 220, overflow: "hidden", position: "relative",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${accent}33 0%, ${bgColor} 100%)`,
+            : `linear-gradient(135deg, ${accent}55 0%, ${accent}11 50%, transparent 100%), ${darkMode ? "#0d1117" : "#f1f5f9"}`,
         }}>
-          {/* Overlay */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(13,17,23,0.85) 100%)" }} />
+          {/* Multi-layer gradient overlay for impact */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+          {/* Subtle accent color tint at top */}
+          {!currentBanner && <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% -20%, ${accent}44, transparent)` }} />}
           {editing && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
               <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
               <button onClick={() => bannerRef.current?.click()} style={{
                 padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
@@ -1124,43 +1140,51 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, da
         );
       })()}
 
-      {/* ── Favoritos Manuais ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>FAVORITOS</h3>
+      {/* ── Favoritos — Letterboxd style ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 16px" }}>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#484f58" : "#94a3b8", letterSpacing: "0.08em" }}>FILMES & SÉRIES FAVORITOS</h3>
           <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
         </div>
         {favorites.length === 0 ? (
-          <div style={{ background: "#161b22", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+          <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
             <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {favorites.map((item, idx) => {
+          <div style={{ display: "flex", padding: "0 16px", gap: 6, overflowX: "auto" }}>
+            {favorites.map((item) => {
               const coverSrc = item.customCover || item.cover;
-              const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
               return (
-                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #f59e0b22", borderRadius: 12, padding: "10px 14px" }}>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#9ca3af" : idx === 2 ? "#cd7c2f" : "#484f58", width: 24, textAlign: "center", flexShrink: 0 }}>{idx + 1}</div>
-                  <div style={{ width: 44, height: 62, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                    {coverSrc
-                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                    }
+                <div key={item.id} className="media-thumb" style={{
+                  flexShrink: 0, flex: "1 1 0", minWidth: 90, maxWidth: 160,
+                  aspectRatio: "2/3", borderRadius: 10, background: gradientFor(item.id),
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)", cursor: "pointer",
+                }}>
+                  {coverSrc
+                    ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} onError={(e) => e.currentTarget.style.display = "none"} />
+                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                  }
+                  {/* Hover overlay with rating */}
+                  <div className="rating-hover" style={{ borderRadius: 10 }}>
+                    {item.userRating > 0 ? (
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 28, color: "#f59e0b", fontWeight: 900 }}>★</div>
+                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>{item.userRating}</div>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{item.title?.slice(0,16)}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕ Remover</button>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{item.title?.slice(0,16)}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {item.userRating > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                          <span style={{ fontSize: 12, color: "#f59e0b" }}>★</span>
-                          <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
-                        </div>
-                      )}
-                      {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 600 }}>{status.emoji} {status.label}</span>}
-                    </div>
+                  {/* Bottom title */}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 8px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", borderRadius: "0 0 10px 10px" }}>
+                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.9)", fontWeight: 700, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.3 }}>{item.title}</p>
+                    {item.userRating > 0 && <p style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>★ {item.userRating}</p>}
                   </div>
-                  <button onClick={() => onToggleFavorite && onToggleFavorite(item)} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 16, padding: 4 }} title="Remover dos favoritos">✕</button>
                 </div>
               );
             })}
@@ -1288,25 +1312,62 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, da
             )}
           </div>
 
-          {/* Overlay when image is set */}
+          {/* Image controls when bg image is set */}
           {bgImage && (
-            <div style={{ marginBottom: 8 }}>
-              <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Escurecimento da imagem</p>
-              <div style={{ display: "flex", gap: 6 }}>
-                {[
-                  { label: "Nenhum", val: "rgba(0,0,0,0)" },
-                  { label: "Suave", val: "rgba(0,0,0,0.3)" },
-                  { label: "Médio", val: "rgba(0,0,0,0.55)" },
-                  { label: "Forte", val: "rgba(0,0,0,0.75)" },
-                  { label: "Branco", val: "rgba(255,255,255,0.6)" },
-                ].map(o => (
-                  <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{
-                    padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay === o.val ? accent : "#30363d"}`,
-                    background: bgOverlay === o.val ? `${accent}22` : "transparent",
-                    color: bgOverlay === o.val ? accent : "#8b949e",
+            <div style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Overlay */}
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Sobreposição de cor</p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {[
+                    { label: "Nenhum", val: "rgba(0,0,0,0)" },
+                    { label: "Suave", val: "rgba(0,0,0,0.3)" },
+                    { label: "Médio", val: "rgba(0,0,0,0.55)" },
+                    { label: "Forte", val: "rgba(0,0,0,0.75)" },
+                    { label: "Branco", val: "rgba(255,255,255,0.6)" },
+                  ].map(o => (
+                    <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{
+                      padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay === o.val ? accent : "#30363d"}`,
+                      background: bgOverlay === o.val ? `${accent}22` : "transparent",
+                      color: bgOverlay === o.val ? accent : "#8b949e",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                    }}>{o.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Blur */}
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Desfoque — {bgBlur}px</p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[0, 2, 4, 8, 12].map(v => (
+                    <button key={v} onClick={() => onBgBlur(v)} style={{
+                      padding: "4px 10px", borderRadius: 6, border: `1px solid ${bgBlur === v ? accent : "#30363d"}`,
+                      background: bgBlur === v ? `${accent}22` : "transparent",
+                      color: bgBlur === v ? accent : "#8b949e",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                    }}>{v === 0 ? "Nenhum" : `${v}px`}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Parallax */}
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Movimento ao scroll</p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => onBgParallax(true)} style={{
+                    padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax ? accent : "#30363d"}`,
+                    background: bgParallax ? `${accent}22` : "transparent",
+                    color: bgParallax ? accent : "#8b949e",
                     cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                  }}>{o.label}</button>
-                ))}
+                  }}>✦ Parallax</button>
+                  <button onClick={() => onBgParallax(false)} style={{
+                    padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax ? accent : "#30363d"}`,
+                    background: !bgParallax ? `${accent}22` : "transparent",
+                    color: !bgParallax ? accent : "#8b949e",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
+                  }}>◼ Estático</button>
+                </div>
               </div>
             </div>
           )}
@@ -1935,6 +1996,8 @@ export default function TrackAll() {
   const [bgColor, setBgColor] = useState("#0d1117");
   const [bgImage, setBgImage] = useState("");
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
+  const [bgBlur, setBgBlur] = useState(0);
+  const [bgParallax, setBgParallax] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
@@ -1987,6 +2050,8 @@ export default function TrackAll() {
         }
         if (prof.bg_image) setBgImage(prof.bg_image);
         if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
+        if (prof.bg_blur !== undefined) setBgBlur(prof.bg_blur);
+        if (prof.bg_parallax !== undefined) setBgParallax(prof.bg_parallax);
         if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
         else setTmdbKey(DEFAULT_TMDB_KEY);
         if (prof.worker_url) setWorkerUrl(prof.worker_url);
@@ -2076,6 +2141,14 @@ export default function TrackAll() {
   const saveBgOverlay = async (o) => {
     setBgOverlay(o);
     if (user) try { await supa.upsertProfile(user.id, { bg_overlay: o }); } catch {}
+  };
+  const saveBgBlur = async (v) => {
+    setBgBlur(v);
+    if (user) try { await supa.upsertProfile(user.id, { bg_blur: v }); } catch {}
+  };
+  const saveBgParallax = async (v) => {
+    setBgParallax(v);
+    if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch {}
   };
   const saveBgImage = async (img) => {
     setBgImage(img);
@@ -2206,13 +2279,31 @@ export default function TrackAll() {
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
       <div style={{
         minHeight: "100vh",
-        background: bgImage
-          ? `linear-gradient(${bgOverlay}, ${bgOverlay}), url(${bgImage}) center/cover fixed`
-          : bgColor,
+        background: bgImage ? bgColor : bgColor,
         color: darkMode ? "#e6edf3" : "#0d1117",
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
+        position: "relative",
       }}>
+        {/* Background image layer */}
+        {bgImage && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 0,
+            backgroundImage: `url(${bgImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: bgParallax ? "fixed" : "scroll",
+            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : "none",
+            transform: bgBlur > 0 ? "scale(1.05)" : "none",
+          }} />
+        )}
+        {bgImage && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 1,
+            background: bgOverlay,
+          }} />
+        )}
+        <div style={{ position: "relative", zIndex: 2 }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2225,6 +2316,11 @@ export default function TrackAll() {
           .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.85)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; backdrop-filter: blur(4px); }
           .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
+          .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
+          .media-thumb .rating-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.52); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; border-radius: 10px; }
+          .media-thumb:hover .rating-hover { opacity: 1; transform: translateY(0); }
+          .media-thumb:hover img { transform: scale(1.04); transition: transform 0.25s ease; }
+          .media-thumb img { transition: transform 0.25s ease; width: 100%; height: 100%; object-fit: cover; display: block; }
           .tab-btn { background: transparent; border: none; color: ${darkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
           .tab-btn:hover { color: ${darkMode ? "#e6edf3" : "#0d1117"}; background: ${darkMode ? "#21262d" : "#e2e8f0"}; }
           .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
@@ -2310,45 +2406,64 @@ export default function TrackAll() {
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in">
-            {/* Setup banner — só aparece quando faltam chaves importantes */}
-            {/* Setup banner removido — configurações pré-definidas */}
-            <div className="hero-gradient" style={{ padding: "56px 20px 48px", textAlign: "center" }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `rgba(${accentRgb},0.1)`, border: `1px solid rgba(${accentRgb},0.2)`, borderRadius: 999, padding: "5px 14px", marginBottom: 24, fontSize: 12, color: accent, fontWeight: 600 }}>
-                ✦ Organiza toda a tua mídia num só lugar
-              </div>
-              <h1 style={{ fontSize: "clamp(32px,8vw,68px)", fontWeight: 900, lineHeight: 1.1, marginBottom: 18, letterSpacing: "-1px" }}>
-                Acompanha{" "}
-                <span style={{ background: `linear-gradient(135deg, ${accent}, ${accent}99)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tudo</span>{" "}
-                que<br />Adoras
-              </h1>
-              <p style={{ color: "#8b949e", fontSize: 16, maxWidth: 480, margin: "0 auto 40px", lineHeight: 1.7 }}>
-                Anime, séries, filmes, manga, livros, manhwa, light novels, jogos e comics.
-              </p>
-
-              {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, maxWidth: 480, margin: "0 auto 40px" }}>
-                {[
-                  { l: "Em Curso", v: stats.assistindo, c: accent, e: "▶" },
-                  { l: "Completos", v: stats.completo, c: "#10b981", e: "✓" },
-                  { l: "Planejados", v: stats.planejado, c: "#06b6d4", e: "⏰" },
-                ].map((s) => (
-                  <div key={s.l} style={{ background: "#161b22", border: `1px solid ${s.c}22`, borderRadius: 14, padding: "18px 10px", textAlign: "center" }}>
-                    <div style={{ fontSize: 20, marginBottom: 2 }}>{s.e}</div>
-                    <div style={{ fontSize: 36, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
-                    <div style={{ color: "#8b949e", fontSize: 12, marginTop: 4 }}>{s.l}</div>
+            {/* Hero — Avatar + Stats */}
+            <div className="hero-gradient" style={{ padding: "32px 20px 36px" }}>
+              <div style={{ maxWidth: 640, margin: "0 auto" }}>
+                {/* Top row: avatar + name + stats */}
+                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: 80, height: 80, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                    border: `3px solid ${accent}`, boxShadow: `0 0 0 4px ${accent}22`,
+                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32,
+                  }}>
+                    {profile.avatar
+                      ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : "👤"}
                   </div>
-                ))}
-              </div>
+                  {/* Name + bio */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.5px" }}>
+                      {profile.name || "Utilizador"}
+                    </h2>
+                    {profile.bio && <p style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b", marginTop: 3, lineHeight: 1.4 }}>{profile.bio}</p>}
+                    <p style={{ fontSize: 12, color: darkMode ? "#484f58" : "#94a3b8", marginTop: 4 }}>
+                      TrackAll · {Object.keys(library).length} na biblioteca
+                    </p>
+                  </div>
+                </div>
 
-              {/* Media type shortcuts */}
-              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
-                {MEDIA_TYPES.slice(1).map((t) => (
-                  <button key={t.id} onClick={() => { setActiveTab(t.id); doSearch(t.label, t.id); }} style={{ background: "#161b22", border: "1px solid #21262d", color: "#e6edf3", padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#21262d"; e.currentTarget.style.color = "#e6edf3"; }}>
-                    {t.icon} {t.label}
-                  </button>
-                ))}
+                {/* Stats row */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 28 }}>
+                  {[
+                    { l: "Em Curso", v: stats.assistindo, c: accent, e: "▶" },
+                    { l: "Completo", v: stats.completo, c: "#10b981", e: "✓" },
+                    { l: "Pausa", v: stats.pausa, c: "#f59e0b", e: "⏸" },
+                    { l: "Largado", v: stats.largado, c: "#ef4444", e: "✕" },
+                    { l: "Planejado", v: stats.planejado, c: "#06b6d4", e: "⏰" },
+                  ].map((s) => (
+                    <div key={s.l} style={{ background: darkMode ? `${s.c}11` : `${s.c}18`, border: `1px solid ${s.c}33`, borderRadius: 12, padding: "12px 6px", textAlign: "center" }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
+                      <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 10, marginTop: 3, fontWeight: 600 }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Media type shortcuts */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {MEDIA_TYPES.slice(1).map((t) => (
+                    <button key={t.id} onClick={() => { setActiveTab(t.id); doSearch(t.label, t.id); }} style={{
+                      background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+                      color: darkMode ? "#e6edf3" : "#0d1117", padding: "8px 14px", borderRadius: 10,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+                      display: "flex", alignItems: "center", gap: 6, backdropFilter: "blur(4px)",
+                    }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"; e.currentTarget.style.color = darkMode ? "#e6edf3" : "#0d1117"; }}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -2498,12 +2613,16 @@ export default function TrackAll() {
             bgColor={bgColor}
             bgImage={bgImage}
             bgOverlay={bgOverlay}
+            bgBlur={bgBlur}
+            bgParallax={bgParallax}
             darkMode={darkMode}
             onUpdateProfile={saveProfile}
             onAccentChange={saveAccent}
             onBgChange={saveBg}
             onBgImage={saveBgImage}
             onBgOverlay={saveBgOverlay}
+            onBgBlur={saveBgBlur}
+            onBgParallax={saveBgParallax}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
@@ -2530,6 +2649,7 @@ export default function TrackAll() {
             </button>
           ))}
         </nav>
+        </div>{/* end zIndex:2 div */}
       </div>
     </ThemeContext.Provider>
   );
