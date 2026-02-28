@@ -285,6 +285,57 @@ async function searchTMDB(query, type, key) {
   }));
 }
 
+// Fetch extra details (seasons, runtime, episodes, etc.) for a specific item
+async function fetchMediaDetails(item, tmdbKey) {
+  try {
+    if (item.id.startsWith("tmdb-filmes-")) {
+      const tmdbId = item.id.replace("tmdb-filmes-", "");
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`);
+      const d = await r.json();
+      return {
+        runtime: d.runtime ? `${d.runtime} min` : null,
+        genres: d.genres?.map(g => g.name) || item.genres || [],
+        synopsis: d.overview || item.synopsis,
+        score: d.vote_average ? +d.vote_average.toFixed(1) : item.score,
+        year: d.release_date?.slice(0, 4) || item.year,
+      };
+    }
+    if (item.id.startsWith("tmdb-series-")) {
+      const tmdbId = item.id.replace("tmdb-series-", "");
+      const r = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`);
+      const d = await r.json();
+      return {
+        seasons: d.number_of_seasons,
+        episodes: d.number_of_episodes,
+        runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null,
+        genres: d.genres?.map(g => g.name) || item.genres || [],
+        synopsis: d.overview || item.synopsis,
+        score: d.vote_average ? +d.vote_average.toFixed(1) : item.score,
+        status: d.status,
+      };
+    }
+    if (item.id.startsWith("al-")) {
+      const alId = item.id.replace("al-", "");
+      const r = await fetch("https://graphql.anilist.co", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format } }` }),
+      });
+      const d = await r.json();
+      const m = d.data?.Media;
+      if (!m) return null;
+      return {
+        episodes: m.episodes,
+        chapters: m.chapters,
+        volumes: m.volumes,
+        runtime: m.duration ? `${m.duration} min/ep` : null,
+        score: m.averageScore,
+        status: m.status,
+      };
+    }
+  } catch {}
+  return null;
+}
+
 // 3. OpenLibrary — Livros (sem chave, CORS aberto)
 async function searchOpenLibrary(query) {
   const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=15&fields=key,title,author_name,first_publish_year,cover_i,subject,ratings_average`);
@@ -710,9 +761,14 @@ function CoverEditModal({ item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onClose, accent, favorites = [], onToggleFavorite }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
+  const [detailExtra, setDetailExtra] = useState(null);
+  useEffect(() => {
+    setDetailExtra(null);
+    if (item && tmdbKey) fetchMediaDetails(item, tmdbKey).then(d => { if (d) setDetailExtra(d); });
+  }, [item?.id]);
   const inLib = !!library[item.id];
   const libItem = library[item.id];
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
@@ -772,10 +828,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
           {/* Stats row */}
           <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderTop: "1px solid #21262d", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
-            {item.episodes && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Episódios</div></div>}
-            {item.chapters && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Capítulos</div></div>}
-            {item.volumes && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Volumes</div></div>}
-            {item.status && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Estado</div></div>}
+            {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Episódios</div></div>}
+            {(detailExtra?.seasons) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Temporadas</div></div>}
+            {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Capítulos</div></div>}
+            {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Volumes</div></div>}
+            {(detailExtra?.runtime) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Duração</div></div>}
+            {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Estado</div></div>}
           </div>
 
           {/* Genres */}
@@ -962,7 +1020,7 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -1114,31 +1172,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       {/* Stats and settings */}
       <div style={{ padding: "0 16px" }}>
 
-      {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && (() => {
-        const recent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-              {recent.map((item) => {
-                const coverSrc = item.customCover || item.cover;
-                return (
-                  <div key={item.id} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
-                    <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "2px solid #21262d", marginBottom: 6 }}>
-                      {coverSrc
-                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                    </div>
-                    <p style={{ fontSize: 10, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ── Favoritos — Letterboxd style ── */}
       <div style={{ marginBottom: 28 }}>
@@ -1192,6 +1225,32 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
         )}
       </div>
 
+      {/* ── Vistos Recentemente ── */}
+      {items.length > 0 && (() => {
+        const recent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt).slice(0, 10);
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+              {recent.map((item) => {
+                const coverSrc = item.customCover || item.cover;
+                return (
+                  <div key={item.id} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
+                    <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "2px solid #21262d", marginBottom: 6 }}>
+                      {coverSrc
+                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                    </div>
+                    <p style={{ fontSize: 10, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stats grid */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
@@ -1237,7 +1296,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
 
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>APARÊNCIA</h3>
-      <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Cor de destaque</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -1261,6 +1320,29 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
                   style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
                 />
               </label>
+          </div>
+        </div>
+        {/* Stats card background color */}
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Cor dos blocos de estatísticas</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => onStatsCardBg("")} style={{
+              width: 32, height: 32, borderRadius: 8, background: "transparent",
+              border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d",
+              cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit",
+            }} title="Automático (por estado)">Auto</button>
+            {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","#16213e","#0a0a0a",
+              "rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (
+              <button key={c} onClick={() => onStatsCardBg(c)} style={{
+                width: 32, height: 32, borderRadius: 8, background: c,
+                border: statsCardBg === c ? `2px solid ${accent}` : "2px solid #30363d",
+                cursor: "pointer",
+              }} title={c} />
+            ))}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14, position: "relative" }}>
+              +
+              <input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
           </div>
         </div>
         <div>
@@ -1994,6 +2076,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
+  const [statsCardBg, setStatsCardBg] = useState("");
   const [bgImage, setBgImage] = useState("");
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
@@ -2005,6 +2088,7 @@ export default function TrackAll() {
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
   const [activeTab, setActiveTab] = useState("all");
+  const [homeFilter, setHomeFilter] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -2044,6 +2128,7 @@ export default function TrackAll() {
       if (prof) {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
         if (prof.accent) setAccent(prof.accent);
+        if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
         if (prof.bg_color) {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
@@ -2132,6 +2217,10 @@ export default function TrackAll() {
   const saveAccent = async (c) => {
     setAccent(c);
     if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch {}
+  };
+  const saveStatsCardBg = async (c) => {
+    setStatsCardBg(c);
+    if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch {}
   };
   const saveBg = async (c) => {
     setBgColor(c);
@@ -2364,6 +2453,7 @@ export default function TrackAll() {
             accent={accent}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
+            tmdbKey={tmdbKey}
           />
         )}
 
@@ -2406,81 +2496,118 @@ export default function TrackAll() {
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in">
-            {/* Hero — Avatar + Stats */}
-            <div className="hero-gradient" style={{ padding: "32px 20px 36px" }}>
+            {/* Hero — Avatar + Stats side by side */}
+            <div className="hero-gradient" style={{ padding: "24px 20px 28px" }}>
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
-                {/* Top row: avatar + name + stats */}
-                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
-                  {/* Avatar */}
+                {/* Avatar + Name + Stats all in one row */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 18, marginBottom: 20 }}>
+                  {/* Big Avatar */}
                   <div style={{
-                    width: 80, height: 80, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-                    border: `3px solid ${accent}`, boxShadow: `0 0 0 4px ${accent}22`,
-                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32,
+                    width: 96, height: 96, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                    border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22, 0 8px 24px rgba(0,0,0,0.4)`,
+                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38,
                   }}>
                     {profile.avatar
                       ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : "👤"}
                   </div>
-                  {/* Name + bio */}
+                  {/* Right side: name + stats grid */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.5px" }}>
-                      {profile.name || "Utilizador"}
-                    </h2>
-                    {profile.bio && <p style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b", marginTop: 3, lineHeight: 1.4 }}>{profile.bio}</p>}
-                    <p style={{ fontSize: 12, color: darkMode ? "#484f58" : "#94a3b8", marginTop: 4 }}>
-                      TrackAll · {Object.keys(library).length} na biblioteca
-                    </p>
+                    <div style={{ marginBottom: 12 }}>
+                      <h2 style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.2 }}>
+                        {profile.name || "Utilizador"}
+                      </h2>
+                      <p style={{ fontSize: 12, color: darkMode ? "#484f58" : "#94a3b8", marginTop: 2 }}>
+                        {Object.keys(library).length} na biblioteca
+                      </p>
+                    </div>
+                    {/* Stats grid — compact, 5 columns */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5 }}>
+                      {[
+                        { l: "Curso", v: stats.assistindo, c: accent },
+                        { l: "Completo", v: stats.completo, c: "#10b981" },
+                        { l: "Pausa", v: stats.pausa, c: "#f59e0b" },
+                        { l: "Largado", v: stats.largado, c: "#ef4444" },
+                        { l: "Planej.", v: stats.planejado, c: "#06b6d4" },
+                      ].map((s) => (
+                        <div key={s.l} style={{
+                          background: statsCardBg || (darkMode ? `${s.c}15` : `${s.c}18`),
+                          border: `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 4px", textAlign: "center",
+                        }}>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
+                          <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 9, marginTop: 2, fontWeight: 600 }}>{s.l}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Stats row */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 28 }}>
-                  {[
-                    { l: "Em Curso", v: stats.assistindo, c: accent, e: "▶" },
-                    { l: "Completo", v: stats.completo, c: "#10b981", e: "✓" },
-                    { l: "Pausa", v: stats.pausa, c: "#f59e0b", e: "⏸" },
-                    { l: "Largado", v: stats.largado, c: "#ef4444", e: "✕" },
-                    { l: "Planejado", v: stats.planejado, c: "#06b6d4", e: "⏰" },
-                  ].map((s) => (
-                    <div key={s.l} style={{ background: darkMode ? `${s.c}11` : `${s.c}18`, border: `1px solid ${s.c}33`, borderRadius: 12, padding: "12px 6px", textAlign: "center" }}>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
-                      <div style={{ color: darkMode ? "#484f58" : "#94a3b8", fontSize: 10, marginTop: 3, fontWeight: 600 }}>{s.l}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Media type shortcuts */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {MEDIA_TYPES.slice(1).map((t) => (
-                    <button key={t.id} onClick={() => { setActiveTab(t.id); doSearch(t.label, t.id); }} style={{
-                      background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                      color: darkMode ? "#e6edf3" : "#0d1117", padding: "8px 14px", borderRadius: 10,
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 0.15s",
-                      display: "flex", alignItems: "center", gap: 6, backdropFilter: "blur(4px)",
-                    }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"; e.currentTarget.style.color = darkMode ? "#e6edf3" : "#0d1117"; }}>
-                      {t.icon} {t.label}
-                    </button>
-                  ))}
+                {/* Filter tags — toggle filter on recents */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  {MEDIA_TYPES.slice(1).map((t) => {
+                    const active = homeFilter.includes(t.id);
+                    return (
+                      <button key={t.id} onClick={() => {
+                        setHomeFilter(prev =>
+                          prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
+                        );
+                      }} style={{
+                        background: active ? accent : (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
+                        border: `1px solid ${active ? accent : (darkMode ? "#21262d" : "#e2e8f0")}`,
+                        color: active ? "white" : (darkMode ? "#e6edf3" : "#0d1117"),
+                        padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                        display: "flex", alignItems: "center", gap: 5, backdropFilter: "blur(4px)",
+                      }}>
+                        {t.icon} {t.label}
+                      </button>
+                    );
+                  })}
+                  {homeFilter.length > 0 && (
+                    <button onClick={() => setHomeFilter([])} style={{
+                      background: "transparent", border: "1px solid #ef444444",
+                      color: "#ef4444", padding: "7px 10px", borderRadius: 10,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                    }}>✕ Limpar</button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Recent */}
-            {items.length > 0 && (
-              <div style={{ padding: "28px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 800 }}>Recentes</h2>
-                  <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
+            {/* Recent — filtered by homeFilter */}
+            {items.length > 0 && (() => {
+              const filtered = items
+                .filter(i => i.userStatus !== "planejado")
+                .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
+                .sort((a,b) => b.addedAt - a.addedAt)
+                .slice(0, 12);
+              if (filtered.length === 0 && homeFilter.length > 0) return (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: darkMode ? "#484f58" : "#94a3b8" }}>
+                  <p style={{ fontSize: 14 }}>Nenhum item com esse filtro nos recentes</p>
                 </div>
-                <div className="media-grid">
-                  {items.filter(i => i.userStatus !== "planejado").sort((a,b)=>b.addedAt-a.addedAt).slice(0,12).map((item) => (
-                    <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />
-                  ))}
+              );
+              return (
+                <div style={{ padding: "24px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <h2 style={{ fontSize: 18, fontWeight: 800 }}>Recentes</h2>
+                      {homeFilter.length > 0 && (
+                        <span style={{ fontSize: 11, color: accent, background: `${accent}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                          {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
+                        </span>
+                      )}
+                    </div>
+                    <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
+                  </div>
+                  <div className="media-grid">
+                    {filtered.map((item) => (
+                      <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
+
 
             {/* Divider */}
             <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
@@ -2623,6 +2750,8 @@ export default function TrackAll() {
             onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
+            statsCardBg={statsCardBg}
+            onStatsCardBg={saveStatsCardBg}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
