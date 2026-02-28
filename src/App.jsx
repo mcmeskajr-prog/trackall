@@ -1021,6 +1021,54 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
+function RecentSection({ items, accent, darkMode }) {
+  const [showAll, setShowAll] = useState(false);
+  const allRecent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt);
+  const recent = showAll ? allRecent : allRecent.slice(0, 10);
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
+        {allRecent.length > 10 && (
+          <button onClick={() => setShowAll(v => !v)} style={{
+            background: "none", border: `1px solid ${accent}44`, color: accent,
+            padding: "4px 10px", borderRadius: 8, cursor: "pointer",
+            fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+          }}>
+            {showAll ? "↑ Menos" : `Ver todos (${allRecent.length})`}
+          </button>
+        )}
+      </div>
+      <div style={{
+        display: showAll ? "grid" : "flex",
+        gridTemplateColumns: showAll ? "repeat(auto-fill, minmax(72px, 1fr))" : undefined,
+        gap: 10,
+        overflowX: showAll ? "visible" : "auto",
+        paddingBottom: 4,
+        scrollbarWidth: "none",
+      }}>
+        {recent.map((item) => {
+          const coverSrc = item.customCover || item.cover;
+          return (
+            <div key={item.id} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
+              <div style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
+                {coverSrc
+                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                }
+                {item.userRating > 0 && (
+                  <div style={{ position: "absolute", bottom: 3, left: 3, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+                )}
+              </div>
+              <p style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name || "");
@@ -1227,54 +1275,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       </div>
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && (() => {
-        const allRecent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt);
-        const [showAll, setShowAll] = React.useState(false);
-        const recent = showAll ? allRecent : allRecent.slice(0, 10);
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
-              {allRecent.length > 10 && (
-                <button onClick={() => setShowAll(v => !v)} style={{
-                  background: "none", border: `1px solid ${accent}44`, color: accent,
-                  padding: "4px 10px", borderRadius: 8, cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                }}>
-                  {showAll ? "↑ Menos" : `Ver todos (${allRecent.length})`}
-                </button>
-              )}
-            </div>
-            <div style={{
-              display: showAll ? "grid" : "flex",
-              gridTemplateColumns: showAll ? "repeat(auto-fill, minmax(72px, 1fr))" : undefined,
-              gap: 10,
-              overflowX: showAll ? "visible" : "auto",
-              paddingBottom: 4,
-              scrollbarWidth: "none",
-            }}>
-              {recent.map((item) => {
-                const coverSrc = item.customCover || item.cover;
-                const userRating = item.userRating;
-                return (
-                  <div key={item.id} style={{ flexShrink: 0, width: showAll ? "100%" : 72, cursor: "pointer" }}>
-                    <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
-                      {coverSrc
-                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                      {userRating > 0 && (
-                        <div style={{ position: "absolute", bottom: 3, left: 3, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {userRating}</div>
-                      )}
-                    </div>
-                    <p style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} />}
 
       {/* Stats grid */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
