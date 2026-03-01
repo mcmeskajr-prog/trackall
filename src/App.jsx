@@ -175,6 +175,27 @@ function isColorDark(hex) {
   return luminance < 0.5;
 }
 
+// Gera 3 variações da cor de destaque para os blocos de estatísticas
+// shade: 0 = original, 1 = deslocado +30° no hue, 2 = deslocado +60°
+function accentShade(hex, shiftDeg) {
+  const c = hex.replace("#", "");
+  let r = parseInt(c.substr(0,2),16)/255;
+  let g = parseInt(c.substr(2,2),16)/255;
+  let b = parseInt(c.substr(4,2),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+  let h = 0, s = max === 0 ? 0 : d/max, v = max;
+  if (d !== 0) {
+    if (max === r) h = ((g-b)/d + 6) % 6;
+    else if (max === g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h = h * 60;
+  }
+  h = (h + shiftDeg) % 360;
+  const f = (n) => { const k=(n+h/60)%6; return v - v*s*Math.max(0, Math.min(k, 4-k, 1)); };
+  const toHex = (x) => Math.round(x*255).toString(16).padStart(2,"0");
+  return `#${toHex(f(5))}${toHex(f(3))}${toHex(f(1))}`;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
   { id: "all", label: "Todos", icon: "⊞" },
@@ -580,6 +601,581 @@ function compressBanner(file) {
 }
 
 // ─── Crop Modal ───────────────────────────────────────────────────────────────
+// ─── Mihon Backup Parser ──────────────────────────────────────────────────────
+
+function readVarint(buf, pos, limit) {
+  let val = 0, shift = 0;
+  while (pos < limit) {
+    const b = buf[pos++];
+    val = val + ((b & 0x7F) * Math.pow(2, shift));
+    shift += 7;
+    if (!(b & 0x80)) break;
+  }
+  return { val, pos };
+}
+
+function parseProtoRaw(buf, start, end) {
+  const fields = {};
+  let pos = start || 0;
+  const limit = end !== undefined ? end : buf.length;
+  while (pos < limit) {
+    if (pos >= limit) break;
+    const tagRes = readVarint(buf, pos, limit);
+    pos = tagRes.pos;
+    const fieldNum = tagRes.val >>> 3;
+    const wireType = tagRes.val & 0x7;
+    if (!fields[fieldNum]) fields[fieldNum] = [];
+    if (wireType === 0) {
+      const r = readVarint(buf, pos, limit);
+      pos = r.pos;
+      fields[fieldNum].push({ t: 0, v: r.val });
+    } else if (wireType === 2) {
+      const lenR = readVarint(buf, pos, limit);
+      pos = lenR.pos;
+      const len = lenR.val;
+      if (pos + len > limit) break;
+      const bytes = buf.slice(pos, pos + len);
+      pos += len;
+      let str = null;
+      try { str = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch {}
+      fields[fieldNum].push({ t: 2, bytes, str });
+    } else if (wireType === 1) {
+      // 64-bit little-endian
+      if (pos + 8 <= limit) {
+        let lo = 0;
+        for (let i = 0; i < 4; i++) lo += buf[pos + i] * Math.pow(2, i * 8);
+        fields[fieldNum].push({ t: 1, v: lo });
+      }
+      pos += 8;
+    } else if (wireType === 5) {
+      // 32-bit float
+      if (pos + 4 <= limit) {
+        const view = new DataView(buf.buffer, buf.byteOffset + pos, 4);
+        const fVal = view.getFloat32(0, true);
+        fields[fieldNum].push({ t: 5, v: fVal });
+      }
+      pos += 4;
+    } else {
+      break; // unknown wire type
+    }
+  }
+  return fields;
+}
+
+async function parseMihonBackup(file) {
+  const ab = await file.arrayBuffer();
+  let data = new Uint8Array(ab);
+
+  // Try gzip decompress
+  try {
+    const ds = new DecompressionStream('gzip');
+    const w = ds.writable.getWriter();
+    const r = ds.readable.getReader();
+    w.write(data);
+    w.close();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await r.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const total = chunks.reduce((a, c) => a + c.length, 0);
+    data = new Uint8Array(total);
+    let off = 0;
+    for (const c of chunks) { data.set(c, off); off += c.length; }
+  } catch {}
+
+  // Root Backup proto: field 1 = repeated BackupManga
+  const root = parseProtoRaw(data, 0, data.length);
+  const mangaEntries = root[1] || [];
+
+  const results = [];
+  for (const entry of mangaEntries) {
+    if (entry.t !== 2) continue;
+    const f = parseProtoRaw(entry.bytes, 0, entry.bytes.length);
+
+    const gs = (n) => f[n]?.[0]?.str || '';
+    const gi = (n) => f[n]?.[0]?.v ?? 0;
+
+    const title = gs(3);
+    if (!title) continue;
+    const url = gs(2);
+    const thumbnailUrl = gs(9);
+    const isFavorite = gi(10) === 1;
+
+    // Parse chapters (field 12)
+    const chapRaw = f[12] || [];
+    const chapters = chapRaw.map(cf => {
+      if (cf.t !== 2) return null;
+      const ch = parseProtoRaw(cf.bytes, 0, cf.bytes.length);
+      const name  = ch[2]?.[0]?.str || '';
+      const read  = ch[4]?.[0]?.v === 1;
+      // chapterNumber is float at field 9 (wire type 5)
+      const chNum = ch[9]?.[0]?.v ?? -1;
+      return { name, read, chNum };
+    }).filter(Boolean);
+
+    const total = chapters.length;
+    const readList = chapters.filter(c => c.read);
+    const readCount = readList.length;
+
+    // Last read chapter — highest chapterNumber among read chapters
+    let lastChapter = null;
+    if (readList.length > 0) {
+      const byNum = [...readList].sort((a, b) => b.chNum - a.chNum);
+      lastChapter = byNum[0].name || `Cap. ${Math.round(byNum[0].chNum)}`;
+    }
+
+    // User reading status
+    let userStatus = 'planejado';
+    if (readCount > 0 && readCount < total) userStatus = 'assistindo';
+    else if (readCount > 0 && readCount >= total && total > 0) userStatus = 'completo';
+
+    if (isFavorite || chapters.length > 0) {
+      results.push({
+        id: `mihon-${url.replace(/[^a-z0-9]/gi, '-')}`,
+        title,
+        thumbnailUrl,
+        url,
+        type: 'manga',
+        userStatus,
+        chaptersRead: readCount,
+        totalChapters: total,
+        lastChapter,
+        source: 'Mihon',
+      });
+    }
+  }
+  return results;
+}
+
+// ─── Google Drive OAuth helper ────────────────────────────────────────────────
+// Client ID criado em console.cloud.google.com — o utilizador tem de inserir o seu
+const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+async function driveGetToken(clientId) {
+  return new Promise((resolve, reject) => {
+    if (!window.google?.accounts?.oauth2) { reject(new Error('GIS não carregado')); return; }
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: DRIVE_SCOPES,
+      callback: (resp) => {
+        if (resp.error) reject(new Error(resp.error));
+        else resolve(resp.access_token);
+      },
+    });
+    client.requestAccessToken({ prompt: '' });
+  });
+}
+
+async function driveFindBackups(token) {
+  const q = encodeURIComponent("name contains '.tachibk' or name contains '.proto'");
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime+desc&pageSize=10&fields=files(id,name,modifiedTime,size)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const data = await res.json();
+  return data.files || [];
+}
+
+async function driveDownloadFile(token, fileId) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const ab = await res.arrayBuffer();
+  // wrap as File-like object
+  return { arrayBuffer: () => Promise.resolve(ab) };
+}
+
+function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+  const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState({});
+  const [driveFiles, setDriveFiles] = useState([]);
+  const [token, setToken] = useState(null);
+  const [clientIdInput, setClientIdInput] = useState(driveClientId || '');
+  const fileRef = useRef();
+
+  const processFile = async (fileLike) => {
+    setLoading(true); setError('');
+    try {
+      const parsed = await parseMihonBackup(fileLike);
+      if (!parsed.length) { setError('Nenhum manga encontrado. Certifica-te que é um ficheiro .tachibk válido.'); setLoading(false); return; }
+      const sel = {};
+      parsed.forEach(m => { sel[m.id] = true; });
+      setItems(parsed); setSelected(sel); setStep('preview');
+    } catch (err) { setError('Erro: ' + err.message); }
+    setLoading(false);
+  };
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    await processFile(file);
+  };
+
+  const connectDrive = async () => {
+    if (!clientIdInput.trim()) { setError('Insere o Client ID do Google primeiro.'); return; }
+    if (onSaveClientId) onSaveClientId(clientIdInput.trim());
+    setLoading(true); setError('');
+    try {
+      // Load GIS script if needed
+      if (!window.google?.accounts?.oauth2) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://accounts.google.com/gsi/client';
+          s.onload = res; s.onerror = () => rej(new Error('Falha ao carregar Google'));
+          document.head.appendChild(s);
+        });
+        await new Promise(r => setTimeout(r, 500));
+      }
+      const t = await driveGetToken(clientIdInput.trim());
+      setToken(t);
+      const files = await driveFindBackups(t);
+      if (!files.length) { setError('Nenhum ficheiro .tachibk encontrado no Google Drive.'); setLoading(false); return; }
+      setDriveFiles(files); setStep('drive_files');
+    } catch (err) { setError('Erro Google Drive: ' + err.message); }
+    setLoading(false);
+  };
+
+  const downloadAndImport = async (fileId) => {
+    setLoading(true); setError('');
+    try {
+      const fileLike = await driveDownloadFile(token, fileId);
+      await processFile(fileLike);
+    } catch (err) { setError('Erro ao descarregar: ' + err.message); setLoading(false); }
+  };
+
+  const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
+  const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
+
+  const statusLabel = { assistindo: '▶ Em Curso', completo: '✓ Completo', planejado: '⏰ Planejado' };
+  const statusColor = { assistindo: accent, completo: '#10b981', planejado: '#06b6d4' };
+  const bg = darkMode ? '#161b22' : '#ffffff';
+  const border = darkMode ? '#30363d' : '#e2e8f0';
+  const subBg = darkMode ? '#0d1117' : '#f8fafc';
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, padding: 20, width: '100%', maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Mihon</h3>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>
+                {step === 'choose' && 'Escolhe como importar'}
+                {step === 'drive_files' && `${driveFiles.length} backups encontrados`}
+                {step === 'upload' && 'Upload manual'}
+                {step === 'preview' && `${items.length} mangas encontrados`}
+                {step === 'done' && 'Importação concluída!'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 20, cursor: 'pointer' }}>✕</button>
+        </div>
+
+        {/* STEP: choose */}
+        {step === 'choose' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Google Drive option */}
+            <div style={{ background: subBg, border: `1px solid ${border}`, borderRadius: 12, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 22 }}>☁️</span>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>Google Drive <span style={{ fontSize: 10, background: `${accent}22`, color: accent, borderRadius: 6, padding: '1px 6px', marginLeft: 4 }}>AUTOMÁTICO</span></p>
+                  <p style={{ fontSize: 11, color: '#8b949e' }}>Liga ao Drive e sincroniza com 1 clique</p>
+                </div>
+              </div>
+
+              <input
+                placeholder="Google Client ID (ex: 123...apps.googleusercontent.com)"
+                value={clientIdInput}
+                onChange={e => setClientIdInput(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', fontSize: 12, borderRadius: 8, marginBottom: 8, background: bg }}
+              />
+
+              {/* Setup instructions */}
+              <details style={{ marginBottom: 10 }}>
+                <summary style={{ fontSize: 11, color: accent, cursor: 'pointer', fontWeight: 700 }}>📋 Como obter o Client ID?</summary>
+                <div style={{ fontSize: 11, color: '#8b949e', lineHeight: 1.7, marginTop: 8, paddingLeft: 8 }}>
+                  <p>1. Vai a <strong>console.cloud.google.com</strong></p>
+                  <p>2. Cria projeto → <strong>APIs & Services</strong> → <strong>Credentials</strong></p>
+                  <p>3. <strong>Create OAuth Client ID</strong> → Web Application</p>
+                  <p>4. Em "Authorized JavaScript origins" adiciona:<br />
+                    <code style={{ background: '#21262d', padding: '1px 4px', borderRadius: 3 }}>https://teu-app.vercel.app</code>
+                  </p>
+                  <p>5. Ativa a <strong>Google Drive API</strong> no projeto</p>
+                  <p>6. Copia o Client ID para aqui</p>
+                </div>
+              </details>
+
+              <button onClick={connectDrive} disabled={loading} style={{
+                width: '100%', padding: '10px', borderRadius: 10, border: 'none',
+                background: loading ? '#21262d' : `linear-gradient(135deg, #4285f4, #34a853)`,
+                color: 'white', cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}>
+                {loading ? <span className="spin">◌</span> : '☁️'} {loading ? 'A conectar...' : 'Ligar ao Google Drive'}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: border }} />
+              <span style={{ fontSize: 11, color: '#484f58' }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: border }} />
+            </div>
+
+            {/* Manual upload option */}
+            <button onClick={() => setStep('upload')} style={{
+              width: '100%', padding: '10px 14px', borderRadius: 10,
+              border: `1px dashed ${accent}66`, background: `${accent}11`,
+              color: accent, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 700,
+            }}>
+              📂 Upload manual do ficheiro .tachibk
+            </button>
+
+            {error && <p style={{ color: '#ef4444', fontSize: 12, textAlign: 'center' }}>{error}</p>}
+          </div>
+        )}
+
+        {/* STEP: drive_files */}
+        {step === 'drive_files' && (
+          <div>
+            <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 12 }}>Seleciona o backup para importar:</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {driveFiles.map(f => (
+                <button key={f.id} onClick={() => downloadAndImport(f.id)} disabled={loading} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '12px 14px', borderRadius: 10,
+                  background: subBg, border: `1px solid ${border}`,
+                  cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  opacity: loading ? 0.6 : 1, transition: 'all 0.15s',
+                }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700 }}>📦 {f.name}</p>
+                    <p style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>
+                      {new Date(f.modifiedTime).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {f.size && ` · ${(f.size / 1024).toFixed(0)} KB`}
+                    </p>
+                  </div>
+                  {loading ? <span className="spin" style={{ color: accent }}>◌</span> : <span style={{ color: accent, fontSize: 18 }}>→</span>}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>← Voltar</button>
+            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, textAlign: 'center' }}>{error}</p>}
+          </div>
+        )}
+
+        {/* STEP: upload manual */}
+        {step === 'upload' && (
+          <div>
+            <div style={{ background: subBg, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
+              <p style={{ fontWeight: 700, color: accent, marginBottom: 6 }}>📱 Como exportar do Mihon:</p>
+              <p>1. Abre o Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong></p>
+              <p>2. Carrega em <strong>Criar backup</strong> → guarda o ficheiro</p>
+              <p>3. Seleciona o ficheiro <code style={{ background: '#21262d', padding: '1px 4px', borderRadius: 3 }}>.tachibk</code> abaixo</p>
+            </div>
+            <input ref={fileRef} type="file" accept=".tachibk,.proto,.bak" style={{ display: 'none' }} onChange={handleFile} />
+            <button onClick={() => fileRef.current?.click()} disabled={loading} style={{
+              width: '100%', padding: 14, borderRadius: 12, border: `2px dashed ${accent}66`,
+              background: `${accent}11`, color: accent, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              {loading ? <span className="spin">◌</span> : '📂'} {loading ? 'A processar...' : 'Selecionar ficheiro .tachibk'}
+            </button>
+            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, marginTop: 8, background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>← Voltar</button>
+            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</p>}
+          </div>
+        )}
+
+        {/* STEP: preview */}
+        {step === 'preview' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <p style={{ fontSize: 12, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => toggleAll(true)} style={{ fontSize: 11, color: accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>Todos</button>
+                <button onClick={() => toggleAll(false)} style={{ fontSize: 11, color: '#8b949e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Nenhum</button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+              {items.map(m => (
+                <div key={m.id} onClick={() => setSelected(s => ({ ...s, [m.id]: !s[m.id] }))} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                  background: selected[m.id] ? `${accent}11` : subBg,
+                  border: `1px solid ${selected[m.id] ? accent + '44' : border}`,
+                  borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected[m.id] ? accent : '#30363d'}`, background: selected[m.id] ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {selected[m.id] && <span style={{ color: 'white', fontSize: 12, fontWeight: 900 }}>✓</span>}
+                  </div>
+                  {m.thumbnailUrl ? (
+                    <img src={m.thumbnailUrl} alt="" style={{ width: 32, height: 46, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => e.currentTarget.style.display='none'} />
+                  ) : (
+                    <div style={{ width: 32, height: 46, borderRadius: 4, background: '#21262d', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗒</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[m.userStatus] }}>{statusLabel[m.userStatus]}</span>
+                      {m.lastChapter && <span style={{ fontSize: 10, color: '#8b949e' }}>· {m.lastChapter}</span>}
+                      {m.totalChapters > 0 && <span style={{ fontSize: 10, color: '#484f58' }}>({m.chaptersRead}/{m.totalChapters})</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setStep('choose')} style={{ flex: 1, padding: 12, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>← Voltar</button>
+              <button onClick={handleImport} style={{ flex: 2, padding: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 14 }}>
+                Importar {Object.values(selected).filter(Boolean).length} mangas
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP: done */}
+        {step === 'done' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Importado com sucesso!</h3>
+            <p style={{ color: '#8b949e', fontSize: 14, marginBottom: 20 }}>Os teus mangas do Mihon já estão na biblioteca.</p>
+            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>Fechar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true); setError('');
+    try {
+      const parsed = await parseMihonBackup(file);
+      if (!parsed.length) { setError('Nenhum manga encontrado. Certifica-te que é um ficheiro .tachibk válido.'); setLoading(false); return; }
+      const sel = {};
+      parsed.forEach(m => { sel[m.id] = true; });
+      setItems(parsed); setSelected(sel); setStep('preview');
+    } catch (err) {
+      setError('Erro ao ler ficheiro: ' + err.message);
+    }
+    setLoading(false);
+  };
+
+  const toggleAll = (v) => { const s = {}; items.forEach(m => s[m.id] = v); setSelected(s); };
+  const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
+
+  const statusLabel = { assistindo: '▶ Em Curso', completo: '✓ Completo', planejado: '⏰ Planejado' };
+  const statusColor = { assistindo: accent, completo: '#10b981', planejado: '#06b6d4' };
+  const card = { background: darkMode ? '#161b22' : '#fff', border: `1px solid ${darkMode ? '#30363d' : '#e2e8f0'}`, borderRadius: 16, padding: 20, width: '100%', maxWidth: 520 };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div style={card} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Mihon</h3>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>{step === 'upload' ? 'Faz upload do backup .tachibk' : step === 'preview' ? `${items.length} mangas encontrados` : 'Importação concluída!'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 20, cursor: 'pointer' }}>✕</button>
+        </div>
+
+        {step === 'upload' && (
+          <div>
+            {/* How to export */}
+            <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
+              <p style={{ fontWeight: 700, color: accent, marginBottom: 6 }}>📱 Como exportar do Mihon:</p>
+              <p>1. Abre o Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong></p>
+              <p>2. Carrega em <strong>Criar backup</strong></p>
+              <p>3. Envia o ficheiro <code>.tachibk</code> para aqui</p>
+            </div>
+            <input ref={fileRef} type="file" accept=".tachibk,.proto,.bak" style={{ display: 'none' }} onChange={handleFile} />
+            <button onClick={() => fileRef.current?.click()} disabled={loading} style={{
+              width: '100%', padding: 14, borderRadius: 12, border: `2px dashed ${accent}66`,
+              background: `${accent}11`, color: accent, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              {loading ? <span className="spin">◌</span> : '📂'} {loading ? 'A processar...' : 'Selecionar ficheiro .tachibk'}
+            </button>
+            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</p>}
+          </div>
+        )}
+
+        {step === 'preview' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <p style={{ fontSize: 12, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => toggleAll(true)} style={{ fontSize: 11, color: accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>Todos</button>
+                <button onClick={() => toggleAll(false)} style={{ fontSize: 11, color: '#8b949e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Nenhum</button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+              {items.map(m => (
+                <div key={m.id} onClick={() => setSelected(s => ({ ...s, [m.id]: !s[m.id] }))} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                  background: selected[m.id] ? `${accent}11` : (darkMode ? '#0d1117' : '#f8fafc'),
+                  border: `1px solid ${selected[m.id] ? accent + '44' : (darkMode ? '#21262d' : '#e2e8f0')}`,
+                  borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected[m.id] ? accent : '#30363d'}`, background: selected[m.id] ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {selected[m.id] && <span style={{ color: 'white', fontSize: 12, fontWeight: 900 }}>✓</span>}
+                  </div>
+                  {m.thumbnailUrl ? (
+                    <img src={m.thumbnailUrl} alt="" style={{ width: 32, height: 46, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} onError={e => e.currentTarget.style.display='none'} />
+                  ) : (
+                    <div style={{ width: 32, height: 46, borderRadius: 4, background: '#21262d', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🗒</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[m.userStatus] }}>{statusLabel[m.userStatus]}</span>
+                      {m.lastChapter && <span style={{ fontSize: 10, color: '#8b949e' }}>· {m.lastChapter}</span>}
+                      {m.totalChapters > 0 && <span style={{ fontSize: 10, color: '#484f58' }}>({m.chaptersRead}/{m.totalChapters} caps)</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setStep('upload')} style={{ flex: 1, padding: 12, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>← Voltar</button>
+              <button onClick={handleImport} style={{ flex: 2, padding: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 14 }}>
+                Importar {Object.values(selected).filter(Boolean).length} mangas
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Importado com sucesso!</h3>
+            <p style={{ color: '#8b949e', fontSize: 14, marginBottom: 20 }}>Os teus mangas do Mihon já estão na biblioteca.</p>
+            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>Fechar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
   const canvasRef = useRef(null);
   const [drag, setDrag] = useState(false);
@@ -1003,6 +1599,11 @@ function MediaCard({ item, library, onOpen, accent }) {
         <p style={{ fontSize: 11, color: "#484f58" }}>
           {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
         </p>
+        {libItem?.lastChapter && (
+          <p style={{ fontSize: 10, color: accent, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            📖 {libItem.lastChapter}
+          </p>
+        )}
         {!inLib && (
           <div style={{ marginTop: 8, padding: "5px 0", borderTop: "1px solid #21262d", fontSize: 11, color: accent, fontWeight: 600 }}>+ Adicionar</div>
         )}
@@ -1060,8 +1661,9 @@ function RecentSection({ items, accent, darkMode }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId }) {
   const [editing, setEditing] = useState(false);
+  const [showMihon, setShowMihon] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
@@ -1474,6 +2076,36 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
           <div style={{ background: "#161b2266", borderRadius: 8, padding: "8px 10px", fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
             💡 <strong style={{ color: "#8b949e" }}>Fundo:</strong> Recomendado 1920×1080px (16:9) · Telemóvel: 390×844px (iPhone) ou 360×800px (Android)
           </div>
+        </div>
+      </div>
+
+      {/* Mihon Modal */}
+      {showMihon && (
+        <MihonImportModal
+          accent={accent}
+          darkMode={darkMode}
+          onClose={() => setShowMihon(false)}
+          onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
+          driveClientId={driveClientId}
+          onSaveClientId={onSaveDriveClientId}
+        />
+      )}
+
+      {/* ── Mihon Sync ── */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>SINCRONIZAÇÃO</h3>
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Mihon</p>
+            <p style={{ fontSize: 12, color: "#8b949e", lineHeight: 1.4 }}>Importa a tua biblioteca, progresso de capítulos e estado de leitura.</p>
+          </div>
+          <button onClick={() => setShowMihon(true)} className="btn-accent" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }}>
+            Importar
+          </button>
+        </div>
+        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58" }}>
+          💡 Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong> → <strong>Criar backup</strong> → envia o ficheiro aqui
         </div>
       </div>
 
@@ -2099,6 +2731,7 @@ export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
   const [statsCardBg, setStatsCardBg] = useState("");
+  const [driveClientId, setDriveClientId] = useState("");
   const [bgImage, setBgImage] = useState("");
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
@@ -2151,6 +2784,7 @@ export default function TrackAll() {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
+        if (prof.drive_client_id) setDriveClientId(prof.drive_client_id);
         if (prof.bg_color) {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
@@ -2244,6 +2878,10 @@ export default function TrackAll() {
     setStatsCardBg(c);
     if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch {}
   };
+  const saveDriveClientId = async (id) => {
+    setDriveClientId(id);
+    if (user) try { await supa.upsertProfile(user.id, { drive_client_id: id }); } catch {}
+  };
   const saveBg = async (c) => {
     setBgColor(c);
     setDarkMode(isColorDark(c));
@@ -2278,6 +2916,24 @@ export default function TrackAll() {
     const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
     saveLibrary(lib);
     showNotif(`"${item.title.slice(0, 30)}" adicionado!`, "#10b981");
+  };
+
+  const importMihon = (items) => {
+    const lib = { ...library };
+    let added = 0, updated = 0;
+    items.forEach(item => {
+      const existing = lib[item.id];
+      if (existing) {
+        // Update status and chapter progress but keep user rating
+        lib[item.id] = { ...existing, userStatus: item.userStatus, lastChapter: item.lastChapter, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
+        updated++;
+      } else {
+        lib[item.id] = { ...item, userRating: 0, addedAt: Date.now() };
+        added++;
+      }
+    });
+    saveLibrary(lib);
+    showNotif(`Mihon: ${added} adicionados, ${updated} atualizados ✓`, "#10b981");
   };
   const removeFromLibrary = (id) => {
     const lib = { ...library }; delete lib[id]; saveLibrary(lib);
@@ -2552,24 +3208,28 @@ export default function TrackAll() {
                         {Object.keys(library).length} na biblioteca
                       </p>
                     </div>
-                    {/* Stats grid — compact, 5 columns */}
+                    {/* Stats grid — accent-based color variations */}
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {[
-                        { l: "Curso", v: stats.assistindo, c: accent },
-                        { l: "Completo", v: stats.completo, c: "#10b981" },
-                        { l: "Pausa", v: stats.pausa, c: "#f59e0b" },
-                        { l: "Largado", v: stats.largado, c: "#ef4444" },
-                        { l: "Planej.", v: stats.planejado, c: "#06b6d4" },
-                      ].filter(s => s.v > 0).map((s) => (
+                        { l: "Curso",    v: stats.assistindo, shift: 0   },
+                        { l: "Completo", v: stats.completo,   shift: 120 },
+                        { l: "Pausa",    v: stats.pausa,      shift: 40  },
+                        { l: "Largado",  v: stats.largado,    shift: 180 },
+                        { l: "Planej.",  v: stats.planejado,  shift: 210 },
+                      ].filter(s => s.v > 0).map((s) => {
+                        const col = accentShade(accent, s.shift);
+                        return (
                         <div key={s.l} style={{
-                          background: statsCardBg || (darkMode ? `${s.c}15` : `${s.c}18`),
-                          border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 6px", textAlign: "center",
+                          background: statsCardBg || (darkMode ? `${col}18` : `${col}22`),
+                          border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${col}44`,
+                          borderRadius: 10, padding: "8px 6px", textAlign: "center",
                           minWidth: 52, flex: "1 1 52px",
                         }}>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
                           <div style={{ color: darkMode ? "#8b949e" : "#64748b", fontSize: 9, marginTop: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.l}</div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -2795,6 +3455,9 @@ export default function TrackAll() {
             userEmail={user?.email || ""}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
+            onImportMihon={importMihon}
+            driveClientId={driveClientId}
+            onSaveDriveClientId={saveDriveClientId}
           />
         )}
 
