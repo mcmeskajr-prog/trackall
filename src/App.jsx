@@ -602,7 +602,11 @@ function compressBanner(file) {
 
 // ─── Mihon Backup Parser ──────────────────────────────────────────────────────
 
-async function parseMihonBackup(file) {  // Gzip decompress
+async function parseMihonBackup(file) {
+  const ab = await file.arrayBuffer();
+  let data = new Uint8Array(ab);
+
+  // Gzip decompress
   try {
     const ds = new DecompressionStream('gzip');
     const w = ds.writable.getWriter();
