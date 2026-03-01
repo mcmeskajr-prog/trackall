@@ -190,7 +190,7 @@ function accentShade(hex, shiftDeg) {
     else h = (r-g)/d + 4;
     h = h * 60;
   }
-  h = (h + shiftDeg) % 360;
+  h = ((h + shiftDeg) % 360 + 360) % 360;
   const f = (n) => { const k=(n+h/60)%6; return v - v*s*Math.max(0, Math.min(k, 4-k, 1)); };
   const toHex = (x) => Math.round(x*255).toString(16).padStart(2,"0");
   return `#${toHex(f(5))}${toHex(f(3))}${toHex(f(1))}`;
@@ -498,17 +498,20 @@ const GRADIENTS = [
   ["#1c0a2e","#6b21a8"],["#0a1628","#1e3a5f"],["#1a0a00","#7c3a00"],
   ["#001a1a","#006666"],
 ];
-// Mouse wheel horizontal scroll — callback ref (no hooks needed)
+// Mouse wheel horizontal scroll — only activates when scrolling horizontally on the element
 function makeWheelRef() {
   return (el) => {
     if (!el) return;
-    el._wheelHandler = el._wheelHandler || ((e) => {
-      if (e.deltaY === 0) return;
+    if (el._wheelAttached) return; // prevent duplicate listeners
+    el._wheelAttached = true;
+    el.addEventListener('wheel', (e) => {
+      // Only handle when primarily vertical on a horizontally scrollable row
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // already horizontal
+      const canScrollH = el.scrollWidth > el.clientWidth;
+      if (!canScrollH) return;
       e.preventDefault();
-      el.scrollLeft += e.deltaY * 1.5;
-    });
-    el.removeEventListener('wheel', el._wheelHandler);
-    el.addEventListener('wheel', el._wheelHandler, { passive: false });
+      el.scrollLeft += e.deltaY;
+    }, { passive: false });
   };
 }
 
@@ -519,9 +522,11 @@ function useHorizScroll() {
     const el = ref.current;
     if (!el) return;
     const handler = (e) => {
-      if (e.deltaY === 0) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      const canScrollH = el.scrollWidth > el.clientWidth;
+      if (!canScrollH) return;
       e.preventDefault();
-      el.scrollLeft += e.deltaY * 1.5;
+      el.scrollLeft += e.deltaY;
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
@@ -2741,6 +2746,26 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
 }
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e, info) { console.error('TrackAll crash:', e, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, color: "#ef4444", fontFamily: "monospace", background: "#0d1117", minHeight: "100vh" }}>
+          <h2 style={{ color: "#f59e0b", marginBottom: 16 }}>⚠️ Erro na aplicação</h2>
+          <pre style={{ fontSize: 12, whiteSpace: "pre-wrap", color: "#e6edf3" }}>{this.state.error?.message}</pre>
+          <button onClick={() => this.setState({ error: null })} style={{ marginTop: 20, padding: "10px 20px", background: "#ef4444", border: "none", borderRadius: 8, color: "white", cursor: "pointer", fontSize: 14, fontFamily: "sans-serif" }}>
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
@@ -3174,6 +3199,7 @@ export default function TrackAll() {
   if (!user) return <AuthScreen onAuth={handleAuth} accent={accent} />;
 
   return (
+    <ErrorBoundary>
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
       <div style={{
         minHeight: "100vh",
@@ -3427,7 +3453,6 @@ export default function TrackAll() {
               );
 
               const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsible, collapsed, onToggleCollapse }) => {
-                const wheelRef = makeWheelRef();
                 if (rowItems.length === 0) return null;
                 return (
                   <div style={{ padding: "20px 0 12px 16px" }}>
@@ -3446,7 +3471,7 @@ export default function TrackAll() {
                       {filterBtn}
                     </div>
                     {!collapsed && (
-                      <div ref={wheelRef} className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                      <div ref={makeWheelRef()} className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                         {rowItems.map((item) => (
                           <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
                             <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
@@ -3662,5 +3687,6 @@ export default function TrackAll() {
         </div>{/* end zIndex:2 div */}
       </div>
     </ThemeContext.Provider>
+    </ErrorBoundary>
   );
 }
