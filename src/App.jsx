@@ -1509,7 +1509,7 @@ function RecentSection({ items, accent, darkMode }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [name, setName] = useState(profile.name || "");
@@ -1946,14 +1946,37 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Mihon</p>
-            <p style={{ fontSize: 12, color: "#8b949e", lineHeight: 1.4 }}>Importa a tua biblioteca, progresso de capítulos e estado de leitura.</p>
+            {lastDriveSync ? (
+              <p style={{ fontSize: 11, color: "#10b981", marginBottom: 2 }}>
+                ✓ Última sync: {lastDriveSync.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            ) : (
+              <p style={{ fontSize: 12, color: "#8b949e" }}>Biblioteca, progresso e estado de leitura</p>
+            )}
           </div>
-          <button onClick={() => setShowMihon(true)} className="btn-accent" style={{ padding: "8px 16px", fontSize: 13, flexShrink: 0 }}>
-            Importar
-          </button>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            {driveClientId && (
+              <button onClick={() => onAutoSync && onAutoSync(driveClientId)} disabled={driveAutoSyncing} style={{
+                padding: "8px 12px", fontSize: 12, fontWeight: 700, borderRadius: 10,
+                background: driveAutoSyncing ? "#21262d" : `${accent}22`,
+                border: `1px solid ${accent}44`, color: driveAutoSyncing ? "#484f58" : accent,
+                cursor: driveAutoSyncing ? "not-allowed" : "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 5,
+              }}>
+                {driveAutoSyncing ? <span className="spin">◌</span> : "☁️"} Sync
+              </button>
+            )}
+            <button onClick={() => setShowMihon(true)} className="btn-accent" style={{ padding: "8px 14px", fontSize: 13 }}>
+              Importar
+            </button>
+          </div>
         </div>
-        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58" }}>
-          💡 Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong> → <strong>Criar backup</strong> → envia o ficheiro aqui
+        {/* Status bar */}
+        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
+          {driveClientId
+            ? <>☁️ <strong style={{ color: "#10b981" }}>Google Drive ligado</strong> — sync automático ao abrir a app. Ou clica <strong>Sync</strong> para atualizar agora.</>
+            : <>💡 Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong> → <strong>Criar backup</strong> → ou liga o Google Drive no modal de importação para sync automático.</>
+          }
         </div>
       </div>
 
@@ -2580,6 +2603,8 @@ export default function TrackAll() {
   const [bgColor, setBgColor] = useState("#0d1117");
   const [statsCardBg, setStatsCardBg] = useState("");
   const [driveClientId, setDriveClientId] = useState("");
+  const [lastDriveSync, setLastDriveSync] = useState(null);
+  const [driveAutoSyncing, setDriveAutoSyncing] = useState(false);
   const [bgImage, setBgImage] = useState("");
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
@@ -2632,7 +2657,11 @@ export default function TrackAll() {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
-        if (prof.drive_client_id) setDriveClientId(prof.drive_client_id);
+        if (prof.drive_client_id) {
+          setDriveClientId(prof.drive_client_id);
+          // Auto-sync: try silently if never synced this session
+          setTimeout(() => autoSyncDrive(prof.drive_client_id), 2000);
+        }
         if (prof.bg_color) {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
@@ -2764,6 +2793,39 @@ export default function TrackAll() {
     const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
     saveLibrary(lib);
     showNotif(`"${item.title.slice(0, 30)}" adicionado!`, "#10b981");
+  };
+
+  const autoSyncDrive = async (clientId) => {
+    if (!clientId || driveAutoSyncing) return;
+    // Only auto-sync once per session (silent, no popup if token fails)
+    try {
+      setDriveAutoSyncing(true);
+      // Try to get token silently (no prompt)
+      const token = await new Promise((resolve, reject) => {
+        if (!window.google?.accounts?.oauth2) { reject(); return; }
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.readonly',
+          prompt: 'none', // silent — no popup
+          callback: (resp) => resp.error ? reject() : resolve(resp.access_token),
+        });
+        client.requestAccessToken({ prompt: 'none' });
+      });
+      const files = await driveFindBackups(token);
+      if (!files.length) return;
+      // Download most recent backup
+      const fileLike = await driveDownloadFile(token, files[0].id);
+      const parsed = await parseMihonBackup(fileLike);
+      if (parsed.length) {
+        importMihon(parsed);
+        setLastDriveSync(new Date());
+        showNotif(`Mihon auto-sync: ${parsed.length} mangas ✓`, "#10b981");
+      }
+    } catch {
+      // Silent fail — user will sync manually if needed
+    } finally {
+      setDriveAutoSyncing(false);
+    }
   };
 
   const importMihon = (items) => {
@@ -3060,10 +3122,10 @@ export default function TrackAll() {
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {[
                         { l: "Curso",    v: stats.assistindo, shift: 0   },
-                        { l: "Completo", v: stats.completo,   shift: 120 },
-                        { l: "Pausa",    v: stats.pausa,      shift: 40  },
-                        { l: "Largado",  v: stats.largado,    shift: 180 },
-                        { l: "Planej.",  v: stats.planejado,  shift: 210 },
+                        { l: "Completo", v: stats.completo,   shift: 15  },
+                        { l: "Pausa",    v: stats.pausa,      shift: 30  },
+                        { l: "Largado",  v: stats.largado,    shift: -20 },
+                        { l: "Planej.",  v: stats.planejado,  shift: 45  },
                       ].filter(s => s.v > 0).map((s) => {
                         const col = accentShade(accent, s.shift);
                         return (
@@ -3306,6 +3368,9 @@ export default function TrackAll() {
             onImportMihon={importMihon}
             driveClientId={driveClientId}
             onSaveDriveClientId={saveDriveClientId}
+            lastDriveSync={lastDriveSync}
+            onAutoSync={autoSyncDrive}
+            driveAutoSyncing={driveAutoSyncing}
           />
         )}
 
