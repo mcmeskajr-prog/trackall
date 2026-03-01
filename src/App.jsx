@@ -1510,7 +1510,49 @@ function RecentSection({ items, accent, darkMode }) {
 
   return (
     <>
-      {/* Em Curso */}
+      {/* Completados — tamanho igual aos Favoritos */}
+      {completados.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>✓ COMPLETADOS</h3>
+            {completados.length > 10 && (
+              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
+              </button>
+            )}
+          </div>
+          {/* Large cards like Favoritos */}
+          <div style={{
+            display: showAllCompleto ? "grid" : "flex",
+            gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(120px, 1fr))" : undefined,
+            gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
+            paddingBottom: 4, scrollbarWidth: "none",
+          }}>
+            {(showAllCompleto ? completados : completados.slice(0, 10)).map((item) => {
+              const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+              return (
+                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }}>
+                  <div style={{ width: showAllCompleto ? "100%" : 120, height: 172, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 6, position: "relative" }}>
+                    {coverSrc
+                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                    }
+                    {/* Bottom info bar */}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "18px 8px 8px" }}>
+                      <p style={{ fontSize: 11, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                    </div>
+                    {item.userRating > 0 && (
+                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.85)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Em Curso — small cards with chapter info */}
       {inCurso.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1522,21 +1564,6 @@ function RecentSection({ items, accent, darkMode }) {
             )}
           </div>
           <ItemGrid list={inCurso} showAll={showAllCurso} />
-        </div>
-      )}
-
-      {/* Completados */}
-      {completados.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>✓ COMPLETADOS</h3>
-            {completados.length > 10 && (
-              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
-              </button>
-            )}
-          </div>
-          <ItemGrid list={completados} showAll={showAllCompleto} />
         </div>
       )}
     </>
@@ -1787,7 +1814,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
             <div key={t.id} style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
-                <span style={{ fontSize: 12, color: "#8b949e" }}>{count} <span style={{ color: "#484f58" }}>/ {total}</span></span>
+                <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
               </div>
               <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
@@ -3315,19 +3342,19 @@ export default function TrackAll() {
               return (
                 <>
                   <RowSection
-                    title="Em Curso"
-                    icon="▶"
-                    items={inCurso}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                    title="Completados"
+                    icon="✓"
+                    items={completados}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
                   />
                   {inCurso.length > 0 && completados.length > 0 && (
                     <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
                   )}
                   <RowSection
-                    title="Completados"
-                    icon="✓"
-                    items={completados}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                    title="Em Curso"
+                    icon="▶"
+                    items={inCurso}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
                   />
                 </>
               );
