@@ -498,7 +498,21 @@ const GRADIENTS = [
   ["#1c0a2e","#6b21a8"],["#0a1628","#1e3a5f"],["#1a0a00","#7c3a00"],
   ["#001a1a","#006666"],
 ];
-// Mouse wheel horizontal scroll for rows
+// Mouse wheel horizontal scroll — callback ref (no hooks needed)
+function makeWheelRef() {
+  return (el) => {
+    if (!el) return;
+    el._wheelHandler = el._wheelHandler || ((e) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY * 1.5;
+    });
+    el.removeEventListener('wheel', el._wheelHandler);
+    el.addEventListener('wheel', el._wheelHandler, { passive: false });
+  };
+}
+
+// Hook version for proper components
 function useHorizScroll() {
   const ref = React.useRef(null);
   React.useEffect(() => {
@@ -3413,7 +3427,7 @@ export default function TrackAll() {
               );
 
               const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsible, collapsed, onToggleCollapse }) => {
-                const wheelRef = useHorizScroll();
+                const wheelRef = makeWheelRef();
                 if (rowItems.length === 0) return null;
                 return (
                   <div style={{ padding: "20px 0 12px 16px" }}>
