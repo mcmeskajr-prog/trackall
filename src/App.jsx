@@ -600,117 +600,86 @@ function compressBanner(file) {
   return compressImage(file, 1200, 400, 0.90);
 }
 
-// ─── Crop Modal ───────────────────────────────────────────────────────────────
 // ─── Mihon Backup Parser ──────────────────────────────────────────────────────
 
-function readVarint(buf, pos, limit) {
-  let val = 0, shift = 0;
-  while (pos < limit) {
-    const b = buf[pos++];
-    val = val + ((b & 0x7F) * Math.pow(2, shift));
-    shift += 7;
-    if (!(b & 0x80)) break;
-  }
-  return { val, pos };
-}
-
-function parseProtoRaw(buf, start, end) {
-  const fields = {};
-  let pos = start || 0;
-  const limit = end !== undefined ? end : buf.length;
-  while (pos < limit) {
-    if (pos >= limit) break;
-    const tagRes = readVarint(buf, pos, limit);
-    pos = tagRes.pos;
-    const fieldNum = tagRes.val >>> 3;
-    const wireType = tagRes.val & 0x7;
-    if (!fields[fieldNum]) fields[fieldNum] = [];
-    if (wireType === 0) {
-      const r = readVarint(buf, pos, limit);
-      pos = r.pos;
-      fields[fieldNum].push({ t: 0, v: r.val });
-    } else if (wireType === 2) {
-      const lenR = readVarint(buf, pos, limit);
-      pos = lenR.pos;
-      const len = lenR.val;
-      if (pos + len > limit) break;
-      const bytes = buf.slice(pos, pos + len);
-      pos += len;
-      let str = null;
-      try { str = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch {}
-      fields[fieldNum].push({ t: 2, bytes, str });
-    } else if (wireType === 1) {
-      // 64-bit little-endian
-      if (pos + 8 <= limit) {
-        let lo = 0;
-        for (let i = 0; i < 4; i++) lo += buf[pos + i] * Math.pow(2, i * 8);
-        fields[fieldNum].push({ t: 1, v: lo });
-      }
-      pos += 8;
-    } else if (wireType === 5) {
-      // 32-bit float
-      if (pos + 4 <= limit) {
-        const view = new DataView(buf.buffer, buf.byteOffset + pos, 4);
-        const fVal = view.getFloat32(0, true);
-        fields[fieldNum].push({ t: 5, v: fVal });
-      }
-      pos += 4;
-    } else {
-      break; // unknown wire type
-    }
-  }
-  return fields;
-}
-
-async function parseMihonBackup(file) {
-  const ab = await file.arrayBuffer();
-  let data = new Uint8Array(ab);
-
-  // Try gzip decompress
+async function parseMihonBackup(file) {  // Gzip decompress
   try {
     const ds = new DecompressionStream('gzip');
     const w = ds.writable.getWriter();
     const r = ds.readable.getReader();
-    w.write(data);
-    w.close();
+    w.write(data); w.close();
     const chunks = [];
-    while (true) {
-      const { done, value } = await r.read();
-      if (done) break;
-      chunks.push(value);
-    }
+    while (true) { const { done, value } = await r.read(); if (done) break; chunks.push(value); }
     const total = chunks.reduce((a, c) => a + c.length, 0);
-    data = new Uint8Array(total);
-    let off = 0;
+    data = new Uint8Array(total); let off = 0;
     for (const c of chunks) { data.set(c, off); off += c.length; }
   } catch {}
 
-  // Root Backup proto: field 1 = repeated BackupManga
-  const root = parseProtoRaw(data, 0, data.length);
-  const mangaEntries = root[1] || [];
+  // Protobuf parser (supports varint, length-delimited, float32, int64)
+  function readVarint(buf, pos) {
+    let val = 0, shift = 0;
+    while (pos < buf.length) {
+      const b = buf[pos++]; val = val + ((b & 0x7F) * Math.pow(2, shift)); shift += 7;
+      if (!(b & 0x80)) break;
+    }
+    return { val, pos };
+  }
 
+  function parseMsg(buf, start, end) {
+    const fields = {}; let pos = start || 0; const lim = end ?? buf.length;
+    while (pos < lim) {
+      const tr = readVarint(buf, pos); pos = tr.pos;
+      const fn = tr.val >>> 3, wt = tr.val & 7;
+      if (!fields[fn]) fields[fn] = [];
+      if (wt === 0) {
+        const r = readVarint(buf, pos); pos = r.pos; fields[fn].push({ t: 0, v: r.val });
+      } else if (wt === 2) {
+        const lr = readVarint(buf, pos); pos = lr.pos; const len = lr.val;
+        if (pos + len > lim) break;
+        const bytes = buf.slice(pos, pos + len); pos += len;
+        let str = null; try { str = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch {}
+        fields[fn].push(str !== null ? { t: 2, bytes, str } : { t: 2, bytes, str: null });
+      } else if (wt === 5) {
+        // 32-bit float (little-endian)
+        if (pos + 4 <= lim) {
+          const view = new DataView(buf.buffer, buf.byteOffset + pos, 4);
+          fields[fn].push({ t: 5, v: view.getFloat32(0, true) });
+        }
+        pos += 4;
+      } else if (wt === 1) {
+        pos += 8; // skip 64-bit
+      } else break;
+    }
+    return fields;
+  }
+
+  // Root: field 1 = repeated BackupManga
+  const root = parseMsg(data, 0, data.length);
+  const mangaEntries = root[1] || [];
   const results = [];
+
   for (const entry of mangaEntries) {
     if (entry.t !== 2) continue;
-    const f = parseProtoRaw(entry.bytes, 0, entry.bytes.length);
+    const f = parseMsg(entry.bytes, 0, entry.bytes.length);
 
     const gs = (n) => f[n]?.[0]?.str || '';
     const gi = (n) => f[n]?.[0]?.v ?? 0;
 
-    const title = gs(3);
-    if (!title) continue;
+    const title = gs(3); if (!title) continue;
     const url = gs(2);
     const thumbnailUrl = gs(9);
-    const isFavorite = gi(10) === 1;
+    // field 111 = isFavorite (1=true)
+    const isFavorite = gi(111) === 1;
 
-    // Parse chapters (field 12)
-    const chapRaw = f[12] || [];
+    // field 16 = repeated BackupChapter
+    const chapRaw = f[16] || [];
     const chapters = chapRaw.map(cf => {
       if (cf.t !== 2) return null;
-      const ch = parseProtoRaw(cf.bytes, 0, cf.bytes.length);
-      const name  = ch[2]?.[0]?.str || '';
-      const read  = ch[4]?.[0]?.v === 1;
-      // chapterNumber is float at field 9 (wire type 5)
+      const ch = parseMsg(cf.bytes, 0, cf.bytes.length);
+      const name = ch[2]?.[0]?.str || '';
+      // sf10 varint = 1 means read
+      const read = (ch[10]?.[0]?.v ?? 0) === 1;
+      // sf9 = float chapter number (wire type 5)
       const chNum = ch[9]?.[0]?.v ?? -1;
       return { name, read, chNum };
     }).filter(Boolean);
@@ -719,32 +688,23 @@ async function parseMihonBackup(file) {
     const readList = chapters.filter(c => c.read);
     const readCount = readList.length;
 
-    // Last read chapter — highest chapterNumber among read chapters
+    // Last read = highest chapter number among read ones
     let lastChapter = null;
     if (readList.length > 0) {
       const byNum = [...readList].sort((a, b) => b.chNum - a.chNum);
       lastChapter = byNum[0].name || `Cap. ${Math.round(byNum[0].chNum)}`;
     }
 
-    // User reading status
     let userStatus = 'planejado';
     if (readCount > 0 && readCount < total) userStatus = 'assistindo';
-    else if (readCount > 0 && readCount >= total && total > 0) userStatus = 'completo';
+    else if (readCount > 0 && total > 0 && readCount >= total) userStatus = 'completo';
 
-    if (isFavorite || chapters.length > 0) {
-      results.push({
-        id: `mihon-${url.replace(/[^a-z0-9]/gi, '-')}`,
-        title,
-        thumbnailUrl,
-        url,
-        type: 'manga',
-        userStatus,
-        chaptersRead: readCount,
-        totalChapters: total,
-        lastChapter,
-        source: 'Mihon',
-      });
-    }
+    results.push({
+      id: `mihon-${url.replace(/[^a-z0-9]/gi, '-')}`,
+      title, thumbnailUrl, url, type: 'manga',
+      userStatus, chaptersRead: readCount, totalChapters: total,
+      lastChapter, source: 'Mihon', cover: thumbnailUrl,
+    });
   }
   return results;
 }
