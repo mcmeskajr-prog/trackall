@@ -2171,7 +2171,31 @@ function FriendsView({ user, accent }) {
     STATUS_OPTIONS.forEach(s => { byStatus[s.id] = libItems.filter(i => i.userStatus === s.id).length; });
     const rated = libItems.filter(i => i.userRating > 0);
     const avgRating = rated.length ? (rated.reduce((a, i) => a + i.userRating, 0) / rated.length).toFixed(1) : "—";
-    const recentItems = [...libItems].filter(i => i.userStatus !== "planejado").sort((a,b) => b.addedAt - a.addedAt).slice(0, 20);
+    const completados = libItems.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+    const inCurso = libItems.filter(i => i.userStatus === "assistindo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+
+    const FriendCard = ({ item, size = 90 }) => {
+      const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+      return (
+        <div style={{ flexShrink: 0, width: size }}>
+          <div style={{ width: size, height: Math.round(size * 1.45), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative", border: `1px solid ${accent}22` }}>
+            {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "16px 6px 6px" }}>
+              <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+            </div>
+            {item.userRating > 0 && (
+              <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+            )}
+            {item.lastChapter && item.userStatus === "assistindo" && (
+              <div style={{ position: "absolute", top: 5, right: 5, background: "rgba(0,0,0,0.85)", borderRadius: 4, padding: "1px 4px", fontSize: 9, color: accent, fontWeight: 700, maxWidth: 54, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.lastChapter.replace(/chapter /i,'Ch.').replace(/vol\.\d+\s*/i,'')}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 20 }}>
@@ -2207,81 +2231,49 @@ function FriendsView({ user, accent }) {
               <div style={{ fontSize: 11, color: "#484f58", marginTop: 2 }}>📚 Total na Biblioteca</div>
             </div>
           </div>
+          {libItems.length === 0 && (
+            <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginTop: 10 }}>
+              💡 Stats a 0? Executa o SQL de permissões no Supabase (ver documentação).
+            </p>
+          )}
         </div>
 
         {/* Favoritos */}
         {favs.length > 0 && (
           <div style={{ padding: "0 16px", marginBottom: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>FAVORITOS</h3>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
               {favs.map(item => (
-                <div key={item.id} style={{ flexShrink: 0, width: 90 }}>
-                  <div style={{ width: 90, height: 130, borderRadius: 10, overflow: "hidden", background: "#21262d", border: `1px solid ${accent}33` }}>
+                <div key={item.id} style={{ flexShrink: 0, width: 110 }}>
+                  <div style={{ width: 110, height: 158, borderRadius: 10, overflow: "hidden", background: "#21262d", border: `1px solid ${accent}33` }}>
                     {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎭</div>}
                   </div>
-                  <p style={{ fontSize: 11, color: "#8b949e", marginTop: 6, lineHeight: 1.3 }}>{item.title?.slice(0,22)}</p>
+                  <p style={{ fontSize: 11, color: "#8b949e", marginTop: 6, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Recentes com rating */}
-        {recentItems.length > 0 && (
+        {/* Completados */}
+        {completados.length > 0 && (
           <div style={{ padding: "0 16px", marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>ADICIONADO RECENTEMENTE</h3>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-              {recentItems.map(item => {
-                const status = STATUS_OPTIONS.find(s => s.id === item.userStatus);
-                return (
-                  <div key={item.id} style={{ flexShrink: 0, width: 84 }}>
-                    <div style={{ width: 84, height: 120, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                      {item.cover ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
-                      {item.userRating > 0 && (
-                        <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.8)", borderRadius: 5, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
-                          <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
-                          <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
-                        </div>
-                      )}
-                      {status && (
-                        <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 4px", fontSize: 10 }}>{status.emoji}</div>
-                      )}
-                    </div>
-                    <p style={{ fontSize: 11, color: "#8b949e", marginTop: 5, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                  </div>
-                );
-              })}
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>✓ COMPLETADOS</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+              {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
             </div>
           </div>
         )}
 
-        {/* Já viram / Concluídos */}
-        {(() => {
-          const completed = libItems.filter(i => i.userStatus === "completo").sort((a,b) => b.addedAt - a.addedAt);
-          if (completed.length === 0) return null;
-          return (
-            <div style={{ padding: "0 16px", marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ JÁ VIRAM / CONCLUÍRAM</h3>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                {completed.map(item => (
-                  <div key={item.id} style={{ flexShrink: 0, width: 84 }}>
-                    <div style={{ width: 84, height: 120, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative", border: "1px solid #10b98133" }}>
-                      {item.cover ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
-                      {item.userRating > 0 && (
-                        <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.8)", borderRadius: 5, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
-                          <span style={{ fontSize: 10, color: "#f59e0b" }}>★</span>
-                          <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>{item.userRating}</span>
-                        </div>
-                      )}
-                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 4px", fontSize: 10 }}>✓</div>
-                    </div>
-                    <p style={{ fontSize: 11, color: "#8b949e", marginTop: 5, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                  </div>
-                ))}
-              </div>
+        {/* Em Curso */}
+        {inCurso.length > 0 && (
+          <div style={{ padding: "0 16px", marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>▶ EM CURSO</h3>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+              {inCurso.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={90} />)}
             </div>
-          );
-        })()}
+          </div>
+        )}
       </div>
     );
   }
