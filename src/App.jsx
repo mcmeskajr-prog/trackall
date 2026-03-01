@@ -1452,7 +1452,7 @@ function MediaCard({ item, library, onOpen, accent }) {
         <p style={{ fontSize: 11, color: "#484f58" }}>
           {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
         </p>
-        {libItem?.lastChapter && (
+        {libItem?.lastChapter && libItem?.userStatus === 'assistindo' && (
           <p style={{ fontSize: 10, color: accent, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             📖 {libItem.lastChapter}
           </p>
@@ -1467,33 +1467,23 @@ function MediaCard({ item, library, onOpen, accent }) {
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
 function RecentSection({ items, accent, darkMode }) {
-  const [showAll, setShowAll] = useState(false);
-  const allRecent = [...items].filter(i => i.userStatus !== "planejado").sort((a, b) => b.addedAt - a.addedAt);
-  const recent = showAll ? allRecent : allRecent.slice(0, 10);
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>VISTOS RECENTEMENTE</h3>
-        {allRecent.length > 10 && (
-          <button onClick={() => setShowAll(v => !v)} style={{
-            background: "none", border: `1px solid ${accent}44`, color: accent,
-            padding: "4px 10px", borderRadius: 8, cursor: "pointer",
-            fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-          }}>
-            {showAll ? "↑ Menos" : `Ver todos (${allRecent.length})`}
-          </button>
-        )}
-      </div>
+  const [showAllCurso, setShowAllCurso] = useState(false);
+  const [showAllCompleto, setShowAllCompleto] = useState(false);
+
+  const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
+  const completados = [...items].filter(i => i.userStatus === "completo").sort((a, b) => b.addedAt - a.addedAt);
+
+  const ItemGrid = ({ list, showAll, maxPreview = 10 }) => {
+    const visible = showAll ? list : list.slice(0, maxPreview);
+    return (
       <div style={{
         display: showAll ? "grid" : "flex",
         gridTemplateColumns: showAll ? "repeat(auto-fill, minmax(72px, 1fr))" : undefined,
-        gap: 10,
-        overflowX: showAll ? "visible" : "auto",
-        paddingBottom: 4,
-        scrollbarWidth: "none",
+        gap: 10, overflowX: showAll ? "visible" : "auto",
+        paddingBottom: 4, scrollbarWidth: "none",
       }}>
-        {recent.map((item) => {
-          const coverSrc = item.customCover || item.cover;
+        {visible.map((item) => {
+          const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
           return (
             <div key={item.id} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
               <div style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
@@ -1504,13 +1494,52 @@ function RecentSection({ items, accent, darkMode }) {
                 {item.userRating > 0 && (
                   <div style={{ position: "absolute", bottom: 3, left: 3, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
                 )}
+                {item.lastChapter && item.userStatus === "assistindo" && (
+                  <div style={{ position: "absolute", bottom: 3, right: 3, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "1px 4px", fontSize: 9, color: accent, fontWeight: 700, maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.lastChapter.replace(/chapter /i, 'Ch.').replace(/vol\.\d+\s*/i, '')}
+                  </div>
+                )}
               </div>
               <p style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
             </div>
           );
         })}
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Em Curso */}
+      {inCurso.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>▶ EM CURSO</h3>
+            {inCurso.length > 10 && (
+              <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                {showAllCurso ? "↑ Menos" : `Ver todos (${inCurso.length})`}
+              </button>
+            )}
+          </div>
+          <ItemGrid list={inCurso} showAll={showAllCurso} />
+        </div>
+      )}
+
+      {/* Completados */}
+      {completados.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>✓ COMPLETADOS</h3>
+            {completados.length > 10 && (
+              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
+              </button>
+            )}
+          </div>
+          <ItemGrid list={completados} showAll={showAllCompleto} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1528,7 +1557,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
   const bannerRef = useRef();
   const items = Object.values(library);
   const byType = {};
-  MEDIA_TYPES.slice(1).forEach((t) => { byType[t.id] = items.filter((i) => i.type === t.id).length; });
+  MEDIA_TYPES.slice(1).forEach((t) => { byType[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
   const byStatus = {};
   STATUS_OPTIONS.forEach((s) => { byStatus[s.id] = items.filter((i) => i.userStatus === s.id).length; });
   const totalRatings = items.filter((i) => i.userRating > 0);
@@ -1747,16 +1776,18 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       </div>
 
       {/* Por tipo */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>POR TIPO</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>COMPLETOS POR TIPO</h3>
       <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         {MEDIA_TYPES.slice(1).map((t) => {
           const count = byType[t.id] || 0;
-          const pct = items.length ? (count / items.length) * 100 : 0;
+          const total = items.filter(i => i.type === t.id).length;
+          const pct = total ? (count / total) * 100 : 0;
+          if (!total) return null;
           return (
             <div key={t.id} style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{count}</span>
+                <span style={{ fontSize: 12, color: "#8b949e" }}>{count} <span style={{ color: "#484f58" }}>/ {total}</span></span>
               </div>
               <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
@@ -2835,32 +2866,50 @@ export default function TrackAll() {
 
   const importMihon = async (items) => {
     const lib = { ...library };
-    let added = 0, updated = 0;
+    let added = 0, updated = 0, skipped = 0;
+
+    // Build title lookup for existing library items (normalize to lowercase)
+    const existingByTitle = {};
+    Object.values(lib).forEach(entry => {
+      const norm = (entry.title || '').toLowerCase().trim();
+      if (norm) existingByTitle[norm] = entry.id;
+    });
+
+    const coversMissing = [];
+
     items.forEach(item => {
-      const existing = lib[item.id];
-      if (existing) {
-        lib[item.id] = { ...existing, userStatus: item.userStatus, lastChapter: item.lastChapter, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
+      const norm = item.title.toLowerCase().trim();
+      const existingId = existingByTitle[norm];
+
+      if (lib[item.id]) {
+        // Exact ID match — update progress only
+        lib[item.id] = { ...lib[item.id], userStatus: item.userStatus, lastChapter: item.lastChapter, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
+        updated++;
+      } else if (existingId) {
+        // Title match — update progress on existing entry, don't create duplicate
+        lib[existingId] = { ...lib[existingId], userStatus: item.userStatus, lastChapter: item.lastChapter, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
         updated++;
       } else {
+        // New entry
         lib[item.id] = { ...item, userRating: 0, addedAt: Date.now() };
         added++;
+        if (!item.thumbnailUrl || item.thumbnailUrl.includes('mangadex.org/covers')) {
+          coversMissing.push(item);
+        }
       }
     });
+
     saveLibrary(lib);
-    showNotif(`Mihon: ${added} adicionados, ${updated} atualizados ✓`, "#10b981");
+    showNotif(`Mihon: ${added} adicionados, ${updated} atualizados${skipped ? `, ${skipped} ignorados` : ''} ✓`, "#10b981");
 
-    // Fetch missing covers from AniList for items without working thumbnails
-    const missingCovers = items.filter(item => !item.thumbnailUrl || item.thumbnailUrl.includes('mangadex.org/covers') || item.thumbnailUrl === '');
-    if (!missingCovers.length) return;
+    // Fetch missing covers from AniList
+    if (!coversMissing.length) return;
+    showNotif(`A buscar capas para ${coversMissing.length} mangas...`, accent);
 
-    showNotif(`A buscar capas para ${missingCovers.length} mangas...`, accent);
-
-    // AniList allows up to 50 titles in a bulk query
     const chunkSize = 10;
     const updatedLib = { ...lib };
-    for (let i = 0; i < missingCovers.length; i += chunkSize) {
-      const chunk = missingCovers.slice(i, i + chunkSize);
-      // Build a multi-query for AniList
+    for (let i = 0; i < coversMissing.length; i += chunkSize) {
+      const chunk = coversMissing.slice(i, i + chunkSize);
       const queryParts = chunk.map((item, idx) => `
         m${idx}: Media(search: ${JSON.stringify(item.title)}, type: MANGA, sort: SEARCH_MATCH) {
           id coverImage { large medium } title { romaji english }
@@ -2884,8 +2933,7 @@ export default function TrackAll() {
           });
         }
       } catch {}
-      // Small delay between chunks
-      if (i + chunkSize < missingCovers.length) await new Promise(r => setTimeout(r, 500));
+      if (i + chunkSize < coversMissing.length) await new Promise(r => setTimeout(r, 500));
     }
     saveLibrary(updatedLib);
     showNotif(`Capas atualizadas ✓`, "#10b981");
@@ -3223,38 +3271,65 @@ export default function TrackAll() {
 
             {/* Recent — filtered by homeFilter */}
             {items.length > 0 && (() => {
-              const filtered = items
-                .filter(i => i.userStatus !== "planejado")
+              const inCurso = items
+                .filter(i => i.userStatus === "assistindo")
                 .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
-                .sort((a,b) => b.addedAt - a.addedAt)
+                .sort((a,b) => (b.addedAt||0) - (a.addedAt||0))
                 .slice(0, 20);
-              if (filtered.length === 0 && homeFilter.length > 0) return (
+
+              const completados = items
+                .filter(i => i.userStatus === "completo")
+                .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
+                .sort((a,b) => (b.addedAt||0) - (a.addedAt||0))
+                .slice(0, 20);
+
+              if (inCurso.length === 0 && completados.length === 0 && homeFilter.length > 0) return (
                 <div style={{ padding: "28px 16px", textAlign: "center", color: darkMode ? "#484f58" : "#94a3b8" }}>
-                  <p style={{ fontSize: 14 }}>Nenhum item com esse filtro nos recentes</p>
+                  <p style={{ fontSize: 14 }}>Nenhum item com esse filtro</p>
                 </div>
               );
-              return (
-                <div style={{ padding: "24px 0 24px 16px" }}>
+
+              const RowSection = ({ title, icon, items: rowItems, filterBtn }) => rowItems.length === 0 ? null : (
+                <div style={{ padding: "20px 0 12px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingRight: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <h2 style={{ fontSize: 18, fontWeight: 800 }}>Recentes</h2>
+                      <h2 style={{ fontSize: 18, fontWeight: 800 }}>{icon} {title}</h2>
                       {homeFilter.length > 0 && (
                         <span style={{ fontSize: 11, color: accent, background: `${accent}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
                           {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
                         </span>
                       )}
                     </div>
-                    <button onClick={() => setView("library")} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>
+                    {filterBtn}
                   </div>
-                  {/* Horizontal scroll row on mobile */}
                   <div className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                    {filtered.map((item) => (
+                    {rowItems.map((item) => (
                       <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
                         <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
                       </div>
                     ))}
                   </div>
                 </div>
+              );
+
+              return (
+                <>
+                  <RowSection
+                    title="Em Curso"
+                    icon="▶"
+                    items={inCurso}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                  />
+                  {inCurso.length > 0 && completados.length > 0 && (
+                    <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
+                  )}
+                  <RowSection
+                    title="Completados"
+                    icon="✓"
+                    items={completados}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                  />
+                </>
               );
             })()}
 
