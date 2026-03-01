@@ -498,6 +498,23 @@ const GRADIENTS = [
   ["#1c0a2e","#6b21a8"],["#0a1628","#1e3a5f"],["#1a0a00","#7c3a00"],
   ["#001a1a","#006666"],
 ];
+// Mouse wheel horizontal scroll for rows
+function useHorizScroll() {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const handler = (e) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY * 1.5;
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+  return ref;
+}
+
 const gradientFor = (id) => {
   const i = Math.abs((id || "x").split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % GRADIENTS.length;
   return `linear-gradient(145deg, ${GRADIENTS[i][0]} 0%, ${GRADIENTS[i][1]} 100%)`;
@@ -757,7 +774,7 @@ async function driveDownloadFile(token, fileId) {
   return { arrayBuffer: () => Promise.resolve(ab) };
 }
 
-function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId, existingLibrary = {} }) {
   const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -773,9 +790,31 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
     try {
       const parsed = await parseMihonBackup(fileLike);
       if (!parsed.length) { setError('Nenhum manga encontrado. Certifica-te que é um ficheiro .tachibk válido.'); setLoading(false); return; }
+
+      // Build title lookup for existing library
+      const existingByTitle = {};
+      Object.values(existingLibrary).forEach(entry => {
+        const norm = (entry.title || '').toLowerCase().trim();
+        if (norm) existingByTitle[norm] = entry;
+      });
+
+      // Only include items that are NEW or have CHANGED status/progress
+      const filtered = parsed.filter(item => {
+        const norm = item.title.toLowerCase().trim();
+        const existing = existingLibrary[item.id] || (existingByTitle[norm] ? existingLibrary[existingByTitle[norm].id || Object.keys(existingLibrary).find(k => existingLibrary[k] === existingByTitle[norm])] : null);
+        if (!existing) return true; // New item
+        // Changed if status or chapter count differs
+        return existing.userStatus !== item.userStatus || existing.chaptersRead !== item.chaptersRead;
+      });
+
+      if (!filtered.length) {
+        setError('Todos os mangas já estão atualizados na biblioteca! Nada a importar.');
+        setLoading(false); return;
+      }
+
       const sel = {};
-      parsed.forEach(m => { sel[m.id] = true; });
-      setItems(parsed); setSelected(sel); setStep('preview');
+      filtered.forEach(m => { sel[m.id] = true; });
+      setItems(filtered); setSelected(sel); setStep('preview');
     } catch (err) { setError('Erro: ' + err.message); }
     setLoading(false);
   };
@@ -1210,19 +1249,26 @@ function CoverEditModal({ item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
+  const [chapterInput, setChapterInput] = useState("");
+  const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   useEffect(() => {
     setDetailExtra(null);
     if (item && tmdbKey) fetchMediaDetails(item, tmdbKey).then(d => { if (d) setDetailExtra(d); });
   }, [item?.id]);
+  useEffect(() => {
+    const lb = library[item.id];
+    if (lb?.lastChapter) setChapterInput(lb.lastChapter);
+  }, [item?.id, library]);
   const inLib = !!library[item.id];
   const libItem = library[item.id];
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
   const isFavorite = favorites.some(f => f.id === item.id);
   const canAddFavorite = !isFavorite && favorites.length < 5;
+  const isChapterType = CHAPTER_TYPES.includes(item.type);
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
@@ -1342,6 +1388,32 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       </button>
                     ))}
                   </div>
+                  {/* Chapter input — shown for manga/comics/manhwa when Em Curso */}
+                  {isChapterType && libItem.userStatus === "assistindo" && (
+                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo atual:</span>
+                      <input
+                        type="text"
+                        value={chapterInput}
+                        onChange={e => setChapterInput(e.target.value)}
+                        placeholder="ex: Cap. 42 ou Ch.42"
+                        style={{
+                          flex: 1, background: "#21262d", border: `1px solid ${accent}44`,
+                          borderRadius: 8, padding: "6px 10px", color: "#e6edf3",
+                          fontSize: 12, fontFamily: "inherit", outline: "none",
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && onUpdateLastChapter) {
+                            onUpdateLastChapter(item.id, chapterInput.trim());
+                          }
+                        }}
+                      />
+                      <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())}
+                        style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 12px", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+                        ✓
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -1466,17 +1538,19 @@ function MediaCard({ item, library, onOpen, accent }) {
 }
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function RecentSection({ items, accent, darkMode }) {
+function RecentSection({ items, accent, darkMode, onOpen }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
+  const completadosScrollRef = useHorizScroll();
+  const cursoScrollRef = useHorizScroll();
 
   const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
   const completados = [...items].filter(i => i.userStatus === "completo").sort((a, b) => b.addedAt - a.addedAt);
 
-  const ItemGrid = ({ list, showAll, maxPreview = 10 }) => {
+  const ItemGrid = ({ list, showAll, maxPreview = 10, scrollRef }) => {
     const visible = showAll ? list : list.slice(0, maxPreview);
     return (
-      <div style={{
+      <div ref={showAll ? undefined : scrollRef} style={{
         display: showAll ? "grid" : "flex",
         gridTemplateColumns: showAll ? "repeat(auto-fill, minmax(72px, 1fr))" : undefined,
         gap: 10, overflowX: showAll ? "visible" : "auto",
@@ -1485,7 +1559,7 @@ function RecentSection({ items, accent, darkMode }) {
         {visible.map((item) => {
           const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
           return (
-            <div key={item.id} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
+            <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
               <div style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
                 {coverSrc
                   ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
@@ -1522,7 +1596,7 @@ function RecentSection({ items, accent, darkMode }) {
             )}
           </div>
           {/* Large cards like Favoritos */}
-          <div style={{
+          <div ref={showAllCompleto ? undefined : completadosScrollRef} style={{
             display: showAllCompleto ? "grid" : "flex",
             gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(120px, 1fr))" : undefined,
             gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
@@ -1531,13 +1605,12 @@ function RecentSection({ items, accent, darkMode }) {
             {(showAllCompleto ? completados : completados.slice(0, 10)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }}>
+                <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }}>
                   <div style={{ width: showAllCompleto ? "100%" : 120, height: 172, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 6, position: "relative" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
-                    {/* Bottom info bar */}
                     <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "18px 8px 8px" }}>
                       <p style={{ fontSize: 11, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                     </div>
@@ -1563,14 +1636,14 @@ function RecentSection({ items, accent, darkMode }) {
               </button>
             )}
           </div>
-          <ItemGrid list={inCurso} showAll={showAllCurso} />
+          <ItemGrid list={inCurso} showAll={showAllCurso} scrollRef={cursoScrollRef} />
         </div>
       )}
     </>
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [name, setName] = useState(profile.name || "");
@@ -1777,7 +1850,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
       </div>
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} />}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
       {/* Stats grid */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
@@ -1999,6 +2072,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
           driveClientId={driveClientId}
           onSaveClientId={onSaveDriveClientId}
+          existingLibrary={library}
         />
       )}
 
@@ -2672,6 +2746,7 @@ export default function TrackAll() {
   const [view, setView] = useState("home");
   const [activeTab, setActiveTab] = useState("all");
   const [homeFilter, setHomeFilter] = useState([]);
+  const [homeCollapsedCurso, setHomeCollapsedCurso] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -2682,6 +2757,9 @@ export default function TrackAll() {
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
+  // Device-specific bg image key
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -2721,7 +2799,9 @@ export default function TrackAll() {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
         }
-        if (prof.bg_image) setBgImage(prof.bg_image);
+        const bgKey = `bg_image_${deviceKey}`;
+        if (prof[bgKey]) setBgImage(prof[bgKey]);
+        else if (prof.bg_image) setBgImage(prof.bg_image); // fallback to old key
         if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
         if (prof.bg_blur !== undefined) setBgBlur(prof.bg_blur);
         if (prof.bg_parallax !== undefined) setBgParallax(prof.bg_parallax);
@@ -2833,7 +2913,9 @@ export default function TrackAll() {
   };
   const saveBgImage = async (img) => {
     setBgImage(img);
-    if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+    // Save with device-specific key so mobile and desktop have separate bg images
+    const key = `bg_image_${deviceKey}`;
+    if (user) try { await supa.upsertProfile(user.id, { [key]: img }); } catch {}
   };
   const saveTmdbKey = async (k) => {
     setTmdbKey(k);
@@ -2852,32 +2934,40 @@ export default function TrackAll() {
 
   const autoSyncDrive = async (clientId) => {
     if (!clientId || driveAutoSyncing) return;
-    // Only auto-sync once per session (silent, no popup if token fails)
     try {
       setDriveAutoSyncing(true);
-      // Try to get token silently (no prompt)
+      // Load GIS script if needed
+      if (!window.google?.accounts?.oauth2) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://accounts.google.com/gsi/client';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+        await new Promise(r => setTimeout(r, 500));
+      }
+      // Try to get token silently (no popup)
       const token = await new Promise((resolve, reject) => {
         if (!window.google?.accounts?.oauth2) { reject(); return; }
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
           scope: 'https://www.googleapis.com/auth/drive.readonly',
-          prompt: 'none', // silent — no popup
+          prompt: 'none',
           callback: (resp) => resp.error ? reject() : resolve(resp.access_token),
         });
         client.requestAccessToken({ prompt: 'none' });
       });
       const files = await driveFindBackups(token);
       if (!files.length) return;
-      // Download most recent backup
       const fileLike = await driveDownloadFile(token, files[0].id);
       const parsed = await parseMihonBackup(fileLike);
       if (parsed.length) {
-        importMihon(parsed);
+        await importMihon(parsed);
         setLastDriveSync(new Date());
-        showNotif(`Mihon auto-sync: ${parsed.length} mangas ✓`, "#10b981");
+        showNotif(`Mihon auto-sync ✓`, "#10b981");
       }
     } catch {
-      // Silent fail — user will sync manually if needed
+      // Silent fail
     } finally {
       setDriveAutoSyncing(false);
     }
@@ -2965,6 +3055,11 @@ export default function TrackAll() {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], userStatus: status } });
     showNotif("Estado atualizado!", accent);
+  };
+  const updateLastChapter = (id, chapter) => {
+    if (!library[id] || !chapter) return;
+    saveLibrary({ ...library, [id]: { ...library[id], lastChapter: chapter } });
+    showNotif(`Capítulo guardado: ${chapter}`, accent);
   };
   const updateRating = (id, rating) => {
     if (!library[id]) return;
@@ -3124,6 +3219,14 @@ export default function TrackAll() {
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
           .card { will-change: transform; contain: layout style; }
+          /* Mobile performance */
+          @media (max-width: 768px) {
+            * { -webkit-tap-highlight-color: transparent; }
+            .card { contain: strict; }
+            .recents-row { scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+            img { content-visibility: auto; }
+            .media-grid { contain: layout; }
+          }
           @media (max-width: 480px) {
             .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
@@ -3156,6 +3259,7 @@ export default function TrackAll() {
             onAdd={addToLibrary}
             onRemove={(id) => { removeFromLibrary(id); setSelectedItem(null); }}
             onUpdateStatus={updateStatus}
+            onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
             onChangeCover={updateCover}
             onClose={() => setSelectedItem(null)}
@@ -3308,28 +3412,37 @@ export default function TrackAll() {
                 </div>
               );
 
-              const RowSection = ({ title, icon, items: rowItems, filterBtn }) => rowItems.length === 0 ? null : (
-                <div style={{ padding: "20px 0 12px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingRight: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <h2 style={{ fontSize: 18, fontWeight: 800 }}>{icon} {title}</h2>
-                      {homeFilter.length > 0 && (
-                        <span style={{ fontSize: 11, color: accent, background: `${accent}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
-                          {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
-                        </span>
-                      )}
-                    </div>
-                    {filterBtn}
-                  </div>
-                  <div className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                    {rowItems.map((item) => (
-                      <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
-                        <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+              const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsible, collapsed, onToggleCollapse }) => {
+                const wheelRef = useHorizScroll();
+                if (rowItems.length === 0) return null;
+                return (
+                  <div style={{ padding: "20px 0 12px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: collapsed ? 0 : 14, paddingRight: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {collapsible && (
+                          <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 14, padding: "0 2px", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</button>
+                        )}
+                        <h2 style={{ fontSize: 18, fontWeight: 800 }}>{icon} {title}</h2>
+                        {homeFilter.length > 0 && (
+                          <span style={{ fontSize: 11, color: accent, background: `${accent}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                            {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      {filterBtn}
+                    </div>
+                    {!collapsed && (
+                      <div ref={wheelRef} className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                        {rowItems.map((item) => (
+                          <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
+                            <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
+                );
+              };
 
               return (
                 <>
@@ -3346,6 +3459,9 @@ export default function TrackAll() {
                     title="Em Curso"
                     icon="▶"
                     items={inCurso}
+                    collapsible
+                    collapsed={homeCollapsedCurso}
+                    onToggleCollapse={() => setHomeCollapsedCurso(v => !v)}
                     filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
                   />
                 </>
@@ -3510,6 +3626,7 @@ export default function TrackAll() {
             lastDriveSync={lastDriveSync}
             onAutoSync={autoSyncDrive}
             driveAutoSyncing={driveAutoSyncing}
+            onOpen={setSelectedItem}
           />
         )}
 
