@@ -1383,7 +1383,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 function MediaCard({ item, library, onOpen, accent }) {
   const libItem = library[item.id];
   const inLib = !!libItem;
-  const coverSrc = libItem?.customCover || item.cover;
+  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
   const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -2833,13 +2833,12 @@ export default function TrackAll() {
     }
   };
 
-  const importMihon = (items) => {
+  const importMihon = async (items) => {
     const lib = { ...library };
     let added = 0, updated = 0;
     items.forEach(item => {
       const existing = lib[item.id];
       if (existing) {
-        // Update status and chapter progress but keep user rating
         lib[item.id] = { ...existing, userStatus: item.userStatus, lastChapter: item.lastChapter, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
         updated++;
       } else {
@@ -2849,6 +2848,47 @@ export default function TrackAll() {
     });
     saveLibrary(lib);
     showNotif(`Mihon: ${added} adicionados, ${updated} atualizados ✓`, "#10b981");
+
+    // Fetch missing covers from AniList for items without working thumbnails
+    const missingCovers = items.filter(item => !item.thumbnailUrl || item.thumbnailUrl.includes('mangadex.org/covers') || item.thumbnailUrl === '');
+    if (!missingCovers.length) return;
+
+    showNotif(`A buscar capas para ${missingCovers.length} mangas...`, accent);
+
+    // AniList allows up to 50 titles in a bulk query
+    const chunkSize = 10;
+    const updatedLib = { ...lib };
+    for (let i = 0; i < missingCovers.length; i += chunkSize) {
+      const chunk = missingCovers.slice(i, i + chunkSize);
+      // Build a multi-query for AniList
+      const queryParts = chunk.map((item, idx) => `
+        m${idx}: Media(search: ${JSON.stringify(item.title)}, type: MANGA, sort: SEARCH_MATCH) {
+          id coverImage { large medium } title { romaji english }
+        }`).join('\n');
+      try {
+        const res = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: `query { ${queryParts} }` }),
+        });
+        const data = await res.json();
+        if (data?.data) {
+          chunk.forEach((item, idx) => {
+            const result = data.data[`m${idx}`];
+            if (result?.coverImage) {
+              const cover = result.coverImage.large || result.coverImage.medium;
+              if (cover && updatedLib[item.id]) {
+                updatedLib[item.id] = { ...updatedLib[item.id], cover, thumbnailUrl: cover };
+              }
+            }
+          });
+        }
+      } catch {}
+      // Small delay between chunks
+      if (i + chunkSize < missingCovers.length) await new Promise(r => setTimeout(r, 500));
+    }
+    saveLibrary(updatedLib);
+    showNotif(`Capas atualizadas ✓`, "#10b981");
   };
   const removeFromLibrary = (id) => {
     const lib = { ...library }; delete lib[id]; saveLibrary(lib);
