@@ -681,22 +681,27 @@ async function parseMihonBackup(file) {
       if (cf.t !== 2) return null;
       const ch = parseMsg(cf.bytes, 0, cf.bytes.length);
       const name = ch[2]?.[0]?.str || '';
-      // sf10 varint = 1 means read
-      const read = (ch[10]?.[0]?.v ?? 0) === 1;
-      // sf9 = float chapter number (wire type 5)
+      // f4=1 means READ (boolean), f6>0 means lastPageRead (partially read)
+      const read = (ch[4]?.[0]?.v ?? 0) === 1;
+      const lastPage = ch[6]?.[0]?.v ?? 0;
+      // f9 = float chapter number (wire type 5)
       const chNum = ch[9]?.[0]?.v ?? -1;
-      return { name, read, chNum };
+      return { name, read, lastPage, chNum };
     }).filter(Boolean);
 
     const total = chapters.length;
     const readList = chapters.filter(c => c.read);
     const readCount = readList.length;
 
-    // Last read = highest chapter number among read ones
+    // Last read = highest chapter number among fully read ones
+    // fallback to highest with lastPage>0 (partially opened)
     let lastChapter = null;
     if (readList.length > 0) {
       const byNum = [...readList].sort((a, b) => b.chNum - a.chNum);
       lastChapter = byNum[0].name || `Cap. ${Math.round(byNum[0].chNum)}`;
+    } else {
+      const partial = chapters.filter(c => c.lastPage > 0).sort((a, b) => b.chNum - a.chNum);
+      if (partial.length > 0) lastChapter = partial[0].name || `Cap. ${Math.round(partial[0].chNum)}`;
     }
 
     let userStatus = 'planejado';
