@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from "react";
 import { createClient } from '@supabase/supabase-js';
 
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
@@ -9,7 +9,6 @@ try {
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 } catch (e) {
   console.error('[TrackAll] Supabase init failed:', e);
-  // Create a dummy client that won't crash the app
   supabase = {
     auth: {
       signUp: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
@@ -18,10 +17,11 @@ try {
       getSession: async () => ({ data: { session: null } }),
     },
     from: () => ({
-      select: () => ({ eq: () => ({ single: async () => ({ data: null }) }) }),
+      select: () => ({ eq: () => ({ single: async () => ({ data: null }), in: async () => ({ data: [] }) }), in: async () => ({ data: [] }), limit: () => ({ data: [] }) }),
       update: () => ({ eq: async () => ({}) }),
       upsert: async () => ({}),
-      delete: () => ({ eq: () => ({ eq: async () => ({}) }) }),
+      insert: async () => ({ error: null }),
+      delete: () => ({ eq: () => ({ eq: async () => ({}), or: async () => ({}) }), or: async () => ({}) }),
     }),
   };
 }
@@ -2716,8 +2716,6 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
 }
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
-import React from "react";
-
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
