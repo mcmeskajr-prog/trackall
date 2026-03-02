@@ -4,27 +4,42 @@ import { createClient } from '@supabase/supabase-js';
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
-let supabase;
-try {
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch (e) {
-  console.error('[TrackAll] Supabase init failed:', e);
-  supabase = {
-    auth: {
-      signUp: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
-      signInWithPassword: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
-      signOut: async () => {},
-      getSession: async () => ({ data: { session: null } }),
-    },
-    from: () => ({
-      select: () => ({ eq: () => ({ single: async () => ({ data: null }), in: async () => ({ data: [] }) }), in: async () => ({ data: [] }), limit: () => ({ data: [] }) }),
-      update: () => ({ eq: async () => ({}) }),
-      upsert: async () => ({}),
-      insert: async () => ({ error: null }),
-      delete: () => ({ eq: () => ({ eq: async () => ({}), or: async () => ({}) }), or: async () => ({}) }),
-    }),
-  };
+
+const _supabaseFallback = {
+  auth: {
+    signUp: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
+    signInWithPassword: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
+    signOut: async () => {},
+    getSession: async () => ({ data: { session: null } }),
+  },
+  from: () => ({
+    select: () => ({ eq: () => ({ single: async () => ({ data: null }), in: async () => ({ data: [] }) }), in: async () => ({ data: [] }), limit: () => ({ data: [] }) }),
+    update: () => ({ eq: async () => ({}) }),
+    upsert: async () => ({}),
+    insert: async () => ({ error: null }),
+    delete: () => ({ eq: () => ({ eq: async () => ({}), or: async () => ({}) }), or: async () => ({}) }),
+  }),
+};
+
+// Lazy singleton — avoids Rollup TDZ hoisting issues with module-level createClient()
+let _supabaseInstance = null;
+function getSupabase() {
+  if (_supabaseInstance) return _supabaseInstance;
+  try {
+    _supabaseInstance = createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch (e) {
+    console.error('[TrackAll] Supabase init failed:', e);
+    _supabaseInstance = _supabaseFallback;
+  }
+  return _supabaseInstance;
 }
+
+// Proxy so all existing `supabase.xxx` calls keep working unchanged
+const supabase = new Proxy({}, {
+  get(_target, prop) {
+    return getSupabase()[prop];
+  },
+});
 
 // ─── Configurações padrão (pré-definidas para todos os utilizadores) ──────────
 const DEFAULT_TMDB_KEY = "a678e98d2bdf3f7065d2cd5b5ab6aa54";
@@ -159,8 +174,9 @@ const supa = {
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
-const ThemeContext = createContext(null);
-const useTheme = () => useContext(ThemeContext);
+// Defined after all imports are resolved to avoid Rollup TDZ issues
+const ThemeContext = React.createContext(null);
+const useTheme = () => React.useContext(ThemeContext);
 
 const ACCENT_PRESETS = [
   { name: "Laranja", color: "#f97316" },
