@@ -1416,10 +1416,6 @@ function MediaCard({ item, library, onOpen, accent }) {
   return (
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
       <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
-        {/* Shimmer while loading */}
-        {coverSrc && !imgLoaded && !imgError && (
-          <div className="shimmer" style={{ position: "absolute", inset: 0 }} />
-        )}
         {coverSrc && !imgError ? (
           <img
             src={coverSrc}
@@ -1427,7 +1423,7 @@ function MediaCard({ item, library, onOpen, accent }) {
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={handleError}
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s" }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 1, display: "block" }}
           />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
@@ -1843,182 +1839,136 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>APARÊNCIA</h3>
-      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10 }}>Cor de destaque</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {ACCENT_PRESETS.map((p) => (
-              <button key={p.name} onClick={() => onAccentChange(p.color)} style={{
-                width: 36, height: 36, borderRadius: 999, background: p.color,
-                border: accent === p.color ? `3px solid white` : "3px solid transparent",
-                cursor: "pointer", transition: "transform 0.1s",
-              }} title={p.name} />
-            ))}
-              <label style={{ width: 36, height: 36, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16, position: "relative" }} title="Cor personalizada">
-                +
-                <input
-                  type="color"
-                  defaultValue={accent}
-                  onBlur={(e) => onAccentChange(e.target.value)}
-                  onChange={(e) => {
-                    // Update preview in real-time but only save on blur
-                    document.documentElement.style.setProperty('--accent-preview', e.target.value);
-                  }}
-                  style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-                />
-              </label>
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
+
+        {/* ── Modo ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Modo</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>🌙 Noturno</button>
+            <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>☀️ Diurno</button>
           </div>
         </div>
-        {/* Stats card background color */}
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Cor dos blocos de estatísticas</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => onStatsCardBg("")} style={{
-              width: 32, height: 32, borderRadius: 8, background: "transparent",
-              border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d",
-              cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit",
-            }} title="Automático (por estado)">Auto</button>
-            {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","#16213e","#0a0a0a",
-              "rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (
-              <button key={c} onClick={() => onStatsCardBg(c)} style={{
-                width: 32, height: 32, borderRadius: 8, background: c,
-                border: statsCardBg === c ? `2px solid ${accent}` : "2px solid #30363d",
-                cursor: "pointer",
-              }} title={c} />
+
+        {/* ── Cor de destaque ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor de destaque</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            {ACCENT_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => onAccentChange(p.color)} style={{ width: 32, height: 32, borderRadius: 999, background: p.color, border: accent === p.color ? "3px solid white" : "3px solid transparent", cursor: "pointer" }} title={p.name} />
             ))}
-            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14, position: "relative" }}>
+            <label style={{ width: 32, height: 32, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }} title="Personalizada">
+              +
+              <input type="color" defaultValue={accent} onBlur={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
+          </div>
+        </div>
+
+        {/* ── Cor de fundo ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            {BG_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />
+            ))}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }} title="Personalizada">
+              +
+              <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
+          </div>
+        </div>
+
+        {/* ── Imagem de fundo ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Imagem de fundo</p>
+
+          {/* Device toggle row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: "#8b949e" }}>Fundo igual em todos os dispositivos</span>
+            <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
+              <span style={{ position: "absolute", inset: 0, background: bgSeparateDevices ? accent : "#30363d", borderRadius: 22, transition: "background 0.2s" }} />
+              <span style={{ position: "absolute", top: 3, left: bgSeparateDevices ? 21 : 3, width: 16, height: 16, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
+            </label>
+            <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400 }}>{bgSeparateDevices ? "Separado 🖥≠📱" : "Igual 🖥=📱"}</span>
+          </div>
+
+          {/* Upload buttons */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {/* PC / Único */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+              <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImage ? `url(${bgImage}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
+                {!bgImage && <><span>🖥</span><span style={{ fontSize: 9, color: "#484f58" }}>PC</span></>}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                  const file = e.target.files[0]; if (!file) return;
+                  const compressed = await compressImage(file, 1920, 1080, 0.90);
+                  if (compressed) onBgImage(compressed);
+                }} />
+              </label>
+              {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ remover</button>}
+            </div>
+
+            {/* Mobile (only when separate is ON) */}
+            {bgSeparateDevices && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
+                  {!bgImageMobile && <><span>📱</span><span style={{ fontSize: 9, color: "#484f58" }}>Mobile</span></>}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                    const file = e.target.files[0]; if (!file) return;
+                    const compressed = await compressImage(file, 1080, 1920, 0.85);
+                    if (compressed) onBgImageMobile(compressed);
+                  }} />
+                </label>
+                {bgImageMobile && <button onClick={() => onBgImageMobile("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ remover</button>}
+              </div>
+            )}
+          </div>
+
+          {/* Image controls when any bg is set */}
+          {(bgImage || bgImageMobile) && (
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Sobreposição</p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {[{ label: "Nenhum", val: "rgba(0,0,0,0)" }, { label: "Suave", val: "rgba(0,0,0,0.3)" }, { label: "Médio", val: "rgba(0,0,0,0.55)" }, { label: "Forte", val: "rgba(0,0,0,0.75)" }, { label: "Branco", val: "rgba(255,255,255,0.6)" }].map(o => (
+                    <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay === o.val ? accent : "#30363d"}`, background: bgOverlay === o.val ? `${accent}22` : "transparent", color: bgOverlay === o.val ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{o.label}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Desfoque — {bgBlur}px</p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[0, 2, 4, 8, 12].map(v => (
+                    <button key={v} onClick={() => onBgBlur(v)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${bgBlur === v ? accent : "#30363d"}`, background: bgBlur === v ? `${accent}22` : "transparent", color: bgBlur === v ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{v === 0 ? "Nenhum" : `${v}px`}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Scroll</p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => onBgParallax(true)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax ? accent : "#30363d"}`, background: bgParallax ? `${accent}22` : "transparent", color: bgParallax ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>✦ Parallax</button>
+                  <button onClick={() => onBgParallax(false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax ? accent : "#30363d"}`, background: !bgParallax ? `${accent}22` : "transparent", color: !bgParallax ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>◼ Estático</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Blocos de estatísticas ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor dos blocos de stats</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Automático">Auto</button>
+            {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (
+              <button key={c} onClick={() => onStatsCardBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: statsCardBg === c ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={c} />
+            ))}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>
               +
               <input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
             </label>
           </div>
         </div>
-        <div>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 8 }}>Fundo</p>
 
-          {/* Mode toggle */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-            <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{
-              padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-              background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e",
-            }}>🌙 Noturno</button>
-            <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{
-              padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-              background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e",
-            }}>☀️ Diurno</button>
-          </div>
-
-          {/* Color swatches */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-            {BG_PRESETS.map((p) => (
-              <button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{
-                width: 32, height: 32, borderRadius: 8, background: p.value,
-                border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d",
-                cursor: "pointer", flexShrink: 0,
-              }} title={p.name} />
-            ))}
-            {/* Custom color */}
-            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 14, position: "relative" }} title="Cor personalizada">
-              +
-              <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-            </label>
-
-            {/* Toggle: same bg vs separate per device */}
-            <label title="Fundo diferente por dispositivo" style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 8px", borderRadius: 8, background: bgSeparateDevices ? `${accent}22` : "#21262d", border: `1px solid ${bgSeparateDevices ? accent+"55" : "#30363d"}`, fontSize: 11, color: bgSeparateDevices ? accent : "#8b949e", fontWeight: 600, userSelect: "none", flexShrink: 0 }}>
-              <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ accentColor: accent, width: 12, height: 12 }} />
-              🖥≠📱
-            </label>
-
-            {/* Desktop bg upload */}
-            <label style={{ width: 32, height: 32, borderRadius: 8, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0 }} title={bgSeparateDevices ? "🖥 Fundo PC" : "Imagem de fundo"}>
-              {!bgImage && (bgSeparateDevices ? "🖥" : "🖼")}
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
-                const file = e.target.files[0]; if (!file) return;
-                const compressed = await compressImage(file, 1920, 1080, 0.90);
-                if (compressed) onBgImage(compressed);
-              }} />
-            </label>
-            {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 7px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>{bgSeparateDevices ? "✕🖥" : "✕"}</button>}
-
-            {/* Mobile bg upload — only when separate is ON */}
-            {bgSeparateDevices && (<>
-              <label style={{ width: 32, height: 32, borderRadius: 8, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0 }} title="📱 Fundo Mobile">
-                {!bgImageMobile && "📱"}
-                <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
-                  const file = e.target.files[0]; if (!file) return;
-                  const compressed = await compressImage(file, 1080, 1920, 0.85);
-                  if (compressed) onBgImageMobile(compressed);
-                }} />
-              </label>
-              {bgImageMobile && <button onClick={() => onBgImageMobile("")} style={{ fontSize: 11, padding: "3px 7px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕📱</button>}
-            </>)}
-          </div>
-
-          {/* Image controls when any bg image is set */}
-          {(bgImage || bgImageMobile) && (
-            <div style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-              {/* Overlay */}
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Sobreposição de cor</p>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {[
-                    { label: "Nenhum", val: "rgba(0,0,0,0)" },
-                    { label: "Suave", val: "rgba(0,0,0,0.3)" },
-                    { label: "Médio", val: "rgba(0,0,0,0.55)" },
-                    { label: "Forte", val: "rgba(0,0,0,0.75)" },
-                    { label: "Branco", val: "rgba(255,255,255,0.6)" },
-                  ].map(o => (
-                    <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{
-                      padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay === o.val ? accent : "#30363d"}`,
-                      background: bgOverlay === o.val ? `${accent}22` : "transparent",
-                      color: bgOverlay === o.val ? accent : "#8b949e",
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                    }}>{o.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Blur */}
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Desfoque — {bgBlur}px</p>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {[0, 2, 4, 8, 12].map(v => (
-                    <button key={v} onClick={() => onBgBlur(v)} style={{
-                      padding: "4px 10px", borderRadius: 6, border: `1px solid ${bgBlur === v ? accent : "#30363d"}`,
-                      background: bgBlur === v ? `${accent}22` : "transparent",
-                      color: bgBlur === v ? accent : "#8b949e",
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                    }}>{v === 0 ? "Nenhum" : `${v}px`}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Parallax */}
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Movimento ao scroll</p>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => onBgParallax(true)} style={{
-                    padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax ? accent : "#30363d"}`,
-                    background: bgParallax ? `${accent}22` : "transparent",
-                    color: bgParallax ? accent : "#8b949e",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                  }}>✦ Parallax</button>
-                  <button onClick={() => onBgParallax(false)} style={{
-                    padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax ? accent : "#30363d"}`,
-                    background: !bgParallax ? `${accent}22` : "transparent",
-                    color: !bgParallax ? accent : "#8b949e",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                  }}>◼ Estático</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ background: "#161b2266", borderRadius: 8, padding: "8px 10px", fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
-            💡 <strong style={{ color: "#8b949e" }}>Fundo:</strong> Recomendado 1920×1080px (16:9) · Telemóvel: 390×844px (iPhone) ou 360×800px (Android)
-          </div>
-        </div>
       </div>
 
       {/* Mihon Modal */}
@@ -3218,10 +3168,12 @@ export default function TrackAll() {
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
           }
           @media (max-width: 768px) {
-            .card { contain: strict; }
+            .card { contain: layout; }
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
             .card { transition: none !important; }
+            .media-thumb:hover img { transform: none !important; }
+            .media-thumb .rating-hover { display: none; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
