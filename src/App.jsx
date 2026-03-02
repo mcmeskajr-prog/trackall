@@ -1397,6 +1397,51 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 }
 
 // ─── Media Card ────────────────────────────────────────────────────────────────
+// ── VirtualGrid: only renders cards near the viewport ──────────────────────
+function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
+  const [visibleCount, setVisibleCount] = useState(columns * 8); // initial render
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    setVisibleCount(columns * 8); // reset on filter change
+  }, [items.length, columns]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => Math.min(prev + columns * 6, items.length));
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  }, [items.length, columns]);
+
+  const visible = items.slice(0, visibleCount);
+
+  return (
+    <>
+      <div className="media-grid">
+        {visible.map((item) => (
+          <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
+        ))}
+      </div>
+      {visibleCount < items.length && (
+        <div ref={sentinelRef} style={{ height: 1, margin: '20px 0' }} />
+      )}
+      {visibleCount >= items.length && items.length > 0 && (
+        <p style={{ textAlign: 'center', color: '#484f58', fontSize: 12, padding: '16px 0' }}>
+          {items.length} itens
+        </p>
+      )}
+    </>
+  );
+}
+
 function MediaCard({ item, library, onOpen, accent }) {
   const libItem = library[item.id];
   const inLib = !!libItem;
@@ -2657,6 +2702,60 @@ export default function TrackAll() {
   const [homeFilter, setHomeFilter] = useState([]);
   const [homeCollapsedCurso, setHomeCollapsedCurso] = useState(false);
 
+  // ── PWA: Register service worker + inject manifest meta tags ──
+  useEffect(() => {
+    // Inject manifest link
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = '/manifest.json';
+      document.head.appendChild(link);
+    }
+    // Theme color meta
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = '#0d1117';
+      document.head.appendChild(meta);
+    }
+    // Apple mobile web app
+    if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) {
+      const m1 = document.createElement('meta');
+      m1.name = 'apple-mobile-web-app-capable';
+      m1.content = 'yes';
+      document.head.appendChild(m1);
+      const m2 = document.createElement('meta');
+      m2.name = 'apple-mobile-web-app-status-bar-style';
+      m2.content = 'black-translucent';
+      document.head.appendChild(m2);
+      const m3 = document.createElement('meta');
+      m3.name = 'apple-mobile-web-app-title';
+      m3.content = 'TrackAll';
+      document.head.appendChild(m3);
+      const icon = document.createElement('link');
+      icon.rel = 'apple-touch-icon';
+      icon.href = '/icon-192.png';
+      document.head.appendChild(icon);
+    }
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => console.log('[PWA] SW registered:', reg.scope))
+        .catch(err => console.log('[PWA] SW failed:', err));
+    }
+    // Capture install prompt
+    const onPrompt = (e) => { e.preventDefault(); setPwaPrompt(e); };
+    const onInstalled = () => { setPwaInstalled(true); setPwaPrompt(null); };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    // Check if already running as PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) setPwaInstalled(true);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
   // Attach mouse-wheel → horizontal scroll on all .recents-row elements
   useEffect(() => {
     const attach = () => {
@@ -2683,6 +2782,8 @@ export default function TrackAll() {
   const [searchError, setSearchError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [notif, setNotif] = useState(null);
+  const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
+  const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
@@ -3162,13 +3263,13 @@ export default function TrackAll() {
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
-          .card { contain: layout style; }
+          .card { contain: layout style; content-visibility: auto; contain-intrinsic-size: 0 230px; }
           @media (max-width: 480px) {
             .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
           }
           @media (max-width: 768px) {
-            .card { contain: layout; }
+            .card { contain: layout; content-visibility: auto; }
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
             .card { transition: none !important; }
@@ -3516,11 +3617,13 @@ export default function TrackAll() {
                 <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
               </div>
             ) : (
-              <div className="media-grid">
-                {filteredLib.sort((a, b) => b.addedAt - a.addedAt).map((item) => (
-                  <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />
-                ))}
-              </div>
+              <VirtualGrid
+                items={filteredLib.sort((a, b) => b.addedAt - a.addedAt)}
+                library={library}
+                onOpen={setSelectedItem}
+                accent={accent}
+                columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 4}
+              />
             )}
           </div>
         )}
@@ -3570,6 +3673,19 @@ export default function TrackAll() {
             driveAutoSyncing={driveAutoSyncing}
             onOpen={setSelectedItem}
           />
+        )}
+
+        {/* PWA Install Banner */}
+        {pwaPrompt && !pwaInstalled && (
+          <div style={{ position: 'fixed', bottom: 72, left: 12, right: 12, zIndex: 60, background: '#161b22', border: `1px solid ${accent}44`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: 28 }}>📲</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>Instalar TrackAll</p>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>Adicionar ao ecrã inicial para acesso rápido</p>
+            </div>
+            <button onClick={async () => { pwaPrompt.prompt(); const r = await pwaPrompt.userChoice; if (r.outcome === 'accepted') setPwaInstalled(true); setPwaPrompt(null); }} style={{ background: accent, border: 'none', borderRadius: 10, padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Instalar</button>
+            <button onClick={() => setPwaPrompt(null)} style={{ background: 'none', border: 'none', color: '#484f58', fontSize: 18, cursor: 'pointer', padding: '4px', flexShrink: 0 }}>✕</button>
+          </div>
         )}
 
         {/* BOTTOM NAV */}
