@@ -3222,6 +3222,8 @@ export default function TrackAll() {
     const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
     return () => clearTimeout(t);
   }, [logQuery]);
+  const items = useMemo(() => Object.values(library), [library]);
+
   const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
     completo: items.filter((i) => i.userStatus === "completo").length,
