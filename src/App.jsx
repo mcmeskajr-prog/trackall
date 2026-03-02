@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from "react";
 import { createClient } from '@supabase/supabase-js';
 
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
@@ -1397,6 +1397,23 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 }
 
 // ─── Media Card ────────────────────────────────────────────────────────────────
+// ── SkeletonGrid: placeholder while library loads ──────────────────────────
+function SkeletonGrid({ count = 12 }) {
+  return (
+    <div className="media-grid">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="card" style={{ borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ width: "100%", aspectRatio: "2/3" }} className="shimmer" />
+          <div style={{ padding: "8px 6px", display: "flex", flexDirection: "column", gap: 5 }}>
+            <div className="shimmer" style={{ height: 11, borderRadius: 4, width: "85%" }} />
+            <div className="shimmer" style={{ height: 9, borderRadius: 4, width: "50%" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── VirtualGrid: only renders cards near the viewport ──────────────────────
 function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
   const [visibleCount, setVisibleCount] = useState(columns * 8); // initial render
@@ -2695,6 +2712,7 @@ export default function TrackAll() {
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
+  const [libLoaded, setLibLoaded] = useState(false);
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
@@ -2840,10 +2858,16 @@ export default function TrackAll() {
         if (prof.favorites) setFavorites(prof.favorites);
       }
       if (lib) setLibrary(lib);
-    } catch {}
-    // Load recommendations in background
-    loadRecos();
+      setLibLoaded(true);
+    } catch { setLibLoaded(true); }
   };
+
+  // Lazy: load recos only when user visits home, and only once per session
+  useEffect(() => {
+    if (view === "home" && user && Object.keys(recos).length === 0 && !recoLoading) {
+      loadRecos();
+    }
+  }, [view, user]);
 
   const loadRecos = async () => {
     setRecoLoading(true);
@@ -3168,18 +3192,60 @@ export default function TrackAll() {
     }
   }, [tmdbKey, workerUrl]);
 
-  const items = Object.values(library);
-  const stats = {
+  // Log panel search (separate from main search, doesn't navigate)
+  const doLogSearch = useCallback(async (q) => {
+    if (!q.trim()) { setLogResults([]); return; }
+    setLogSearching(true);
+    try {
+      const [anime, manga, extras] = await Promise.allSettled([
+        smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
+        smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
+        tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
+      ]);
+      const all = [
+        ...(anime.value || []),
+        ...(manga.value || []),
+        ...(extras.value || []),
+      ];
+      const seen = new Set();
+      setLogResults(all.filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; }).slice(0, 8));
+    } catch { setLogResults([]); }
+    setLogSearching(false);
+  }, [tmdbKey, workerUrl]);
+
+  useEffect(() => {
+    if (logOpen) setTimeout(() => logInputRef.current?.focus(), 80);
+    else { setLogQuery(""); setLogResults([]); }
+  }, [logOpen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
+    return () => clearTimeout(t);
+  }, [logQuery]);
+  const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
     completo: items.filter((i) => i.userStatus === "completo").length,
     planejado: items.filter((i) => i.userStatus === "planejado").length,
-  };
+  }), [items]);
 
-  const filteredLib = items.filter((i) => {
+  const filteredLib = useMemo(() => items.filter((i) => {
     if (filterStatus !== "all" && i.userStatus !== filterStatus) return false;
     if (activeTab !== "all" && i.type !== activeTab) return false;
     return true;
-  });
+  }), [items, filterStatus, activeTab]);
+
+  const [libSort, setLibSort] = useState("date"); // date | title | rating
+  const [logOpen, setLogOpen] = useState(false);
+  const [logQuery, setLogQuery] = useState("");
+  const [logResults, setLogResults] = useState([]);
+  const [logSearching, setLogSearching] = useState(false);
+  const logInputRef = useRef(null);
+  const sortedLib = useMemo(() => {
+    const arr = [...filteredLib];
+    if (libSort === "title") return arr.sort((a,b) => (a.title||"").localeCompare(b.title||""));
+    if (libSort === "rating") return arr.sort((a,b) => (b.userRating||0) - (a.userRating||0));
+    return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0)); // date
+  }, [filteredLib, libSort]);
 
   const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
 
@@ -3584,10 +3650,59 @@ export default function TrackAll() {
         {/* ── LIBRARY ── */}
         {view === "library" && (
           <div style={{ padding: "20px 16px" }} className="fade-in">
+            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+                {/* Log button */}
+                <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 12px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, transition: "all 0.15s" }}>
+                  ✓ Log
+                </button>
+              </div>
             </div>
+
+            {/* Log panel */}
+            {logOpen && (
+              <div style={{ marginBottom: 16, background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 12, padding: 12 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 8, fontWeight: 600 }}>Adicionar diretamente a Completos:</p>
+                <input
+                  ref={logInputRef}
+                  type="text"
+                  value={logQuery}
+                  onChange={e => setLogQuery(e.target.value)}
+                  placeholder="Pesquisa um filme, série, manga..."
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+                {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
+                {logResults.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {logResults.map(item => (
+                      <div key={item.id} onClick={() => {
+                        const existing = library[item.id];
+                        if (existing) { updateStatus(item.id, "completo"); }
+                        else { addToLibrary(item, "completo"); }
+                        showNotif(`"${item.title}" marcado como completo ✓`, accent);
+                        setLogOpen(false);
+                      }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
+                        onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
+                        {(item.cover || item.thumbnailUrl) ? (
+                          <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                          <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓ Completo</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
               {MEDIA_TYPES.map((t) => (
@@ -3609,7 +3724,17 @@ export default function TrackAll() {
               ))}
             </div>
 
-            {filteredLib.length === 0 ? (
+            {/* Sort row */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
+              <span style={{ fontSize: 11, color: "#484f58", fontWeight: 700 }}>Ordenar:</span>
+              {[{id:"date",label:"📅 Data"},{id:"title",label:"🔤 Título"},{id:"rating",label:"⭐ Rating"}].map(s => (
+                <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{s.label}</button>
+              ))}
+            </div>
+
+            {!libLoaded ? (
+              <SkeletonGrid count={isMobileDevice ? 9 : 12} />
+            ) : sortedLib.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
                 <div style={{ fontSize: 60, marginBottom: 16 }}>📭</div>
                 <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
@@ -3618,7 +3743,7 @@ export default function TrackAll() {
               </div>
             ) : (
               <VirtualGrid
-                items={filteredLib.sort((a, b) => b.addedAt - a.addedAt)}
+                items={sortedLib}
                 library={library}
                 onOpen={setSelectedItem}
                 accent={accent}
