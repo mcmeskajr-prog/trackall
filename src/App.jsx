@@ -4,7 +4,27 @@ import { createClient } from '@supabase/supabase-js';
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase;
+try {
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  console.error('[TrackAll] Supabase init failed:', e);
+  // Create a dummy client that won't crash the app
+  supabase = {
+    auth: {
+      signUp: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
+      signInWithPassword: async () => ({ data: {}, error: new Error('Supabase unavailable') }),
+      signOut: async () => {},
+      getSession: async () => ({ data: { session: null } }),
+    },
+    from: () => ({
+      select: () => ({ eq: () => ({ single: async () => ({ data: null }) }) }),
+      update: () => ({ eq: async () => ({}) }),
+      upsert: async () => ({}),
+      delete: () => ({ eq: () => ({ eq: async () => ({}) }) }),
+    }),
+  };
+}
 
 // ─── Configurações padrão (pré-definidas para todos os utilizadores) ──────────
 const DEFAULT_TMDB_KEY = "a678e98d2bdf3f7065d2cd5b5ab6aa54";
@@ -2695,8 +2715,35 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
   );
 }
 
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+import React from "react";
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error('[TrackAll] Uncaught error:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', sans-serif", color: "#e6edf3" }}>
+          <div style={{ textAlign: "center", maxWidth: 400 }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Algo correu mal</h2>
+            <p style={{ color: "#8b949e", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Erro desconhecido"}</p>
+            <button onClick={() => window.location.reload()}
+              style={{ padding: "12px 28px", background: "#f97316", border: "none", borderRadius: 10, color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14 }}>
+              🔄 Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
-export default function TrackAll() {
+function TrackAllInner() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
   const [statsCardBg, setStatsCardBg] = useState("");
@@ -3222,12 +3269,12 @@ export default function TrackAll() {
     const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
     return () => clearTimeout(t);
   }, [logQuery]);
-  const items = useMemo(() => Object.values(library), [library]);
-
   const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
     completo: items.filter((i) => i.userStatus === "completo").length,
     planejado: items.filter((i) => i.userStatus === "planejado").length,
+    pausado: items.filter((i) => i.userStatus === "pausado").length,
+    dropado: items.filter((i) => i.userStatus === "dropado").length,
   }), [items]);
 
   const filteredLib = useMemo(() => items.filter((i) => {
@@ -3452,8 +3499,8 @@ export default function TrackAll() {
                       {[
                         { l: "Curso",    v: stats.assistindo, shift: 0   },
                         { l: "Completo", v: stats.completo,   shift: 15  },
-                        { l: "Pausa",    v: stats.pausa,      shift: 30  },
-                        { l: "Largado",  v: stats.largado,    shift: -20 },
+                        { l: "Pausa",    v: stats.pausado,    shift: 30  },
+                        { l: "Largado",  v: stats.dropado,    shift: -20 },
                         { l: "Planej.",  v: stats.planejado,  shift: 45  },
                       ].filter(s => s.v > 0).map((s) => {
                         const col = accentShade(accent, s.shift);
@@ -3833,5 +3880,13 @@ export default function TrackAll() {
         </div>{/* end zIndex:2 div */}
       </div>
     </ThemeContext.Provider>
+  );
+}
+
+export default function TrackAll() {
+  return (
+    <ErrorBoundary>
+      <TrackAllInner />
+    </ErrorBoundary>
   );
 }
