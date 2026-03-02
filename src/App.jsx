@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { createClient } from '@supabase/supabase-js';
 
+// ─── SQL MIGRATION NEEDED (run once in Supabase SQL Editor) ──────────────────
+// ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bg_image_mobile text default '';
+// ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bg_separate_devices boolean default false;
+// ─────────────────────────────────────────────────────────────────────────────
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
@@ -1427,7 +1431,7 @@ function MediaCard({ item, library, onOpen, accent }) {
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={handleError}
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: imgLoaded ? 1 : 0, transition: "opacity 0.3s" }}
+            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: imgLoaded ? 1 : 0, transition: window.innerWidth < 768 ? "none" : "opacity 0.3s" }}
           />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
@@ -1587,7 +1591,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, isMobile, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [name, setName] = useState(profile.name || "");
@@ -1923,13 +1927,19 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
               +
               <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
             </label>
-            {/* Image upload */}
+            {/* Device separate toggle */}
+            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "4px 8px", borderRadius: 8, background: bgSeparateDevices ? `${accent}22` : "#21262d", border: `1px solid ${bgSeparateDevices ? accent+"44" : "#30363d"}`, fontSize: 11, color: bgSeparateDevices ? accent : "#8b949e", fontWeight: 600, userSelect: "none", flexShrink: 0 }}>
+              <input type="checkbox" checked={bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ accentColor: accent, width: 13, height: 13 }} />
+              📱≠🖥
+            </label>
+            {/* Image upload — Desktop */}
             <label style={{
               width: 32, height: 32, borderRadius: 8, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16,
               background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0,
-            }} title="Imagem de fundo">
-              {!bgImage && "🖼"}
+              position: "relative",
+            }} title={bgSeparateDevices ? "🖥 Fundo PC" : "Imagem de fundo"}>
+              {!bgImage && (bgSeparateDevices ? "🖥" : "🖼")}
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 const compressed = await compressImage(file, 1920, 1080, 0.90);
@@ -1937,12 +1947,38 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
               }} />
             </label>
             {bgImage && (
-              <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+              <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>{bgSeparateDevices ? "✕🖥" : "✕"}</button>
             )}
+            {/* Mobile bg upload — only shown when separate is ON */}
+            {bgSeparateDevices && (<>
+              <label style={{
+                width: 32, height: 32, borderRadius: 8, border: bgImageMobile ? `2px solid #06b6d4` : "2px dashed #30363d",
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16,
+                background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0,
+              }} title="📱 Fundo Mobile">
+                {!bgImageMobile && "📱"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                  const file = e.target.files[0]; if (!file) return;
+                  const compressed = await compressImage(file, 1080, 1920, 0.85);
+                  if (compressed) {
+                    // Save mobile bg specifically
+                    const { supabase } = window.__supa || {};
+                    if (onBgImage && isMobile) { onBgImage(compressed); } // if on mobile, onBgImage handles it
+                    else {
+                      // We're on desktop, save mobile bg directly
+                      if (window.__saveMobileBg) window.__saveMobileBg(compressed);
+                    }
+                  }
+                }} />
+              </label>
+              {bgImageMobile && (
+                <button onClick={() => window.__saveMobileBg && window.__saveMobileBg("")} style={{ fontSize: 11, padding: "3px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕📱</button>
+              )}
+            </>)}
           </div>
 
           {/* Image controls when bg image is set */}
-          {bgImage && (
+          {(bgImage || bgImageMobile) && (
             <div style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
               {/* Overlay */}
               <div>
@@ -2678,10 +2714,16 @@ export default function TrackAll() {
   const [lastDriveSync, setLastDriveSync] = useState(null);
   const [driveAutoSyncing, setDriveAutoSyncing] = useState(false);
   const [bgImage, setBgImage] = useState("");
+  const [bgImageMobile, setBgImageMobile] = useState(""); // separate mobile bg
+  const [bgSeparateDevices, setBgSeparateDevices] = useState(false); // toggle
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  // Detect mobile (stable ref, won't change during session)
+  const isMobile = React.useMemo(() => typeof window !== 'undefined' && window.innerWidth < 768, []);
+  // The active bg image for current device
+  const activeBgImage = bgSeparateDevices ? (isMobile ? bgImageMobile : bgImage) : bgImage;
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
@@ -2760,7 +2802,9 @@ export default function TrackAll() {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
         }
+        if (prof.bg_separate_devices !== undefined) setBgSeparateDevices(!!prof.bg_separate_devices);
         if (prof.bg_image) setBgImage(prof.bg_image);
+        if (prof.bg_image_mobile) setBgImageMobile(prof.bg_image_mobile);
         if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
         if (prof.bg_blur !== undefined) setBgBlur(prof.bg_blur);
         if (prof.bg_parallax !== undefined) setBgParallax(prof.bg_parallax);
@@ -2871,8 +2915,29 @@ export default function TrackAll() {
     if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch {}
   };
   const saveBgImage = async (img) => {
-    setBgImage(img);
-    if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+    if (bgSeparateDevices) {
+      if (isMobile) {
+        setBgImageMobile(img);
+        if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+      } else {
+        setBgImage(img);
+        if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+      }
+    } else {
+      setBgImage(img);
+      setBgImageMobile(img);
+      if (user) try { await supa.upsertProfile(user.id, { bg_image: img, bg_image_mobile: img }); } catch {}
+    }
+  };
+  const saveMobileBgImage = async (img) => {
+    setBgImageMobile(img);
+    if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+  };
+  // Bridge for ProfileView to call saveMobileBgImage (desktop saving mobile bg)
+  React.useEffect(() => { window.__saveMobileBg = saveMobileBgImage; }, [user, bgSeparateDevices]);
+  const saveBgSeparateDevices = async (val) => {
+    setBgSeparateDevices(val);
+    if (user) try { await supa.upsertProfile(user.id, { bg_separate_devices: val }); } catch {}
   };
   const saveTmdbKey = async (k) => {
     setTmdbKey(k);
@@ -3112,25 +3177,25 @@ export default function TrackAll() {
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
       <div style={{
         minHeight: "100vh",
-        background: bgImage ? bgColor : bgColor,
+        background: bgColor,
         color: darkMode ? "#e6edf3" : "#0d1117",
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
         position: "relative",
       }}>
         {/* Background image layer */}
-        {bgImage && (
+        {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 0,
-            backgroundImage: `url(${bgImage})`,
+            backgroundImage: `url(${activeBgImage})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: bgParallax ? "fixed" : "scroll",
+            backgroundAttachment: (bgParallax && !isMobile) ? "fixed" : "scroll",
             filter: bgBlur > 0 ? `blur(${bgBlur}px)` : "none",
             transform: bgBlur > 0 ? "scale(1.05)" : "none",
           }} />
         )}
-        {bgImage && (
+        {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 1,
             background: bgOverlay,
@@ -3167,10 +3232,19 @@ export default function TrackAll() {
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
-          .card { will-change: transform; contain: layout style; }
+          .card { contain: layout style; }
           @media (max-width: 480px) {
             .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+          }
+          /* ── Mobile performance ── */
+          @media (max-width: 768px) {
+            * { -webkit-tap-highlight-color: transparent; }
+            .card { contain: strict; }
+            img { loading: lazy; content-visibility: auto; }
+            .fade-in { animation: none !important; }
+            .recents-row { scroll-snap-type: x mandatory; }
+            .modal-bg { backdrop-filter: none; background: rgba(0,0,0,0.85); }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
@@ -3541,6 +3615,10 @@ export default function TrackAll() {
             onAccentChange={saveAccent}
             onBgChange={saveBg}
             onBgImage={saveBgImage}
+            bgImageMobile={bgImageMobile}
+            bgSeparateDevices={bgSeparateDevices}
+            onBgSeparateDevices={saveBgSeparateDevices}
+            isMobile={isMobile}
             onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
