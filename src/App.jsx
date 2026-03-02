@@ -1587,7 +1587,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [name, setName] = useState(profile.name || "");
@@ -1923,26 +1923,40 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgOverlay, bg
               +
               <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
             </label>
-            {/* Image upload */}
-            <label style={{
-              width: 32, height: 32, borderRadius: 8, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d",
-              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 16,
-              background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0,
-            }} title="Imagem de fundo">
-              {!bgImage && "🖼"}
+
+            {/* Toggle: same bg vs separate per device */}
+            <label title="Fundo diferente por dispositivo" style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 8px", borderRadius: 8, background: bgSeparateDevices ? `${accent}22` : "#21262d", border: `1px solid ${bgSeparateDevices ? accent+"55" : "#30363d"}`, fontSize: 11, color: bgSeparateDevices ? accent : "#8b949e", fontWeight: 600, userSelect: "none", flexShrink: 0 }}>
+              <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ accentColor: accent, width: 12, height: 12 }} />
+              🖥≠📱
+            </label>
+
+            {/* Desktop bg upload */}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, background: bgImage ? `url(${bgImage}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0 }} title={bgSeparateDevices ? "🖥 Fundo PC" : "Imagem de fundo"}>
+              {!bgImage && (bgSeparateDevices ? "🖥" : "🖼")}
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 const compressed = await compressImage(file, 1920, 1080, 0.90);
                 if (compressed) onBgImage(compressed);
               }} />
             </label>
-            {bgImage && (
-              <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 8px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
-            )}
+            {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 11, padding: "3px 7px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>{bgSeparateDevices ? "✕🖥" : "✕"}</button>}
+
+            {/* Mobile bg upload — only when separate is ON */}
+            {bgSeparateDevices && (<>
+              <label style={{ width: 32, height: 32, borderRadius: 8, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "transparent", overflow: "hidden", flexShrink: 0 }} title="📱 Fundo Mobile">
+                {!bgImageMobile && "📱"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => {
+                  const file = e.target.files[0]; if (!file) return;
+                  const compressed = await compressImage(file, 1080, 1920, 0.85);
+                  if (compressed) onBgImageMobile(compressed);
+                }} />
+              </label>
+              {bgImageMobile && <button onClick={() => onBgImageMobile("")} style={{ fontSize: 11, padding: "3px 7px", background: "#ef444422", border: "1px solid #ef444444", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕📱</button>}
+            </>)}
           </div>
 
-          {/* Image controls when bg image is set */}
-          {bgImage && (
+          {/* Image controls when any bg image is set */}
+          {(bgImage || bgImageMobile) && (
             <div style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 10 }}>
               {/* Overlay */}
               <div>
@@ -2678,6 +2692,8 @@ export default function TrackAll() {
   const [lastDriveSync, setLastDriveSync] = useState(null);
   const [driveAutoSyncing, setDriveAutoSyncing] = useState(false);
   const [bgImage, setBgImage] = useState("");
+  const [bgImageMobile, setBgImageMobile] = useState("");
+  const [bgSeparateDevices, setBgSeparateDevices] = useState(false);
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
@@ -2761,6 +2777,8 @@ export default function TrackAll() {
           setDarkMode(isColorDark(prof.bg_color));
         }
         if (prof.bg_image) setBgImage(prof.bg_image);
+        if (prof.bg_image_mobile) setBgImageMobile(prof.bg_image_mobile);
+        if (prof.bg_separate_devices) setBgSeparateDevices(true);
         if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
         if (prof.bg_blur !== undefined) setBgBlur(prof.bg_blur);
         if (prof.bg_parallax !== undefined) setBgParallax(prof.bg_parallax);
@@ -2870,9 +2888,31 @@ export default function TrackAll() {
     setBgParallax(v);
     if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch {}
   };
+  // isMobile check - simple, stable
+  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+
   const saveBgImage = async (img) => {
-    setBgImage(img);
-    if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+    if (bgSeparateDevices) {
+      if (isMobileDevice) {
+        setBgImageMobile(img);
+        if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+      } else {
+        setBgImage(img);
+        if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+      }
+    } else {
+      setBgImage(img);
+      setBgImageMobile(img);
+      if (user) try { await supa.upsertProfile(user.id, { bg_image: img, bg_image_mobile: img }); } catch {}
+    }
+  };
+  const saveMobileBgImage = async (img) => {
+    setBgImageMobile(img);
+    if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+  };
+  const saveBgSeparateDevices = async (val) => {
+    setBgSeparateDevices(val);
+    if (user) try { await supa.upsertProfile(user.id, { bg_separate_devices: val }); } catch {}
   };
   const saveTmdbKey = async (k) => {
     setTmdbKey(k);
@@ -3108,29 +3148,34 @@ export default function TrackAll() {
   // Auth screen
   if (!user) return <AuthScreen onAuth={handleAuth} accent={accent} />;
 
+  // Which bg image to show based on device + separate setting
+  const activeBgImage = bgSeparateDevices
+    ? (isMobileDevice ? bgImageMobile : bgImage)
+    : bgImage;
+
   return (
     <ThemeContext.Provider value={{ accent, bg: bgColor }}>
       <div style={{
         minHeight: "100vh",
-        background: bgImage ? bgColor : bgColor,
+        background: bgColor,
         color: darkMode ? "#e6edf3" : "#0d1117",
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
         position: "relative",
       }}>
         {/* Background image layer */}
-        {bgImage && (
+        {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 0,
-            backgroundImage: `url(${bgImage})`,
+            backgroundImage: `url(${activeBgImage})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: bgParallax ? "fixed" : "scroll",
+            backgroundAttachment: (bgParallax && !isMobileDevice) ? "fixed" : "scroll",
             filter: bgBlur > 0 ? `blur(${bgBlur}px)` : "none",
             transform: bgBlur > 0 ? "scale(1.05)" : "none",
           }} />
         )}
-        {bgImage && (
+        {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 1,
             background: bgOverlay,
@@ -3167,10 +3212,16 @@ export default function TrackAll() {
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
-          .card { will-change: transform; contain: layout style; }
+          .card { contain: layout style; }
           @media (max-width: 480px) {
             .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+          }
+          @media (max-width: 768px) {
+            .card { contain: strict; }
+            .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
+            .fade-in { animation: none !important; }
+            .card { transition: none !important; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
@@ -3185,7 +3236,7 @@ export default function TrackAll() {
           .fade-in { animation: fadeIn 0.3s ease; }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(${accentRgb},0.12) 0%, transparent 70%), ${bgImage ? "transparent" : bgColor}; }
+          .hero-gradient { background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(${accentRgb},0.12) 0%, transparent 70%), ${activeBgImage ? "transparent" : bgColor}; }
         `}</style>
 
         <Notification notif={notif} />
@@ -3541,6 +3592,11 @@ export default function TrackAll() {
             onAccentChange={saveAccent}
             onBgChange={saveBg}
             onBgImage={saveBgImage}
+            bgImageMobile={bgImageMobile}
+            bgSeparateDevices={bgSeparateDevices}
+            onBgSeparateDevices={saveBgSeparateDevices}
+            onBgImageMobile={saveMobileBgImage}
+            isMobileDevice={isMobileDevice}
             onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
