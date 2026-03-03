@@ -1527,6 +1527,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 function RecentSection({ items, accent, darkMode, onOpen }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
+  const [showDiaryAll, setShowDiaryAll] = useState(false);
 
   const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
   const completados = [...items].filter(i => i.userStatus === "completo").sort((a, b) => b.addedAt - a.addedAt);
@@ -1616,67 +1617,82 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
         </div>
       )}
 
-      {/* DIARY — Letterboxd style, grouped by month/day */}
+      {/* DIARY — Letterboxd style, grouped by month */}
       {completados.length > 0 && (() => {
-        // Group by month bucket (year-month)
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+        // Group by month bucket
         const groups = {};
         completados.forEach(item => {
           const d = item.addedAt ? new Date(item.addedAt) : null;
           if (!d) return;
-          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
-          if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), items: [] };
-          groups[key].items.push({ ...item, day: d.getDate() });
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, _day: d.getDate() });
         });
-        const sortedGroups = Object.values(groups).sort((a,b) => b.year - a.year || b.month - a.month);
+        const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
         if (!sortedGroups.length) return null;
+
+        // Show 2 most recent months; rest collapses
+        const visibleGroups = showDiaryAll ? sortedGroups : sortedGroups.slice(0, 2);
+        const hiddenCount = sortedGroups.slice(2).reduce((s,g) => s + g.items.length, 0);
+
+        const renderGroup = (group) => (
+          <div key={group.key} style={{ display: "flex", gap: 0, marginBottom: 24 }}>
+            {/* Month/Year block */}
+            <div style={{ flexShrink: 0, width: 68, marginRight: 16 }}>
+              <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                <div style={{ background: "#30363d", padding: "4px 0", fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
+                  {MONTH_PT[group.month]}
+                </div>
+                <div style={{ padding: "6px 0 8px", fontSize: 22, fontWeight: 900, color: "#e6edf3" }}>
+                  {group.year}
+                </div>
+              </div>
+            </div>
+            {/* Entries sorted by day desc */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
+                <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
+                  borderBottom: idx < arr.length - 1 ? "1px solid #21262d" : "none",
+                  cursor: "pointer",
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "#484f58", width: 18, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                  {(item.customCover || item.cover || item.thumbnailUrl)
+                    ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                    : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                  }
+                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                  {item.userRating > 0 && (
+                    <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
         return (
           <div style={{ marginBottom: 24, marginTop: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>📅 DIÁRIO</h3>
               <span style={{ fontSize: 12, color: "#484f58" }}>{completados.length} entradas</span>
             </div>
-            {sortedGroups.map(group => (
-              <div key={`${group.year}-${group.month}`} style={{ display: "flex", gap: 0, marginBottom: 20 }}>
-                {/* Month block */}
-                <div style={{ flexShrink: 0, width: 64, marginRight: 16 }}>
-                  <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                    <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                      {MONTH_PT[group.month]}
-                    </div>
-                    <div style={{ padding: "6px 0 8px", fontSize: 22, fontWeight: 900, color: "#e6edf3" }}>
-                      {group.year}
-                    </div>
-                  </div>
-                </div>
-                {/* Entries */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
-                  {group.items.sort((a,b) => b.day - a.day).map((item, idx) => (
-                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
-                      display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
-                      borderBottom: idx < group.items.length - 1 ? "1px solid #21262d" : "none",
-                      cursor: "pointer",
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      {/* Day number */}
-                      <span style={{ fontSize: 16, fontWeight: 700, color: "#484f58", width: 20, textAlign: "right", flexShrink: 0 }}>{item.day}</span>
-                      {/* Mini cover */}
-                      {(item.customCover || item.cover || item.thumbnailUrl)
-                        ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
-                        : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                      {/* Title */}
-                      <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
-                      {/* Rating */}
-                      {item.userRating > 0 && (
-                        <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {visibleGroups.map(renderGroup)}
+            {sortedGroups.length > 2 && (
+              <button onClick={() => setShowDiaryAll(v => !v)} style={{
+                width: "100%", padding: "10px", borderRadius: 10,
+                background: "#21262d", border: "1px solid #30363d",
+                color: "#8b949e", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 13, fontWeight: 600,
+              }}>
+                {showDiaryAll
+                  ? "↑ Mostrar menos"
+                  : `Ver mais — ${hiddenCount} entr${hiddenCount === 1 ? "ada" : "adas"} em ${sortedGroups.length - 2} mes${sortedGroups.length - 2 === 1 ? "" : "es"} anteriores`}
+              </button>
+            )}
           </div>
         );
       })()}
@@ -2862,6 +2878,8 @@ export default function TrackAll() {
   const [logResults, setLogResults] = useState([]);
   const [logSearching, setLogSearching] = useState(false);
   const logInputRef = useRef(null);
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  const [quickSearchType, setQuickSearchType] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
@@ -3251,22 +3269,28 @@ export default function TrackAll() {
     }
   }, [tmdbKey, workerUrl]);
 
-  // Log quick-add search
+  // Log quick-add search — respects quickSearchType filter
   const doLogSearch = useCallback(async (q) => {
     if (!q.trim()) { setLogResults([]); return; }
     setLogSearching(true);
     try {
-      const [anime, manga, filmes] = await Promise.allSettled([
-        smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
-        smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
-        tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
-      ]);
-      const all = [...(anime.value||[]), ...(manga.value||[]), ...(filmes.value||[])];
-      const seen = new Set();
-      setLogResults(all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; }).slice(0, 8));
+      let results = [];
+      if (quickSearchType) {
+        results = await smartSearch(q, quickSearchType, { tmdb: tmdbKey, workerUrl });
+      } else {
+        const [anime, manga, filmes] = await Promise.allSettled([
+          smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
+          smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
+          tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
+        ]);
+        const all = [...(anime.value||[]), ...(manga.value||[]), ...(filmes.value||[])];
+        const seen = new Set();
+        results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
+      }
+      setLogResults(results.slice(0, 8));
     } catch { setLogResults([]); }
     setLogSearching(false);
-  }, [tmdbKey, workerUrl]);
+  }, [tmdbKey, workerUrl, quickSearchType]);
 
   useEffect(() => {
     if (logOpen) setTimeout(() => logInputRef.current?.focus(), 80);
@@ -3276,7 +3300,7 @@ export default function TrackAll() {
   useEffect(() => {
     const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
     return () => clearTimeout(t);
-  }, [logQuery]);
+  }, [logQuery, quickSearchType]);
 
   const items = useMemo(() => Object.values(library), [library]);
 
@@ -3605,53 +3629,64 @@ export default function TrackAll() {
 
               return (
                 <>
-                  {/* Log quick-add panel */}
-                  <div style={{ padding: "0 16px", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: logOpen ? 10 : 0 }}>
-                      <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 14px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                        ✓ Log rápido
-                      </button>
-                      {logOpen && <span style={{ fontSize: 12, color: "#484f58" }}>Marca um título como concluído</span>}
-                    </div>
-                    {logOpen && (
-                      <div style={{ background: "#161b22", border: `1px solid ${accent}33`, borderRadius: 12, padding: 12 }}>
-                        <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                          placeholder="Pesquisa um filme, série, manga..."
-                          style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                        {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
-                        {logResults.length > 0 && (
-                          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
-                            {logResults.map(item => (
-                              <div key={item.id} onClick={() => {
-                                if (library[item.id]) updateStatus(item.id, "completo");
-                                else addToLibrary(item, "completo");
-                                showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
-                                setLogOpen(false);
-                              }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
-                                onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
-                                onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
-                                {(item.cover || item.thumbnailUrl)
-                                  ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
-                                  : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                                }
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                                  <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                                </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* ── Completados row + single "+" button ── */}
                   <RowSection
                     title="Completados"
                     icon="✓"
                     items={completados}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                    filterBtn={
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 16 }}>
+                        <button onClick={() => setLogOpen(v => !v)} style={{ width: 28, height: 28, borderRadius: 8, background: logOpen ? accent : `${accent}22`, border: `1px solid ${logOpen ? accent : accent + "55"}`, color: logOpen ? "white" : accent, cursor: "pointer", fontSize: 20, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, flexShrink: 0 }}>+</button>
+                        <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
+                      </div>
+                    }
                   />
+
+                  {/* Combined add/search panel */}
+                  {logOpen && (
+                    <div style={{ margin: "-4px 16px 12px", background: "#161b22", border: `1px solid ${accent}33`, borderRadius: 12, padding: 12 }}>
+                      {/* Type filter pills */}
+                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 8 }}>
+                        {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
+                          <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 8, background: quickSearchType === t.id ? accent : "#21262d", border: `1px solid ${quickSearchType === t.id ? accent : "#30363d"}`, color: quickSearchType === t.id ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>
+                            <span>{t.icon}</span> {t.label}
+                          </button>
+                        ))}
+                      </div>
+                      <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                        placeholder={quickSearchType ? `Pesquisa ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisa qualquer título..."}
+                        style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                      {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
+                      {!logQuery && !logSearching && (
+                        <p style={{ fontSize: 12, color: "#484f58", marginTop: 8, textAlign: "center" }}>Escreve para pesquisar • clica para marcar como ✓ completo</p>
+                      )}
+                      {logResults.length > 0 && (
+                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+                          {logResults.map(item => (
+                            <div key={item.id} onClick={() => {
+                              if (library[item.id]) updateStatus(item.id, "completo");
+                              else addToLibrary(item, "completo");
+                              showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
+                              setLogOpen(false);
+                            }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
+                              onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
+                              onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
+                              {(item.cover || item.thumbnailUrl)
+                                ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
+                                : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                              }
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                                <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {inCurso.length > 0 && completados.length > 0 && (
                     <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
                   )}
