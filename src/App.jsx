@@ -1527,7 +1527,6 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 function RecentSection({ items, accent, darkMode, onOpen }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
-  const [showDiaryAll, setShowDiaryAll] = useState(false);
 
   const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
   const completados = [...items].filter(i => i.userStatus === "completo").sort((a, b) => b.addedAt - a.addedAt);
@@ -1619,90 +1618,65 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
 
       {/* DIARY — Letterboxd style, grouped by month/day */}
       {completados.length > 0 && (() => {
+        // Group by month bucket (year-month)
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const yesterday = today - 86400000;
-        const dayBefore = today - 172800000;
-
-        // Group by day bucket (timestamp of midnight)
         const groups = {};
         completados.forEach(item => {
           const d = item.addedAt ? new Date(item.addedAt) : null;
           if (!d) return;
-          const dayKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-          if (!groups[dayKey]) groups[dayKey] = { ts: dayKey, date: d, items: [] };
-          groups[dayKey].items.push(item);
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
+          if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, day: d.getDate() });
         });
-        const sortedGroups = Object.values(groups).sort((a,b) => b.ts - a.ts);
+        const sortedGroups = Object.values(groups).sort((a,b) => b.year - a.year || b.month - a.month);
         if (!sortedGroups.length) return null;
-
-        const recentGroups = sortedGroups.filter(g => g.ts >= dayBefore);
-        const olderGroups = sortedGroups.filter(g => g.ts < dayBefore);
-
-        const renderGroup = (group) => {
-          const isToday = group.ts === today;
-          const isYesterday = group.ts === yesterday;
-          const label = isToday ? "Hoje" : isYesterday ? "Ontem" : null;
-          const d = group.date;
-          return (
-            <div key={group.ts} style={{ display: "flex", gap: 0, marginBottom: 18 }}>
-              {/* Day block */}
-              <div style={{ flexShrink: 0, width: 64, marginRight: 16 }}>
-                <div style={{ background: isToday ? accent : "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${isToday ? accent : "#30363d"}` }}>
-                  <div style={{ background: isToday ? accent+"cc" : "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: isToday ? "white" : "#8b949e", letterSpacing: 1 }}>
-                    {label || MONTH_PT[d.getMonth()]}
-                  </div>
-                  <div style={{ padding: "5px 0 7px", fontSize: label ? 22 : 20, fontWeight: 900, color: isToday ? "white" : "#e6edf3" }}>
-                    {label ? d.getDate() : `${d.getDate()} ${MONTH_PT[d.getMonth()]}`}
-                  </div>
-                </div>
-              </div>
-              {/* Entries */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                {group.items.map((item, idx) => (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
-                    display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
-                    borderBottom: idx < group.items.length - 1 ? "1px solid #21262d" : "none",
-                    cursor: "pointer", borderRadius: 6,
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    {(item.customCover || item.cover || item.thumbnailUrl)
-                      ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
-                      : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                    }
-                    <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
-                    {item.userRating > 0 && (
-                      <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        };
-
         return (
           <div style={{ marginBottom: 24, marginTop: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 0" }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>📅 DIÁRIO</h3>
               <span style={{ fontSize: 12, color: "#484f58" }}>{completados.length} entradas</span>
             </div>
-            {recentGroups.map(renderGroup)}
-            {olderGroups.length > 0 && (
-              <>
-                {showDiaryAll && olderGroups.map(renderGroup)}
-                <button onClick={() => setShowDiaryAll(v => !v)} style={{
-                  width: "100%", padding: "10px", borderRadius: 10,
-                  background: "#21262d", border: "1px solid #30363d",
-                  color: "#8b949e", cursor: "pointer", fontFamily: "inherit",
-                  fontSize: 13, fontWeight: 600, marginTop: 4,
-                }}>
-                  {showDiaryAll ? "↑ Mostrar menos" : `Ver mais (${olderGroups.reduce((s,g) => s + g.items.length, 0)} entradas anteriores)`}
-                </button>
-              </>
-            )}
+            {sortedGroups.map(group => (
+              <div key={`${group.year}-${group.month}`} style={{ display: "flex", gap: 0, marginBottom: 20 }}>
+                {/* Month block */}
+                <div style={{ flexShrink: 0, width: 64, marginRight: 16 }}>
+                  <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                    <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
+                      {MONTH_PT[group.month]}
+                    </div>
+                    <div style={{ padding: "6px 0 8px", fontSize: 22, fontWeight: 900, color: "#e6edf3" }}>
+                      {group.year}
+                    </div>
+                  </div>
+                </div>
+                {/* Entries */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
+                  {group.items.sort((a,b) => b.day - a.day).map((item, idx) => (
+                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
+                      borderBottom: idx < group.items.length - 1 ? "1px solid #21262d" : "none",
+                      cursor: "pointer",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      {/* Day number */}
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#484f58", width: 20, textAlign: "right", flexShrink: 0 }}>{item.day}</span>
+                      {/* Mini cover */}
+                      {(item.customCover || item.cover || item.thumbnailUrl)
+                        ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      {/* Title */}
+                      <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                      {/* Rating */}
+                      {item.userRating > 0 && (
+                        <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         );
       })()}
@@ -2888,8 +2862,6 @@ export default function TrackAll() {
   const [logResults, setLogResults] = useState([]);
   const [logSearching, setLogSearching] = useState(false);
   const logInputRef = useRef(null);
-  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
-  const [quickSearchType, setQuickSearchType] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
@@ -3633,77 +3605,53 @@ export default function TrackAll() {
 
               return (
                 <>
-                  {/* ── Completados row + "+ Log" button + "🔍" quick search ── */}
+                  {/* Log quick-add panel */}
+                  <div style={{ padding: "0 16px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: logOpen ? 10 : 0 }}>
+                      <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 14px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                        ✓ Log rápido
+                      </button>
+                      {logOpen && <span style={{ fontSize: 12, color: "#484f58" }}>Marca um título como concluído</span>}
+                    </div>
+                    {logOpen && (
+                      <div style={{ background: "#161b22", border: `1px solid ${accent}33`, borderRadius: 12, padding: 12 }}>
+                        <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                          placeholder="Pesquisa um filme, série, manga..."
+                          style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                        {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
+                        {logResults.length > 0 && (
+                          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+                            {logResults.map(item => (
+                              <div key={item.id} onClick={() => {
+                                if (library[item.id]) updateStatus(item.id, "completo");
+                                else addToLibrary(item, "completo");
+                                showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
+                                setLogOpen(false);
+                              }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
+                                onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
+                                onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
+                                {(item.cover || item.thumbnailUrl)
+                                  ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
+                                  : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                                }
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                                  <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <RowSection
                     title="Completados"
                     icon="✓"
                     items={completados}
-                    filterBtn={
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingRight: 16 }}>
-                        {/* Quick search button */}
-                        <button onClick={() => { setQuickSearchOpen(v => !v); setLogOpen(false); }} title="Pesquisa rápida" style={{ width: 30, height: 30, borderRadius: 8, background: quickSearchOpen ? "#6366f1" : "#21262d", border: `1px solid ${quickSearchOpen ? "#6366f1" : "#30363d"}`, color: quickSearchOpen ? "white" : "#8b949e", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>🔍</button>
-                        {/* Log button */}
-                        <button onClick={() => { setLogOpen(v => !v); setQuickSearchOpen(false); }} title="Marcar como completo" style={{ width: 30, height: 30, borderRadius: 8, background: logOpen ? accent : `${accent}22`, border: `1px solid ${logOpen ? accent : accent+"44"}`, color: logOpen ? "white" : accent, cursor: "pointer", fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>+</button>
-                        <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
-                      </div>
-                    }
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
                   />
-
-                  {/* Log panel */}
-                  {logOpen && (
-                    <div style={{ margin: "0 16px 12px", background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 12, padding: 12 }}>
-                      <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                        placeholder="Pesquisa e marca como completo..."
-                        style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                      {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
-                      {logResults.length > 0 && (
-                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
-                          {logResults.map(item => (
-                            <div key={item.id} onClick={() => {
-                              if (library[item.id]) updateStatus(item.id, "completo");
-                              else addToLibrary(item, "completo");
-                              showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
-                              setLogOpen(false);
-                            }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
-                              onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
-                              onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
-                              {(item.cover || item.thumbnailUrl)
-                                ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
-                                : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                              }
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                                <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                              </div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Quick search panel */}
-                  {quickSearchOpen && (
-                    <div style={{ margin: "0 16px 12px", background: "#161b22", border: "1px solid #6366f133", borderRadius: 12, padding: 12 }}>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 10, fontWeight: 600 }}>O que queres procurar?</p>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                        {MEDIA_TYPES.filter(t => t.id !== "all").map(t => (
-                          <button key={t.id} onClick={() => {
-                            setQuickSearchType(t.id);
-                            setView("search");
-                            setQuickSearchOpen(false);
-                          }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>
-                            <span style={{ fontSize: 18 }}>{t.icon}</span> {t.label}
-                          </button>
-                        ))}
-                      </div>
-                      <button onClick={() => { setView("search"); setQuickSearchOpen(false); }} style={{ width: "100%", padding: "9px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-                        🔍 Pesquisa livre (todos os tipos)
-                      </button>
-                    </div>
-                  )}
-
                   {inCurso.length > 0 && completados.length > 0 && (
                     <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
                   )}
