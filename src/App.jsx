@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo, createContext, useContext } from "react";
 import { createClient } from '@supabase/supabase-js';
 
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
@@ -1398,7 +1398,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
 // ─── Media Card ────────────────────────────────────────────────────────────────
 // ── VirtualGrid: only renders cards near the viewport ──────────────────────
-function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
+const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
   const [visibleCount, setVisibleCount] = useState(columns * 8); // initial render
   const sentinelRef = useRef(null);
 
@@ -1440,9 +1440,9 @@ function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
       )}
     </>
   );
-}
+}); // end memo(VirtualGrid)
 
-function MediaCard({ item, library, onOpen, accent }) {
+const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const libItem = library[item.id];
   const inLib = !!libItem;
   const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
@@ -1521,7 +1521,7 @@ function MediaCard({ item, library, onOpen, accent }) {
       </div>
     </div>
   );
-}
+}); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
 function RecentSection({ items, accent, darkMode, onOpen }) {
@@ -1615,6 +1615,71 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
           </div>
         </div>
       )}
+
+      {/* DIARY — Letterboxd style, grouped by month/day */}
+      {completados.length > 0 && (() => {
+        // Group by month bucket (year-month)
+        const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+        const groups = {};
+        completados.forEach(item => {
+          const d = item.addedAt ? new Date(item.addedAt) : null;
+          if (!d) return;
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
+          if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, day: d.getDate() });
+        });
+        const sortedGroups = Object.values(groups).sort((a,b) => b.year - a.year || b.month - a.month);
+        if (!sortedGroups.length) return null;
+        return (
+          <div style={{ marginBottom: 24, marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 0" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>📅 DIÁRIO</h3>
+              <span style={{ fontSize: 12, color: "#484f58" }}>{completados.length} entradas</span>
+            </div>
+            {sortedGroups.map(group => (
+              <div key={`${group.year}-${group.month}`} style={{ display: "flex", gap: 0, marginBottom: 20 }}>
+                {/* Month block */}
+                <div style={{ flexShrink: 0, width: 64, marginRight: 16 }}>
+                  <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                    <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
+                      {MONTH_PT[group.month]}
+                    </div>
+                    <div style={{ padding: "6px 0 8px", fontSize: 22, fontWeight: 900, color: "#e6edf3" }}>
+                      {group.year}
+                    </div>
+                  </div>
+                </div>
+                {/* Entries */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
+                  {group.items.sort((a,b) => b.day - a.day).map((item, idx) => (
+                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
+                      borderBottom: idx < group.items.length - 1 ? "1px solid #21262d" : "none",
+                      cursor: "pointer",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      {/* Day number */}
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#484f58", width: 20, textAlign: "right", flexShrink: 0 }}>{item.day}</span>
+                      {/* Mini cover */}
+                      {(item.customCover || item.cover || item.thumbnailUrl)
+                        ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      {/* Title */}
+                      <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                      {/* Rating */}
+                      {item.userRating > 0 && (
+                        <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Em Curso — small cards with chapter info */}
       {inCurso.length > 0 && (
@@ -2853,9 +2918,14 @@ export default function TrackAll() {
       }
       if (lib) setLibrary(lib);
     } catch {}
-    // Load recommendations in background
-    loadRecos();
   };
+
+  // Lazy: só carrega recos quando o utilizador vai ao Início pela 1ª vez
+  useEffect(() => {
+    if (view === "home" && user && !recoLoading && Object.keys(recos).length === 0) {
+      loadRecos();
+    }
+  }, [view, user]);
 
   const loadRecos = async () => {
     setRecoLoading(true);
@@ -2986,11 +3056,11 @@ export default function TrackAll() {
     if (user) try { await supa.upsertProfile(user.id, { worker_url: k }); } catch {}
   };
 
-  const addToLibrary = (item, status, rating = 0) => {
+  const addToLibrary = useCallback((item, status, rating = 0) => {
     const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
     saveLibrary(lib);
     showNotif(`"${item.title.slice(0, 30)}" adicionado!`, "#10b981");
-  };
+  }, [library]);
 
   const autoSyncDrive = async (clientId) => {
     if (!clientId || driveAutoSyncing) return;
@@ -3103,16 +3173,17 @@ export default function TrackAll() {
     const lib = { ...library }; delete lib[id]; saveLibrary(lib);
     showNotif("Removido da biblioteca", "#ef4444");
   };
-  const updateStatus = (id, status) => {
+  const updateStatus = useCallback((id, status) => {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], userStatus: status } });
     showNotif("Estado atualizado!", accent);
-  };
-  const updateLastChapter = (id, chapter) => {
+  }, [library, accent]);
+
+  const updateLastChapter = useCallback((id, chapter) => {
     if (!library[id] || !chapter) return;
     saveLibrary({ ...library, [id]: { ...library[id], lastChapter: chapter } });
     showNotif(`Capítulo: ${chapter} ✓`, accent);
-  };
+  }, [library, accent]);
   const updateRating = (id, rating) => {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], userRating: rating } });
@@ -3207,25 +3278,26 @@ export default function TrackAll() {
     return () => clearTimeout(t);
   }, [logQuery]);
 
-  const items = Object.values(library);
-  const stats = {
+  const items = useMemo(() => Object.values(library), [library]);
+
+  const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
     completo: items.filter((i) => i.userStatus === "completo").length,
     planejado: items.filter((i) => i.userStatus === "planejado").length,
-  };
+  }), [items]);
 
-  const filteredLib = items.filter((i) => {
+  const filteredLib = useMemo(() => items.filter((i) => {
     if (filterStatus !== "all" && i.userStatus !== filterStatus) return false;
     if (activeTab !== "all" && i.type !== activeTab) return false;
     return true;
-  });
+  }), [items, filterStatus, activeTab]);
 
-  const sortedLib = (() => {
+  const sortedLib = useMemo(() => {
     const arr = [...filteredLib];
     if (libSort === "title") return arr.sort((a,b) => (a.title||"").localeCompare(b.title||""));
     if (libSort === "rating") return arr.sort((a,b) => (b.userRating||0) - (a.userRating||0));
     return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-  })();
+  }, [filteredLib, libSort]);
 
   const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
 
@@ -3315,12 +3387,14 @@ export default function TrackAll() {
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
           }
           @media (max-width: 768px) {
-            .card { contain: layout; content-visibility: auto; }
+            .card { contain: layout; content-visibility: auto; contain-intrinsic-size: 0 230px; }
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
             .card { transition: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
+            .recents-row { -webkit-overflow-scrolling: touch; }
+            * { -webkit-tap-highlight-color: transparent; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
