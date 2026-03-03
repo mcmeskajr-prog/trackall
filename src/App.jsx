@@ -3511,7 +3511,20 @@ export default function TrackAll() {
         {/* NAV TOP */}
         <nav style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
           <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
+            <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Play triangle */}
+                <polygon points="3,3.5 9.5,7 3,10.5" fill="white"/>
+                {/* 3 horizontal lines — lista */}
+                <rect x="11.5" y="4" width="6" height="1.6" rx="0.8" fill="white"/>
+                <rect x="11.5" y="7" width="4.5" height="1.6" rx="0.8" fill="white" opacity="0.75"/>
+                <rect x="11.5" y="10" width="5.5" height="1.6" rx="0.8" fill="white" opacity="0.55"/>
+                {/* Linha separadora */}
+                <rect x="3" y="13.5" width="14" height="1.2" rx="0.6" fill="white" opacity="0.3"/>
+                {/* Tick / checkmark */}
+                <polyline points="3,16.5 5.5,19 10,14.5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            </div>
             <span style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
           </button>
 
