@@ -1609,7 +1609,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
                       {new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })}
                     </p>
                   )}
-                
+                </div>
               );
             })}
           </div>
@@ -3531,6 +3531,47 @@ export default function TrackAll() {
 
               return (
                 <>
+                  {/* Log quick-add panel */}
+                  <div style={{ padding: "0 16px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: logOpen ? 10 : 0 }}>
+                      <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 14px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                        ✓ Log rápido
+                      </button>
+                      {logOpen && <span style={{ fontSize: 12, color: "#484f58" }}>Marca um título como concluído</span>}
+                    </div>
+                    {logOpen && (
+                      <div style={{ background: "#161b22", border: `1px solid ${accent}33`, borderRadius: 12, padding: 12 }}>
+                        <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                          placeholder="Pesquisa um filme, série, manga..."
+                          style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                        {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
+                        {logResults.length > 0 && (
+                          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+                            {logResults.map(item => (
+                              <div key={item.id} onClick={() => {
+                                if (library[item.id]) updateStatus(item.id, "completo");
+                                else addToLibrary(item, "completo");
+                                showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
+                                setLogOpen(false);
+                              }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
+                                onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
+                                onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
+                                {(item.cover || item.thumbnailUrl)
+                                  ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
+                                  : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                                }
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                                  <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <RowSection
                     title="Completados"
                     icon="✓"
@@ -3631,51 +3672,11 @@ export default function TrackAll() {
         {view === "library" && (
           <div style={{ padding: "20px 16px" }} className="fade-in">
 
-            {/* Header with Log button */}
+            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
-                <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 5, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 12px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                  ✓ Log
-                </button>
-              </div>
+              <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
             </div>
-
-            {/* Log panel */}
-            {logOpen && (
-              <div style={{ marginBottom: 14, background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 12, padding: 12 }}>
-                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 8, fontWeight: 600 }}>Marcar diretamente como Completo:</p>
-                <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                  placeholder="Pesquisa um filme, série, manga..."
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
-                {logResults.length > 0 && (
-                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
-                    {logResults.map(item => (
-                      <div key={item.id} onClick={() => {
-                        if (library[item.id]) updateStatus(item.id, "completo");
-                        else addToLibrary(item, "completo");
-                        showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
-                        setLogOpen(false);
-                      }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
-                        onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
-                        onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
-                        {(item.cover || item.thumbnailUrl)
-                          ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
-                          : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                          <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
               {MEDIA_TYPES.map((t) => (
