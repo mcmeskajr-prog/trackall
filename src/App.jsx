@@ -1879,13 +1879,12 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
           </div>
         ) : (
-          <div style={{ display: "flex", padding: "0 16px", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "0 16px", gap: 8, width: "100%" }}>
             {favorites.map((item) => {
               const coverSrc = item.customCover || item.cover;
-              const favW = favorites.length <= 2 ? 155 : favorites.length === 3 ? 145 : 130;
               return (
                 <div key={item.id} className="media-thumb" onClick={() => onOpen && onOpen(item)} style={{
-                  flexShrink: 0, width: favW,
+                  width: "100%",
                   aspectRatio: "2/3", borderRadius: 12, background: gradientFor(item.id),
                   boxShadow: "0 6px 24px rgba(0,0,0,0.5)", cursor: "pointer",
                 }}>
@@ -1897,22 +1896,22 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                   <div className="rating-hover" style={{ borderRadius: 10 }}>
                     {item.userRating > 0 ? (
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 28, color: "#f59e0b", fontWeight: 900 }}>★</div>
-                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>{item.userRating}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{item.title?.slice(0,16)}</div>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕ Remover</button>
+                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★</div>
+                        <div style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{item.userRating}</div>
+                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{item.title?.slice(0,14)}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 6, padding: "3px 6px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 9, fontFamily: "inherit" }}>✕ Remover</button>
                       </div>
                     ) : (
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{item.title?.slice(0,16)}</div>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{item.title?.slice(0,14)}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 6, padding: "3px 6px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 9, fontFamily: "inherit" }}>✕</button>
                       </div>
                     )}
                   </div>
                   {/* Bottom title */}
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 8px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", borderRadius: "0 0 10px 10px" }}>
-                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.9)", fontWeight: 700, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.3 }}>{item.title}</p>
-                    {item.userRating > 0 && <p style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>★ {item.userRating}</p>}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 6px 6px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", borderRadius: "0 0 10px 10px" }}>
+                    <p style={{ fontSize: 9, color: "rgba(255,255,255,0.9)", fontWeight: 700, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.3 }}>{item.title}</p>
+                    {item.userRating > 0 && <p style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>★ {item.userRating}</p>}
                   </div>
                 </div>
               );
