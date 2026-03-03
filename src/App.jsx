@@ -1620,14 +1620,13 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
       {/* DIARY — Letterboxd style, grouped by month */}
       {completados.length > 0 && (() => {
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-        // Group by month bucket
+        // Group by month bucket — items without addedAt go to "Sem data" bucket
         const groups = {};
         completados.forEach(item => {
           const d = item.addedAt ? new Date(item.addedAt) : null;
-          if (!d) return;
-          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-          groups[key].items.push({ ...item, _day: d.getDate() });
+          const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
+          if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
+          groups[key].items.push({ ...item, _day: d ? d.getDate() : null });
         });
         const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
         if (!sortedGroups.length) return null;
@@ -1642,10 +1641,10 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             <div style={{ flexShrink: 0, width: 68, marginRight: 16 }}>
               <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
                 <div style={{ background: "#30363d", padding: "4px 0", fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                  {MONTH_PT[group.month]}
+                  {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
                 </div>
-                <div style={{ padding: "6px 0 8px", fontSize: 22, fontWeight: 900, color: "#e6edf3" }}>
-                  {group.year}
+                <div style={{ padding: "6px 0 8px", fontSize: group.key === "0000-00" ? 13 : 22, fontWeight: 900, color: "#e6edf3" }}>
+                  {group.key === "0000-00" ? "Sem data" : group.year}
                 </div>
               </div>
             </div>
@@ -1872,7 +1871,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       {/* ── Favoritos — Letterboxd style ── */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 16px" }}>
-          <h3 style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.08em" }}>FILMES & SÉRIES FAVORITOS</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.08em" }}>⭐ FAVORITOS</h3>
           <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
         </div>
         {favorites.length === 0 ? (
@@ -1880,14 +1879,15 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
           </div>
         ) : (
-          <div style={{ display: "flex", padding: "0 16px", gap: 6, overflowX: "auto" }}>
+          <div style={{ display: "flex", padding: "0 16px", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
             {favorites.map((item) => {
               const coverSrc = item.customCover || item.cover;
+              const favW = favorites.length <= 2 ? 155 : favorites.length === 3 ? 145 : 130;
               return (
-                <div key={item.id} className="media-thumb" style={{
-                  flexShrink: 0, flex: "1 1 0", minWidth: 90, maxWidth: 160,
-                  aspectRatio: "2/3", borderRadius: 10, background: gradientFor(item.id),
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)", cursor: "pointer",
+                <div key={item.id} className="media-thumb" onClick={() => onOpen && onOpen(item)} style={{
+                  flexShrink: 0, width: favW,
+                  aspectRatio: "2/3", borderRadius: 12, background: gradientFor(item.id),
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.5)", cursor: "pointer",
                 }}>
                   {coverSrc
                     ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} onError={(e) => e.currentTarget.style.display = "none"} />
@@ -2880,6 +2880,7 @@ export default function TrackAll() {
   const logInputRef = useRef(null);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [quickSearchType, setQuickSearchType] = useState(null);
+  const [logPendingItem, setLogPendingItem] = useState(null); // item awaiting rating after log
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
@@ -3440,6 +3441,55 @@ export default function TrackAll() {
 
 
 
+
+        {/* ── Rating prompt after quick-log ── */}
+        {logPendingItem && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 1100,
+            background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20,
+          }} onClick={() => { showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent); setLogPendingItem(null); }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16,
+              padding: 24, width: "100%", maxWidth: 360, textAlign: "center",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, textAlign: "left" }}>
+                {(logPendingItem.cover || logPendingItem.thumbnailUrl)
+                  ? <img src={logPendingItem.cover || logPendingItem.thumbnailUrl} alt="" style={{ width: 48, height: 68, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+                  : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(logPendingItem.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === logPendingItem.type)?.icon}</div>
+                }
+                <div>
+                  <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 4 }}>✓ Marcado como completo!</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3" }}>{logPendingItem.title}</div>
+                  <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === logPendingItem.type)?.label}</div>
+                </div>
+              </div>
+              <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 16 }}>Queres dar uma avaliação?</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <button key={n} onClick={() => {
+                    const base = library[logPendingItem.id] || logPendingItem;
+                    saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: n } });
+                    showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${n}`, accent);
+                    setLogPendingItem(null);
+                  }} style={{
+                    padding: "10px 0", borderRadius: 10, border: `1px solid ${accent}44`,
+                    background: `${accent}22`, color: accent, fontWeight: 800, fontSize: 15,
+                    cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = accent; e.currentTarget.style.color = "white"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = `${accent}22`; e.currentTarget.style.color = accent; }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent); setLogPendingItem(null); }} style={{ width: "100%", padding: "10px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                Saltar avaliação
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Detail Modal */}
         {selectedItem && (
           <DetailModal
@@ -3629,16 +3679,26 @@ export default function TrackAll() {
 
               return (
                 <>
-                  {/* ── Completados row + single "+" button ── */}
+                  {/* ── "+ Adicionar" button — always visible on mobile ── */}
+                  <div style={{ padding: "4px 16px 0" }}>
+                    <button onClick={() => setLogOpen(v => !v)} style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "8px 16px", borderRadius: 10,
+                      background: logOpen ? accent : `${accent}22`,
+                      border: `1px solid ${logOpen ? accent : accent + "55"}`,
+                      color: logOpen ? "white" : accent,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                      WebkitTapHighlightColor: "transparent",
+                    }}>
+                      <span style={{ fontSize: 18, lineHeight: 1, marginTop: -1 }}>+</span> Adicionar
+                    </button>
+                  </div>
                   <RowSection
                     title="Completados"
                     icon="✓"
                     items={completados}
                     filterBtn={
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 16 }}>
-                        <button onClick={() => setLogOpen(v => !v)} style={{ width: 28, height: 28, borderRadius: 8, background: logOpen ? accent : `${accent}22`, border: `1px solid ${logOpen ? accent : accent + "55"}`, color: logOpen ? "white" : accent, cursor: "pointer", fontSize: 20, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, flexShrink: 0 }}>+</button>
-                        <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>Ver tudo →</button>
-                      </div>
+                      <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>
                     }
                   />
 
@@ -3666,8 +3726,10 @@ export default function TrackAll() {
                             <div key={item.id} onClick={() => {
                               if (library[item.id]) updateStatus(item.id, "completo");
                               else addToLibrary(item, "completo");
-                              showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
                               setLogOpen(false);
+                              setLogQuery("");
+                              setLogResults([]);
+                              setLogPendingItem(item);
                             }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
                               onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
                               onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
