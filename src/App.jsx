@@ -1589,21 +1589,27 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             {(showAllCompleto ? completados : completados.slice(0, 10)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }}>
-                  <div style={{ width: showAllCompleto ? "100%" : 120, height: 172, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 6, position: "relative" }}>
+                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : 120, height: 172, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id) }}>
                     {coverSrc
-                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
                     {/* Bottom info bar */}
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "18px 8px 8px" }}>
-                      <p style={{ fontSize: 11, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)", padding: "18px 6px 6px" }}>
+                      <p style={{ fontSize: 11, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     </div>
                     {item.userRating > 0 && (
-                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.85)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.85)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#fbbf24", fontWeight: 700 }}>★ {item.userRating}</div>
                     )}
                   </div>
-                </div>
+                  {/* Date below card — Letterboxd style */}
+                  {item.addedAt && (
+                    <p style={{ fontSize: 10, color: "#484f58", marginTop: 4, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                      {new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  )}
+                
               );
             })}
           </div>
@@ -2785,6 +2791,12 @@ export default function TrackAll() {
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [libSort, setLibSort] = useState("date"); // date | title | rating
+  const [logOpen, setLogOpen] = useState(false);
+  const [logQuery, setLogQuery] = useState("");
+  const [logResults, setLogResults] = useState([]);
+  const [logSearching, setLogSearching] = useState(false);
+  const logInputRef = useRef(null);
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
@@ -3168,6 +3180,33 @@ export default function TrackAll() {
     }
   }, [tmdbKey, workerUrl]);
 
+  // Log quick-add search
+  const doLogSearch = useCallback(async (q) => {
+    if (!q.trim()) { setLogResults([]); return; }
+    setLogSearching(true);
+    try {
+      const [anime, manga, filmes] = await Promise.allSettled([
+        smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
+        smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
+        tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
+      ]);
+      const all = [...(anime.value||[]), ...(manga.value||[]), ...(filmes.value||[])];
+      const seen = new Set();
+      setLogResults(all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; }).slice(0, 8));
+    } catch { setLogResults([]); }
+    setLogSearching(false);
+  }, [tmdbKey, workerUrl]);
+
+  useEffect(() => {
+    if (logOpen) setTimeout(() => logInputRef.current?.focus(), 80);
+    else { setLogQuery(""); setLogResults([]); }
+  }, [logOpen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
+    return () => clearTimeout(t);
+  }, [logQuery]);
+
   const items = Object.values(library);
   const stats = {
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
@@ -3180,6 +3219,13 @@ export default function TrackAll() {
     if (activeTab !== "all" && i.type !== activeTab) return false;
     return true;
   });
+
+  const sortedLib = (() => {
+    const arr = [...filteredLib];
+    if (libSort === "title") return arr.sort((a,b) => (a.title||"").localeCompare(b.title||""));
+    if (libSort === "rating") return arr.sort((a,b) => (b.userRating||0) - (a.userRating||0));
+    return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+  })();
 
   const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
 
@@ -3584,10 +3630,52 @@ export default function TrackAll() {
         {/* ── LIBRARY ── */}
         {view === "library" && (
           <div style={{ padding: "20px 16px" }} className="fade-in">
+
+            {/* Header with Log button */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+                <button onClick={() => setLogOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 5, background: logOpen ? accent : `${accent}22`, border: `1px solid ${accent}55`, borderRadius: 10, padding: "6px 12px", color: logOpen ? "white" : accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                  ✓ Log
+                </button>
+              </div>
             </div>
+
+            {/* Log panel */}
+            {logOpen && (
+              <div style={{ marginBottom: 14, background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 12, padding: 12 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 8, fontWeight: 600 }}>Marcar diretamente como Completo:</p>
+                <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                  placeholder="Pesquisa um filme, série, manga..."
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
+                {logResults.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+                    {logResults.map(item => (
+                      <div key={item.id} onClick={() => {
+                        if (library[item.id]) updateStatus(item.id, "completo");
+                        else addToLibrary(item, "completo");
+                        showNotif(`"${item.title.slice(0,30)}" marcado como completo ✓`, accent);
+                        setLogOpen(false);
+                      }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
+                        onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
+                        onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
+                        {(item.cover || item.thumbnailUrl)
+                          ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
+                          : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                          <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
               {MEDIA_TYPES.map((t) => (
@@ -3600,7 +3688,7 @@ export default function TrackAll() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
               <button onClick={() => setFilterStatus("all")} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #30363d", background: filterStatus === "all" ? "#21262d" : "transparent", color: filterStatus === "all" ? "#e6edf3" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>Todos</button>
               {STATUS_OPTIONS.map((s) => (
                 <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}18` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>
@@ -3609,7 +3697,15 @@ export default function TrackAll() {
               ))}
             </div>
 
-            {filteredLib.length === 0 ? (
+            {/* Sort row */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
+              <span style={{ fontSize: 11, color: "#484f58", fontWeight: 700 }}>Ordenar:</span>
+              {[{id:"date",label:"📅 Data"},{id:"title",label:"🔤 Título"},{id:"rating",label:"⭐ Rating"}].map(s => (
+                <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{s.label}</button>
+              ))}
+            </div>
+
+            {sortedLib.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
                 <div style={{ fontSize: 60, marginBottom: 16 }}>📭</div>
                 <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
@@ -3618,7 +3714,7 @@ export default function TrackAll() {
               </div>
             ) : (
               <VirtualGrid
-                items={filteredLib.sort((a, b) => b.addedAt - a.addedAt)}
+                items={sortedLib}
                 library={library}
                 onOpen={setSelectedItem}
                 accent={accent}
