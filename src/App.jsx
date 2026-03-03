@@ -1038,7 +1038,7 @@ function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recort
   const [startDrag, setStartDrag] = useState(null);
   const imgRef = useRef(null);
 
-  const CANVAS_W = 320;
+  const CANVAS_W = aspectRatio > 1 ? 900 : 320;
   const CANVAS_H = Math.round(CANVAS_W / aspectRatio);
 
   useEffect(() => {
@@ -1098,7 +1098,7 @@ function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recort
     canvas.width = CANVAS_W; canvas.height = CANVAS_H;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
-    onSave(canvas.toDataURL("image/jpeg", 0.85));
+    onSave(canvas.toDataURL("image/jpeg", 0.95));
   };
 
   return (
@@ -1770,7 +1770,8 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       <div style={{ position: "relative", marginBottom: 64 }}>
         {/* Banner — taller, more impactful */}
         <div style={{
-          height: 220, overflow: "hidden", position: "relative",
+          height: 260, overflow: "hidden", position: "relative",
+          borderRadius: "20px 20px 0 0",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
             : `linear-gradient(135deg, ${accent}55 0%, ${accent}11 50%, transparent 100%), ${darkMode ? "#0d1117" : "#f1f5f9"}`,
@@ -1810,7 +1811,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               width: 92, height: 92, borderRadius: 999, overflow: "hidden",
               background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
               border: `3px solid ${bgColor}`,
-              boxShadow: `0 0 0 3px ${accent}`,
+              boxShadow: `0 0 0 3px ${accent}, 0 0 24px ${accent}66, 0 8px 32px rgba(0,0,0,0.5)`,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               {currentAvatar
@@ -1844,7 +1845,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           </div>
         ) : (
           <>
-            <h2 style={{ fontSize: 22, fontWeight: 800 }}>{profile.name || "Utilizador"}</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
             {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
             <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
@@ -1923,30 +1924,30 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
       {/* Stats grid */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>ESTATÍSTICAS</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>ESTATÍSTICAS<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
         {STATUS_OPTIONS.map((s) => (
-          <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${s.color}22`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+          <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
             <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
         </div>
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
           <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
         </div>
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), border: `1px solid ${statsCardBg || "#21262d"}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
         </div>
       </div>
 
       {/* Por tipo */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>COMPLETOS POR TIPO</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>COMPLETOS POR TIPO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         {MEDIA_TYPES.slice(1).map((t) => {
           const count = byType[t.id] || 0;
@@ -1968,7 +1969,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       </div>
 
       {/* Temas */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>APARÊNCIA</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
 
         {/* ── Modo ── */}
@@ -2114,7 +2115,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       )}
 
       {/* ── Mihon Sync ── */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>SINCRONIZAÇÃO</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>SINCRONIZAÇÃO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
@@ -2155,7 +2156,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       </div>
 
       {/* API Status — tudo pré-configurado */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e" }}>CONFIGURAÇÕES API</h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>CONFIGURAÇÕES API<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
