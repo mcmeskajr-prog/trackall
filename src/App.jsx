@@ -3335,7 +3335,16 @@ export default function TrackAll() {
     return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
   }, [filteredLib, libSort]);
 
-  const accentRgb = `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`;
+  const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
+
+  // Stat colors pré-calculados — evita accentShade() em cada render
+  const homeStatColors = useMemo(() => ({
+    assistindo: accentShade(accent, 0),
+    completo:   accentShade(accent, 15),
+    pausa:      accentShade(accent, 30),
+    largado:    accentShade(accent, -20),
+    planejado:  accentShade(accent, 45),
+  }), [accent]);
 
   // Loading screen
   if (authLoading) {
@@ -3441,12 +3450,12 @@ export default function TrackAll() {
           .tabs-scroll::-webkit-scrollbar { display: none; }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-          @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-          .fade-in { animation: fadeIn 0.3s ease; }
+          .fade-in { animation: fadeIn 0.2s ease; }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(${accentRgb},0.12) 0%, transparent 70%), ${activeBgImage ? "transparent" : bgColor}; }
+          .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; }
         `}</style>
 
         <Notification notif={notif} />
@@ -3582,19 +3591,19 @@ export default function TrackAll() {
                         {profile.name || "Utilizador"}
                       </h2>
                       <p style={{ fontSize: 12, color: darkMode ? "#484f58" : "#94a3b8", marginTop: 2 }}>
-                        {Object.keys(library).length} na biblioteca
+                        {items.length} na biblioteca
                       </p>
                     </div>
                     {/* Stats grid — accent-based color variations */}
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {[
-                        { l: "Curso",    v: stats.assistindo, shift: 0   },
-                        { l: "Completo", v: stats.completo,   shift: 15  },
-                        { l: "Pausa",    v: stats.pausa,      shift: 30  },
-                        { l: "Largado",  v: stats.largado,    shift: -20 },
-                        { l: "Planej.",  v: stats.planejado,  shift: 45  },
+                        { l: "Curso",    v: stats.assistindo, key: "assistindo" },
+                        { l: "Completo", v: stats.completo,   key: "completo"   },
+                        { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
+                        { l: "Largado",  v: stats.largado,    key: "largado"    },
+                        { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
                       ].filter(s => s.v > 0).map((s) => {
-                        const col = accentShade(accent, s.shift);
+                        const col = homeStatColors[s.key];
                         return (
                         <div key={s.l} style={{
                           background: statsCardBg || (darkMode ? `${col}18` : `${col}22`),
@@ -3611,8 +3620,8 @@ export default function TrackAll() {
                   </div>
                 </div>
 
-                {/* Filter tags — toggle filter on recents */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {/* Filter tags — scroll horizontal */}
+                <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
                   {MEDIA_TYPES.slice(1).map((t) => {
                     const active = homeFilter.includes(t.id);
                     return (
@@ -3621,12 +3630,14 @@ export default function TrackAll() {
                           prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
                         );
                       }} style={{
+                        flexShrink: 0,
                         background: active ? accent : (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
                         border: `1px solid ${active ? accent : (darkMode ? "#21262d" : "#e2e8f0")}`,
                         color: active ? "white" : (darkMode ? "#e6edf3" : "#0d1117"),
-                        padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 12, fontWeight: 700, transition: "all 0.15s",
-                        display: "flex", alignItems: "center", gap: 5, backdropFilter: "blur(4px)",
+                        padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 12, fontWeight: 700,
+                        display: "flex", alignItems: "center", gap: 5,
+                        WebkitTapHighlightColor: "transparent",
                       }}>
                         {t.icon} {t.label}
                       </button>
@@ -3634,10 +3645,12 @@ export default function TrackAll() {
                   })}
                   {homeFilter.length > 0 && (
                     <button onClick={() => setHomeFilter([])} style={{
+                      flexShrink: 0,
                       background: "transparent", border: "1px solid #ef444444",
-                      color: "#ef4444", padding: "7px 10px", borderRadius: 10,
+                      color: "#ef4444", padding: "7px 10px", borderRadius: 20,
                       cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                    }}>✕ Limpar</button>
+                      WebkitTapHighlightColor: "transparent",
+                    }}>✕</button>
                   )}
                 </div>
               </div>
@@ -3691,20 +3704,6 @@ export default function TrackAll() {
 
               return (
                 <>
-                  {/* ── "+ Adicionar" button — always visible on mobile ── */}
-                  <div style={{ padding: "4px 16px 0" }}>
-                    <button onClick={() => setLogOpen(v => !v)} style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "8px 16px", borderRadius: 10,
-                      background: logOpen ? accent : `${accent}22`,
-                      border: `1px solid ${logOpen ? accent : accent + "55"}`,
-                      color: logOpen ? "white" : accent,
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-                      WebkitTapHighlightColor: "transparent",
-                    }}>
-                      <span style={{ fontSize: 18, lineHeight: 1, marginTop: -1 }}>+</span> Adicionar
-                    </button>
-                  </div>
                   <RowSection
                     title="Completados"
                     icon="✓"
