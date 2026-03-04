@@ -1227,7 +1227,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const isChapterType = CHAPTER_TYPES.includes(item.type);
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
   const isFavorite = favorites.some(f => f.id === item.id);
-  const canAddFavorite = !isFavorite && favorites.length < 5;
+  const canAddFavorite = !isFavorite && favorites.length < 4;
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
@@ -1321,7 +1321,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                         cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed",
                         fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600,
                         opacity: !canAddFavorite && !isFavorite ? 0.4 : 1,
-                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : "Favoritos cheios (máx. 5)"}>
+                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : "Favoritos cheios (máx. 4)"}>
                         {isFavorite ? "★ Favorito" : "☆ Favorito"}
                       </button>
                     )}
@@ -1573,7 +1573,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>✓ COMPLETADOS</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>RECENT ACTIVITY</h3>
             {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
@@ -1676,7 +1676,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
         return (
           <div style={{ marginBottom: 24, marginTop: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>📅 DIÁRIO</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
               <span style={{ fontSize: 12, color: "#484f58" }}>{completados.length} entradas</span>
             </div>
             {visibleGroups.map(renderGroup)}
@@ -1700,7 +1700,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
       {inCurso.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e" }}>▶ EM CURSO</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>IN PROGRESS</h3>
             {inCurso.length > 10 && (
               <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCurso ? "↑ Menos" : `Ver todos (${inCurso.length})`}
@@ -1870,52 +1870,49 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
 
       {/* ── Favoritos — Letterboxd style ── */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, padding: "0 16px" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.08em" }}>⭐ FAVORITOS</h3>
-          <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/5</span>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 16px" }}>
+          <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
+          <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/4</span>
         </div>
         {favorites.length === 0 ? (
           <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
             <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", padding: "0 16px", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: "0 16px", gap: 6 }}>
             {favorites.map((item) => {
               const coverSrc = item.customCover || item.cover;
               return (
                 <div key={item.id} className="media-thumb" onClick={() => onOpen && onOpen(item)} style={{
-                  aspectRatio: "2/3", borderRadius: 12, background: gradientFor(item.id),
-                  boxShadow: "0 6px 24px rgba(0,0,0,0.5)", cursor: "pointer",
+                  aspectRatio: "2/3", borderRadius: 8, background: gradientFor(item.id),
+                  cursor: "pointer", overflow: "hidden",
                 }}>
                   {coverSrc
-                    ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} onError={(e) => e.currentTarget.style.display = "none"} />
+                    ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
                     : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                   }
-                  {/* Hover overlay with rating */}
-                  <div className="rating-hover" style={{ borderRadius: 10 }}>
+                  <div className="rating-hover" style={{ borderRadius: 8 }}>
                     {item.userRating > 0 ? (
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 28, color: "#f59e0b", fontWeight: 900 }}>★</div>
-                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>{item.userRating}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{item.title?.slice(0,16)}</div>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕ Remover</button>
+                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
                       </div>
                     ) : (
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{item.title?.slice(0,16)}</div>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
                       </div>
                     )}
-                  </div>
-                  {/* Bottom title */}
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 8px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))", borderRadius: "0 0 10px 10px" }}>
-                    <p style={{ fontSize: 10, color: "rgba(255,255,255,0.9)", fontWeight: 700, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.3 }}>{item.title}</p>
-                    {item.userRating > 0 && <p style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>★ {item.userRating}</p>}
                   </div>
                 </div>
               );
             })}
+            {/* Slots vazios para completar 4 */}
+            {Array.from({ length: 4 - favorites.length }).map((_, i) => (
+              <div key={`empty-${i}`} style={{ aspectRatio: "2/3", borderRadius: 8, border: "1px dashed #30363d", background: darkMode ? "#161b2288" : "#f1f5f8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 20, color: "#30363d" }}>+</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -3228,7 +3225,7 @@ export default function TrackAll() {
       newFavs = favorites.filter(f => f.id !== item.id);
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
-      if (favorites.length >= 5) { showNotif("Máximo de 5 favoritos!", "#ef4444"); return; }
+      if (favorites.length >= 4) { showNotif("Máximo de 4 favoritos!", "#ef4444"); return; }
       newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, type: item.type }];
       showNotif("Adicionado aos favoritos! ★", "#f59e0b");
     }
@@ -3432,6 +3429,7 @@ export default function TrackAll() {
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${darkMode ? "#8b949e" : "#64748b"}; }
+          .nav-center-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; height: 100%; position: relative; -webkit-tap-highlight-color: transparent; }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
@@ -3967,8 +3965,31 @@ export default function TrackAll() {
         <nav className="bottom-nav">
           {[
             { id: "home", icon: "⌂", label: "Início" },
-            { id: "search", icon: "⌕", label: "Pesquisar" },
             { id: "library", icon: "▤", label: "Biblioteca" },
+          ].map((n) => (
+            <button key={n.id} className={`nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)} style={{ color: view === n.id ? accent : undefined }}>
+              <span style={{ fontSize: 22 }}>{n.icon}</span>
+              {n.label}
+            </button>
+          ))}
+
+          {/* Botão + central flutuante */}
+          <button className="nav-center-btn" onClick={() => { setLogOpen(v => !v); setView("home"); }}>
+            <div style={{
+              width: 52, height: 52,
+              borderRadius: "50%",
+              background: logOpen ? `linear-gradient(135deg, ${accent}dd, ${accent})` : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 4px 20px ${accent}66`,
+              transform: logOpen ? "rotate(45deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              marginBottom: 10,
+            }}>
+              <span style={{ fontSize: 28, color: "white", lineHeight: 1, fontWeight: 300, marginTop: -2 }}>+</span>
+            </div>
+          </button>
+
+          {[
             { id: "friends", icon: "👥", label: "Amigos" },
             { id: "profile", icon: "◉", label: "Perfil" },
           ].map((n) => (
