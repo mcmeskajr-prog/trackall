@@ -2355,7 +2355,7 @@ function FriendsView({ user, accent }) {
               {favs.map(item => (
                 <div key={item.id} style={{ flexShrink: 0, width: 110 }}>
                   <div style={{ width: 110, height: 158, borderRadius: 10, overflow: "hidden", background: "#21262d", border: `1px solid ${accent}33` }}>
-                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎭</div>}
+                    {(item.customCover || item.cover) ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎭</div>}
                   </div>
                   <p style={{ fontSize: 11, color: "#8b949e", marginTop: 6, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                 </div>
@@ -3212,9 +3212,16 @@ export default function TrackAll() {
     saveLibrary({ ...library, [id]: { ...library[id], userRating: rating } });
     showNotif(rating > 0 ? `${rating} ★` : "Avaliação removida", "#f59e0b");
   };
-  const updateCover = (id, url) => {
+  const updateCover = async (id, url) => {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], customCover: url } });
+    // Sincronizar cover nos favoritos se este item estiver lá
+    const inFavs = favorites.some(f => f.id === id);
+    if (inFavs) {
+      const newFavs = favorites.map(f => f.id === id ? { ...f, customCover: url } : f);
+      setFavorites(newFavs);
+      if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
+    }
     showNotif("Capa atualizada!", accent);
   };
 
@@ -3226,7 +3233,7 @@ export default function TrackAll() {
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
       if (favorites.length >= 4) { showNotif("Máximo de 4 favoritos!", "#ef4444"); return; }
-      newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, type: item.type }];
+      newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, customCover: library[item.id]?.customCover || item.customCover || "", type: item.type }];
       showNotif("Adicionado aos favoritos! ★", "#f59e0b");
     }
     setFavorites(newFavs);
