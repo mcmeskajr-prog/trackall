@@ -1505,7 +1505,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           )}
         </div>
       </div>
-      <div style={{ padding: "10px 12px 12px" }}>
+      <div className="card-info" style={{ padding: "10px 12px 12px" }}>
         <p style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
         <p style={{ fontSize: 11, color: "#484f58" }}>
           {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
@@ -3449,6 +3449,8 @@ export default function TrackAll() {
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
             * { -webkit-tap-highlight-color: transparent; }
+            .card-info { display: none; }
+            .card { border-radius: 8px; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
