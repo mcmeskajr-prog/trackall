@@ -159,11 +159,10 @@ const BG_PRESETS = [
   { name: "Escuro", value: "#0d1117", dark: true },
   { name: "Ardósia", value: "#0f172a", dark: true },
   { name: "Grafite", value: "#111827", dark: true },
-  // Claro — warm off-white
-  { name: "Papel", value: "#f5f0eb", dark: false },
-  { name: "Creme", value: "#fdf6e3", dark: false },
-  { name: "Nuvem", value: "#f0f4f8", dark: false },
+  // Claro
   { name: "Branco", value: "#ffffff", dark: false },
+  { name: "Cinza", value: "#f1f5f9", dark: false },
+  { name: "Creme", value: "#fdf6e3", dark: false },
 ];
 
 // Detecta se uma cor hex é escura ou clara
@@ -2906,20 +2905,11 @@ export default function TrackAll() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
-  const [prevView, setPrevView] = useState("home");
-  const openItem = useCallback((item) => {
-    setSelectedItem(item);
-    if (isMobileDevice) {
-      setPrevView(v => v);
-      setView(cur => { setPrevView(cur); return "detail"; });
-    }
-  }, [isMobileDevice]);
   const [notif, setNotif] = useState(null);
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date"); // date | title | rating
-  const [libViewMode, setLibViewMode] = useState("grid"); // grid | list
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
@@ -3461,7 +3451,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${darkMode ? "#161b22" : "rgba(255,252,247,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
@@ -3476,11 +3466,6 @@ export default function TrackAll() {
           input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-          @media (max-width: 768px) {
-            .modal-bg { align-items: flex-end !important; padding: 0 !important; }
-            .modal { border-radius: 24px 24px 0 0 !important; max-height: 92vh !important; position: relative; width: 100% !important; max-width: 100% !important; }
-            .modal::before { content: ''; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
-          }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
@@ -3489,8 +3474,17 @@ export default function TrackAll() {
           img { will-change: auto; }
           .card { contain: layout style; }
           @media (max-width: 768px) {
-            .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
+            .card { contain: layout; }
+          }
+          @media (max-width: 480px) {
+            .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
+            .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+          }
+          @media (max-width: 768px) {
+            .card { contain: layout; border: none; }
+            .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
+            .card { transition: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
@@ -3498,9 +3492,7 @@ export default function TrackAll() {
             .card-info { display: none; }
             .card-info-title { display: block; font-size: 10px; font-weight: 700; padding: 5px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
             .card-info-meta { display: none; }
-          }
-          @media (max-width: 480px) {
-            .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
+            .card { border-radius: 8px; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
@@ -3519,18 +3511,8 @@ export default function TrackAll() {
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
           .fade-in { animation: fadeIn 0.2s ease; }
-          .media-grid .card { animation: cardIn 0.22s ease both; }
-          .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
-          .media-grid .card:nth-child(2)  { animation-delay: 25ms; }
-          .media-grid .card:nth-child(3)  { animation-delay: 50ms; }
-          .media-grid .card:nth-child(4)  { animation-delay: 75ms; }
-          .media-grid .card:nth-child(5)  { animation-delay: 100ms; }
-          .media-grid .card:nth-child(6)  { animation-delay: 125ms; }
-          .media-grid .card:nth-child(n+7) { animation-delay: 150ms; }
-          @media (max-width: 768px) { .media-grid .card { animation: none !important; } }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; }
@@ -3590,8 +3572,7 @@ export default function TrackAll() {
         )}
 
         {/* Detail Modal */}
-        {/* DetailModal — desktop; no mobile usa view "detail" */}
-        {selectedItem && !isMobileDevice && (
+        {selectedItem && (
           <DetailModal
             item={selectedItem}
             library={library}
@@ -3787,7 +3768,7 @@ export default function TrackAll() {
                   {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                     {rowItems.map((item) => (
                       <div key={item.id} style={{ flexShrink: 0, width: "clamp(90px, 26vw, 130px)" }}>
-                        <MediaCard item={item} library={library} onOpen={openItem} accent={accent} />
+                        <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
                       </div>
                     ))}
                   </div>}
@@ -3837,11 +3818,11 @@ export default function TrackAll() {
                   {recoLoading ? "A carregar..." : "Atualizar"}
                 </button>
               </div>
-              <RecoCarousel title="Anime em Tendência" icon="⛩" items={recos.anime} library={library} onOpen={openItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title="Manga em Tendência" icon="🗒" items={recos.manga} library={library} onOpen={openItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title="Filmes desta Semana" icon="🎬" items={recos.filmes} library={library} onOpen={openItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title="Séries desta Semana" icon="📺" items={recos.series} library={library} onOpen={openItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title="Jogos Mais Bem Avaliados" icon="🎮" items={recos.jogos} library={library} onOpen={openItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Anime em Tendência" icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Manga em Tendência" icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Filmes desta Semana" icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Séries desta Semana" icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Jogos Mais Bem Avaliados" icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
             </div>
           </div>
         )}
@@ -3901,7 +3882,7 @@ export default function TrackAll() {
               <>
                 <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{searchResults.length} resultados para "<strong style={{ color: "#e6edf3" }}>{searchQuery}</strong>"</p>
                 <div className="media-grid">
-                  {searchResults.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={openItem} accent={accent} />)}
+                  {searchResults.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
                 </div>
               </>
             )}
@@ -3915,14 +3896,7 @@ export default function TrackAll() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
-                <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2, gap: 2 }}>
-                  {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}].map(m => (
-                    <button key={m.id} onClick={() => setLibViewMode(m.id)} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
-                  ))}
-                </div>
-              </div>
+              <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
             </div>
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
@@ -4006,129 +3980,17 @@ export default function TrackAll() {
                     <p style={{ fontSize: 14, marginBottom: 20 }}>Usa a pesquisa para adicionar mídias!</p>
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
                   </div>
-                ) : libViewMode === "grid" ? (
+                ) : (
                   <VirtualGrid
                     items={sortedLib}
                     library={library}
-                    onOpen={openItem}
+                    onOpen={setSelectedItem}
                     accent={accent}
                     columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5}
                   />
-                ) : (
-                  /* Modo lista */
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {sortedLib.map((item) => {
-                      const libItem = library[item.id];
-                      const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
-                      const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
-                      return (
-                        <div key={item.id} onClick={() => setSelectedItem(item)} style={{
-                          display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
-                          borderRadius: 10, cursor: "pointer",
-                          background: darkMode ? "#161b22" : "rgba(255,252,247,0.8)",
-                          border: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}`,
-                          transition: "background 0.15s",
-                        }}
-                          onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1c2128" : "#fff"}
-                          onMouseLeave={e => e.currentTarget.style.background = darkMode ? "#161b22" : "rgba(255,252,247,0.8)"}>
-                          {/* Capa pequena */}
-                          <div style={{ width: 36, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id) }}>
-                            {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}
-                          </div>
-                          {/* Info */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#1a1a2e" }}>{item.title}</p>
-                            <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                          </div>
-                          {/* Status badge */}
-                          {status && <span style={{ fontSize: 10, color: status.color, fontWeight: 700, flexShrink: 0 }}>{status.emoji}</span>}
-                          {/* Rating */}
-                          {libItem?.userRating > 0 && (
-                            <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800, flexShrink: 0 }}>★ {libItem.userRating}</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── DETAIL PAGE (mobile only) ── */}
-        {view === "detail" && selectedItem && isMobileDevice && (
-          <div className="fade-in" style={{ minHeight: "100vh" }}>
-            {/* Back button fixo */}
-            <div style={{ position: "sticky", top: 56, zIndex: 30, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, background: `${bgColor}ee`, backdropFilter: "blur(10px)", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` }}>
-              <button onClick={() => { setView(prevView || "home"); setSelectedItem(null); }} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: accent, fontFamily: "inherit", fontSize: 14, fontWeight: 700, padding: 0, WebkitTapHighlightColor: "transparent" }}>
-                ← Voltar
-              </button>
-            </div>
-            {/* Reutilizar conteúdo do DetailModal mas sem wrapper modal */}
-            {(() => {
-              const item = selectedItem;
-              const libItem = library[item.id];
-              const inLib = !!libItem;
-              const coverSrc = libItem?.customCover || item.customCover || item.cover;
-              const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
-              const isFavorite = favorites.some(f => f.id === item.id);
-              return (
-                <div style={{ padding: "0 0 100px" }}>
-                  {/* Hero */}
-                  <div style={{ height: 220, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)), position: "relative", overflow: "hidden" }}>
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(13,17,23,0.97) 100%)" }} />
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 16px 16px", display: "flex", gap: 14, alignItems: "flex-end" }}>
-                      <div style={{ width: 90, height: 130, borderRadius: 10, overflow: "hidden", flexShrink: 0, border: `2px solid ${accent}44`, boxShadow: "0 4px 20px rgba(0,0,0,0.5)", background: gradientFor(item.id) }}>
-                        {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
-                        <p style={{ fontSize: 11, color: accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                        <h2 style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", lineHeight: 1.2, marginBottom: 6 }}>{item.title}</h2>
-                        {item.score > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>★ {item.score}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  {/* Ações */}
-                  <div style={{ padding: "16px 16px 0", display: "flex", gap: 8 }}>
-                    {!inLib ? (
-                      <button className="btn-accent" style={{ flex: 1, padding: "11px 0", fontSize: 14 }} onClick={() => { addToLibrary(item, "planejado"); }}>+ Adicionar</button>
-                    ) : (
-                      <>
-                        <select value={libItem?.userStatus || ""} onChange={e => updateStatus(item.id, e.target.value)} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: darkMode ? "#21262d" : "#f5f0eb", border: `1px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#1a1a2e" }}>
-                          {STATUS_OPTIONS.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>)}
-                        </select>
-                        <button onClick={() => toggleFavorite(item)} style={{ width: 42, height: 42, borderRadius: 10, border: `1px solid ${isFavorite ? "#f59e0b44" : "#30363d"}`, background: isFavorite ? "#f59e0b18" : "transparent", color: isFavorite ? "#f59e0b" : "#484f58", cursor: "pointer", fontSize: 18 }}>★</button>
-                      </>
-                    )}
-                  </div>
-                  {/* Rating */}
-                  {inLib && (
-                    <div style={{ padding: "14px 16px 0" }}>
-                      <p style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>A minha nota</p>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                          <button key={n} onClick={() => updateRating(item.id, libItem?.userRating === n ? 0 : n)} style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: `1px solid ${(libItem?.userRating||0) >= n ? "#f59e0b55" : "#30363d"}`, background: (libItem?.userRating||0) >= n ? "#f59e0b18" : "transparent", color: (libItem?.userRating||0) >= n ? "#f59e0b" : "#484f58", cursor: "pointer", fontSize: 12, fontWeight: 800, fontFamily: "inherit" }}>{n}</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* Synopsis */}
-                  {item.description && (
-                    <div style={{ padding: "16px 16px 0" }}>
-                      <p style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Sinopse</p>
-                      <p style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.6 }}>{item.description}</p>
-                    </div>
-                  )}
-                  {/* Remover */}
-                  {inLib && (
-                    <div style={{ padding: "20px 16px 0" }}>
-                      <button onClick={() => { removeFromLibrary(item.id); setView(prevView || "home"); setSelectedItem(null); }} style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid #ef444444", background: "transparent", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>Remover da biblioteca</button>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
           </div>
         )}
 
@@ -4175,7 +4037,7 @@ export default function TrackAll() {
             lastDriveSync={lastDriveSync}
             onAutoSync={autoSyncDrive}
             driveAutoSyncing={driveAutoSyncing}
-            onOpen={openItem}
+            onOpen={setSelectedItem}
           />
         )}
 
