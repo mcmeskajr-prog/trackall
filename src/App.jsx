@@ -1489,20 +1489,26 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
             </span>
           )}
         </div>
-        {/* Hover rating overlay */}
+        {/* Hover rating overlay — desktop rico */}
         <div className="rating-hover">
-          {libItem?.userRating > 0 ? (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, color: "#f59e0b", fontWeight: 900, lineHeight: 1 }}>★</div>
-              <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>{libItem.userRating}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>A minha nota</div>
-            </div>
-          ) : (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 22, color: "rgba(255,255,255,0.4)" }}>★</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Sem nota</div>
-            </div>
-          )}
+          <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{item.title}</p>
+            {libItem?.userRating > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 8 }}>
+                <span style={{ fontSize: 16, color: "#f59e0b" }}>★</span>
+                <span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{libItem.userRating}</span>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>★ sem nota</span>
+              </div>
+            )}
+            {status && (
+              <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                {status.emoji} {status.label}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className="card-info" style={{ padding: "8px 10px 10px" }}>
@@ -1717,6 +1723,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
 function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
@@ -1774,12 +1781,25 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           borderRadius: "20px 20px 0 0",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${accent}55 0%, ${accent}11 50%, transparent 100%), ${darkMode ? "#0d1117" : "#f1f5f9"}`,
+            : darkMode ? "#0d1117" : "#f1f5f9",
         }}>
           {/* Multi-layer gradient overlay for impact */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-          {/* Subtle accent color tint at top */}
-          {!currentBanner && <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% -20%, ${accent}44, transparent)` }} />}
+          {/* Banner fallback — padrão geométrico */}
+          {!currentBanner && (
+            <>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.1 }} xmlns="http://www.w3.org/2000/svg">
+                <defs><pattern id="geo" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
+                  <polygon points="22,3 41,13 41,31 22,41 3,31 3,13" fill="none" stroke={accent} strokeWidth="1"/>
+                  <line x1="22" y1="3" x2="22" y2="41" stroke={accent} strokeWidth="0.4"/>
+                  <line x1="3" y1="13" x2="41" y2="31" stroke={accent} strokeWidth="0.4"/>
+                  <line x1="41" y1="13" x2="3" y2="31" stroke={accent} strokeWidth="0.4"/>
+                </pattern></defs>
+                <rect width="100%" height="100%" fill="url(#geo)"/>
+              </svg>
+              <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}22 0%, transparent 60%)` }} />
+            </>
+          )}
           {editing && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
               <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
@@ -1849,16 +1869,16 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
             {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
             <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
               }}>✏ Editar Perfil</button>
               {onSignOut && (
-                <button onClick={onSignOut} style={{
-                  padding: "8px 20px", borderRadius: 8, border: "1px solid #ef444444",
-                  background: "#ef444415", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                }}>⏻ Sair</button>
+                <button onClick={onSignOut} title="Sair" style={{
+                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+                }}>⏻</button>
               )}
             </div>
           </>
@@ -1920,50 +1940,58 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
-      {/* Stats grid */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>ESTATÍSTICAS<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
-        {STATUS_OPTIONS.map((s) => (
-          <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
-            <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
-          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
-        </div>
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
-          <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
-          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
-        </div>
-        <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
-          <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
-        </div>
-      </div>
-
-      {/* Por tipo */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>COMPLETOS POR TIPO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
-      <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        {MEDIA_TYPES.slice(1).map((t) => {
-          const count = byType[t.id] || 0;
-          const total = items.filter(i => i.type === t.id).length;
-          const pct = total ? (count / total) * 100 : 0;
-          if (!total) return null;
-          return (
-            <div key={t.id} style={{ marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
-                <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
+      {/* Stats grid — colapsável */}
+      <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
+        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ transform: showStats ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block", fontSize: 11 }}>▾</span>
+          ESTATÍSTICAS
+          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+        </h3>
+      </button>
+      {showStats && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+            {STATUS_OPTIONS.map((s) => (
+              <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
+                <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
               </div>
-              <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
-              </div>
+            ))}
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
             </div>
-          );
-        })}
-      </div>
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
+            </div>
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
+            </div>
+          </div>
+          <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>COMPLETOS POR TIPO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            {MEDIA_TYPES.slice(1).map((t) => {
+              const count = byType[t.id] || 0;
+              const total = items.filter(i => i.type === t.id).length;
+              const pct = total ? (count / total) * 100 : 0;
+              if (!total) return null;
+              return (
+                <div key={t.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
+                    <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
+                  </div>
+                  <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
@@ -2873,6 +2901,7 @@ export default function TrackAll() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [searchHistory, setSearchHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_search_history") || "[]"); } catch { return []; } });
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
@@ -2983,7 +3012,7 @@ export default function TrackAll() {
     setView("home");
   };
 
-  const showNotif = (msg, color) => { setNotif({ msg, color }); setTimeout(() => setNotif(null), 2500); };
+  const showNotif = (msg, color) => { setNotif({ msg, color }); setTimeout(() => setNotif(null), Math.max(2000, Math.min(msg.length * 60, 4500))); };
 
   const saveLibrary = async (lib) => {
     setLibrary(lib);
@@ -3087,6 +3116,7 @@ export default function TrackAll() {
     const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
     saveLibrary(lib);
     showNotif(`"${item.title.slice(0, 30)}" adicionado!`, "#10b981");
+    if (navigator.vibrate) navigator.vibrate(50);
   }, [library]);
 
   const autoSyncDrive = async (clientId) => {
@@ -3204,6 +3234,7 @@ export default function TrackAll() {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], userStatus: status } });
     showNotif("Estado atualizado!", accent);
+    if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
 
   const updateLastChapter = useCallback((id, chapter) => {
@@ -3239,6 +3270,7 @@ export default function TrackAll() {
       if (favorites.length >= 4) { showNotif("Máximo de 4 favoritos!", "#ef4444"); return; }
       newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, customCover: library[item.id]?.customCover || item.customCover || "", type: item.type }];
       showNotif("Adicionado aos favoritos! ★", "#f59e0b");
+      if (navigator.vibrate) navigator.vibrate(50);
     }
     setFavorites(newFavs);
     if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
@@ -3278,6 +3310,14 @@ export default function TrackAll() {
       }
       setSearchResults(results);
       if (!results.length) setSearchError("Nenhum resultado encontrado. Tenta outro termo ou seleciona um tipo específico.");
+      // Guardar no histórico
+      if (q.trim()) {
+        setSearchHistory(prev => {
+          const next = [q.trim(), ...prev.filter(h => h.toLowerCase() !== q.trim().toLowerCase())].slice(0, 8);
+          try { localStorage.setItem("trackall_search_history", JSON.stringify(next)); } catch {}
+          return next;
+        });
+      }
     } catch (e) {
       setSearchError("Erro ao pesquisar. Verifica a tua ligação à internet.");
     } finally {
@@ -3427,7 +3467,7 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
-          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
@@ -3461,6 +3501,13 @@ export default function TrackAll() {
           .nav-center-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; height: 100%; position: relative; -webkit-tap-highlight-color: transparent; }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
+          .lib-layout { display: flex; gap: 20px; align-items: flex-start; }
+          .lib-sidebar { display: none; }
+          .lib-mobile-controls { display: block; }
+          @media (min-width: 768px) {
+            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
+            .lib-mobile-controls { display: none; }
+          }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -3552,7 +3599,9 @@ export default function TrackAll() {
 
           <div style={{ flex: 1 }}>
             <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14 }}>🔍</span>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </span>
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -3670,6 +3719,17 @@ export default function TrackAll() {
             </div>
 
             {/* Recent — filtered by homeFilter */}
+            {items.length === 0 && (
+              <div style={{ padding: "40px 24px", textAlign: "center" }}>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>A tua biblioteca está vazia</h3>
+                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>Começa a adicionar animes, filmes, jogos e muito mais</p>
+                <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>
+                  + Explorar títulos
+                </button>
+              </div>
+            )}
+
             {items.length > 0 && (() => {
               const inCurso = items
                 .filter(i => i.userStatus === "assistindo")
@@ -3726,52 +3786,6 @@ export default function TrackAll() {
                     }
                   />
 
-                  {/* Combined add/search panel */}
-                  {logOpen && (
-                    <div style={{ margin: "-4px 16px 12px", background: "#161b22", border: `1px solid ${accent}33`, borderRadius: 12, padding: 12 }}>
-                      {/* Type filter pills */}
-                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 8 }}>
-                        {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
-                          <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", borderRadius: 8, background: quickSearchType === t.id ? accent : "#21262d", border: `1px solid ${quickSearchType === t.id ? accent : "#30363d"}`, color: quickSearchType === t.id ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>
-                            <span>{t.icon}</span> {t.label}
-                          </button>
-                        ))}
-                      </div>
-                      <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                        placeholder={quickSearchType ? `Pesquisa ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisa qualquer título..."}
-                        style={{ width: "100%", padding: "9px 12px", borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                      {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 8 }}>A pesquisar...</p>}
-                      {!logQuery && !logSearching && (
-                        <p style={{ fontSize: 12, color: "#484f58", marginTop: 8, textAlign: "center" }}>Escreve para pesquisar • clica para marcar como ✓ completo</p>
-                      )}
-                      {logResults.length > 0 && (
-                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
-                          {logResults.map(item => (
-                            <div key={item.id} onClick={() => {
-                              if (library[item.id]) updateStatus(item.id, "completo");
-                              else addToLibrary(item, "completo");
-                              setLogOpen(false);
-                              setLogQuery("");
-                              setLogResults([]);
-                              setLogPendingItem(item);
-                            }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#21262d", cursor: "pointer" }}
-                              onMouseEnter={e => e.currentTarget.style.background = `${accent}22`}
-                              onMouseLeave={e => e.currentTarget.style.background = "#21262d"}>
-                              {(item.cover || item.thumbnailUrl)
-                                ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 34, height: 48, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />
-                                : <div style={{ width: 34, height: 48, borderRadius: 5, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                              }
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                                <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {inCurso.length > 0 && completados.length > 0 && (
                     <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
                   )}
@@ -3793,20 +3807,14 @@ export default function TrackAll() {
 
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
-              <div style={{ padding: "0 16px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 900 }}>📡 Em Destaque</h2>
-                  <p style={{ fontSize: 13, color: "#484f58", marginTop: 4 }}>Tendências desta semana</p>
-                </div>
+              <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.1em", textTransform: "uppercase" }}>Em Destaque</h3>
                 <button onClick={loadRecos} disabled={recoLoading} style={{
-                  background: recoLoading ? "#21262d" : `${accent}22`,
-                  border: `1px solid ${recoLoading ? "#30363d" : accent + "44"}`,
-                  color: recoLoading ? "#484f58" : accent,
-                  borderRadius: 10, padding: "8px 14px", cursor: recoLoading ? "not-allowed" : "pointer",
-                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6,
-                  transition: "all 0.2s",
+                  background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
+                  cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, padding: 0,
                 }}>
-                  <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none" }}>↻</span>
+                  <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none", fontSize: 14 }}>↻</span>
                   {recoLoading ? "A carregar..." : "Atualizar"}
                 </button>
               </div>
@@ -3845,10 +3853,29 @@ export default function TrackAll() {
               </div>
             )}
             {!isSearching && !searchError && searchResults.length === 0 && (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
-                <div style={{ fontSize: 56, marginBottom: 12 }}>🔍</div>
-                <p style={{ marginBottom: 8 }}>Pesquisa algo acima!</p>
-                <p style={{ fontSize: 12, color: "#30363d" }}>Anime · Manga · Séries · Filmes · Jogos · Livros · e mais</p>
+              <div style={{ color: "#484f58" }}>
+                {searchHistory.length > 0 && !searchQuery && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b949e" }}>Pesquisas recentes</p>
+                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem("trackall_search_history"); } catch {} }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>Limpar</button>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {searchHistory.map((h, i) => (
+                        <button key={i} onClick={() => { setSearchQuery(h); doSearch(h, activeTab); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f8fafc", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, WebkitTapHighlightColor: "transparent" }}>
+                          <span style={{ color: "#484f58", fontSize: 13 }}>↩</span> {h}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!searchQuery && (
+                  <div style={{ textAlign: "center", padding: "32px 0" }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+                    <p style={{ marginBottom: 8 }}>Pesquisa algo acima!</p>
+                    <p style={{ fontSize: 12, color: "#30363d" }}>Anime · Manga · Séries · Filmes · Jogos · Livros · e mais</p>
+                  </div>
+                )}
               </div>
             )}
             {!isSearching && searchResults.length > 0 && (
@@ -3873,49 +3900,97 @@ export default function TrackAll() {
             </div>
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
-              {MEDIA_TYPES.map((t) => (
-                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
-                  {t.icon} {t.label}
-                  <span style={{ background: "#21262d", borderRadius: 999, padding: "1px 6px", fontSize: 10 }}>
-                    {t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length}
-                  </span>
-                </button>
-              ))}
+              {MEDIA_TYPES.map((t) => {
+                const isActive = activeTab === t.id;
+                const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
+                return (
+                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
+                    {t.icon} {t.label}
+                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : "#30363d", color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-              <button onClick={() => setFilterStatus("all")} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #30363d", background: filterStatus === "all" ? "#21262d" : "transparent", color: filterStatus === "all" ? "#e6edf3" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>Todos</button>
-              {STATUS_OPTIONS.map((s) => (
-                <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}18` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>
-                  {s.emoji} {s.label}
-                </button>
-              ))}
-            </div>
+            {/* Layout: sidebar desktop / stack mobile */}
+            <div className="lib-layout">
 
-            {/* Sort row */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "#484f58", fontWeight: 700 }}>Ordenar:</span>
-              {[{id:"date",label:"📅 Data"},{id:"title",label:"🔤 Título"},{id:"rating",label:"⭐ Rating"}].map(s => (
-                <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{s.label}</button>
-              ))}
-            </div>
+              {/* SIDEBAR — desktop only */}
+              <aside className="lib-sidebar">
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Estado</p>
+                {[{ id: "all", emoji: "▤", label: "Todos", color: accent }, ...STATUS_OPTIONS].map((s) => (
+                  <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 8,
+                    padding: "8px 10px", borderRadius: 8, border: "none", textAlign: "left",
+                    background: filterStatus === s.id ? `${s.color}18` : "transparent",
+                    color: filterStatus === s.id ? s.color : "#8b949e",
+                    borderLeft: filterStatus === s.id ? `3px solid ${s.color}` : "3px solid transparent",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: filterStatus === s.id ? 700 : 500,
+                    marginBottom: 2,
+                  }}>
+                    <span>{s.emoji}</span> {s.label}
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: filterStatus === s.id ? s.color : "#484f58" }}>
+                      {s.id === "all" ? filteredLib.length : items.filter(i => i.userStatus === s.id && (activeTab === "all" || i.type === activeTab)).length}
+                    </span>
+                  </button>
+                ))}
+                <div style={{ height: 1, background: "#21262d", margin: "12px 0" }} />
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Ordenar</p>
+                {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★ Rating"}].map(s => (
+                  <button key={s.id} onClick={() => setLibSort(s.id)} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 8,
+                    padding: "8px 10px", borderRadius: 8, border: "none", textAlign: "left",
+                    background: libSort === s.id ? `${accent}18` : "transparent",
+                    color: libSort === s.id ? accent : "#8b949e",
+                    borderLeft: libSort === s.id ? `3px solid ${accent}` : "3px solid transparent",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: libSort === s.id ? 700 : 500,
+                    marginBottom: 2,
+                  }}>
+                    {s.label}
+                  </button>
+                ))}
+              </aside>
 
-            {sortedLib.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
-                <div style={{ fontSize: 60, marginBottom: 16 }}>📭</div>
-                <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
-                <p style={{ fontSize: 14, marginBottom: 20 }}>Usa a pesquisa para adicionar mídias!</p>
-                <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
+              {/* MAIN CONTENT */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+
+                {/* Mobile-only: filtros + sort compactos */}
+                <div className="lib-mobile-controls">
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                    <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>Todos</button>
+                    {STATUS_OPTIONS.map((s) => (
+                      <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                        {s.emoji} {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center", justifyContent: "flex-end" }}>
+                    {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+                      <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>{s.label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {sortedLib.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
+                    <div style={{ fontSize: 60, marginBottom: 16 }}>📭</div>
+                    <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
+                    <p style={{ fontSize: 14, marginBottom: 20 }}>Usa a pesquisa para adicionar mídias!</p>
+                    <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
+                  </div>
+                ) : (
+                  <VirtualGrid
+                    items={sortedLib}
+                    library={library}
+                    onOpen={setSelectedItem}
+                    accent={accent}
+                    columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5}
+                  />
+                )}
               </div>
-            ) : (
-              <VirtualGrid
-                items={sortedLib}
-                library={library}
-                onOpen={setSelectedItem}
-                accent={accent}
-                columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 4}
-              />
-            )}
+            </div>
           </div>
         )}
 
@@ -3977,6 +4052,53 @@ export default function TrackAll() {
             <button onClick={async () => { pwaPrompt.prompt(); const r = await pwaPrompt.userChoice; if (r.outcome === 'accepted') setPwaInstalled(true); setPwaPrompt(null); }} style={{ background: accent, border: 'none', borderRadius: 10, padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Instalar</button>
             <button onClick={() => setPwaPrompt(null)} style={{ background: 'none', border: 'none', color: '#484f58', fontSize: 18, cursor: 'pointer', padding: '4px', flexShrink: 0 }}>✕</button>
           </div>
+        )}
+
+        {/* LOG BOTTOM SHEET */}
+        {logOpen && (
+          <>
+            <div onClick={() => { setLogOpen(false); setLogQuery(""); setLogResults([]); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 90 }} />
+            <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 100, background: darkMode ? "#161b22" : "#fff", borderRadius: "20px 20px 0 0", borderTop: `2px solid ${accent}55`, padding: "16px 16px 8px", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)", maxHeight: "70vh", overflowY: "auto" }}>
+              {/* Handle */}
+              <div style={{ width: 36, height: 4, background: "#30363d", borderRadius: 99, margin: "0 auto 16px" }} />
+              {/* Type filter pills */}
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 10 }}>
+                {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
+                  <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 20, background: quickSearchType === t.id ? accent : (darkMode ? "#21262d" : "#f1f5f9"), border: `1px solid ${quickSearchType === t.id ? accent : "transparent"}`, color: quickSearchType === t.id ? "white" : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                    <span>{t.icon}</span> {t.label}
+                  </button>
+                ))}
+              </div>
+              <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+              {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>A pesquisar...</p>}
+              {!logQuery && !logSearching && (
+                <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>Escreve para pesquisar · toca para marcar como completo</p>
+              )}
+              {logResults.length > 0 && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {logResults.map(item => (
+                    <div key={item.id} onClick={() => {
+                      if (library[item.id]) updateStatus(item.id, "completo");
+                      else addToLibrary(item, "completo");
+                      setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
+                    }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", cursor: "pointer" }}>
+                      {(item.cover || item.thumbnailUrl)
+                        ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* BOTTOM NAV */}
