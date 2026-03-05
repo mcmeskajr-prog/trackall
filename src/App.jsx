@@ -2787,6 +2787,10 @@ export default function TrackAll() {
 
   // ── PWA: Register service worker + inject manifest meta tags ──
   useEffect(() => {
+    // Bloquear zoom no mobile
+    let vp = document.querySelector('meta[name="viewport"]');
+    if (!vp) { vp = document.createElement('meta'); vp.name = 'viewport'; document.head.appendChild(vp); }
+    vp.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
     // Inject manifest link
     if (!document.querySelector('link[rel="manifest"]')) {
       const link = document.createElement('link');
@@ -3044,8 +3048,8 @@ export default function TrackAll() {
     setBgParallax(v);
     if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch {}
   };
-  // isMobile check - simple, stable
-  const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+  // isMobile check — calculado uma vez, estável entre renders
+  const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
@@ -3383,8 +3387,9 @@ export default function TrackAll() {
             position: "fixed", inset: 0, zIndex: 0,
             backgroundImage: `url(${activeBgImage})`,
             backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundAttachment: (bgParallax && !isMobileDevice) ? "fixed" : "scroll",
+            backgroundPosition: "center top",
+            backgroundAttachment: "scroll",
+            backgroundRepeat: "no-repeat",
             filter: bgBlur > 0 ? `blur(${bgBlur}px)` : "none",
             transform: bgBlur > 0 ? "scale(1.05)" : "none",
           }} />
@@ -3422,7 +3427,7 @@ export default function TrackAll() {
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-          @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
+          @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
@@ -3570,32 +3575,31 @@ export default function TrackAll() {
         {view === "home" && (
           <div className="fade-in">
             {/* Hero — Avatar + Stats side by side */}
-            <div className="hero-gradient" style={{ padding: "24px 20px 28px" }}>
+            <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
-                {/* Avatar + Name + Stats all in one row */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 18, marginBottom: 20 }}>
-                  {/* Big Avatar */}
+                {/* Avatar + Name + Stats */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                  {/* Avatar compacto */}
                   <div style={{
-                    width: 96, height: 96, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-                    border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22, 0 8px 24px rgba(0,0,0,0.4)`,
-                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38,
+                    width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                    border: `2.5px solid ${accent}`,
+                    boxShadow: `0 0 0 3px ${accent}33`,
+                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
                   }}>
                     {profile.avatar
                       ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : "👤"}
                   </div>
-                  {/* Right side: name + stats grid */}
+                  {/* Right: nome + stats numa linha */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginBottom: 12 }}>
-                      <h2 style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.2 }}>
-                        {profile.name || "Utilizador"}
-                      </h2>
-                      <p style={{ fontSize: 12, color: darkMode ? "#484f58" : "#94a3b8", marginTop: 2 }}>
-                        {items.length} na biblioteca
-                      </p>
-                    </div>
-                    {/* Stats grid — accent-based color variations */}
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                    <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 2, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                      {profile.name || "Utilizador"}
+                    </h2>
+                    <p style={{ fontSize: 11, color: darkMode ? "#484f58" : "#94a3b8", marginBottom: 8 }}>
+                      {items.length} na biblioteca
+                    </p>
+                    {/* Stats compactas numa linha */}
+                    <div style={{ display: "flex", gap: 4 }}>
                       {[
                         { l: "Curso",    v: stats.assistindo, key: "assistindo" },
                         { l: "Completo", v: stats.completo,   key: "completo"   },
@@ -3605,15 +3609,16 @@ export default function TrackAll() {
                       ].filter(s => s.v > 0).map((s) => {
                         const col = homeStatColors[s.key];
                         return (
-                        <div key={s.l} style={{
-                          background: statsCardBg || (darkMode ? `${col}18` : `${col}22`),
-                          border: statsCardBg ? `1px solid ${statsCardBg}` : `1px solid ${col}44`,
-                          borderRadius: 10, padding: "8px 6px", textAlign: "center",
-                          minWidth: 52, flex: "1 1 52px",
-                        }}>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
-                          <div style={{ color: darkMode ? "#8b949e" : "#64748b", fontSize: 9, marginTop: 2, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.l}</div>
-                        </div>
+                          <div key={s.l} style={{
+                            flex: "1 1 0", minWidth: 0,
+                            background: `${col}14`,
+                            borderLeft: `2px solid ${col}`,
+                            borderRadius: "0 6px 6px 0",
+                            padding: "4px 5px",
+                          }}>
+                            <div style={{ fontSize: 16, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
+                            <div style={{ color: "#8b949e", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 1 }}>{s.l}</div>
+                          </div>
                         );
                       })}
                     </div>
@@ -3677,24 +3682,24 @@ export default function TrackAll() {
               );
 
               const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsed, onToggleCollapse }) => rowItems.length === 0 ? null : (
-                <div style={{ padding: "20px 0 12px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: collapsed ? 0 : 14, paddingRight: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ padding: "16px 0 8px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: collapsed ? 0 : 12, paddingRight: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {onToggleCollapse && (
-                        <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 16, padding: "0 2px", lineHeight: 1, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-flex", alignItems: "center" }}>▾</button>
+                        <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-flex", alignItems: "center", WebkitTapHighlightColor: "transparent" }}>▾</button>
                       )}
-                      <h2 style={{ fontSize: 18, fontWeight: 800 }}>{icon} {title}</h2>
+                      <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", color: darkMode ? "#8b949e" : "#64748b", textTransform: "uppercase" }}>{icon} {title}</h2>
                       {homeFilter.length > 0 && (
-                        <span style={{ fontSize: 11, color: accent, background: `${accent}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                        <span style={{ fontSize: 10, color: accent, background: `${accent}22`, padding: "2px 6px", borderRadius: 20, fontWeight: 700 }}>
                           {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
                         </span>
                       )}
                     </div>
                     {filterBtn}
                   </div>
-                  {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                  {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                     {rowItems.map((item) => (
-                      <div key={item.id} style={{ flexShrink: 0, width: "clamp(100px, 28vw, 140px)" }}>
+                      <div key={item.id} style={{ flexShrink: 0, width: "clamp(90px, 26vw, 130px)" }}>
                         <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
                       </div>
                     ))}
@@ -3752,7 +3757,6 @@ export default function TrackAll() {
                                 <p style={{ fontSize: 13, fontWeight: 700, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                                 <p style={{ fontSize: 11, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", background: "#22c55e22", padding: "3px 8px", borderRadius: 6, flexShrink: 0 }}>✓</span>
                             </div>
                           ))}
                         </div>
