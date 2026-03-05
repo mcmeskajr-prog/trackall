@@ -2743,7 +2743,7 @@ async function fetchTrendingGames(workerUrl) {
 
 // ─── Recommendation Carousel ──────────────────────────────────────────────────
 function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) {
-  const rowRef = React.useRef(null);
+  const rowRef = useRef(null);
   const scroll = (dir) => {
     if (rowRef.current) rowRef.current.scrollBy({ left: dir * 280, behavior: "smooth" });
   };
