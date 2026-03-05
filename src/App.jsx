@@ -1483,7 +1483,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
               ★ {item.score}
             </span>
           )}
-          {status && (
+          {status && status.id !== "completo" && (
             <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white", marginLeft: "auto" }}>
               {status.emoji}
             </span>
@@ -1649,23 +1649,23 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
               </div>
             </div>
             {/* Entries sorted by day desc */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
                 <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "9px 0",
+                  display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
                   borderBottom: idx < arr.length - 1 ? "1px solid #21262d" : "none",
-                  cursor: "pointer",
+                  cursor: "pointer", minWidth: 0,
                 }}
                   onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#484f58", width: 18, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#484f58", width: 16, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
                   {(item.customCover || item.cover || item.thumbnailUrl)
                     ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 28, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
                     : <div style={{ width: 28, height: 40, borderRadius: 4, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                   }
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "#e6edf3", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.3 }}>{item.title}</span>
                   {item.userRating > 0 && (
-                    <span style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>
+                    <span style={{ fontSize: 11, color: "#fbbf24", fontWeight: 700, flexShrink: 0, marginLeft: 4 }}>★ {item.userRating}</span>
                   )}
                 </div>
               ))}
@@ -3380,6 +3380,7 @@ export default function TrackAll() {
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
         position: "relative",
+        overflowX: "hidden",
       }}>
         {/* Background image layer */}
         {activeBgImage && (
@@ -3431,13 +3432,16 @@ export default function TrackAll() {
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
-          .card { contain: layout style; content-visibility: auto; contain-intrinsic-size: 0 230px; }
+          .card { contain: layout style; }
+          @media (max-width: 768px) {
+            .card { contain: layout; }
+          }
           @media (max-width: 480px) {
             .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
           }
           @media (max-width: 768px) {
-            .card { contain: layout; content-visibility: auto; contain-intrinsic-size: 0 230px; }
+            .card { contain: layout; }
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
             .card { transition: none !important; }
