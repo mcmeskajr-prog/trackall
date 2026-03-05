@@ -1399,11 +1399,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 // ─── Media Card ────────────────────────────────────────────────────────────────
 // ── VirtualGrid: only renders cards near the viewport ──────────────────────
 const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
-  const [visibleCount, setVisibleCount] = useState(columns * 8); // initial render
+  const [visibleCount, setVisibleCount] = useState(columns * 6); // initial render
   const sentinelRef = useRef(null);
 
   useEffect(() => {
-    setVisibleCount(columns * 8); // reset on filter change
+    setVisibleCount(columns * 6); // reset on filter change
   }, [items.length, columns]);
 
   useEffect(() => {
@@ -1412,10 +1412,10 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
     const obs = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount(prev => Math.min(prev + columns * 6, items.length));
+          setVisibleCount(prev => Math.min(prev + columns * 4, items.length));
         }
       },
-      { rootMargin: '300px' }
+      { rootMargin: '100px' }
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
@@ -1479,7 +1479,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
         {/* Badges — status only, rating shown on hover */}
         <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start" }}>
           {!inLib && item.score && (
-            <span style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
+            <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
               ★ {item.score}
             </span>
           )}
@@ -1505,9 +1505,9 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           )}
         </div>
       </div>
-      <div className="card-info" style={{ padding: "10px 12px 12px" }}>
-        <p style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-        <p style={{ fontSize: 11, color: "#484f58" }}>
+      <div className="card-info" style={{ padding: "8px 10px 10px" }}>
+        <p className="card-info-title" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+        <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>
           {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
         </p>
         {libItem?.lastChapter && libItem?.userStatus === 'assistindo' && (
@@ -3411,7 +3411,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.85)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; backdrop-filter: blur(4px); }
+          .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
@@ -3428,7 +3428,7 @@ export default function TrackAll() {
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-          @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; } }
+          @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
@@ -3441,7 +3441,7 @@ export default function TrackAll() {
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
           }
           @media (max-width: 768px) {
-            .card { contain: layout; }
+            .card { contain: layout; border: none; }
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
             .fade-in { animation: none !important; }
             .card { transition: none !important; }
@@ -3450,6 +3450,8 @@ export default function TrackAll() {
             .recents-row { -webkit-overflow-scrolling: touch; }
             * { -webkit-tap-highlight-color: transparent; }
             .card-info { display: none; }
+            .card-info-title { display: block; font-size: 10px; font-weight: 700; padding: 5px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
+            .card-info-meta { display: none; }
             .card { border-radius: 8px; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
@@ -3862,7 +3864,7 @@ export default function TrackAll() {
 
         {/* ── LIBRARY ── */}
         {view === "library" && (
-          <div style={{ padding: "20px 16px" }} className="fade-in">
+          <div style={{ padding: "16px 12px" }} className="fade-in">
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
