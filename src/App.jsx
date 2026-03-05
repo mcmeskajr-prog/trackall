@@ -2743,17 +2743,9 @@ async function fetchTrendingGames(workerUrl) {
 
 // ─── Recommendation Carousel ──────────────────────────────────────────────────
 function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) {
-  const rowRef = useRef(null);
-  const scroll = (dir) => {
-    if (rowRef.current) rowRef.current.scrollBy({ left: dir * 280, behavior: "smooth" });
-  };
-
   if (loading) return (
     <div style={{ padding: "0 16px 28px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <div style={{ width: 3, height: 13, background: accent, borderRadius: 99 }} />
-        <h2 style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase", color: "#8b949e" }}>{icon} {title}</h2>
-      </div>
+      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
       <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
         {[1,2,3,4,5].map(i => (
           <div key={i} style={{ flexShrink: 0, width: 100, height: 148, borderRadius: 10, background: "#161b22", animation: "pulse 1.5s ease-in-out infinite" }} />
@@ -2762,21 +2754,15 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
     </div>
   );
   if (!items || items.length === 0) return null;
+
+  // Filter out items already in library — as user adds, new ones slide in
   const toShow = items.filter(i => !library[i.id]);
   if (toShow.length === 0) return null;
 
   return (
-    <div style={{ padding: "0 0 24px" }} className="reco-section">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "0 16px" }}>
-        <div style={{ width: 3, height: 13, background: accent, borderRadius: 99 }} />
-        <h2 style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase", color: "#8b949e", flex: 1 }}>{icon} {title}</h2>
-        {/* Setas — aparecem só no desktop via CSS */}
-        <div className="reco-arrows" style={{ display: "flex", gap: 4 }}>
-          <button onClick={() => scroll(-1)} style={{ width: 26, height: 26, borderRadius: 8, border: `1px solid ${accent}33`, background: `${accent}11`, color: accent, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "inherit", lineHeight: 1 }}>‹</button>
-          <button onClick={() => scroll(1)}  style={{ width: 26, height: 26, borderRadius: 8, border: `1px solid ${accent}33`, background: `${accent}11`, color: accent, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontFamily: "inherit", lineHeight: 1 }}>›</button>
-        </div>
-      </div>
-      <div ref={rowRef} style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingLeft: 16, paddingRight: 16, scrollbarWidth: "none" }}>
+    <div style={{ padding: "0 16px 28px" }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {toShow.map(item => (
           <div key={item.id} onClick={() => onOpen(item)} style={{ flexShrink: 0, width: 100, cursor: "pointer" }}>
             <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
@@ -2787,14 +2773,19 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
               {(() => {
                 const libItem = library[item.id];
                 const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
-                return score > 0 ? <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {score}</div> : null;
+                const color = libItem?.userRating > 0 ? "#f59e0b" : "#f59e0b";
+                return score > 0 ? (
+                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color, fontWeight: 700 }}>
+                    ★ {score}
+                  </div>
+                ) : null;
               })()}
             </div>
             <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
           </div>
         ))}
       </div>
-      <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} } .reco-arrows { display: none; } @media (min-width: 768px) { .reco-arrows { display: flex !important; } }`}</style>
+      <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
     </div>
   );
 }
@@ -3485,7 +3476,6 @@ export default function TrackAll() {
           img { will-change: auto; }
           .card { contain: layout style; }
           @media (max-width: 768px) {
-            .hero-collage { display: none !important; }
             .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
             .fade-in { animation: none !important; }
             .media-thumb:hover img { transform: none !important; }
@@ -3504,26 +3494,6 @@ export default function TrackAll() {
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${darkMode ? "#8b949e" : "#64748b"}; }
           .nav-center-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; height: 100%; position: relative; -webkit-tap-highlight-color: transparent; }
-          /* ── Desktop layout ── */
-          .desk-shell { display: block; }
-          .desk-sidebar { display: none; }
-          .desk-main { min-width: 0; }
-          .home-layout { display: block; }
-          .hero-collage { display: none; }
-          @media (min-width: 768px) {
-            .bottom-nav { display: none !important; }
-            .desk-shell { display: flex; align-items: flex-start; }
-            .desk-sidebar { display: flex; flex-direction: column; width: 210px; flex-shrink: 0; min-height: calc(100vh - 56px); position: sticky; top: 56px; height: calc(100vh - 56px); background: ${darkMode ? "rgba(13,17,23,0.97)" : "rgba(250,245,240,0.97)"}; border-right: 1px solid ${darkMode ? "#21262d" : "#e8ddd0"}; padding: 16px 10px; gap: 2px; overflow-y: auto; }
-            .desk-main { flex: 1; min-width: 0; padding-bottom: 40px; }
-            .home-layout { display: grid; grid-template-columns: 1fr 320px; min-height: calc(100vh - 56px); }
-            .home-recos { border-left: 1px solid ${darkMode ? "#21262d" : "#e8ddd0"}; overflow-y: auto; }
-            .hero-collage { display: flex !important; }
-            .media-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important; }
-          }
-          @media (min-width: 1280px) {
-            .desk-sidebar { width: 230px; }
-            .home-layout { grid-template-columns: 1fr 360px; }
-          }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
           .lib-layout { display: flex; gap: 20px; align-items: flex-start; }
@@ -3631,221 +3601,242 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e8ddd0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+        <nav style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
           <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
-            <span style={{ fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
           </button>
+
           <div style={{ flex: 1 }}>
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </span>
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }}
-                placeholder="Pesquisar..." style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }} />
+                placeholder="Pesquisar..."
+                style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }}
+              />
               {searchQuery && (
-                <span onClick={() => doSearch(searchQuery, activeTab)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}>⏎</span>
+                <span
+                  onClick={() => doSearch(searchQuery, activeTab)}
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}
+                >⏎</span>
               )}
             </div>
           </div>
+
+          {/* Avatar */}
           <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
             <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
+              {profile.avatar
+                ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 16 }}>👤</span>}
             </div>
           </button>
         </nav>
 
-        {/* DESK SHELL: sidebar + main */}
-        <div className="desk-shell">
-
-          {/* SIDEBAR — visível apenas no desktop */}
-          <aside className="desk-sidebar">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 6px 14px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e8ddd0"}`, marginBottom: 10 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `2px solid ${accent}55`, background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>👤</span>}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#0d1117" }}>{profile.name || "Utilizador"}</p>
-                <p style={{ fontSize: 11, color: "#484f58" }}>{items.length} itens</p>
-              </div>
-            </div>
-            {[
-              { id: "home",    icon: "⌂",  label: "Início" },
-              { id: "library", icon: "▤",  label: "Biblioteca" },
-              { id: "search",  icon: "◎",  label: "Pesquisar" },
-              { id: "friends", icon: "👥", label: "Amigos" },
-              { id: "profile", icon: "◉",  label: "Perfil" },
-            ].map(n => (
-              <button key={n.id} onClick={() => setView(n.id)} style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-                borderRadius: 10, border: "none", borderLeft: `3px solid ${view === n.id ? accent : "transparent"}`,
-                cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left",
-                fontSize: 14, fontWeight: view === n.id ? 700 : 500,
-                background: view === n.id ? `${accent}15` : "transparent",
-                color: view === n.id ? accent : (darkMode ? "#8b949e" : "#64748b"),
-                transition: "all 0.15s",
-              }}>
-                <span style={{ fontSize: 18, width: 22, textAlign: "center" }}>{n.icon}</span>
-                {n.label}
-              </button>
-            ))}
-            <div style={{ flex: 1 }} />
-            <button onClick={() => { setLogOpen(v => !v); if (view !== "home") setView("home"); }} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginTop: 8,
-              borderRadius: 10, border: `1px solid ${accent}44`, cursor: "pointer", fontFamily: "inherit",
-              width: "100%", fontSize: 13, fontWeight: 700,
-              background: logOpen ? `${accent}22` : `${accent}0e`, color: accent, transition: "all 0.15s",
-            }}>
-              <span style={{ fontSize: 20, width: 22, textAlign: "center", lineHeight: 1 }}>+</span>
-              Marcar visto
-            </button>
-          </aside>
-
-          {/* MAIN CONTENT */}
-          <div className="desk-main">
-
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in">
-
-            {/* Hero com banner collage */}
-            {(() => {
-              const recentCovers = items
-                .filter(i => (library[i.id]?.customCover || i.cover))
-                .sort((a,b) => (b.addedAt||0) - (a.addedAt||0))
-                .slice(0, 14);
-              return (
-                <div className="hero-gradient" style={{ position: "relative", overflow: "hidden", padding: "20px 20px 16px" }}>
-                  {/* Banner collage — só desktop, via CSS class */}
-                  <div className="hero-collage" style={{ position: "absolute", inset: 0, display: "flex", gap: 1 }}>
-                    {recentCovers.map((item) => (
-                      <div key={item.id} style={{ flex: "1 0 0", minWidth: 0, height: "100%", overflow: "hidden" }}>
-                        <img src={library[item.id]?.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.35, filter: "saturate(0.5) blur(1px)", transform: "scale(1.05)" }} onError={e => e.currentTarget.style.display="none"} />
-                      </div>
-                    ))}
-                    {/* fade edges + bottom fade */}
-                    <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to right, ${bgColor} 0%, ${bgColor}99 15%, transparent 40%, transparent 60%, ${bgColor}99 85%, ${bgColor} 100%)` }} />
-                    <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, transparent 30%, ${bgColor}dd 80%, ${bgColor} 100%)` }} />
+            {/* Hero — Avatar + Stats side by side */}
+            <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
+              <div style={{ maxWidth: 640, margin: "0 auto" }}>
+                {/* Avatar + Name + Stats */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                  {/* Avatar compacto */}
+                  <div style={{
+                    width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+                    border: `2.5px solid ${accent}`,
+                    boxShadow: `0 0 0 3px ${accent}33`,
+                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
+                  }}>
+                    {profile.avatar
+                      ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : "👤"}
                   </div>
-                  <div style={{ position: "relative", zIndex: 2, maxWidth: 640 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-                      <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `3px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}33, 0 4px 20px rgba(0,0,0,0.4)`, background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
-                        {profile.avatar ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 3, background: `linear-gradient(90deg, ${accent}, ${darkMode ? "#e6edf3" : "#1a1a2e"})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                          {profile.name || "Utilizador"}
-                        </h2>
-                        <p style={{ fontSize: 11, color: darkMode ? "#484f58" : "#94a3b8", marginBottom: 8 }}>{items.length} na biblioteca</p>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {[
-                            { l: "Curso",    v: stats.assistindo, key: "assistindo" },
-                            { l: "Completo", v: stats.completo,   key: "completo"   },
-                            { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
-                            { l: "Largado",  v: stats.largado,    key: "largado"    },
-                            { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
-                          ].filter(s => s.v > 0).map((s) => {
-                            const col = homeStatColors[s.key];
-                            return (
-                              <div key={s.l} style={{ flex: "1 1 0", minWidth: 0, background: `${col}14`, borderLeft: `2px solid ${col}`, borderRadius: "0 6px 6px 0", padding: "4px 5px" }}>
-                                <div style={{ fontSize: 16, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
-                                <div style={{ color: "#8b949e", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 1 }}>{s.l}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Filtros */}
-                    <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
-                      {MEDIA_TYPES.slice(1).map((t) => {
-                        const active = homeFilter.includes(t.id);
+                  {/* Right: nome + stats numa linha */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 2, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                      {profile.name || "Utilizador"}
+                    </h2>
+                    <p style={{ fontSize: 11, color: darkMode ? "#484f58" : "#94a3b8", marginBottom: 8 }}>
+                      {items.length} na biblioteca
+                    </p>
+                    {/* Stats compactas numa linha */}
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {[
+                        { l: "Curso",    v: stats.assistindo, key: "assistindo" },
+                        { l: "Completo", v: stats.completo,   key: "completo"   },
+                        { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
+                        { l: "Largado",  v: stats.largado,    key: "largado"    },
+                        { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
+                      ].filter(s => s.v > 0).map((s) => {
+                        const col = homeStatColors[s.key];
                         return (
-                          <button key={t.id} onClick={() => setHomeFilter(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])} style={{ flexShrink: 0, background: active ? accent : (darkMode ? "#161b22aa" : "rgba(255,255,255,0.7)"), border: `1px solid ${active ? accent : (darkMode ? "#30363d" : "#e2e8f0")}`, color: active ? "white" : (darkMode ? "#e6edf3" : "#0d1117"), padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, WebkitTapHighlightColor: "transparent" }}>
-                            {t.icon} {t.label}
-                          </button>
+                          <div key={s.l} style={{
+                            flex: "1 1 0", minWidth: 0,
+                            background: `${col}14`,
+                            borderLeft: `2px solid ${col}`,
+                            borderRadius: "0 6px 6px 0",
+                            padding: "4px 5px",
+                          }}>
+                            <div style={{ fontSize: 16, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
+                            <div style={{ color: "#8b949e", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 1 }}>{s.l}</div>
+                          </div>
                         );
                       })}
-                      {homeFilter.length > 0 && <button onClick={() => setHomeFilter([])} style={{ flexShrink: 0, background: "transparent", border: "1px solid #ef444444", color: "#ef4444", padding: "7px 10px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>✕</button>}
                     </div>
                   </div>
                 </div>
+
+                {/* Filter tags — scroll horizontal */}
+                <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+                  {MEDIA_TYPES.slice(1).map((t) => {
+                    const active = homeFilter.includes(t.id);
+                    return (
+                      <button key={t.id} onClick={() => {
+                        setHomeFilter(prev =>
+                          prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
+                        );
+                      }} style={{
+                        flexShrink: 0,
+                        background: active ? accent : (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
+                        border: `1px solid ${active ? accent : (darkMode ? "#21262d" : "#e2e8f0")}`,
+                        color: active ? "white" : (darkMode ? "#e6edf3" : "#0d1117"),
+                        padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 12, fontWeight: 700,
+                        display: "flex", alignItems: "center", gap: 5,
+                        WebkitTapHighlightColor: "transparent",
+                      }}>
+                        {t.icon} {t.label}
+                      </button>
+                    );
+                  })}
+                  {homeFilter.length > 0 && (
+                    <button onClick={() => setHomeFilter([])} style={{
+                      flexShrink: 0,
+                      background: "transparent", border: "1px solid #ef444444",
+                      color: "#ef4444", padding: "7px 10px", borderRadius: 20,
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                      WebkitTapHighlightColor: "transparent",
+                    }}>✕</button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent — filtered by homeFilter */}
+            {items.length === 0 && (
+              <div style={{ padding: "40px 24px", textAlign: "center" }}>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>A tua biblioteca está vazia</h3>
+                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>Começa a adicionar animes, filmes, jogos e muito mais</p>
+                <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>
+                  + Explorar títulos
+                </button>
+              </div>
+            )}
+
+            {items.length > 0 && (() => {
+              const inCurso = items
+                .filter(i => i.userStatus === "assistindo")
+                .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
+                .sort((a,b) => (b.addedAt||0) - (a.addedAt||0))
+                .slice(0, 20);
+
+              const completados = items
+                .filter(i => i.userStatus === "completo")
+                .filter(i => homeFilter.length === 0 || homeFilter.includes(i.type))
+                .sort((a,b) => (b.addedAt||0) - (a.addedAt||0))
+                .slice(0, 20);
+
+              if (inCurso.length === 0 && completados.length === 0 && homeFilter.length > 0) return (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: darkMode ? "#484f58" : "#94a3b8" }}>
+                  <p style={{ fontSize: 14 }}>Nenhum item com esse filtro</p>
+                </div>
+              );
+
+              const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsed, onToggleCollapse }) => rowItems.length === 0 ? null : (
+                <div style={{ padding: "16px 0 8px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: collapsed ? 0 : 12, paddingRight: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {onToggleCollapse && (
+                        <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-flex", alignItems: "center", WebkitTapHighlightColor: "transparent" }}>▾</button>
+                      )}
+                      <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", color: darkMode ? "#8b949e" : "#64748b", textTransform: "uppercase" }}>{icon} {title}</h2>
+                      {homeFilter.length > 0 && (
+                        <span style={{ fontSize: 10, color: accent, background: `${accent}22`, padding: "2px 6px", borderRadius: 20, fontWeight: 700 }}>
+                          {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
+                        </span>
+                      )}
+                    </div>
+                    {filterBtn}
+                  </div>
+                  {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 10, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                    {rowItems.map((item) => (
+                      <div key={item.id} style={{ flexShrink: 0, width: "clamp(90px, 26vw, 130px)" }}>
+                        <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
+                      </div>
+                    ))}
+                  </div>}
+                </div>
+              );
+
+              return (
+                <>
+                  <RowSection
+                    title="Completados"
+                    icon="✓"
+                    items={completados}
+                    filterBtn={
+                      <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>
+                    }
+                  />
+
+                  {inCurso.length > 0 && completados.length > 0 && (
+                    <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
+                  )}
+                  <RowSection
+                    title="Em Curso"
+                    icon="▶"
+                    items={inCurso}
+                    collapsed={homeCollapsedCurso}
+                    onToggleCollapse={() => setHomeCollapsedCurso(v => !v)}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                  />
+                </>
               );
             })()}
 
-            {/* 2 colunas desktop */}
-            <div className="home-layout">
 
-              {/* COLUNA ESQUERDA — biblioteca recente */}
-              <div>
-                {items.length === 0 && (
-                  <div style={{ padding: "40px 24px", textAlign: "center" }}>
-                    <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>A tua biblioteca está vazia</h3>
-                    <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>Começa a adicionar animes, filmes, jogos e muito mais</p>
-                    <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>+ Explorar títulos</button>
-                  </div>
-                )}
-                {items.length > 0 && (() => {
-                  const inCurso = items.filter(i => i.userStatus === "assistindo").filter(i => homeFilter.length === 0 || homeFilter.includes(i.type)).sort((a,b) => (b.addedAt||0)-(a.addedAt||0)).slice(0,20);
-                  const completados = items.filter(i => i.userStatus === "completo").filter(i => homeFilter.length === 0 || homeFilter.includes(i.type)).sort((a,b) => (b.addedAt||0)-(a.addedAt||0)).slice(0,20);
-                  if (inCurso.length === 0 && completados.length === 0 && homeFilter.length > 0) return <div style={{ padding: "28px 16px", textAlign: "center", color: "#484f58" }}><p>Nenhum item com esse filtro</p></div>;
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
 
-                  const RowSection = ({ title, icon, items: rowItems, filterBtn, collapsed, onToggleCollapse }) => rowItems.length === 0 ? null : (
-                    <div style={{ padding: "20px 0 8px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: collapsed ? 0 : 14, padding: "0 20px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {onToggleCollapse && <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 14, padding: "0 2px", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", WebkitTapHighlightColor: "transparent" }}>▾</button>}
-                          <div style={{ width: 3, height: 14, background: accent, borderRadius: 99 }} />
-                          <h2 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: darkMode ? "#8b949e" : "#64748b", textTransform: "uppercase" }}>{icon} {title}</h2>
-                          <span style={{ fontSize: 10, color: accent, background: `${accent}18`, padding: "1px 7px", borderRadius: 20, fontWeight: 700 }}>{rowItems.length}</span>
-                        </div>
-                        {filterBtn}
-                      </div>
-                      {!collapsed && (
-                        <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 10, paddingLeft: 20, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                          {rowItems.map(item => (
-                            <div key={item.id} style={{ flexShrink: 0, width: "clamp(90px, 26vw, 130px)" }}>
-                              <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                  return (
-                    <>
-                      <RowSection title="Completados" icon="✓" items={completados} filterBtn={<button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 20 }}>Ver tudo →</button>} />
-                      {inCurso.length > 0 && completados.length > 0 && <div style={{ borderTop: `1px solid ${darkMode ? "#21262d" : "#e8ddd0"}`, margin: "4px 20px" }} />}
-                      <RowSection title="Em Curso" icon="▶" items={inCurso} collapsed={homeCollapsedCurso} onToggleCollapse={() => setHomeCollapsedCurso(v => !v)} filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 20 }}>Ver tudo →</button>} />
-                    </>
-                  );
-                })()}
+            {/* Recommendations */}
+            <div style={{ paddingBottom: 8 }}>
+              <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.1em", textTransform: "uppercase" }}>Em Destaque</h3>
+                <button onClick={loadRecos} disabled={recoLoading} style={{
+                  background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
+                  cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, padding: 0,
+                }}>
+                  <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none", fontSize: 14 }}>↻</span>
+                  {recoLoading ? "A carregar..." : "Atualizar"}
+                </button>
               </div>
-
-              {/* COLUNA DIREITA — Em Destaque */}
-              <div className="home-recos">
-                <div style={{ padding: "20px 16px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 3, height: 14, background: accent, borderRadius: 99 }} />
-                    <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>Em Destaque</h3>
-                  </div>
-                  <button onClick={loadRecos} disabled={recoLoading} style={{ background: "none", border: "none", color: recoLoading ? "#484f58" : accent, cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
-                    <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none", fontSize: 14 }}>↻</span>
-                    {recoLoading ? "A carregar..." : "Atualizar"}
-                  </button>
-                </div>
-                <RecoCarousel title="Anime em Tendência" icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-                <RecoCarousel title="Manga em Tendência" icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-                <RecoCarousel title="Filmes desta Semana" icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-                <RecoCarousel title="Séries desta Semana" icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-                <RecoCarousel title="Jogos Mais Bem Avaliados" icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-              </div>
-
+              <RecoCarousel title="Anime em Tendência" icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Manga em Tendência" icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Filmes desta Semana" icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Séries desta Semana" icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title="Jogos Mais Bem Avaliados" icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
             </div>
           </div>
         )}
+
         {view === "search" && (
           <div style={{ padding: "20px 16px" }} className="fade-in">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
@@ -4157,10 +4148,7 @@ export default function TrackAll() {
           </>
         )}
 
-          </div>{/* end desk-main */}
-        </div>{/* end desk-shell */}
-
-        {/* BOTTOM NAV — só mobile */}
+        {/* BOTTOM NAV */}
         <nav className="bottom-nav">
           {[
             { id: "home", icon: "⌂", label: "Início" },
