@@ -159,10 +159,11 @@ const BG_PRESETS = [
   { name: "Escuro", value: "#0d1117", dark: true },
   { name: "Ardósia", value: "#0f172a", dark: true },
   { name: "Grafite", value: "#111827", dark: true },
-  // Claro
-  { name: "Branco", value: "#ffffff", dark: false },
-  { name: "Cinza", value: "#f1f5f9", dark: false },
+  // Claro — warm off-white
+  { name: "Papel", value: "#f5f0eb", dark: false },
   { name: "Creme", value: "#fdf6e3", dark: false },
+  { name: "Nuvem", value: "#f0f4f8", dark: false },
+  { name: "Branco", value: "#ffffff", dark: false },
 ];
 
 // Detecta se uma cor hex é escura ou clara
@@ -2909,7 +2910,8 @@ export default function TrackAll() {
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
-  const [libSort, setLibSort] = useState("date"); // date | title | rating
+  const [libSort, setLibSort] = useState("date");
+  const [libViewMode, setLibViewMode] = useState("grid");
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
@@ -3451,7 +3453,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card { background: ${darkMode ? "#161b22" : "rgba(255,252,247,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
@@ -3474,17 +3476,8 @@ export default function TrackAll() {
           img { will-change: auto; }
           .card { contain: layout style; }
           @media (max-width: 768px) {
-            .card { contain: layout; }
-          }
-          @media (max-width: 480px) {
-            .modal { max-height: 95vh !important; border-radius: 20px 20px 0 0 !important; position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; max-width: 100% !important; }
-            .modal-bg { align-items: flex-end !important; padding: 0 !important; }
-          }
-          @media (max-width: 768px) {
-            .card { contain: layout; border: none; }
-            .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
+            .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
             .fade-in { animation: none !important; }
-            .card { transition: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
@@ -3492,7 +3485,9 @@ export default function TrackAll() {
             .card-info { display: none; }
             .card-info-title { display: block; font-size: 10px; font-weight: 700; padding: 5px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
             .card-info-meta { display: none; }
-            .card { border-radius: 8px; }
+          }
+          @media (max-width: 480px) {
+            .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
           }
           .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
@@ -3511,8 +3506,23 @@ export default function TrackAll() {
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
           .fade-in { animation: fadeIn 0.2s ease; }
+          .media-grid .card { animation: cardIn 0.22s ease both; }
+          .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
+          .media-grid .card:nth-child(2)  { animation-delay: 25ms; }
+          .media-grid .card:nth-child(3)  { animation-delay: 50ms; }
+          .media-grid .card:nth-child(4)  { animation-delay: 75ms; }
+          .media-grid .card:nth-child(5)  { animation-delay: 100ms; }
+          .media-grid .card:nth-child(6)  { animation-delay: 125ms; }
+          .media-grid .card:nth-child(n+7) { animation-delay: 150ms; }
+          @media (max-width: 768px) {
+            .media-grid .card { animation: none !important; }
+            .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+            .modal { border-radius: 24px 24px 0 0 !important; max-height: 92vh !important; width: 100% !important; max-width: 100% !important; }
+            .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
+          }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; }
@@ -3896,7 +3906,14 @@ export default function TrackAll() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+                <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
+                  {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}].map(m => (
+                    <button key={m.id} onClick={() => setLibViewMode(m.id)} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="tabs-scroll" style={{ marginBottom: 14 }}>
@@ -3979,6 +3996,36 @@ export default function TrackAll() {
                     <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
                     <p style={{ fontSize: 14, marginBottom: 20 }}>Usa a pesquisa para adicionar mídias!</p>
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
+                  </div>
+                ) : libViewMode === "list" ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {sortedLib.map((item) => {
+                      const libItem = library[item.id];
+                      const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
+                      const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
+                      return (
+                        <div key={item.id} onClick={() => setSelectedItem(item)} style={{
+                          display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
+                          borderRadius: 10, cursor: "pointer",
+                          background: darkMode ? "#161b22" : "rgba(255,252,247,0.8)",
+                          border: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}`,
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1c2128" : "#fffcf7"}
+                          onMouseLeave={e => e.currentTarget.style.background = darkMode ? "#161b22" : "rgba(255,252,247,0.8)"}>
+                          <div style={{ width: 36, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id) }}>
+                            {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                            <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                          </div>
+                          {status && <span style={{ fontSize: 11, color: status.color, fontWeight: 700, flexShrink: 0 }}>{status.emoji}</span>}
+                          {libItem?.userRating > 0 && (
+                            <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800, flexShrink: 0 }}>★ {libItem.userRating}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <VirtualGrid
