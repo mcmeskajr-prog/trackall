@@ -3592,6 +3592,7 @@ export default function TrackAll() {
   const importPaperback = async (pbItems) => {
     const lib = { ...library };
     let added = 0, updated = 0;
+    const needsCover = []; // itens novos que precisam de capa
     const existingByTitle = {};
     Object.values(lib).forEach(e => { const n = (e.title||'').toLowerCase().trim(); if (n) existingByTitle[n] = e.id; });
     pbItems.forEach(item => {
@@ -3606,10 +3607,54 @@ export default function TrackAll() {
       } else {
         lib[item.id] = { ...item, userRating: 0 };
         added++;
+        // Marcar para enriquecimento de capa se não tiver cover fiável
+        needsCover.push({ id: item.id, title: item.title, type: item.type });
       }
     });
     saveLibrary(lib);
-    showNotif(`Paperback: ${added} adicionados, ${updated} atualizados ✓`, "#10b981");
+    showNotif(`Paperback: ${added} adicionados, ${updated} atualizados ✓ — A buscar capas...`, "#10b981");
+
+    // ── Enriquecimento de capas em background ──
+    // Processa em lotes de 3 para não sobrecarregar as APIs
+    const enrichCover = async (id, title, type) => {
+      try {
+        let cover = '';
+        if (type === 'comics') {
+          const results = await searchComicVine(title, workerUrl);
+          if (results?.length) {
+            // Tentar match exato primeiro, senão usar o primeiro resultado
+            const exact = results.find(r => r.title.toLowerCase() === title.toLowerCase());
+            cover = (exact || results[0]).cover;
+          }
+        } else {
+          // manga / manhwa — usar AniList
+          const results = await searchAniList(title, 'MANGA');
+          if (results?.length) {
+            const exact = results.find(r => r.title.toLowerCase() === title.toLowerCase());
+            cover = (exact || results[0]).cover;
+          }
+        }
+        if (cover) {
+          // Usar setLibrary com callback para não perder atualizações concorrentes
+          setLibrary(prev => {
+            if (!prev[id]) return prev;
+            const next = { ...prev, [id]: { ...prev[id], cover } };
+            // Persistir no Supabase em background
+            if (user) supa.upsertLibraryItem(user.id, id, next[id]).catch(() => {});
+            return next;
+          });
+        }
+      } catch { /* silent */ }
+    };
+
+    // Processar em lotes
+    for (let i = 0; i < needsCover.length; i += 3) {
+      const batch = needsCover.slice(i, i + 3);
+      await Promise.all(batch.map(({ id, title, type }) => enrichCover(id, title, type)));
+      if (i + 3 < needsCover.length) await new Promise(r => setTimeout(r, 400)); // throttle
+    }
+
+    if (needsCover.length > 0) showNotif(`Capas atualizadas ✓`, "#10b981");
   };
 
   const importLetterboxd = async (lbItems) => {
