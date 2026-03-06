@@ -1627,13 +1627,13 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
       {/* DIARY — Letterboxd style, grouped by month */}
       {completados.length > 0 && (() => {
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-        // Group by month bucket — items without addedAt go to "Sem data" bucket
+        // Group by month — only items WITH addedAt appear in the diary
         const groups = {};
-        completados.forEach(item => {
-          const d = item.addedAt ? new Date(item.addedAt) : null;
-          const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
-          if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
-          groups[key].items.push({ ...item, _day: d ? d.getDate() : null });
+        completados.filter(item => item.addedAt).forEach(item => {
+          const d = new Date(item.addedAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, _day: d.getDate() });
         });
         const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
         if (!sortedGroups.length) return null;
