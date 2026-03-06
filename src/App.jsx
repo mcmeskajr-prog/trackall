@@ -1871,7 +1871,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
             {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
-            <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
@@ -4085,35 +4085,32 @@ export default function TrackAll() {
                   <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === logPendingItem.type)?.label}</div>
                 </div>
               </div>
-              <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 16 }}>Queres dar uma avaliação?</p>
+              <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>Queres dar uma avaliação?</p>
               {(() => {
-                // Calcular luminosidade do accent para cor do texto no hover
-                const r = parseInt(accent.slice(1,3),16)/255;
-                const g = parseInt(accent.slice(3,5),16)/255;
-                const b = parseInt(accent.slice(5,7),16)/255;
-                const lum = 0.2126*r + 0.7152*g + 0.0722*b;
-                const textOnAccent = lum > 0.45 ? "#111" : "#fff";
-                const ratings = [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10];
+                const [pendingRating, setPendingRating] = useState(0);
                 return (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, marginBottom: 16 }}>
-                    {ratings.map(n => (
-                      <button key={n} onClick={() => {
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                      <StarRating value={pendingRating} onChange={setPendingRating} size={30} />
+                    </div>
+                    {pendingRating > 0 && (
+                      <button onClick={() => {
                         const base = library[logPendingItem.id] || logPendingItem;
-                        saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: n } });
-                        showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${n}`, accent);
+                        saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: pendingRating } });
+                        showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${pendingRating}`, accent);
                         setLogPendingItem(null);
                       }} style={{
-                        padding: "9px 0", borderRadius: 9, border: `1px solid ${accent}44`,
-                        background: `${accent}18`, color: accent, fontWeight: 800,
-                        fontSize: Number.isInteger(n) ? 15 : 13,
-                        cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
-                        transition: "all 0.1s",
+                        width: "100%", padding: "12px 0", borderRadius: 10,
+                        background: accent, border: "none",
+                        color: (() => { const r=parseInt(accent.slice(1,3),16)/255,g=parseInt(accent.slice(3,5),16)/255,b=parseInt(accent.slice(5,7),16)/255; return 0.2126*r+0.7152*g+0.0722*b > 0.45?"#111":"#fff"; })(),
+                        fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit",
+                        transition: "opacity 0.15s",
                       }}
-                        onMouseEnter={e => { e.currentTarget.style.background = accent; e.currentTarget.style.color = textOnAccent; e.currentTarget.style.transform = "scale(1.08)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = `${accent}18`; e.currentTarget.style.color = accent; e.currentTarget.style.transform = "scale(1)"; }}>
-                        {n}
+                        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                        onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+                        Confirmar ★ {pendingRating}
                       </button>
-                    ))}
+                    )}
                   </div>
                 );
               })()}
@@ -4205,8 +4202,8 @@ export default function TrackAll() {
                     <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 2, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
                       {profile.name || "Utilizador"}
                     </h2>
-                    <p style={{ fontSize: 11, color: darkMode ? "#484f58" : "#94a3b8", marginBottom: 8 }}>
-                      {items.length} na biblioteca
+                    <p style={{ fontSize: 12, color: darkMode ? "#6b7280" : "#94a3b8", marginBottom: 8, fontWeight: 500 }}>
+                      <span style={{ color: darkMode ? "#c9d1d9" : "#475569", fontWeight: 700 }}>{items.length}</span> na biblioteca
                     </p>
                     {/* Stats compactas numa linha */}
                     <div style={{ display: "flex", gap: 4 }}>
