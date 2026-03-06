@@ -4086,24 +4086,37 @@ export default function TrackAll() {
                 </div>
               </div>
               <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 16 }}>Queres dar uma avaliação?</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
-                {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                  <button key={n} onClick={() => {
-                    const base = library[logPendingItem.id] || logPendingItem;
-                    saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: n } });
-                    showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${n}`, accent);
-                    setLogPendingItem(null);
-                  }} style={{
-                    padding: "10px 0", borderRadius: 10, border: `1px solid ${accent}44`,
-                    background: `${accent}22`, color: accent, fontWeight: 800, fontSize: 15,
-                    cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.background = accent; e.currentTarget.style.color = "white"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = `${accent}22`; e.currentTarget.style.color = accent; }}>
-                    {n}
-                  </button>
-                ))}
-              </div>
+              {(() => {
+                // Calcular luminosidade do accent para cor do texto no hover
+                const r = parseInt(accent.slice(1,3),16)/255;
+                const g = parseInt(accent.slice(3,5),16)/255;
+                const b = parseInt(accent.slice(5,7),16)/255;
+                const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+                const textOnAccent = lum > 0.45 ? "#111" : "#fff";
+                const ratings = [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10];
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, marginBottom: 16 }}>
+                    {ratings.map(n => (
+                      <button key={n} onClick={() => {
+                        const base = library[logPendingItem.id] || logPendingItem;
+                        saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: n } });
+                        showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${n}`, accent);
+                        setLogPendingItem(null);
+                      }} style={{
+                        padding: "9px 0", borderRadius: 9, border: `1px solid ${accent}44`,
+                        background: `${accent}18`, color: accent, fontWeight: 800,
+                        fontSize: Number.isInteger(n) ? 15 : 13,
+                        cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
+                        transition: "all 0.1s",
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.background = accent; e.currentTarget.style.color = textOnAccent; e.currentTarget.style.transform = "scale(1.08)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = `${accent}18`; e.currentTarget.style.color = accent; e.currentTarget.style.transform = "scale(1)"; }}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               <button onClick={() => { showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent); setLogPendingItem(null); }} style={{ width: "100%", padding: "10px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
                 Saltar avaliação
               </button>
