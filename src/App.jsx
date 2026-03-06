@@ -3989,7 +3989,8 @@ export default function TrackAll() {
           .media-thumb img { transition: transform 0.25s ease; width: 100%; height: 100%; object-fit: cover; display: block; }
           .tab-btn { background: transparent; border: none; color: ${darkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
           .tab-btn:hover { color: ${darkMode ? "#e6edf3" : "#0d1117"}; background: ${darkMode ? "#21262d" : "#e2e8f0"}; }
-          .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
+          .tab-btn.active { background: ${accent}; color: white; font-weight: 700; box-shadow: 0 2px 8px ${accent}44; }
+          .tab-btn:not(.active):hover { background: ${darkMode ? "#1c2128" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#1a1a2e"}; }
           input, select, textarea { background: ${darkMode ? "#0d1117" : "#ffffff"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
@@ -4026,8 +4027,17 @@ export default function TrackAll() {
           .lib-sidebar { display: none; }
           .lib-mobile-controls { display: block; }
           @media (min-width: 768px) {
-            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
+            .lib-sidebar { display: flex; flex-direction: column; width: 200px; flex-shrink: 0; background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 14px; padding: 16px 12px; position: sticky; top: 70px; gap: 2px; }
             .lib-mobile-controls { display: none; }
+            .lib-tabs-scroll { display: none; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; gap: 16px !important; }
+          }
+          @media (min-width: 1280px) {
+            .lib-sidebar { width: 220px; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; gap: 18px !important; }
+          }
+          @media (min-width: 1600px) {
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)) !important; }
           }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
@@ -4434,15 +4444,30 @@ export default function TrackAll() {
           <div style={{ padding: "16px 12px" }} className="fade-in view-transition">
 
             {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ fontSize: 12, color: "#484f58", display: "flex", flexWrap: "wrap", gap: "2px 8px", maxWidth: 240 }}>
-                  {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
-                    <span key={t.id}>{t.icon} <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700 }}>{filteredLib.filter(i => i.type === t.id).length}</span></span>
-                  ))}
-                  <span style={{ color: darkMode ? "#484f58" : "#94a3b8" }}>· {filteredLib.length} total</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
+              <div>
+                <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-0.5px", marginBottom: 4 }}>Biblioteca</h2>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px" }}>
+                  {MEDIA_TYPES.slice(1).filter(t => items.some(i => i.type === t.id)).map(t => {
+                    const cnt = items.filter(i => i.type === t.id).length;
+                    const isFiltered = activeTab === t.id;
+                    return (
+                      <button key={t.id} onClick={() => setActiveTab(isFiltered ? "all" : t.id)} style={{
+                        background: isFiltered ? `${accent}20` : "transparent",
+                        border: `1px solid ${isFiltered ? accent + "55" : (darkMode ? "#30363d" : "#e2e8f0")}`,
+                        borderRadius: 20, padding: "2px 10px", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 12, fontWeight: isFiltered ? 700 : 500,
+                        color: isFiltered ? accent : (darkMode ? "#8b949e" : "#64748b"),
+                        transition: "all 0.12s",
+                      }}>
+                        {t.icon} {t.label} <span style={{ fontWeight: 800 }}>{cnt}</span>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 13, color: darkMode ? "#484f58" : "#94a3b8" }}>{filteredLib.length} itens</span>
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
                   {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}].map(m => (
                     <button key={m.id} onClick={() => setLibViewMode(m.id)} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
@@ -4451,14 +4476,14 @@ export default function TrackAll() {
               </div>
             </div>
 
-            <div className="tabs-scroll" style={{ marginBottom: 14 }}>
+            <div className="tabs-scroll lib-tabs-scroll" style={{ marginBottom: 14 }}>
               {MEDIA_TYPES.map((t) => {
                 const isActive = activeTab === t.id;
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
                   <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
                     {t.icon} {t.label}
-                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : "#30363d", color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
                     </span>
                   </button>
@@ -4471,38 +4496,58 @@ export default function TrackAll() {
 
               {/* SIDEBAR — desktop only */}
               <aside className="lib-sidebar">
-                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Estado</p>
-                {[{ id: "all", emoji: "▤", label: "Todos", color: accent }, ...STATUS_OPTIONS].map((s) => (
-                  <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 10px", borderRadius: 8, border: "none", textAlign: "left",
-                    background: filterStatus === s.id ? `${s.color}18` : "transparent",
-                    color: filterStatus === s.id ? s.color : "#8b949e",
-                    borderLeft: filterStatus === s.id ? `3px solid ${s.color}` : "3px solid transparent",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: filterStatus === s.id ? 700 : 500,
-                    marginBottom: 2,
-                  }}>
-                    <span>{s.emoji}</span> {s.label}
-                    <span style={{ marginLeft: "auto", fontSize: 11, color: filterStatus === s.id ? s.color : "#484f58" }}>
-                      {s.id === "all" ? filteredLib.length : items.filter(i => i.userStatus === s.id && (activeTab === "all" || i.type === activeTab)).length}
-                    </span>
-                  </button>
-                ))}
-                <div style={{ height: 1, background: "#21262d", margin: "12px 0" }} />
-                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Ordenar</p>
-                {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★ Rating"}].map(s => (
-                  <button key={s.id} onClick={() => setLibSort(s.id)} style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 10px", borderRadius: 8, border: "none", textAlign: "left",
-                    background: libSort === s.id ? `${accent}18` : "transparent",
-                    color: libSort === s.id ? accent : "#8b949e",
-                    borderLeft: libSort === s.id ? `3px solid ${accent}` : "3px solid transparent",
-                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: libSort === s.id ? 700 : 500,
-                    marginBottom: 2,
-                  }}>
-                    {s.label}
-                  </button>
-                ))}
+                {/* Estado */}
+                <p style={{ fontSize: 10, fontWeight: 800, color: "#484f58", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, padding: "0 4px" }}>Estado</p>
+                {[{ id: "all", emoji: "▤", label: "Todos", color: accent }, ...STATUS_OPTIONS].map((s) => {
+                  const count = s.id === "all" ? filteredLib.length : items.filter(i => i.userStatus === s.id && (activeTab === "all" || i.type === activeTab)).length;
+                  const isActive = filterStatus === s.id;
+                  return (
+                    <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 8,
+                      padding: "7px 10px", borderRadius: 9, border: "none", textAlign: "left",
+                      background: isActive ? `${s.color}20` : "transparent",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13,
+                      fontWeight: isActive ? 700 : 500, transition: "all 0.12s",
+                      borderLeft: `3px solid ${isActive ? s.color : "transparent"}`,
+                    }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = darkMode ? "#1c2128" : "#f1f5f9"; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
+                      <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>{s.emoji}</span>
+                      <span style={{ flex: 1, color: isActive ? s.color : (darkMode ? "#8b949e" : "#64748b") }}>{s.label}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 20,
+                        background: isActive ? `${s.color}25` : (darkMode ? "#21262d" : "#e8e0d5"),
+                        color: isActive ? s.color : (darkMode ? "#484f58" : "#94a3b8"),
+                        minWidth: 22, textAlign: "center",
+                      }}>{count}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Divider */}
+                <div style={{ height: 1, background: darkMode ? "#21262d" : "#e8e0d5", margin: "10px 4px" }} />
+
+                {/* Ordenar */}
+                <p style={{ fontSize: 10, fontWeight: 800, color: "#484f58", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, padding: "0 4px" }}>Ordenar</p>
+                {[{id:"date",label:"Data",icon:"🕐"},{id:"title",label:"A–Z",icon:"🔤"},{id:"rating",label:"Rating",icon:"★"}].map(s => {
+                  const isActive = libSort === s.id;
+                  return (
+                    <button key={s.id} onClick={() => setLibSort(s.id)} style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 8,
+                      padding: "7px 10px", borderRadius: 9, border: "none", textAlign: "left",
+                      background: isActive ? `${accent}18` : "transparent",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13,
+                      fontWeight: isActive ? 700 : 500, transition: "all 0.12s",
+                      borderLeft: `3px solid ${isActive ? accent : "transparent"}`,
+                      color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b"),
+                    }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = darkMode ? "#1c2128" : "#f1f5f9"; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
+                      <span style={{ fontSize: 13, width: 18, textAlign: "center" }}>{s.icon}</span>
+                      {s.label}
+                    </button>
+                  );
+                })}
               </aside>
 
               {/* MAIN CONTENT */}
