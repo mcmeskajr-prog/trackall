@@ -3066,8 +3066,8 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
             <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 20, textAlign: 'center', border: `2px dashed ${darkMode ? '#30363d' : '#e2e8f0'}`, marginBottom: 16 }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
               <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Seleciona o ficheiro de backup</p>
-              <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>Ficheiro .zip exportado pelo Paperback</p>
-              <input ref={fileRef} type="file" accept=".zip" onChange={handleFile} style={{ display: 'none' }} />
+              <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>Ficheiro .zip ou .pas4 exportado pelo Paperback</p>
+              <input ref={fileRef} type="file" accept=".zip,.pas4" onChange={handleFile} style={{ display: 'none' }} />
               <button className="btn-accent" onClick={() => fileRef.current?.click()} style={{ padding: '10px 24px', fontSize: 13 }}>
                 {loading ? '⏳ A processar...' : 'Escolher ficheiro .zip'}
               </button>
