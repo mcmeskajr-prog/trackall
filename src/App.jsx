@@ -1721,9 +1721,11 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
+  const [showPaperback, setShowPaperback] = useState(false);
+  const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
@@ -2140,6 +2142,22 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         />
       )}
 
+      {/* Modais Paperback e Letterboxd */}
+      {showPaperback && (
+        <PaperbackImportModal
+          accent={accent} darkMode={darkMode}
+          onClose={() => setShowPaperback(false)}
+          onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
+        />
+      )}
+      {showLetterboxd && (
+        <LetterboxdImportModal
+          accent={accent} darkMode={darkMode}
+          onClose={() => setShowLetterboxd(false)}
+          onImport={(items) => { onImportLetterboxd && onImportLetterboxd(items); setShowLetterboxd(false); }}
+        />
+      )}
+
       {/* ── Mihon Sync ── */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>SINCRONIZAÇÃO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -2178,6 +2196,36 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             ? <>☁️ <strong style={{ color: "#10b981" }}>Google Drive ligado</strong> — sync automático ao abrir a app. Ou clica <strong>Sync</strong> para atualizar agora.</>
             : <>💡 Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong> → <strong>Criar backup</strong> → ou liga o Google Drive no modal de importação para sync automático.</>
           }
+        </div>
+      </div>
+
+      {/* Paperback */}
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📖</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Paperback</p>
+            <p style={{ fontSize: 12, color: "#8b949e" }}>Manga e comics do iOS</p>
+          </div>
+          <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "8px 14px", fontSize: 13, flexShrink: 0 }}>Importar</button>
+        </div>
+        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
+          💡 Paperback → <strong>Definições</strong> → <strong>Backup</strong> → <strong>Criar Backup</strong> → partilhar o .zip
+        </div>
+      </div>
+
+      {/* Letterboxd */}
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#00e05422", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🎬</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Letterboxd</p>
+            <p style={{ fontSize: 12, color: "#8b949e" }}>Filmes vistos com avaliações</p>
+          </div>
+          <button onClick={() => setShowLetterboxd(true)} style={{ padding: "8px 14px", fontSize: 13, fontWeight: 700, borderRadius: 10, background: "#00e05422", border: "1px solid #00e05444", color: "#00e054", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Importar</button>
+        </div>
+        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
+          💡 letterboxd.com → <strong>Settings</strong> → <strong>Import & Export</strong> → <strong>Export Your Data</strong> → usar <code style={{ background: darkMode ? "#21262d" : "#e2e8f0", padding: "1px 5px", borderRadius: 4 }}>watched.csv</code>
         </div>
       </div>
 
@@ -2790,6 +2838,405 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
   );
 }
 
+// ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
+function LibGroupedList({ items, library, accent, darkMode, onOpen }) {
+  const [collapsed, setCollapsed] = useState({});
+  const toggle = (id) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const groups = MEDIA_TYPES.slice(1)
+    .map(t => ({ type: t, items: items.filter(i => i.type === t.id) }))
+    .filter(g => g.items.length > 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {groups.map(({ type: t, items: gItems }) => (
+        <div key={t.id}>
+          <button onClick={() => toggle(t.id)} style={{
+            display: "flex", alignItems: "center", gap: 8, width: "100%",
+            background: "none", border: "none", cursor: "pointer", padding: "4px 0 8px",
+            fontFamily: "inherit", textAlign: "left", WebkitTapHighlightColor: "transparent",
+          }}>
+            <span style={{ fontSize: 15 }}>{t.icon}</span>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>{t.label}</span>
+            <span style={{ fontSize: 10, color: accent, background: `${accent}18`, padding: "1px 7px", borderRadius: 20, fontWeight: 700 }}>{gItems.length}</span>
+            <span style={{ marginLeft: "auto", color: "#484f58", fontSize: 13, transform: collapsed[t.id] ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+          </button>
+          {!collapsed[t.id] && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {gItems.map(item => {
+                const libItem = library[item.id];
+                const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
+                const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} onClick={() => onOpen(item)} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "7px 10px",
+                    borderRadius: 8, cursor: "pointer",
+                    background: darkMode ? "#161b22" : "rgba(255,252,247,0.8)",
+                    border: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}`,
+                    transition: "background 0.12s",
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1c2128" : "#fffcf7"}
+                    onMouseLeave={e => e.currentTarget.style.background = darkMode ? "#161b22" : "rgba(255,252,247,0.8)"}>
+                    <div style={{ width: 34, height: 48, borderRadius: 5, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id) }}>
+                      {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#1a1a2e" }}>{item.title}</p>
+                      {item.year && <p style={{ fontSize: 11, color: "#8b949e", marginTop: 1 }}>{item.year}</p>}
+                    </div>
+                    {status && <span style={{ fontSize: 12, flexShrink: 0 }}>{status.emoji}</span>}
+                    {libItem?.userRating > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800, flexShrink: 0 }}>★ {libItem.userRating}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+// ─── Paperback Backup Parser ─────────────────────────────────────────────────
+async function parsePaperbackBackup(file) {
+  // Carregar JSZip dinamicamente
+  if (!window.JSZip) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('Falha ao carregar JSZip'));
+      document.head.appendChild(s);
+    });
+  }
+  const ab = await file.arrayBuffer();
+  const zip = await window.JSZip.loadAsync(ab);
+
+  const readJSON = async (name) => {
+    const f = zip.file(name); if (!f) return {};
+    const txt = await f.async('string'); return JSON.parse(txt);
+  };
+
+  const [libData, infoData, srcData, chapData, progData] = await Promise.all([
+    readJSON('__LIBRARY_MANGA_V4'),
+    readJSON('__MANGA_INFO_V4'),
+    readJSON('__SOURCE_MANGA_V4'),
+    readJSON('__CHAPTER_V4'),
+    readJSON('__CHAPTER_PROGRESS_MARKER_V4-1'),
+  ]);
+
+  // sourceId → type mapping
+  const sourceTypeMap = {
+    ReadAllComics: 'comics', ReadComicsOnline: 'comics',
+    MangaPlus: 'manga', Manganato: 'manga', MangaDex: 'manga',
+    ReadBerserk: 'manga', ReadJujutsuKaisen: 'manga',
+    Webtoons: 'manhwa', TappytoonComics: 'manhwa',
+  };
+  const guessType = (sid) => {
+    if (!sid) return 'manga';
+    if (/comic/i.test(sid)) return 'comics';
+    if (/webtoon|tappy/i.test(sid)) return 'manhwa';
+    return 'manga';
+  };
+
+  // Calcular progresso por info_id
+  const mangaTotal = {}, mangaCompleted = {};
+  for (const ch of Object.values(chapData)) {
+    const srcId = ch?.sourceManga?.id;
+    const infoId = srcData[srcId]?.mangaInfo?.id;
+    if (infoId) mangaTotal[infoId] = (mangaTotal[infoId] || 0) + 1;
+  }
+  for (const p of Object.values(progData)) {
+    const chId = p?.chapter?.id;
+    const ch = chapData[chId];
+    const srcId = ch?.sourceManga?.id;
+    const infoId = srcData[srcId]?.mangaInfo?.id;
+    if (infoId && p?.completed) mangaCompleted[infoId] = (mangaCompleted[infoId] || 0) + 1;
+  }
+
+  const results = [];
+  for (const [, libItem] of Object.entries(libData)) {
+    try {
+      const srcId = libItem?.primarySource?.id;
+      const src = srcData[srcId]; if (!src) continue;
+      const infoId = src?.mangaInfo?.id;
+      const manga = infoData[infoId]; if (!manga) continue;
+      const titles = manga?.titles || []; if (!titles.length) continue;
+      const title = titles[0];
+      const cover = manga?.image || '';
+      const sourceId = src?.sourceId || '';
+      const type = sourceTypeMap[sourceId] || guessType(sourceId);
+      const total = mangaTotal[infoId] || 0;
+      const completed = mangaCompleted[infoId] || 0;
+      let userStatus = 'planejado';
+      if (completed > 0 && total > 0 && completed >= total) userStatus = 'completo';
+      else if (completed > 0) userStatus = 'assistindo';
+      // Apple timestamp: segundos desde 2001-01-01 → ms desde 1970-01-01
+      const APPLE_EPOCH_OFFSET = 978307200;
+      const addedAt = libItem.dateBookmarked
+        ? Math.round((libItem.dateBookmarked + APPLE_EPOCH_OFFSET) * 1000)
+        : Date.now();
+      results.push({ id: `pb-${infoId}`, title, cover, type, userStatus, chaptersRead: completed, totalChapters: total, source: 'Paperback', addedAt });
+    } catch {}
+  }
+  return results;
+}
+
+// ─── Letterboxd CSV Parser ────────────────────────────────────────────────────
+function parseLetterboxdCSV(text) {
+  const lines = text.trim().split('
+');
+  if (lines.length < 2) return [];
+  // Parse header
+  const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const nameIdx   = header.findIndex(h => h === 'Name');
+  const yearIdx   = header.findIndex(h => h === 'Year');
+  const ratingIdx = header.findIndex(h => h === 'Rating');
+  const dateIdx   = header.findIndex(h => h === 'Watched Date' || h === 'Date');
+  if (nameIdx === -1) return [];
+
+  const parseRow = (line) => {
+    // Handle quoted fields with commas
+    const fields = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    fields.push(cur.trim());
+    return fields;
+  };
+
+  const results = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    try {
+      const fields = parseRow(lines[i]);
+      const title = fields[nameIdx]?.replace(/^"|"$/g, '') || ''; if (!title) continue;
+      const year  = fields[yearIdx]?.replace(/^"|"$/g, '') || '';
+      const ratingRaw = parseFloat(fields[ratingIdx] || '0');
+      const rating = isNaN(ratingRaw) ? 0 : Math.round(ratingRaw * 2); // 0.5–5 → 1–10
+      const dateStr = fields[dateIdx]?.replace(/^"|"$/g, '') || '';
+      const addedAt = dateStr ? new Date(dateStr).getTime() || Date.now() : Date.now();
+      results.push({
+        id: `lb-${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${year}`,
+        title, year: parseInt(year) || undefined,
+        type: 'filmes', userStatus: 'completo',
+        userRating: rating, addedAt, source: 'Letterboxd',
+      });
+    } catch {}
+  }
+  return results;
+}
+
+// ─── Paperback Import Modal ───────────────────────────────────────────────────
+function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
+  const [step, setStep] = useState('upload'); // upload | preview | done
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef();
+  const bg = darkMode ? '#161b22' : '#ffffff';
+  const border = darkMode ? '#30363d' : '#e2e8f0';
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    setLoading(true); setError('');
+    try {
+      const parsed = await parsePaperbackBackup(file);
+      if (!parsed.length) { setError('Nenhum item encontrado. Certifica-te que é um backup Paperback (.zip) válido.'); setLoading(false); return; }
+      const sel = {}; parsed.forEach(m => { sel[m.id] = true; });
+      setItems(parsed); setSelected(sel); setStep('preview');
+    } catch (err) { setError('Erro: ' + err.message); }
+    setLoading(false);
+  };
+
+  const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
+  const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
+  const statusColor = { assistindo: accent, completo: '#10b981', planejado: '#06b6d4' };
+  const statusLabel = { assistindo: '▶ Em Curso', completo: '✓ Completo', planejado: '⏰ Planejado' };
+  const typeIcon = { manga: '🗒', comics: '💬' };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, padding: 20, width: '100%', maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📖</div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Paperback</h3>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>{step === 'preview' ? `${items.length} itens encontrados` : 'Backup iOS'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}>✕</button>
+        </div>
+
+        {step === 'upload' && (
+          <div>
+            <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 20, textAlign: 'center', border: `2px dashed ${darkMode ? '#30363d' : '#e2e8f0'}`, marginBottom: 16 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Seleciona o ficheiro de backup</p>
+              <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>Ficheiro .zip exportado pelo Paperback</p>
+              <input ref={fileRef} type="file" accept=".zip" onChange={handleFile} style={{ display: 'none' }} />
+              <button className="btn-accent" onClick={() => fileRef.current?.click()} style={{ padding: '10px 24px', fontSize: 13 }}>
+                {loading ? '⏳ A processar...' : 'Escolher ficheiro .zip'}
+              </button>
+            </div>
+            <div style={{ background: darkMode ? '#161b2288' : '#f8fafc', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
+              💡 <strong>Como exportar do Paperback:</strong><br />
+              Paperback → <strong>Definições</strong> → <strong>Backup</strong> → <strong>Criar Backup</strong> → partilhar o ficheiro .zip
+            </div>
+            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10 }}>{error}</p>}
+          </div>
+        )}
+
+        {step === 'preview' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Todos</button>
+                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>Nenhum</button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+              {items.map(item => (
+                <div key={item.id} onClick={() => setSelected(s => ({ ...s, [item.id]: !s[item.id] }))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: selected[item.id] ? `${accent}11` : (darkMode ? '#0d1117' : '#f8fafc'), border: `1px solid ${selected[item.id] ? accent + '44' : (darkMode ? '#21262d' : '#e2e8f0')}` }}>
+                  <div style={{ width: 32, height: 44, borderRadius: 5, overflow: 'hidden', flexShrink: 0, background: '#21262d' }}>
+                    {item.cover && <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.currentTarget.style.display='none'} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
+                    <p style={{ fontSize: 10, color: '#8b949e', marginTop: 1 }}>{typeIcon[item.type] || '📖'} {item.type} · {item.chaptersRead}/{item.totalChapters} cap.</p>
+                  </div>
+                  <span style={{ fontSize: 10, color: statusColor[item.userStatus], fontWeight: 700, flexShrink: 0 }}>{statusLabel[item.userStatus]}</span>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{selected[item.id] ? '☑' : '☐'}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={handleImport} className="btn-accent" disabled={!Object.values(selected).some(Boolean)} style={{ width: '100%', padding: '12px 0', fontSize: 14 }}>
+              Importar {Object.values(selected).filter(Boolean).length} itens
+            </button>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
+            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus itens do Paperback já estão na biblioteca.</p>
+            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>Fechar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Letterboxd Import Modal ──────────────────────────────────────────────────
+function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
+  const [step, setStep] = useState('upload');
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef();
+  const bg = darkMode ? '#161b22' : '#ffffff';
+  const border = darkMode ? '#30363d' : '#e2e8f0';
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    setLoading(true); setError('');
+    try {
+      const text = await file.text();
+      const parsed = parseLetterboxdCSV(text);
+      if (!parsed.length) { setError('Nenhum filme encontrado. Certifica-te que é o ficheiro diary.csv ou watched.csv do Letterboxd.'); setLoading(false); return; }
+      const sel = {}; parsed.forEach(m => { sel[m.id] = true; });
+      setItems(parsed); setSelected(sel); setStep('preview');
+    } catch (err) { setError('Erro: ' + err.message); }
+    setLoading(false);
+  };
+
+  const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
+  const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, padding: 20, width: '100%', maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#00e05422', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Letterboxd</h3>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>{step === 'preview' ? `${items.length} filmes encontrados` : 'CSV de filmes vistos'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}>✕</button>
+        </div>
+
+        {step === 'upload' && (
+          <div>
+            <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 20, textAlign: 'center', border: `2px dashed ${darkMode ? '#30363d' : '#e2e8f0'}`, marginBottom: 16 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🎞️</div>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Seleciona o ficheiro CSV</p>
+              <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>diary.csv ou watched.csv exportado do Letterboxd</p>
+              <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} style={{ display: 'none' }} />
+              <button onClick={() => fileRef.current?.click()} style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {loading ? '⏳ A processar...' : 'Escolher ficheiro .csv'}
+              </button>
+            </div>
+            <div style={{ background: darkMode ? '#161b2288' : '#f8fafc', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
+              💡 <strong>Como exportar do Letterboxd:</strong><br />
+              letterboxd.com → <strong>Settings</strong> → <strong>Import & Export</strong> → <strong>Export Your Data</strong> → usar <code>watched.csv</code>
+            </div>
+            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10 }}>{error}</p>}
+          </div>
+        )}
+
+        {step === 'preview' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Todos</button>
+                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>Nenhum</button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+              {items.map(item => (
+                <div key={item.id} onClick={() => setSelected(s => ({ ...s, [item.id]: !s[item.id] }))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, cursor: 'pointer', background: selected[item.id] ? `${accent}11` : (darkMode ? '#0d1117' : '#f8fafc'), border: `1px solid ${selected[item.id] ? accent + '44' : (darkMode ? '#21262d' : '#e2e8f0')}` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
+                    <p style={{ fontSize: 11, color: '#8b949e', marginTop: 1 }}>🎬 {item.year || '—'}{item.userRating > 0 ? ` · ★ ${item.userRating}/10` : ''}</p>
+                  </div>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{selected[item.id] ? '☑' : '☐'}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={handleImport} style={{ width: '100%', padding: '12px 0', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}
+              disabled={!Object.values(selected).some(Boolean)}>
+              Importar {Object.values(selected).filter(Boolean).length} filmes
+            </button>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
+            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus filmes do Letterboxd já estão na biblioteca.</p>
+            <button onClick={onClose} style={{ padding: '10px 28px', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
@@ -3154,6 +3601,52 @@ export default function TrackAll() {
     }
   };
 
+  const importPaperback = async (pbItems) => {
+    const lib = { ...library };
+    let added = 0, updated = 0;
+    const existingByTitle = {};
+    Object.values(lib).forEach(e => { const n = (e.title||'').toLowerCase().trim(); if (n) existingByTitle[n] = e.id; });
+    pbItems.forEach(item => {
+      const norm = item.title.toLowerCase().trim();
+      const existingId = existingByTitle[norm];
+      if (lib[item.id]) {
+        lib[item.id] = { ...lib[item.id], userStatus: item.userStatus, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
+        updated++;
+      } else if (existingId) {
+        lib[existingId] = { ...lib[existingId], userStatus: item.userStatus, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
+        updated++;
+      } else {
+        lib[item.id] = { ...item, userRating: 0 };
+        added++;
+      }
+    });
+    saveLibrary(lib);
+    showNotif(`Paperback: ${added} adicionados, ${updated} atualizados ✓`, "#10b981");
+  };
+
+  const importLetterboxd = async (lbItems) => {
+    const lib = { ...library };
+    let added = 0, updated = 0;
+    const existingByTitle = {};
+    Object.values(lib).forEach(e => { const n = (e.title||'').toLowerCase().trim(); if (n) existingByTitle[n] = e.id; });
+    lbItems.forEach(item => {
+      const norm = item.title.toLowerCase().trim();
+      const existingId = existingByTitle[norm];
+      if (lib[item.id]) {
+        lib[item.id] = { ...lib[item.id], userStatus: 'completo', userRating: item.userRating || lib[item.id].userRating };
+        updated++;
+      } else if (existingId) {
+        lib[existingId] = { ...lib[existingId], userStatus: 'completo', userRating: item.userRating || lib[existingId].userRating };
+        updated++;
+      } else {
+        lib[item.id] = { ...item };
+        added++;
+      }
+    });
+    saveLibrary(lib);
+    showNotif(`Letterboxd: ${added} filmes adicionados, ${updated} atualizados ✓`, "#00e054");
+  };
+
   const importMihon = async (items) => {
     const lib = { ...library };
     let added = 0, updated = 0, skipped = 0;
@@ -3509,7 +4002,10 @@ export default function TrackAll() {
           @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
           .fade-in { animation: fadeIn 0.2s ease; }
+          .view-transition { animation: viewIn 0.18s ease both; }
+          @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
           .media-grid .card { animation: cardIn 0.22s ease both; }
+          .media-grid[data-key] .card { animation: cardIn 0.22s ease both; }
           .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
           .media-grid .card:nth-child(2)  { animation-delay: 25ms; }
           .media-grid .card:nth-child(3)  { animation-delay: 50ms; }
@@ -3525,7 +4021,8 @@ export default function TrackAll() {
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; }
+          .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
+          .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
         `}</style>
 
         <Notification notif={notif} />
@@ -3640,7 +4137,7 @@ export default function TrackAll() {
 
         {/* ── HOME ── */}
         {view === "home" && (
-          <div className="fade-in">
+          <div className="fade-in view-transition">
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
@@ -3838,7 +4335,7 @@ export default function TrackAll() {
         )}
 
         {view === "search" && (
-          <div style={{ padding: "20px 16px" }} className="fade-in">
+          <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
                 <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery) doSearch(searchQuery, t.id); }}>
@@ -3901,13 +4398,18 @@ export default function TrackAll() {
 
         {/* ── LIBRARY ── */}
         {view === "library" && (
-          <div style={{ padding: "16px 12px" }} className="fade-in">
+          <div style={{ padding: "16px 12px" }} className="fade-in view-transition">
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ color: "#484f58", fontSize: 13 }}>{items.length} itens</span>
+                <div style={{ fontSize: 12, color: "#484f58", display: "flex", flexWrap: "wrap", gap: "2px 8px", maxWidth: 240 }}>
+                  {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
+                    <span key={t.id}>{t.icon} <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700 }}>{filteredLib.filter(i => i.type === t.id).length}</span></span>
+                  ))}
+                  <span style={{ color: darkMode ? "#484f58" : "#94a3b8" }}>· {filteredLib.length} total</span>
+                </div>
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
                   {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}].map(m => (
                     <button key={m.id} onClick={() => setLibViewMode(m.id)} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
@@ -3998,37 +4500,16 @@ export default function TrackAll() {
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
                   </div>
                 ) : libViewMode === "list" ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {sortedLib.map((item) => {
-                      const libItem = library[item.id];
-                      const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
-                      const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
-                      return (
-                        <div key={item.id} onClick={() => setSelectedItem(item)} style={{
-                          display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
-                          borderRadius: 10, cursor: "pointer",
-                          background: darkMode ? "#161b22" : "rgba(255,252,247,0.8)",
-                          border: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}`,
-                        }}
-                          onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1c2128" : "#fffcf7"}
-                          onMouseLeave={e => e.currentTarget.style.background = darkMode ? "#161b22" : "rgba(255,252,247,0.8)"}>
-                          <div style={{ width: 36, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id) }}>
-                            {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                            <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
-                          </div>
-                          {status && <span style={{ fontSize: 11, color: status.color, fontWeight: 700, flexShrink: 0 }}>{status.emoji}</span>}
-                          {libItem?.userRating > 0 && (
-                            <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800, flexShrink: 0 }}>★ {libItem.userRating}</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <LibGroupedList
+                    items={sortedLib}
+                    library={library}
+                    accent={accent}
+                    darkMode={darkMode}
+                    onOpen={setSelectedItem}
+                  />
                 ) : (
                   <VirtualGrid
+                    key={`${filterStatus}-${activeTab}-${libSort}`}
                     items={sortedLib}
                     library={library}
                     onOpen={setSelectedItem}
@@ -4079,6 +4560,8 @@ export default function TrackAll() {
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
             onImportMihon={importMihon}
+            onImportPaperback={importPaperback}
+            onImportLetterboxd={importLetterboxd}
             driveClientId={driveClientId}
             onSaveDriveClientId={saveDriveClientId}
             lastDriveSync={lastDriveSync}
