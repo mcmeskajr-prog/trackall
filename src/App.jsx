@@ -1537,7 +1537,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
   const [showDiaryAll, setShowDiaryAll] = useState(false);
 
   const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
-  const completados = [...items].filter(i => i.userStatus === "completo").sort((a, b) => b.addedAt - a.addedAt);
+  const completados = [...items].filter(i => i.userStatus === "completo" && i.addedAt).sort((a, b) => b.addedAt - a.addedAt);
 
   const ItemGrid = ({ list, showAll, maxPreview = 10 }) => {
     const visible = showAll ? list : list.slice(0, maxPreview);
