@@ -2244,6 +2244,32 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       </div>
 
+      {/* ── Legal ── */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: darkMode ? "#8b949e" : "#475569", display: "flex", alignItems: "center", gap: 10 }}>
+          LEGAL
+          <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
+        </h3>
+        <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>Política de Privacidade</p>
+              <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
+            </div>
+            <a href="https://raw.githubusercontent.com/mcmeskajr/trackall/main/public/privacy.pdf" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
+              Ver PDF →
+            </a>
+          </div>
+          <div style={{ height: 1, background: darkMode ? "#21262d" : "#e8e0d5" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>Versão da App</p>
+              <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── Zona de Perigo ── */}
       {(() => {
         const [confirmDelete, setConfirmDelete] = useState(false);
