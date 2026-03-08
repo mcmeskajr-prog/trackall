@@ -211,18 +211,21 @@ const MEDIA_TYPES = [
   { id: "comics", label: "Comics", icon: "💬" },
 ];
 
-// Gera variações de cor baseadas no accent — hue rotation por índice
+// Gera variações subtis do accent — hue ±10° + brilho ligeiramente diferente
 function accentVariant(hex, index) {
   try {
     const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
     const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
     let h = 0;
     if (d) { h = max===r ? ((g-b)/d)%6 : max===g ? (b-r)/d+2 : (r-g)/d+4; h = ((h*60)+360)%360; }
-    const s = max ? d/max : 0, v = max;
-    // Rodar hue por incrementos de 28° por índice, manter saturation/value
-    const nh = (h + index * 28) % 360;
-    const hi = Math.floor(nh/60), f = nh/60-hi, p = v*(1-s), q = v*(1-f*s), tv = v*(1-(1-f)*s);
-    const [nr,ng,nb] = [[v,tv,p],[q,v,p],[p,v,tv],[p,q,v],[tv,p,v],[v,p,q]][hi];
+    const s = max ? d/max : 0;
+    // Pequenas variações: hue ±10°, valor ±8%
+    const shifts = [[0,0],[10,0.06],[-10,0.06],[18,-0.05],[-18,-0.05],[8,0.10]];
+    const [dh, dv] = shifts[index % shifts.length];
+    const nh = (h + dh + 360) % 360;
+    const nv = Math.min(1, Math.max(0.3, max + dv));
+    const hi = Math.floor(nh/60), f = nh/60-hi, p = nv*(1-s), q = nv*(1-f*s), tv = nv*(1-(1-f)*s);
+    const [nr,ng,nb] = [[nv,tv,p],[q,nv,p],[p,nv,tv],[p,q,nv],[tv,p,nv],[nv,p,q]][hi];
     return '#'+[nr,ng,nb].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('');
   } catch { return hex; }
 }
@@ -1957,29 +1960,37 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                         <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
                         <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
                       </div>
-                      {/* Grid 4 colunas, sem bordas */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                        {favByType[t.id].map(item => {
-                          const coverSrc = item.customCover || item.cover;
-                          return (
-                            <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                              <div style={{ aspectRatio: "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.4)" }}
-                                onMouseEnter={e => e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"}
-                                onMouseLeave={e => e.currentTarget.style.transform = "translateY(0) scale(1)"}>
-                                {coverSrc
-                                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>
-                                }
-                                {item.userRating > 0 && (
-                                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
-                                )}
-                              </div>
-                              <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                                style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>✕</button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
+                      {(() => {
+                        const count = favByType[t.id].length;
+                        // Tamanho da capa: quanto menos itens, maior a capa
+                        const cardW = count === 1 ? 120 : count === 2 ? 110 : count === 3 ? 100 : count === 4 ? 90 : 82;
+                        const useScroll = count <= 6;
+                        return (
+                          <div style={useScroll ? { display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                            {favByType[t.id].map(item => {
+                              const coverSrc = item.customCover || item.cover;
+                              return (
+                                <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}>
+                                  <div style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.4)" }}
+                                    onMouseEnter={e => e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"}
+                                    onMouseLeave={e => e.currentTarget.style.transform = "translateY(0) scale(1)"}>
+                                    {coverSrc
+                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>
+                                    }
+                                    {item.userRating > 0 && (
+                                      <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                                    )}
+                                  </div>
+                                  <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                    style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>✕</button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
