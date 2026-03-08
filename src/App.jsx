@@ -211,6 +211,18 @@ const MEDIA_TYPES = [
   { id: "comics", label: "Comics", icon: "💬" },
 ];
 
+const TYPE_COLORS = {
+  anime:       "#6366f1",
+  manga:       "#dc2626",
+  series:      "#0891b2",
+  filmes:      "#d97706",
+  jogos:       "#16a34a",
+  livros:      "#7c3aed",
+  manhwa:      "#db2777",
+  lightnovels: "#9333ea",
+  comics:      "#ea580c",
+};
+
 const STATUS_OPTIONS = [
   { id: "assistindo", label: "Em Curso", color: "#f97316", emoji: "▶" },
   { id: "completo", label: "Completo", color: "#10b981", emoji: "✓" },
@@ -1228,7 +1240,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const isChapterType = CHAPTER_TYPES.includes(item.type);
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
   const isFavorite = favorites.some(f => f.id === item.id);
-  const canAddFavorite = !isFavorite && favorites.length < 4;
+  const canAddFavorite = !isFavorite && favorites.length < 30;
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
@@ -1322,7 +1334,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                         cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed",
                         fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600,
                         opacity: !canAddFavorite && !isFavorite ? 0.4 : 1,
-                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : "Favoritos cheios (máx. 4)"}>
+                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : "Favoritos cheios (máx. 30)"}>
                         {isFavorite ? "★ Favorito" : "☆ Favorito"}
                       </button>
                     )}
@@ -1459,9 +1471,12 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
     }
   };
 
+  const typeColor = TYPE_COLORS[item.type];
   return (
-    <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
-      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
+    <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}
+      onMouseEnter={e => { if (typeColor) e.currentTarget.querySelector('.media-thumb').style.outline = `2px solid ${typeColor}88`; }}
+      onMouseLeave={e => { if (typeColor) e.currentTarget.querySelector('.media-thumb').style.outline = 'none'; }}>
+      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id), transition: "outline 0.15s" }}>
         {coverSrc && !imgError ? (
           <img
             src={coverSrc}
@@ -1477,18 +1492,31 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
           </div>
         )}
-        {/* Badges — status only, rating shown on hover */}
-        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start" }}>
-          {!inLib && item.score && (
-            <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-              ★ {item.score}
-            </span>
-          )}
-          {status && status.id !== "completo" && (
-            <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white", marginLeft: "auto" }}>
-              {status.emoji}
-            </span>
-          )}
+        {/* Type color badge + status badge */}
+        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          {/* Type badge */}
+          {(() => {
+            const tc = TYPE_COLORS[item.type];
+            const mt = MEDIA_TYPES.find(t => t.id === item.type);
+            if (!tc || !mt) return <span />;
+            return (
+              <span style={{ background: `${tc}dd`, borderRadius: 5, padding: "2px 5px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: "0.04em", backdropFilter: "blur(4px)" }}>
+                {mt.icon}
+              </span>
+            );
+          })()}
+          <div style={{ display: "flex", gap: 3 }}>
+            {!inLib && item.score && (
+              <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
+                ★ {item.score}
+              </span>
+            )}
+            {status && status.id !== "completo" && (
+              <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white" }}>
+                {status.emoji}
+              </span>
+            )}
+          </div>
         </div>
         {/* Hover rating overlay — desktop rico */}
         <div className="rating-hover">
@@ -1892,53 +1920,138 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       <div style={{ padding: "0 16px" }}>
 
 
-      {/* ── Favoritos — Letterboxd style ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 16px" }}>
-          <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
-          <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}/4</span>
-        </div>
-        {favorites.length === 0 ? (
-          <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-            <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item da biblioteca e clica em ☆ Favorito</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", padding: "0 16px", gap: 6 }}>
-            {favorites.map((item) => {
-              const coverSrc = item.customCover || item.cover;
-              return (
-                <div key={item.id} className="media-thumb" onClick={() => onOpen && onOpen(item)} style={{
-                  aspectRatio: "2/3", borderRadius: 8, background: gradientFor(item.id),
-                  cursor: "pointer", overflow: "hidden",
-                }}>
-                  {coverSrc
-                    ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
-                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                  }
-                  <div className="rating-hover" style={{ borderRadius: 8 }}>
-                    {item.userRating > 0 ? (
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ marginTop: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #ef444466", background: "rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, fontFamily: "inherit" }}>✕</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {/* Slots vazios para completar 4 */}
-            {Array.from({ length: 4 - favorites.length }).map((_, i) => (
-              <div key={`empty-${i}`} style={{ aspectRatio: "2/3", borderRadius: 8, border: "1px dashed #30363d", background: darkMode ? "#161b2288" : "#f1f5f8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 20, color: "#30363d" }}>+</span>
+      {/* ── Favoritos — Hall of Fame + Categorias + Grid ── */}
+      {(() => {
+        const [favMode, setFavMode] = useState("categories"); // categories | grid
+        const [hofQuoteEdit, setHofQuoteEdit] = useState(false);
+        const [hofQuoteDraft, setHofQuoteDraft] = useState("");
+
+        // Hall of Fame: primeiro item marcado como hallOfFame nos dados do profile, ou primeiro favorito
+        const hofItem = profile.hallOfFame ? favorites.find(f => f.id === profile.hallOfFame) || favorites[0] : favorites[0];
+        const restFavs = hofItem ? favorites.filter(f => f.id !== hofItem.id) : favorites;
+
+        // Agrupar restantes por tipo
+        const byType = {};
+        restFavs.forEach(f => {
+          if (!byType[f.type]) byType[f.type] = [];
+          byType[f.type].push(f);
+        });
+        const activeTypes = MEDIA_TYPES.slice(1).filter(t => byType[t.id]?.length > 0);
+
+        const FavThumb = ({ item, size = 90, showRemove = true }) => {
+          const coverSrc = item.customCover || item.cover;
+          const tc = TYPE_COLORS[item.type];
+          return (
+            <div onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer", position: "relative", width: size, flexShrink: 0 }}>
+              <div style={{ width: size, height: Math.round(size * 1.45), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc || accent}44`, transition: "border-color 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = (tc || accent) + "aa"}
+                onMouseLeave={e => e.currentTarget.style.borderColor = (tc || accent) + "44"}>
+                {coverSrc
+                  ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                }
+                {item.userRating > 0 && (
+                  <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+                )}
               </div>
-            ))}
+              {showRemove && (
+                <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <div style={{ marginBottom: 24 }}>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length} itens</span>
+                {favorites.length > 1 && (
+                  <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
+                    {[{id:"categories",icon:"⊞"},{id:"grid",icon:"▦"}].map(m => (
+                      <button key={m.id} onClick={() => setFavMode(m.id)} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, background: favMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: favMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {favorites.length === 0 ? (
+              <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+                <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
+              </div>
+            ) : favMode === "grid" ? (
+              /* ── Grid livre 3 colunas ── */
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, padding: "0 16px" }}>
+                {favorites.map(item => (
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
+                    <div style={{ aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${TYPE_COLORS[item.type] || accent}33` }}>
+                      {(item.customCover || item.cover)
+                        ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      {item.userRating > 0 && <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>}
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* ── Modo Categorias — Hall of Fame + rows por tipo ── */
+              <div>
+                {/* Hall of Fame */}
+                {hofItem && (
+                  <div style={{ margin: "0 16px 16px", position: "relative" }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#f59e0b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      🏆 HALL OF FAME
+                    </div>
+                    <div onClick={() => onOpen && onOpen(hofItem)} style={{ borderRadius: 14, overflow: "hidden", position: "relative", cursor: "pointer", height: 160, background: gradientFor(hofItem.id), border: `2px solid ${TYPE_COLORS[hofItem.type] || accent}55` }}>
+                      {(hofItem.customCover || hofItem.cover)
+                        ? <img src={hofItem.customCover || hofItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} onError={e => e.currentTarget.style.display="none"} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>{MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon}</div>
+                      }
+                      {/* Gradient overlay */}
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)" }} />
+                      {/* Info */}
+                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: TYPE_COLORS[hofItem.type] || accent, fontWeight: 800, marginBottom: 3 }}>
+                              {MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon} {MEDIA_TYPES.find(t => t.id === hofItem.type)?.label}
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 900, color: "white", lineHeight: 1.2 }}>{hofItem.title}</div>
+                            {profile.hallOfFameQuote && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", fontStyle: "italic", marginTop: 4 }}>"{profile.hallOfFameQuote}"</div>}
+                          </div>
+                          {hofItem.userRating > 0 && (
+                            <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900, flexShrink: 0 }}>★ {hofItem.userRating}</div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Remove btn */}
+                      <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(hofItem); }} style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", border: "none", background: "rgba(239,68,68,0.85)", color: "white", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rows por tipo */}
+                {activeTypes.map(t => (
+                  <div key={t.id} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 16px", marginBottom: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: TYPE_COLORS[t.id] || accent, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_COLORS[t.id] || (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.icon} {t.label}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, padding: "0 16px", overflowX: "auto", scrollbarWidth: "none" }}>
+                      {byType[t.id].map(item => <FavThumb key={item.id} item={item} size={85} />)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
@@ -2499,22 +2612,59 @@ function FriendsView({ user, accent }) {
           )}
         </div>
 
-        {/* Favoritos */}
-        {favs.length > 0 && (
-          <div style={{ padding: "0 16px", marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>FAVORITOS</h3>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-              {favs.map(item => (
-                <div key={item.id} style={{ flexShrink: 0, width: 110 }}>
-                  <div style={{ width: 110, height: 158, borderRadius: 10, overflow: "hidden", background: "#21262d", border: `1px solid ${accent}33` }}>
-                    {(item.customCover || item.cover) ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎭</div>}
+        {/* Favoritos — novo formato */}
+        {favs.length > 0 && (() => {
+          const hofItem = favs[0];
+          const restFavs = favs.slice(1);
+          const byType = {};
+          restFavs.forEach(f => { if (!byType[f.type]) byType[f.type] = []; byType[f.type].push(f); });
+          const activeTypes = MEDIA_TYPES.slice(1).filter(t => byType[t.id]?.length > 0);
+          return (
+            <div style={{ padding: "0 16px", marginBottom: 24 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>FAVORITES</h3>
+              {/* Hall of Fame */}
+              {hofItem && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#f59e0b", letterSpacing: "0.1em", marginBottom: 8 }}>🏆 HALL OF FAME</div>
+                  <div style={{ borderRadius: 12, overflow: "hidden", position: "relative", height: 140, background: gradientFor(hofItem.id), border: `2px solid ${TYPE_COLORS[hofItem.type] || accent}44` }}>
+                    {(hofItem.customCover || hofItem.cover) && <img src={hofItem.customCover || hofItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} onError={e => e.currentTarget.style.display="none"} />}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: TYPE_COLORS[hofItem.type] || accent, fontWeight: 800, marginBottom: 2 }}>{MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon} {MEDIA_TYPES.find(t => t.id === hofItem.type)?.label}</div>
+                        <div style={{ fontSize: 15, fontWeight: 900, color: "white" }}>{hofItem.title}</div>
+                      </div>
+                      {hofItem.userRating > 0 && <div style={{ fontSize: 20, color: "#f59e0b", fontWeight: 900 }}>★ {hofItem.userRating}</div>}
+                    </div>
                   </div>
-                  <p style={{ fontSize: 11, color: "#8b949e", marginTop: 6, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                </div>
+              )}
+              {/* Rows por tipo */}
+              {activeTypes.map(t => (
+                <div key={t.id} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: TYPE_COLORS[t.id] || accent }} />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: TYPE_COLORS[t.id] || "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.icon} {t.label}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+                    {byType[t.id].map(item => {
+                      const tc = TYPE_COLORS[item.type];
+                      return (
+                        <div key={item.id} style={{ flexShrink: 0, width: 80, position: "relative" }}>
+                          <div style={{ width: 80, height: 116, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `1.5px solid ${tc || accent}44` }}>
+                            {(item.customCover || item.cover) ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
+                            {item.userRating > 0 && <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 4, padding: "1px 4px", fontSize: 9, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>}
+                          </div>
+                          <p style={{ fontSize: 10, color: "#8b949e", marginTop: 4, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Completados */}
         {completados.length > 0 && (
@@ -2544,13 +2694,15 @@ function FriendsView({ user, accent }) {
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         {[
+          { id: "feed", label: "🕐 Feed" },
           { id: "friends", label: `Amigos (${accepted.length})` },
           { id: "search", label: "Pesquisar" },
           { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
+            flexShrink: 0,
             padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
             fontFamily: "inherit", fontSize: 13, fontWeight: 700,
             background: tab === t.id ? accent : "#21262d",
@@ -2558,6 +2710,118 @@ function FriendsView({ user, accent }) {
           }}>{t.label}</button>
         ))}
       </div>
+
+      {/* ── Feed de Atividade ── */}
+      {tab === "feed" && (() => {
+        const [feedItems, setFeedItems] = useState([]);
+        const [feedLoading, setFeedLoading] = useState(true);
+
+        useEffect(() => {
+          if (tab !== "feed") return;
+          const loadFeed = async () => {
+            setFeedLoading(true);
+            try {
+              // Buscar biblioteca de todos os amigos aceites
+              const allActivity = [];
+              await Promise.all(accepted.map(async (f) => {
+                const friendInfo = getFriendInfo(f);
+                const lib = await supa.getFriendLibrary(friendInfo.id);
+                const libItems = Object.values(lib || {});
+                // Items com addedAt, ordenados por data
+                const recent = libItems
+                  .filter(i => i.addedAt && (i.userStatus === "completo" || i.userStatus === "assistindo"))
+                  .map(i => ({ ...i, friendName: friendInfo.name || "Utilizador", friendAvatar: friendInfo.avatar || null, friendId: friendInfo.id }));
+                allActivity.push(...recent);
+              }));
+              // Ordenar por data desc
+              allActivity.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+              setFeedItems(allActivity.slice(0, 60));
+            } catch (e) {
+              console.error(e);
+            }
+            setFeedLoading(false);
+          };
+          loadFeed();
+        }, [tab, accepted.length]);
+
+        const timeAgo = (ts) => {
+          if (!ts) return "";
+          const diff = Date.now() - ts;
+          const m = Math.floor(diff / 60000);
+          if (m < 1) return "agora";
+          if (m < 60) return `há ${m}m`;
+          const h = Math.floor(m / 60);
+          if (h < 24) return `há ${h}h`;
+          const d = Math.floor(h / 24);
+          if (d < 30) return `há ${d}d`;
+          return `há ${Math.floor(d/30)}mes`;
+        };
+
+        if (feedLoading) return (
+          <div style={{ padding: "40px 16px", textAlign: "center", color: "#484f58" }}>A carregar feed...</div>
+        );
+
+        if (accepted.length === 0) return (
+          <div style={{ padding: "40px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+            <p style={{ color: "#484f58", fontSize: 14 }}>Adiciona amigos para ver a atividade deles aqui.</p>
+          </div>
+        );
+
+        if (feedItems.length === 0) return (
+          <div style={{ padding: "40px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+            <p style={{ color: "#484f58", fontSize: 14 }}>Ainda não há atividade recente dos teus amigos.</p>
+          </div>
+        );
+
+        return (
+          <div style={{ padding: "0 16px" }}>
+            {feedItems.map((item, idx) => {
+              const tc = TYPE_COLORS[item.type];
+              const mt = MEDIA_TYPES.find(t => t.id === item.type);
+              const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+              const isCompleto = item.userStatus === "completo";
+              return (
+                <div key={`${item.friendId}-${item.id}-${idx}`} style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: "1px solid #21262d22" }}>
+                  {/* Avatar amigo */}
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#21262d", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: `2px solid ${accent}33` }}>
+                    {item.friendAvatar ? <img src={item.friendAvatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : "👤"}
+                  </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, lineHeight: 1.4, marginBottom: 6 }}>
+                      <span style={{ fontWeight: 800, color: accent }}>{item.friendName}</span>
+                      <span style={{ color: "#8b949e" }}> {isCompleto ? "completou" : "está a ver"} </span>
+                      <span style={{ fontWeight: 700 }}>{item.title}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {/* Badge tipo */}
+                      {mt && tc && (
+                        <span style={{ background: `${tc}22`, color: tc, border: `1px solid ${tc}44`, borderRadius: 5, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>
+                          {mt.icon} {mt.label}
+                        </span>
+                      )}
+                      {/* Rating */}
+                      {item.userRating > 0 && (
+                        <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</span>
+                      )}
+                      {/* Tempo */}
+                      <span style={{ fontSize: 11, color: "#484f58", marginLeft: "auto" }}>{timeAgo(item.addedAt)}</span>
+                    </div>
+                  </div>
+                  {/* Capa pequena */}
+                  {coverSrc && (
+                    <div style={{ width: 40, height: 58, borderRadius: 6, overflow: "hidden", flexShrink: 0, border: `1px solid ${tc || accent}33` }}>
+                      <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Friends list */}
       {tab === "friends" && (
@@ -3881,7 +4145,7 @@ export default function TrackAll() {
       newFavs = favorites.filter(f => f.id !== item.id);
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
-      if (favorites.length >= 4) { showNotif("Máximo de 4 favoritos!", "#ef4444"); return; }
+      if (favorites.length >= 30) { showNotif("Máximo de 30 favoritos!", "#ef4444"); return; }
       newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, customCover: library[item.id]?.customCover || item.customCover || "", type: item.type }];
       showNotif("Adicionado aos favoritos! ★", "#f59e0b");
       if (navigator.vibrate) navigator.vibrate(50);
@@ -4354,6 +4618,32 @@ export default function TrackAll() {
               </div>
             </div>
 
+            {/* ── Stats strip rápido ── */}
+            {items.length > 0 && (() => {
+              const now = new Date();
+              const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+              const thisMonth = items.filter(i => i.addedAt && i.userStatus === "completo" && i.addedAt >= startOfMonth).length;
+              const rated = items.filter(i => i.userRating > 0);
+              const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
+              const totalCompleto = items.filter(i => i.userStatus === "completo").length;
+              const stats = [
+                { label: "este mês", value: thisMonth, color: "#10b981", show: thisMonth > 0 },
+                { label: "completados", value: totalCompleto, color: "#6366f1", show: totalCompleto > 0 },
+                { label: "média ★", value: avgRating, color: "#f59e0b", show: !!avgRating },
+              ].filter(s => s.show);
+              if (!stats.length) return null;
+              return (
+                <div style={{ display: "flex", gap: 8, padding: "10px 16px 0", overflowX: "auto", scrollbarWidth: "none" }}>
+                  {stats.map(s => (
+                    <div key={s.label} style={{ flexShrink: 0, background: darkMode ? "#161b22" : "rgba(255,255,255,0.8)", border: `1px solid ${s.color}33`, borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</span>
+                      <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600 }}>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             {/* Recent — filtered by homeFilter */}
             {items.length === 0 && (
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
@@ -4392,7 +4682,7 @@ export default function TrackAll() {
                       {onToggleCollapse && (
                         <button onClick={onToggleCollapse} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1, transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-flex", alignItems: "center", WebkitTapHighlightColor: "transparent" }}>▾</button>
                       )}
-                      <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", color: darkMode ? "#8b949e" : "#64748b", textTransform: "uppercase" }}>{icon} {title}</h2>
+                      <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", color: homeFilter.length === 1 ? (TYPE_COLORS[homeFilter[0]] || (darkMode ? "#8b949e" : "#64748b")) : (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase" }}>{icon} {title}</h2>
                       {homeFilter.length > 0 && (
                         <span style={{ fontSize: 10, color: accent, background: `${accent}22`, padding: "2px 6px", borderRadius: 20, fontWeight: 700 }}>
                           {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
