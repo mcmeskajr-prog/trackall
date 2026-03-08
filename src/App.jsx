@@ -211,6 +211,22 @@ const MEDIA_TYPES = [
   { id: "comics", label: "Comics", icon: "💬" },
 ];
 
+// Gera variações de cor baseadas no accent — hue rotation por índice
+function accentVariant(hex, index) {
+  try {
+    const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+    let h = 0;
+    if (d) { h = max===r ? ((g-b)/d)%6 : max===g ? (b-r)/d+2 : (r-g)/d+4; h = ((h*60)+360)%360; }
+    const s = max ? d/max : 0, v = max;
+    // Rodar hue por incrementos de 28° por índice, manter saturation/value
+    const nh = (h + index * 28) % 360;
+    const hi = Math.floor(nh/60), f = nh/60-hi, p = v*(1-s), q = v*(1-f*s), tv = v*(1-(1-f)*s);
+    const [nr,ng,nb] = [[v,tv,p],[q,v,p],[p,v,tv],[p,q,v],[tv,p,v],[v,p,q]][hi];
+    return '#'+[nr,ng,nb].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('');
+  } catch { return hex; }
+}
+
 const TYPE_COLORS = {
   anime:       "#6366f1",
   manga:       "#dc2626",
@@ -1909,9 +1925,8 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       <div style={{ padding: "0 16px" }}>
 
 
-      {/* ── Favoritos — Grid 4 colunas com separadores por tipo ── */}
+      {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
-        // Agrupar por tipo, mantendo ordem original
         const favByType = {};
         favorites.forEach(f => {
           if (!favByType[f.type]) favByType[f.type] = [];
@@ -1921,7 +1936,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
         return (
           <div style={{ marginBottom: 24 }}>
-            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
               <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
@@ -1932,38 +1946,36 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
-                  const tc = TYPE_COLORS[t.id] || accent;
+                  const tc = accentVariant(accent, tIdx);
                   return (
                     <div key={t.id}>
-                      {/* Separador de categoria */}
+                      {/* Label categoria */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.12em" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
                         <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
                       </div>
-                      {/* Grid 4 colunas */}
+                      {/* Grid 4 colunas, sem bordas */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                         {favByType[t.id].map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
                             <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                              <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc}33`, transition: "transform 0.15s, border-color 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = tc + "99"; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = tc + "33"; }}>
+                              <div style={{ aspectRatio: "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.4)" }}
+                                onMouseEnter={e => e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"}
+                                onMouseLeave={e => e.currentTarget.style.transform = "translateY(0) scale(1)"}>
                                 {coverSrc
                                   ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>
                                 }
                                 {item.userRating > 0 && (
                                   <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
                                 )}
-                                {/* Linha de cor no fundo */}
-                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: tc, opacity: 0.6 }} />
                               </div>
                               <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                                style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.9 }}>✕</button>
+                                style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>✕</button>
                             </div>
                           );
                         })}
