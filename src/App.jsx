@@ -1619,20 +1619,20 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             )}
           </div>
           {/* Cards com mais destaque */}
-          <div style={{
-            display: showAllCompleto ? "grid" : "flex",
-            gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(110px, 1fr))" : undefined,
-            gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
-            paddingBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
-          }}>
+          <div
+            onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
+            style={{
+              display: showAllCompleto ? "grid" : "flex",
+              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(110px, 1fr))" : undefined,
+              gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
+              paddingBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+            }}>
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               const tc = TYPE_COLORS[item.type];
               return (
-                <div key={item.id} className="fav-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 110, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : 110, height: 158, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.45)", transition: "transform 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.querySelector(".fav-overlay").style.opacity = "1"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.querySelector(".fav-overlay").style.opacity = "0"; }}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 110, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : 110, height: 158, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.45)", transition: "transform 0.15s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -4289,7 +4289,7 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
-          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+          .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
@@ -4331,6 +4331,8 @@ export default function TrackAll() {
           .fade-in { animation: fadeIn 0.2s ease; }
           .view-transition { animation: viewIn 0.18s ease both; }
           @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+          .recent-card:hover > div { transform: translateY(-3px); }
+          .recent-card:hover .fav-overlay { opacity: 1 !important; }
           .media-grid .card { animation: cardIn 0.22s ease both; }
           .media-grid[data-key] .card { animation: cardIn 0.22s ease both; }
           .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
@@ -4571,19 +4573,22 @@ export default function TrackAll() {
               const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
               const totalCompleto = items.filter(i => i.userStatus === "completo").length;
               const stats = [
-                { label: "este mês", value: thisMonth, color: "#10b981", show: thisMonth > 0 },
-                { label: "completados", value: totalCompleto, color: "#6366f1", show: totalCompleto > 0 },
-                { label: "média ★", value: avgRating, color: "#f59e0b", show: !!avgRating },
+                { label: "este mês", value: thisMonth, show: thisMonth > 0 },
+                { label: "completados", value: totalCompleto, show: totalCompleto > 0 },
+                { label: "média ★", value: avgRating, show: !!avgRating },
               ].filter(s => s.show);
               if (!stats.length) return null;
               return (
                 <div style={{ display: "flex", gap: 8, padding: "10px 16px 0", overflowX: "auto", scrollbarWidth: "none" }}>
-                  {stats.map(s => (
-                    <div key={s.label} style={{ flexShrink: 0, background: darkMode ? "#161b22" : "rgba(255,255,255,0.8)", border: `1px solid ${s.color}33`, borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</span>
-                      <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600 }}>{s.label}</span>
-                    </div>
-                  ))}
+                  {stats.map((s, si) => {
+                    const c = accentVariant(accent, si);
+                    return (
+                      <div key={s.label} style={{ flexShrink: 0, background: darkMode ? "#161b22" : "rgba(255,255,255,0.8)", border: `1px solid ${c}44`, borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 20, fontWeight: 900, color: c }}>{s.value}</span>
+                        <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600 }}>{s.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
