@@ -2237,7 +2237,67 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             </div>
           ))}
         </div>
+        {/* TMDB Attribution — required by TMDB ToS */}
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #21262d", display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" style={{ height: 14, opacity: 0.7 }} />
+          <span style={{ fontSize: 10, color: "#484f58" }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
+        </div>
       </div>
+
+      {/* ── Zona de Perigo ── */}
+      {(() => {
+        const [confirmDelete, setConfirmDelete] = useState(false);
+        const [deleting, setDeleting] = useState(false);
+        const handleDeleteAccount = async () => {
+          if (!confirmDelete) { setConfirmDelete(true); return; }
+          setDeleting(true);
+          try {
+            // 1. Apagar todos os dados da biblioteca
+            await supabase.from("library").delete().eq("user_id", user.id);
+            // 2. Apagar friendships
+            await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+            // 3. Apagar perfil
+            await supabase.from("profiles").delete().eq("id", user.id);
+            // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
+            await supabase.auth.signOut();
+            onSignOut && onSignOut();
+          } catch (e) {
+            console.error(e);
+            setDeleting(false);
+            setConfirmDelete(false);
+          }
+        };
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
+              ZONA DE PERIGO
+              <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
+            </h3>
+            <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
+              <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
+                Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+              </p>
+              {!confirmDelete ? (
+                <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  Apagar conta
+                </button>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
+                      {deleting ? "A apagar..." : "Sim, apagar tudo"}
+                    </button>
+                    <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
             </div>{/* end padding div */}
     </div>
