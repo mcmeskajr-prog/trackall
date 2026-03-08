@@ -1492,31 +1492,18 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
           </div>
         )}
-        {/* Type color badge + status badge */}
-        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          {/* Type badge */}
-          {(() => {
-            const tc = TYPE_COLORS[item.type];
-            const mt = MEDIA_TYPES.find(t => t.id === item.type);
-            if (!tc || !mt) return <span />;
-            return (
-              <span style={{ background: `${tc}dd`, borderRadius: 5, padding: "2px 5px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: "0.04em", backdropFilter: "blur(4px)" }}>
-                {mt.icon}
-              </span>
-            );
-          })()}
-          <div style={{ display: "flex", gap: 3 }}>
-            {!inLib && item.score && (
-              <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-                ★ {item.score}
-              </span>
-            )}
-            {status && status.id !== "completo" && (
-              <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white" }}>
-                {status.emoji}
-              </span>
-            )}
-          </div>
+        {/* Badges — status + score sem ícone de tipo */}
+        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 3 }}>
+          {!inLib && item.score && (
+            <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
+              ★ {item.score}
+            </span>
+          )}
+          {status && status.id !== "completo" && (
+            <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white" }}>
+              {status.emoji}
+            </span>
+          )}
         </div>
         {/* Hover rating overlay — desktop rico */}
         <div className="rating-hover">
@@ -1615,34 +1602,36 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
               </button>
             )}
           </div>
-          {/* Large cards like Favoritos */}
+          {/* Cards com mais destaque */}
           <div style={{
             display: showAllCompleto ? "grid" : "flex",
-            gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(120px, 1fr))" : undefined,
+            gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(110px, 1fr))" : undefined,
             gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
-            paddingBottom: 4, scrollbarWidth: "none",
+            paddingBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
           }}>
-            {(showAllCompleto ? completados : completados.slice(0, 10)).map((item) => {
+            {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+              const tc = TYPE_COLORS[item.type];
               return (
-                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 120, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : 120, height: 172, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id) }}>
+                <div key={item.id} style={{ flexShrink: 0, width: showAllCompleto ? undefined : 110, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : 110, height: 158, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: `2px solid ${tc || (darkMode ? "#21262d" : "#e2e8f0")}44`, transition: "transform 0.15s, border-color 0.15s", boxShadow: "0 3px 12px rgba(0,0,0,0.4)" }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = (tc || accent) + "99"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = (tc || (darkMode ? "#21262d" : "#e2e8f0")) + "44"; }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
-                    {/* Bottom info bar */}
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)", padding: "18px 6px 6px" }}>
-                      <p style={{ fontSize: 11, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)", padding: "22px 7px 7px" }}>
+                      <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     </div>
                     {item.userRating > 0 && (
-                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.85)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#fbbf24", fontWeight: 700 }}>★ {item.userRating}</div>
+                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.88)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>
                     )}
+                    {tc && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: tc, opacity: 0.7 }} />}
                   </div>
-                  {/* Date below card — Letterboxd style */}
                   {item.addedAt && (
-                    <p style={{ fontSize: 10, color: "#484f58", marginTop: 4, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
-                      {new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })}
+                    <p style={{ fontSize: 10, color: "#484f58", marginTop: 5, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                      {new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}
                     </p>
                   )}
                 </div>
@@ -1920,43 +1909,35 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       <div style={{ padding: "0 16px" }}>
 
 
-      {/* ── Favoritos — Hall of Fame + Categorias + Grid ── */}
+      {/* ── Favoritos — Grid + Categorias ── */}
       {(() => {
         const [favMode, setFavMode] = useState("categories"); // categories | grid
-        const [hofQuoteEdit, setHofQuoteEdit] = useState(false);
-        const [hofQuoteDraft, setHofQuoteDraft] = useState("");
 
-        // Hall of Fame: primeiro item marcado como hallOfFame nos dados do profile, ou primeiro favorito
-        const hofItem = profile.hallOfFame ? favorites.find(f => f.id === profile.hallOfFame) || favorites[0] : favorites[0];
-        const restFavs = hofItem ? favorites.filter(f => f.id !== hofItem.id) : favorites;
-
-        // Agrupar restantes por tipo
-        const byType = {};
-        restFavs.forEach(f => {
-          if (!byType[f.type]) byType[f.type] = [];
-          byType[f.type].push(f);
+        // Agrupar por tipo
+        const favByType = {};
+        favorites.forEach(f => {
+          if (!favByType[f.type]) favByType[f.type] = [];
+          favByType[f.type].push(f);
         });
-        const activeTypes = MEDIA_TYPES.slice(1).filter(t => byType[t.id]?.length > 0);
+        const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
 
-        const FavThumb = ({ item, size = 90, showRemove = true }) => {
+        const FavThumb = ({ item, size = 90 }) => {
           const coverSrc = item.customCover || item.cover;
           const tc = TYPE_COLORS[item.type];
           return (
             <div onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer", position: "relative", width: size, flexShrink: 0 }}>
-              <div style={{ width: size, height: Math.round(size * 1.45), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc || accent}44`, transition: "border-color 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = (tc || accent) + "aa"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = (tc || accent) + "44"}>
+              <div style={{ width: size, height: Math.round(size * 1.48), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc || accent}33`, transition: "border-color 0.15s, transform 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = (tc || accent) + "99"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = (tc || accent) + "33"; e.currentTarget.style.transform = "translateY(0)"; }}>
                 {coverSrc
                   ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                 }
                 {item.userRating > 0 && (
-                  <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>
+                  <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>
                 )}
               </div>
-              {showRemove && (
-                <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
-              )}
+              <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", lineHeight: 1, opacity: 0.85 }}>✕</button>
             </div>
           );
         };
@@ -1967,11 +1948,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length} itens</span>
-                {favorites.length > 1 && (
+                <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
+                {favorites.length > 0 && (
                   <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
-                    {[{id:"categories",icon:"⊞"},{id:"grid",icon:"▦"}].map(m => (
-                      <button key={m.id} onClick={() => setFavMode(m.id)} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, background: favMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: favMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                    {[{id:"categories",label:"≡"},{id:"grid",label:"⊞"}].map(m => (
+                      <button key={m.id} onClick={() => setFavMode(m.id)} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: favMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: favMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.label}</button>
                     ))}
                   </div>
                 )}
@@ -1984,66 +1965,34 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               </div>
             ) : favMode === "grid" ? (
               /* ── Grid livre 3 colunas ── */
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, padding: "0 16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, padding: "0 16px" }}>
                 {favorites.map(item => (
                   <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${TYPE_COLORS[item.type] || accent}33` }}>
+                    <div style={{ aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${TYPE_COLORS[item.type] || accent}33`, transition: "transform 0.15s, border-color 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.35)" }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = (TYPE_COLORS[item.type] || accent) + "88"; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = (TYPE_COLORS[item.type] || accent) + "33"; }}>
                       {(item.customCover || item.cover)
                         ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                       }
-                      {item.userRating > 0 && <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>}
+                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>}
                     </div>
-                    <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                    <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.9 }}>✕</button>
                   </div>
                 ))}
               </div>
             ) : (
-              /* ── Modo Categorias — Hall of Fame + rows por tipo ── */
+              /* ── Modo Categorias ── */
               <div>
-                {/* Hall of Fame */}
-                {hofItem && (
-                  <div style={{ margin: "0 16px 16px", position: "relative" }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#f59e0b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                      🏆 HALL OF FAME
-                    </div>
-                    <div onClick={() => onOpen && onOpen(hofItem)} style={{ borderRadius: 14, overflow: "hidden", position: "relative", cursor: "pointer", height: 160, background: gradientFor(hofItem.id), border: `2px solid ${TYPE_COLORS[hofItem.type] || accent}55` }}>
-                      {(hofItem.customCover || hofItem.cover)
-                        ? <img src={hofItem.customCover || hofItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} onError={e => e.currentTarget.style.display="none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>{MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon}</div>
-                      }
-                      {/* Gradient overlay */}
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)" }} />
-                      {/* Info */}
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 14px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                          <div>
-                            <div style={{ fontSize: 10, color: TYPE_COLORS[hofItem.type] || accent, fontWeight: 800, marginBottom: 3 }}>
-                              {MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon} {MEDIA_TYPES.find(t => t.id === hofItem.type)?.label}
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 900, color: "white", lineHeight: 1.2 }}>{hofItem.title}</div>
-                            {profile.hallOfFameQuote && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", fontStyle: "italic", marginTop: 4 }}>"{profile.hallOfFameQuote}"</div>}
-                          </div>
-                          {hofItem.userRating > 0 && (
-                            <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900, flexShrink: 0 }}>★ {hofItem.userRating}</div>
-                          )}
-                        </div>
-                      </div>
-                      {/* Remove btn */}
-                      <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(hofItem); }} style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", border: "none", background: "rgba(239,68,68,0.85)", color: "white", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rows por tipo */}
                 {activeTypes.map(t => (
-                  <div key={t.id} style={{ marginBottom: 14 }}>
+                  <div key={t.id} style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 16px", marginBottom: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: TYPE_COLORS[t.id] || accent, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_COLORS[t.id] || (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.icon} {t.label}</span>
+                      <div style={{ width: 3, height: 14, borderRadius: 2, background: TYPE_COLORS[t.id] || accent, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_COLORS[t.id] || (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
+                      <span style={{ fontSize: 10, color: "#484f58" }}>({favByType[t.id].length})</span>
                     </div>
-                    <div style={{ display: "flex", gap: 8, padding: "0 16px", overflowX: "auto", scrollbarWidth: "none" }}>
-                      {byType[t.id].map(item => <FavThumb key={item.id} item={item} size={85} />)}
+                    <div style={{ display: "flex", gap: 8, padding: "4px 16px 4px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                      {favByType[t.id].map(item => <FavThumb key={item.id} item={item} size={88} />)}
                     </div>
                   </div>
                 ))}
@@ -2454,6 +2403,112 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 }
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
+function FeedTab({ accepted, getFriendInfo, accent, darkMode }) {
+  const [feedItems, setFeedItems] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeed = async () => {
+      setFeedLoading(true);
+      try {
+        const allActivity = [];
+        await Promise.all(accepted.map(async (f) => {
+          const friendInfo = getFriendInfo(f);
+          const lib = await supa.getFriendLibrary(friendInfo.id);
+          const libItems = Object.values(lib || {});
+          const recent = libItems
+            .filter(i => i.addedAt && (i.userStatus === "completo" || i.userStatus === "assistindo"))
+            .map(i => ({ ...i, friendName: friendInfo.name || "Utilizador", friendAvatar: friendInfo.avatar || null, friendId: friendInfo.id }));
+          allActivity.push(...recent);
+        }));
+        allActivity.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+        setFeedItems(allActivity.slice(0, 80));
+      } catch (e) { console.error(e); }
+      setFeedLoading(false);
+    };
+    loadFeed();
+  }, [accepted.length]);
+
+  const timeAgo = (ts) => {
+    if (!ts) return "";
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "agora";
+    if (m < 60) return `há ${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `há ${h}h`;
+    const d = Math.floor(h / 24);
+    if (d < 30) return `há ${d}d`;
+    return `há ${Math.floor(d / 30)}mes`;
+  };
+
+  if (accepted.length === 0) return (
+    <div style={{ padding: "60px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>👥</div>
+      <p style={{ color: "#484f58", fontSize: 14 }}>Adiciona amigos para ver a atividade aqui.</p>
+    </div>
+  );
+
+  if (feedLoading) return (
+    <div style={{ padding: "60px 16px", textAlign: "center", color: "#484f58" }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+      A carregar feed...
+    </div>
+  );
+
+  if (feedItems.length === 0) return (
+    <div style={{ padding: "60px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 44, marginBottom: 12 }}>📭</div>
+      <p style={{ color: "#484f58", fontSize: 14 }}>Ainda não há atividade recente dos teus amigos.</p>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "0 16px" }}>
+      {feedItems.map((item, idx) => {
+        const tc = TYPE_COLORS[item.type];
+        const mt = MEDIA_TYPES.find(t => t.id === item.type);
+        const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+        const isCompleto = item.userStatus === "completo";
+        return (
+          <div key={`${item.friendId}-${item.id}-${idx}`} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` }}>
+            {/* Avatar */}
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#21262d", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, border: `2px solid ${accent}44` }}>
+              {item.friendAvatar ? <img src={item.friendAvatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} /> : "👤"}
+            </div>
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 5 }}>
+                <span style={{ fontWeight: 800, color: accent }}>{item.friendName}</span>
+                <span style={{ color: darkMode ? "#6b7280" : "#94a3b8" }}> {isCompleto ? "completou" : "está a ver"} </span>
+                <span style={{ fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117" }}>{item.title}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {mt && tc && (
+                  <span style={{ background: `${tc}18`, color: tc, borderRadius: 6, padding: "2px 7px", fontSize: 10, fontWeight: 800, letterSpacing: "0.03em" }}>
+                    {mt.label}
+                  </span>
+                )}
+                {item.userRating > 0 && (
+                  <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>
+                )}
+                <span style={{ fontSize: 11, color: "#484f58", marginLeft: "auto" }}>{timeAgo(item.addedAt)}</span>
+              </div>
+            </div>
+            {/* Capa */}
+            <div style={{ width: 44, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0, border: `1.5px solid ${tc || accent}33`, background: "#161b22" }}>
+              {coverSrc
+                ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{mt?.icon}</div>
+              }
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function FriendsView({ user, accent }) {
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
@@ -2712,116 +2767,7 @@ function FriendsView({ user, accent }) {
       </div>
 
       {/* ── Feed de Atividade ── */}
-      {tab === "feed" && (() => {
-        const [feedItems, setFeedItems] = useState([]);
-        const [feedLoading, setFeedLoading] = useState(true);
-
-        useEffect(() => {
-          if (tab !== "feed") return;
-          const loadFeed = async () => {
-            setFeedLoading(true);
-            try {
-              // Buscar biblioteca de todos os amigos aceites
-              const allActivity = [];
-              await Promise.all(accepted.map(async (f) => {
-                const friendInfo = getFriendInfo(f);
-                const lib = await supa.getFriendLibrary(friendInfo.id);
-                const libItems = Object.values(lib || {});
-                // Items com addedAt, ordenados por data
-                const recent = libItems
-                  .filter(i => i.addedAt && (i.userStatus === "completo" || i.userStatus === "assistindo"))
-                  .map(i => ({ ...i, friendName: friendInfo.name || "Utilizador", friendAvatar: friendInfo.avatar || null, friendId: friendInfo.id }));
-                allActivity.push(...recent);
-              }));
-              // Ordenar por data desc
-              allActivity.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-              setFeedItems(allActivity.slice(0, 60));
-            } catch (e) {
-              console.error(e);
-            }
-            setFeedLoading(false);
-          };
-          loadFeed();
-        }, [tab, accepted.length]);
-
-        const timeAgo = (ts) => {
-          if (!ts) return "";
-          const diff = Date.now() - ts;
-          const m = Math.floor(diff / 60000);
-          if (m < 1) return "agora";
-          if (m < 60) return `há ${m}m`;
-          const h = Math.floor(m / 60);
-          if (h < 24) return `há ${h}h`;
-          const d = Math.floor(h / 24);
-          if (d < 30) return `há ${d}d`;
-          return `há ${Math.floor(d/30)}mes`;
-        };
-
-        if (feedLoading) return (
-          <div style={{ padding: "40px 16px", textAlign: "center", color: "#484f58" }}>A carregar feed...</div>
-        );
-
-        if (accepted.length === 0) return (
-          <div style={{ padding: "40px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-            <p style={{ color: "#484f58", fontSize: 14 }}>Adiciona amigos para ver a atividade deles aqui.</p>
-          </div>
-        );
-
-        if (feedItems.length === 0) return (
-          <div style={{ padding: "40px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-            <p style={{ color: "#484f58", fontSize: 14 }}>Ainda não há atividade recente dos teus amigos.</p>
-          </div>
-        );
-
-        return (
-          <div style={{ padding: "0 16px" }}>
-            {feedItems.map((item, idx) => {
-              const tc = TYPE_COLORS[item.type];
-              const mt = MEDIA_TYPES.find(t => t.id === item.type);
-              const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-              const isCompleto = item.userStatus === "completo";
-              return (
-                <div key={`${item.friendId}-${item.id}-${idx}`} style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: "1px solid #21262d22" }}>
-                  {/* Avatar amigo */}
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#21262d", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: `2px solid ${accent}33` }}>
-                    {item.friendAvatar ? <img src={item.friendAvatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : "👤"}
-                  </div>
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, lineHeight: 1.4, marginBottom: 6 }}>
-                      <span style={{ fontWeight: 800, color: accent }}>{item.friendName}</span>
-                      <span style={{ color: "#8b949e" }}> {isCompleto ? "completou" : "está a ver"} </span>
-                      <span style={{ fontWeight: 700 }}>{item.title}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {/* Badge tipo */}
-                      {mt && tc && (
-                        <span style={{ background: `${tc}22`, color: tc, border: `1px solid ${tc}44`, borderRadius: 5, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>
-                          {mt.icon} {mt.label}
-                        </span>
-                      )}
-                      {/* Rating */}
-                      {item.userRating > 0 && (
-                        <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</span>
-                      )}
-                      {/* Tempo */}
-                      <span style={{ fontSize: 11, color: "#484f58", marginLeft: "auto" }}>{timeAgo(item.addedAt)}</span>
-                    </div>
-                  </div>
-                  {/* Capa pequena */}
-                  {coverSrc && (
-                    <div style={{ width: 40, height: 58, borderRadius: 6, overflow: "hidden", flexShrink: 0, border: `1px solid ${tc || accent}33` }}>
-                      <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
+      {tab === "feed" && <FeedTab accepted={accepted} getFriendInfo={getFriendInfo} accent={accent} darkMode={false} />}
 
       {/* Friends list */}
       {tab === "friends" && (
