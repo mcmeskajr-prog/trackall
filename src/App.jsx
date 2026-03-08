@@ -1909,11 +1909,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       <div style={{ padding: "0 16px" }}>
 
 
-      {/* ── Favoritos — Grid + Categorias ── */}
+      {/* ── Favoritos — Grid 4 colunas com separadores por tipo ── */}
       {(() => {
-        const [favMode, setFavMode] = useState("categories"); // categories | grid
-
-        // Agrupar por tipo
+        // Agrupar por tipo, mantendo ordem original
         const favByType = {};
         favorites.forEach(f => {
           if (!favByType[f.type]) favByType[f.type] = [];
@@ -1921,81 +1919,58 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         });
         const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
 
-        const FavThumb = ({ item, size = 90 }) => {
-          const coverSrc = item.customCover || item.cover;
-          const tc = TYPE_COLORS[item.type];
-          return (
-            <div onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer", position: "relative", width: size, flexShrink: 0 }}>
-              <div style={{ width: size, height: Math.round(size * 1.48), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc || accent}33`, transition: "border-color 0.15s, transform 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = (tc || accent) + "99"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = (tc || accent) + "33"; e.currentTarget.style.transform = "translateY(0)"; }}>
-                {coverSrc
-                  ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                }
-                {item.userRating > 0 && (
-                  <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>
-                )}
-              </div>
-              <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", lineHeight: 1, opacity: 0.85 }}>✕</button>
-            </div>
-          );
-        };
-
         return (
           <div style={{ marginBottom: 24 }}>
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
-                {favorites.length > 0 && (
-                  <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
-                    {[{id:"categories",label:"≡"},{id:"grid",label:"⊞"}].map(m => (
-                      <button key={m.id} onClick={() => setFavMode(m.id)} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: favMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: favMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.label}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
             </div>
 
             {favorites.length === 0 ? (
               <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
-            ) : favMode === "grid" ? (
-              /* ── Grid livre 3 colunas ── */
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, padding: "0 16px" }}>
-                {favorites.map(item => (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${TYPE_COLORS[item.type] || accent}33`, transition: "transform 0.15s, border-color 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.35)" }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = (TYPE_COLORS[item.type] || accent) + "88"; }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = (TYPE_COLORS[item.type] || accent) + "33"; }}>
-                      {(item.customCover || item.cover)
-                        ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>}
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }} style={{ position: "absolute", top: -5, right: -5, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.9 }}>✕</button>
-                  </div>
-                ))}
-              </div>
             ) : (
-              /* ── Modo Categorias ── */
-              <div>
-                {activeTypes.map(t => (
-                  <div key={t.id} style={{ marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 16px", marginBottom: 8 }}>
-                      <div style={{ width: 3, height: 14, borderRadius: 2, background: TYPE_COLORS[t.id] || accent, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_COLORS[t.id] || (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
-                      <span style={{ fontSize: 10, color: "#484f58" }}>({favByType[t.id].length})</span>
+              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+                {activeTypes.map((t, tIdx) => {
+                  const tc = TYPE_COLORS[t.id] || accent;
+                  return (
+                    <div key={t.id}>
+                      {/* Separador de categoria */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
+                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
+                      </div>
+                      {/* Grid 4 colunas */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                        {favByType[t.id].map(item => {
+                          const coverSrc = item.customCover || item.cover;
+                          return (
+                            <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
+                              <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc}33`, transition: "transform 0.15s, border-color 0.15s", boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = tc + "99"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = tc + "33"; }}>
+                                {coverSrc
+                                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
+                                }
+                                {item.userRating > 0 && (
+                                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                                )}
+                                {/* Linha de cor no fundo */}
+                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: tc, opacity: 0.6 }} />
+                              </div>
+                              <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.9 }}>✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, padding: "4px 16px 4px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                      {favByType[t.id].map(item => <FavThumb key={item.id} item={item} size={88} />)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2667,56 +2642,46 @@ function FriendsView({ user, accent }) {
           )}
         </div>
 
-        {/* Favoritos — novo formato */}
+        {/* Favoritos — grid 4 colunas com separadores */}
         {favs.length > 0 && (() => {
-          const hofItem = favs[0];
-          const restFavs = favs.slice(1);
-          const byType = {};
-          restFavs.forEach(f => { if (!byType[f.type]) byType[f.type] = []; byType[f.type].push(f); });
-          const activeTypes = MEDIA_TYPES.slice(1).filter(t => byType[t.id]?.length > 0);
+          const favByType = {};
+          favs.forEach(f => { if (!favByType[f.type]) favByType[f.type] = []; favByType[f.type].push(f); });
+          const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
           return (
             <div style={{ padding: "0 16px", marginBottom: 24 }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>FAVORITES</h3>
-              {/* Hall of Fame */}
-              {hofItem && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#f59e0b", letterSpacing: "0.1em", marginBottom: 8 }}>🏆 HALL OF FAME</div>
-                  <div style={{ borderRadius: 12, overflow: "hidden", position: "relative", height: 140, background: gradientFor(hofItem.id), border: `2px solid ${TYPE_COLORS[hofItem.type] || accent}44` }}>
-                    {(hofItem.customCover || hofItem.cover) && <img src={hofItem.customCover || hofItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} onError={e => e.currentTarget.style.display="none"} />}
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)" }} />
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: TYPE_COLORS[hofItem.type] || accent, fontWeight: 800, marginBottom: 2 }}>{MEDIA_TYPES.find(t => t.id === hofItem.type)?.icon} {MEDIA_TYPES.find(t => t.id === hofItem.type)?.label}</div>
-                        <div style={{ fontSize: 15, fontWeight: 900, color: "white" }}>{hofItem.title}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
+                <span style={{ fontSize: 11, color: "#484f58" }}>{favs.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {activeTypes.map(t => {
+                  const tc = TYPE_COLORS[t.id] || accent;
+                  return (
+                    <div key={t.id}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
+                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
                       </div>
-                      {hofItem.userRating > 0 && <div style={{ fontSize: 20, color: "#f59e0b", fontWeight: 900 }}>★ {hofItem.userRating}</div>}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                        {favByType[t.id].map(item => {
+                          const coverSrc = item.customCover || item.cover;
+                          return (
+                            <div key={item.id} style={{ position: "relative" }}>
+                              <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc}33`, boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }}>
+                                {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>}
+                                {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: tc, opacity: 0.6 }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-              {/* Rows por tipo */}
-              {activeTypes.map(t => (
-                <div key={t.id} style={{ marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: TYPE_COLORS[t.id] || accent }} />
-                    <span style={{ fontSize: 10, fontWeight: 800, color: TYPE_COLORS[t.id] || "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.icon} {t.label}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
-                    {byType[t.id].map(item => {
-                      const tc = TYPE_COLORS[item.type];
-                      return (
-                        <div key={item.id} style={{ flexShrink: 0, width: 80, position: "relative" }}>
-                          <div style={{ width: 80, height: 116, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `1.5px solid ${tc || accent}44` }}>
-                            {(item.customCover || item.cover) ? <img src={item.customCover || item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
-                            {item.userRating > 0 && <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 4, padding: "1px 4px", fontSize: 9, color: "#f59e0b", fontWeight: 700 }}>★ {item.userRating}</div>}
-                          </div>
-                          <p style={{ fontSize: 10, color: "#8b949e", marginTop: 4, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
           );
         })()}
