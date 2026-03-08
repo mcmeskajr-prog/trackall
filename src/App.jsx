@@ -1968,35 +1968,33 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                       {(() => {
                         const count = favByType[t.id].length;
                         // Tamanho da capa: quanto menos itens, maior a capa
-                        const cardW = count === 1 ? 120 : count === 2 ? 110 : count === 3 ? 100 : count === 4 ? 90 : 82;
+                        const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
                         const useScroll = count <= 6;
                         return (
-                          <div style={useScroll ? { display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
                               return (
-                                <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}>
-                                  <div style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 3px 10px rgba(0,0,0,0.4)" }}
-                                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"; e.currentTarget.querySelector(".fav-overlay").style.opacity = "1"; }}
-                                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.querySelector(".fav-overlay").style.opacity = "0"; }}>
+                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}
+                                  onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
+                                  onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
+                                  <div className="fav-thumb-d" style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
                                     {coverSrc
                                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>
+                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
                                     }
-                                    {/* Overlay hover rating */}
-                                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 9 }}>
+                                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
                                       {item.userRating > 0
-                                        ? <div style={{ fontSize: 20, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
+                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
                                       }
                                     </div>
-                                    {/* Rating badge sempre visível */}
                                     {item.userRating > 0 && (
-                                      <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
                                     )}
                                   </div>
-                                  <button onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                                    style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>✕</button>
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
                               );
                             })}
