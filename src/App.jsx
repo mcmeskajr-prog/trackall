@@ -1623,7 +1623,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
             style={{
               display: showAllCompleto ? "grid" : "flex",
-              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(110px, 1fr))" : undefined,
+              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(140px, 1fr))" : undefined,
               gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
               paddingBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
             }}>
@@ -1631,8 +1631,8 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               const tc = TYPE_COLORS[item.type];
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 110, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : 110, height: 158, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.45)", transition: "transform 0.15s" }}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 140, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : 140, height: 200, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.45)", transition: "transform 0.15s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -1937,7 +1937,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         const favByType = {};
         favorites.forEach(f => {
           if (!favByType[f.type]) favByType[f.type] = [];
-          favByType[f.type].push(f);
+          // Merge com library para ter dados actualizados (rating, customCover, etc.)
+          const libData = items.find(i => i.id === f.id) || {};
+          favByType[f.type].push({ ...f, userRating: libData.userRating || f.userRating || 0, customCover: libData.customCover || f.customCover });
         });
         const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
 
@@ -1989,9 +1991,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
                                       }
                                     </div>
-                                    <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: item.userRating > 0 ? "#f59e0b" : "#484f58", fontWeight: 800 }}>
-                                      {item.userRating > 0 ? `★${item.userRating}` : "★ —"}
-                                    </div>
+
                                   </div>
                                   <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
@@ -4299,24 +4299,36 @@ export default function TrackAll() {
 
               {/* Nav principal */}
               <div style={{ padding: "4px 0" }}>
-                {navItems.map(n => (
-                  <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)}>
-                    <span className="ds-icon">{n.icon}</span>
-                    {n.label}
-                  </button>
-                ))}
+                {navItems.map((n, nIdx) => {
+                  const ic = accentVariant(accent, nIdx);
+                  return (
+                    <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`}
+                      onClick={() => setView(n.id)}
+                      style={view === n.id ? { background: `${ic}1a`, color: ic } : {}}>
+                      <span className="ds-icon" style={view === n.id ? { color: ic } : {}}>{n.icon}</span>
+                      {n.label}
+                    </button>
+                  );
+                })}
                 {/* Amigos — com SVG colorido */}
-                <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`} onClick={() => setView("friends")}>
-                  <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} />
-                      <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
-                      <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-                      <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
-                    </svg>
-                  </span>
-                  Amigos
-                </button>
+                {(() => {
+                  const ic = accentVariant(accent, navItems.length);
+                  return (
+                    <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`}
+                      onClick={() => setView("friends")}
+                      style={view === "friends" ? { background: `${ic}1a`, color: ic } : {}}>
+                      <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} />
+                          <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
+                          <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                          <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
+                        </svg>
+                      </span>
+                      Amigos
+                    </button>
+                  );
+                })()}
               </div>
 
               {/* Botão + Log Rápido */}
