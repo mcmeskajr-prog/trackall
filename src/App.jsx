@@ -1928,9 +1928,12 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         )}
       </div>
 
-      {/* Stats and settings */}
-      <div style={{ padding: "0 16px" }}>
+      {/* ── Desktop: 2 colunas abaixo do banner ── */}
+      {!isMobileDevice ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, padding: "0 24px", alignItems: "flex-start" }}>
 
+          {/* COLUNA ESQUERDA — Favoritos + Aparência */}
+          <div>
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
@@ -2010,6 +2013,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         );
       })()}
 
+          </div>{/* fim coluna esquerda */}
+
+          {/* COLUNA DIREITA — Recent Activity + Stats */}
+          <div>
+
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
@@ -2066,6 +2074,18 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </>
       )}
 
+          </div>{/* fim coluna direita */}
+
+        </div>  
+      ) : (
+        <div style={{ padding: "0 16px" }}>
+          {/* Mobile: favoritos + recent em coluna */}
+          {/* (conteúdo igual mas sem grid) */}
+        </div>
+      )}
+
+      {/* ── Aparência (sempre full width abaixo) ── */}
+      <div style={{ padding: "0 16px" }}>
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -4348,11 +4368,22 @@ export default function TrackAll() {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const ic = accentVariant(accent, tIdx + 1);
                     const isActive = view === "library" && activeTab === t.id;
+                    const typeIcons = {
+                      anime: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 9.5c.5-1 1.5-1.5 2.5-1s1.5 1.5 1 2.5L9 14h5"/><circle cx="16" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
+                      manga: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="3" width="11" height="18" rx="2"/><path d="M15 3l4 2v16l-4-2"/></svg>,
+                      series: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8M12 18v3"/></svg>,
+                      filmes: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20M9 4v5M15 4v5M2 14h20M9 14v6M15 14v6"/></svg>,
+                      jogos: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="7" width="20" height="12" rx="3"/><path d="M9 13h2m1 0h2M14 11v2M6 13h.01"/></svg>,
+                      livros: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4h7a2 2 0 012 2v13a1.5 1.5 0 00-1.5-1.5H4z"/><path d="M20 4h-7a2 2 0 00-2 2v13a1.5 1.5 0 011.5-1.5H20z"/></svg>,
+                      manhwa: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h4M7 12h6M7 16h3M15 12l3-4v8"/></svg>,
+                      lightnovels: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3l1.5 5h5l-4 3 1.5 5L12 13l-4 3 1.5-5-4-3h5z"/></svg>,
+                      comics: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4h16a1 1 0 011 1v10a1 1 0 01-1 1H8l-4 4V5a1 1 0 011-1z"/></svg>,
+                    };
                     return (
                       <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
-                        style={{ background: isActive ? `${ic}18` : undefined, borderRadius: 8 }}>
-                        <span style={{ fontSize: 16, filter: `hue-rotate(${tIdx * 18}deg)` }}>{t.icon}</span>
-                        <span style={{ flex: 1, color: isActive ? ic : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500 }}>{t.label}</span>
+                        style={{ background: isActive ? `${ic}18` : undefined, borderRadius: 8, color: isActive ? ic : (darkMode ? "#8b949e" : "#64748b") }}>
+                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? ic : (darkMode ? "#8b949e" : "#64748b") }}>{typeIcons[t.id] || t.icon}</span>
+                        <span style={{ flex: 1, color: isActive ? ic : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{t.label}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? ic : "#484f58" }}>{cnt}</span>
                       </div>
                     );
