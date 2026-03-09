@@ -4467,7 +4467,7 @@ export default function TrackAll() {
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
             width: 100%; padding: 11px 16px; border: none; background: none;
-            cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: Outfit, sans-serif; font-size: 14px; font-weight: 600;
             color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
             transition: all 0.15s; text-align: left;
           }
@@ -5177,8 +5177,7 @@ export default function TrackAll() {
             Perfil
           </button>
         </nav>
-        </div>
-      </div>
+      </div>{/* fim div principal */}
     </ThemeContext.Provider>
   );
 }
