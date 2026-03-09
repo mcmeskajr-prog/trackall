@@ -2395,7 +2395,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         );
       })()}
 
-            </div>{/* end padding div */}
+            </div>
     </div>
     {cropSrc && (
       <CropModal
@@ -2753,8 +2753,8 @@ function FriendsView({ user, accent }) {
             </div>
           </div>
         )}
-        </div>{/* fim relative zIndex:2 */}
-      </div>{/* fim overlay fixed */}
+        </div>
+      </div>
     );
   }
 
@@ -5059,7 +5059,7 @@ export default function TrackAll() {
             Perfil
           </button>
         </nav>
-        </div>{/* end zIndex:2 div */}
+        </div>
       </div>
     </ThemeContext.Provider>
   );
