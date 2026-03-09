@@ -2517,7 +2517,7 @@ function FeedTab({ accepted, getFriendInfo, accent, darkMode }) {
   );
 }
 
-function FriendsView({ user, accent }) {
+function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) {
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
   const [searchQ, setSearchQ] = useState("");
@@ -4910,7 +4910,7 @@ export default function TrackAll() {
 
         {/* ── PROFILE ── */}
         {view === "friends" && (
-          <FriendsView user={user} accent={accent} />
+          <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
         )}
         {view === "profile" && (
           <ProfileView
