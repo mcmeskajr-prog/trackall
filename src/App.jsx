@@ -1814,7 +1814,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
   return (
     <>
-    <div style={{ paddingBottom: 32, maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
       <div style={{ position: "relative", marginBottom: 64 }}>
@@ -2759,7 +2759,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: "16px 0 20px" }}>
+    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px" }}>
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
       {/* Tabs */}
@@ -4279,7 +4279,78 @@ export default function TrackAll() {
             background: bgOverlay,
           }} />
         )}
-        <div style={{ position: "relative", zIndex: 2 }}>
+        {/* ── Desktop Sidebar ── */}
+        {!isMobileDevice && (() => {
+          const libByType = Object.values(library);
+          const navItems = [
+            { id: "home", icon: "⌂", label: "Início" },
+            { id: "library", icon: "▤", label: "Biblioteca" },
+            { id: "friends", icon: "👥", label: "Amigos" },
+            { id: "profile", icon: "◉", label: "Perfil" },
+          ];
+          return (
+            <aside className="desktop-sidebar">
+              {/* Logo */}
+              <div style={{ padding: "20px 16px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "white", flexShrink: 0 }}>T</div>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
+                </div>
+              </div>
+
+              {/* Nav principal */}
+              <div style={{ padding: "4px 0" }}>
+                {navItems.map(n => (
+                  <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)}>
+                    <span className="ds-icon">{n.icon}</span>
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Botão + Log Rápido */}
+              <div style={{ padding: "8px 8px 4px" }}>
+                <button onClick={() => { setLogOpen(v => !v); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${accent}44`, background: `${accent}12`, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: accent, transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${accent}22`; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = `${accent}12`; }}>
+                  <span style={{ fontSize: 18 }}>+</span> Log Rápido
+                </button>
+              </div>
+
+              {/* Biblioteca por tipo */}
+              {libByType.length > 0 && (
+                <>
+                  <p className="ds-section" style={{ marginTop: 12 }}>Biblioteca</p>
+                  {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map(t => {
+                    const cnt = libByType.filter(i => i.type === t.id).length;
+                    return (
+                      <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}>
+                        <span style={{ fontSize: 16 }}>{t.icon}</span>
+                        <span style={{ flex: 1, color: darkMode ? "#c9d1d9" : "#374151" }}>{t.label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#484f58" }}>{cnt}</span>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Avatar + nome em baixo */}
+              <div style={{ marginTop: "auto", padding: "16px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setView("profile")}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
+                    <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} na biblioteca</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          );
+        })()}
+
+        <div className="desktop-main" style={{ position: "relative", zIndex: 2 }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -4368,6 +4439,49 @@ export default function TrackAll() {
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
           .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
+
+          /* ── Desktop layout ── */
+          @media (min-width: 900px) {
+            .bottom-nav { display: none !important; }
+            .top-nav-bar { display: none !important; }
+            .desktop-sidebar { display: flex !important; }
+            .desktop-main { margin-left: 220px !important; padding-bottom: 24px !important; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important; gap: 16px !important; }
+            .lib-sidebar { display: block !important; }
+            .profile-desktop { display: grid !important; grid-template-columns: 300px 1fr !important; gap: 24px !important; align-items: flex-start !important; }
+            .profile-desktop-left { display: block !important; }
+            .profile-desktop-right { display: block !important; }
+          }
+
+          /* ── Desktop sidebar ── */
+          .desktop-sidebar {
+            display: none;
+            position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
+            flex-direction: column;
+            background: ${darkMode ? "rgba(13,17,23,0.97)" : "rgba(255,252,247,0.97)"};
+            border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
+            backdrop-filter: blur(20px);
+            padding: 0 0 16px 0;
+            overflow-y: auto;
+          }
+          .ds-nav-btn {
+            display: flex; align-items: center; gap: 12px;
+            width: 100%; padding: 11px 16px; border: none; background: none;
+            cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
+            transition: all 0.15s; text-align: left;
+          }
+          .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
+          .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
+          .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+          .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 24px 6px; }
+          .ds-type-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 16px; font-size: 13px; cursor: pointer;
+            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 8px; margin: 0 8px;
+            transition: all 0.12s;
+          }
+          .ds-type-item:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; }
         `}</style>
 
         <Notification notif={notif} />
@@ -4453,7 +4567,7 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+        <nav className="top-nav-bar" style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
           <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
             <span style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
@@ -4492,7 +4606,7 @@ export default function TrackAll() {
 
         {/* ── HOME ── */}
         {view === "home" && (
-          <div className="fade-in view-transition">
+          <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
@@ -4781,7 +4895,7 @@ export default function TrackAll() {
 
         {/* ── LIBRARY ── */}
         {view === "library" && (
-          <div style={{ padding: "16px 12px" }} className="fade-in view-transition">
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -4913,6 +5027,7 @@ export default function TrackAll() {
           <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
         )}
         {view === "profile" && (
+          <div className="profile-desktop-wrap" style={{ padding: isMobileDevice ? 0 : "24px 28px" }}>
           <ProfileView
             profile={profile}
             library={library}
@@ -4955,6 +5070,7 @@ export default function TrackAll() {
             driveAutoSyncing={driveAutoSyncing}
             onOpen={setSelectedItem}
           />
+          </div>
         )}
 
         {/* PWA Install Banner */}
@@ -4974,7 +5090,7 @@ export default function TrackAll() {
         {logOpen && (
           <>
             <div onClick={() => { setLogOpen(false); setLogQuery(""); setLogResults([]); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 90 }} />
-            <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 100, background: darkMode ? "#161b22" : "#fff", borderRadius: "20px 20px 0 0", borderTop: `2px solid ${accent}55`, padding: "16px 16px 8px", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)", maxHeight: "70vh", overflowY: "auto" }}>
+            <div style={{ position: "fixed", bottom: isMobileDevice ? 64 : "auto", top: isMobileDevice ? "auto" : "50%", left: isMobileDevice ? 0 : "50%", right: isMobileDevice ? 0 : "auto", transform: isMobileDevice ? "none" : "translate(-50%, -50%)", width: isMobileDevice ? "auto" : 480, zIndex: 100, background: darkMode ? "#161b22" : "#fff", borderRadius: isMobileDevice ? "20px 20px 0 0" : 16, borderTop: isMobileDevice ? `2px solid ${accent}55` : "none", border: isMobileDevice ? undefined : `1px solid ${accent}44`, padding: "16px 16px 8px", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Handle */}
               <div style={{ width: 36, height: 4, background: "#30363d", borderRadius: 99, margin: "0 auto 16px" }} />
               {/* Type filter pills */}
@@ -5016,6 +5132,8 @@ export default function TrackAll() {
             </div>
           </>
         )}
+
+        </div>{/* fim desktop-main */}
 
         {/* BOTTOM NAV */}
         <nav className="bottom-nav">
