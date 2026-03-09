@@ -4344,13 +4344,16 @@ export default function TrackAll() {
               {libByType.length > 0 && (
                 <>
                   <p className="ds-section" style={{ marginTop: 12 }}>Biblioteca</p>
-                  {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map(t => {
+                  {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
+                    const ic = accentVariant(accent, tIdx + 1);
+                    const isActive = view === "library" && activeTab === t.id;
                     return (
-                      <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}>
-                        <span style={{ fontSize: 16 }}>{t.icon}</span>
-                        <span style={{ flex: 1, color: darkMode ? "#c9d1d9" : "#374151" }}>{t.label}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#484f58" }}>{cnt}</span>
+                      <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
+                        style={{ background: isActive ? `${ic}18` : undefined, borderRadius: 8 }}>
+                        <span style={{ fontSize: 16, filter: `hue-rotate(${tIdx * 18}deg)` }}>{t.icon}</span>
+                        <span style={{ flex: 1, color: isActive ? ic : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500 }}>{t.label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? ic : "#484f58" }}>{cnt}</span>
                       </div>
                     );
                   })}
