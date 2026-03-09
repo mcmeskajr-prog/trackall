@@ -1543,8 +1543,8 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           </div>
         </div>
       </div>
-      <div className="card-info" style={{ padding: "8px 10px 10px" }}>
-        <p className="card-info-title" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+      <div className="card-info" style={{ padding: "6px 8px 8px" }}>
+        <p className="card-info-title card-title-text" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
         <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>
           {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
         </p>
@@ -1968,7 +1968,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                       {(() => {
                         const count = favByType[t.id].length;
                         // Tamanho da capa: quanto menos itens, maior a capa
-                        const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
+                        const cardW = count === 1 ? 200 : count === 2 ? 180 : count === 3 ? 160 : count === 4 ? 145 : count <= 6 ? 130 : 115;
                         const useScroll = count <= 6;
                         return (
                           <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
@@ -1989,9 +1989,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
                                       }
                                     </div>
-                                    {item.userRating > 0 && (
-                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
-                                    )}
+                                    <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: item.userRating > 0 ? "#f59e0b" : "#484f58", fontWeight: 800 }}>
+                                      {item.userRating > 0 ? `★${item.userRating}` : "★ —"}
+                                    </div>
                                   </div>
                                   <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
@@ -4285,7 +4285,6 @@ export default function TrackAll() {
           const navItems = [
             { id: "home", icon: "⌂", label: "Início" },
             { id: "library", icon: "▤", label: "Biblioteca" },
-            { id: "friends", icon: "👥", label: "Amigos" },
             { id: "profile", icon: "◉", label: "Perfil" },
           ];
           return (
@@ -4306,6 +4305,18 @@ export default function TrackAll() {
                     {n.label}
                   </button>
                 ))}
+                {/* Amigos — com SVG colorido */}
+                <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`} onClick={() => setView("friends")}>
+                  <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} />
+                      <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
+                      <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                      <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
+                    </svg>
+                  </span>
+                  Amigos
+                </button>
               </div>
 
               {/* Botão + Log Rápido */}
@@ -4451,6 +4462,9 @@ export default function TrackAll() {
             .profile-desktop { display: grid !important; grid-template-columns: 300px 1fr !important; gap: 24px !important; align-items: flex-start !important; }
             .profile-desktop-left { display: block !important; }
             .profile-desktop-right { display: block !important; }
+            .card-title-text { display: none !important; }
+            .card-info { padding: 5px 8px 7px !important; }
+            .card-info-meta { font-size: 11px; color: #8b949e; }
           }
 
           /* ── Desktop sidebar ── */
