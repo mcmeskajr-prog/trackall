@@ -1975,10 +1975,28 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-      {/* ── Perfil + Stats + Definições (sem tabs, sempre visível) ── */}
-      <div style={{ padding: isMobileDevice ? "0 16px" : "0 32px" }}>
+      {/* ── Tabs — só no PC ── */}
+      {!isMobileDevice && (
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 32px", marginTop: 0, marginBottom: 0, background: darkMode ? bgColor : "#f8fafc" }}>
+          {[
+            { id: "perfil", label: "Perfil" },
+            { id: "estatisticas", label: "Estatísticas" },
+            { id: "definicoes", label: "Definições" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setProfileTab(t.id)} style={{
+              background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 14, fontWeight: profileTab === t.id ? 700 : 500,
+              color: profileTab === t.id ? accent : (darkMode ? "#8b949e" : "#64748b"),
+              padding: "12px 20px", borderBottom: profileTab === t.id ? `2px solid ${accent}` : "2px solid transparent",
+              marginBottom: -1, transition: "all 0.15s",
+            }}>{t.label}</button>
+          ))}
+        </div>
+      )}
 
-        {/* ── FAVORITOS ── */}
+      {/* ── Conteúdo por tab (PC) ou directo (mobile) ── */}
+      {!isMobileDevice && profileTab === "perfil" && (
+        <div style={{ padding: "24px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: "calc(100vh - 360px)" }}>
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
@@ -2065,7 +2083,20 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
 
         </div>
-        {/* ── ESTATÍSTICAS ── */}
+      )}
+
+      {/* Mobile: tudo numa coluna (sem tabs) */}
+      {isMobileDevice && (
+        <div style={{ padding: "0 16px" }}>
+
+      {/* ── Favoritos + Recent no mobile ── */}
+      {isMobileDevice && items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
+        </div>
+      )}
+
+      {/* ── Tab ESTATÍSTICAS ── */}
+      {!isMobileDevice && profileTab === "estatisticas" && (
+        <div style={{ padding: "28px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: "calc(100vh - 360px)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
               const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
@@ -2099,7 +2130,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             })}
           </div>
         </div>
-        {/* ── DEFINIÇÕES ── */}
+      )}
+
+      {/* ── Tab DEFINIÇÕES ── */}
+      {(!isMobileDevice && profileTab === "definicoes") || isMobileDevice ? (
+      <div style={{ padding: isMobileDevice ? "0 16px" : "28px 32px", background: isMobileDevice ? "transparent" : (darkMode ? bgColor : "#f8fafc"), minHeight: isMobileDevice ? 0 : "calc(100vh - 360px)" }}>
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -2430,7 +2465,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       </div>
-
+      ) : null}
     </div>
     {cropSrc && (
       <CropModal
