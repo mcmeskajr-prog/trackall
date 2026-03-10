@@ -4426,7 +4426,8 @@ export default function TrackAll() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-          html, body { background: ${bgColor} !important; overscroll-behavior: none; }
+          html { background: ${bgColor} !important; }
+          body { background: ${bgColor} !important; overscroll-behavior: none; }
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
