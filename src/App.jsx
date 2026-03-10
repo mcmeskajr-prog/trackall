@@ -1818,7 +1818,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: isMobileDevice ? 64 : 72 }}>
+      <div style={{ position: "relative", marginBottom: isMobileDevice ? 64 : 52 }}>
         {/* Banner — full width no PC, rounded no mobile */}
         <div style={{
           height: isMobileDevice ? 260 : 300, overflow: "hidden", position: "relative",
@@ -1869,7 +1869,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
 
         {/* Avatar — bottom-left no PC, centrado no mobile */}
-        <div style={{ position: "absolute", bottom: isMobileDevice ? -48 : -44, left: isMobileDevice ? "50%" : 32, transform: isMobileDevice ? "translateX(-50%)" : "none" }}>
+        <div style={{ position: "absolute", bottom: isMobileDevice ? -48 : -40, left: isMobileDevice ? "50%" : 28, transform: isMobileDevice ? "translateX(-50%)" : "none" }}>
           <div style={{ position: "relative", display: "inline-block" }}>
             <div style={{
               width: 92, height: 92, borderRadius: 999, overflow: "hidden",
@@ -1921,50 +1921,63 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           )}
         </div>
       ) : (
-        /* PC: nome + stats inline, à direita do avatar */
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 24, padding: "12px 32px 0", marginBottom: 0 }}>
-          <div style={{ width: 92, flexShrink: 0 }} />
-          <div style={{ flex: 1, paddingBottom: 8 }}>
-            {editing ? (
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome..." style={{ padding: "8px 12px", fontSize: 16, fontWeight: 700, width: 200 }} />
-                <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio..." style={{ padding: "8px 12px", fontSize: 13, flex: 1, minWidth: 160 }} />
-                <button className="btn-accent" style={{ padding: "8px 16px" }} onClick={handleSave}>Guardar</button>
-                <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ padding: "8px 14px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+        /* PC: nome alinhado à esquerda, stats em pills, botões à direita */
+        <div style={{ padding: "16px 32px 0", background: darkMode ? bgColor : "#f8fafc" }}>
+          {editing ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", paddingLeft: 116, paddingBottom: 12 }}>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome..." style={{ padding: "8px 12px", fontSize: 16, fontWeight: 700, width: 200 }} />
+              <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio..." style={{ padding: "8px 12px", fontSize: 13, flex: 1, minWidth: 160 }} />
+              <button className="btn-accent" style={{ padding: "8px 16px" }} onClick={handleSave}>Guardar</button>
+              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ padding: "8px 14px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", paddingLeft: 116, paddingBottom: 14, gap: 20 }}>
+              {/* Nome + bio */}
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", margin: 0, lineHeight: 1.2 }}>{profile.name || "Utilizador"}</h2>
+                {profile.bio && <p style={{ color: "#8b949e", fontSize: 13, marginTop: 3, margin: "3px 0 0" }}>{profile.bio}</p>}
               </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-                <div>
-                  <h2 style={{ fontSize: 24, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 2 }}>{profile.name || "Utilizador"}</h2>
-                  {profile.bio && <p style={{ color: "#8b949e", fontSize: 13 }}>{profile.bio}</p>}
-                </div>
-                {/* Stats strip inline */}
-                <div style={{ display: "flex", gap: 20, marginLeft: 8 }}>
-                  {[
-                    { label: "Total", val: items.length, color: accent },
-                    { label: "Completo", val: byStatus.completo || 0, color: "#22c55e" },
-                    { label: "Em Curso", val: byStatus.assistindo || 0, color: "#f59e0b" },
-                    { label: "Rating ★", val: avgRating, color: "#f59e0b" },
-                  ].map(s => (
-                    <div key={s.label} style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.val}</div>
-                      <div style={{ fontSize: 11, color: "#8b949e", marginTop: 1 }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                  <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>✏ Editar</button>
-                  {onSignOut && <button onClick={onSignOut} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>⏻</button>}
-                </div>
+              {/* Separador */}
+              <div style={{ width: 1, height: 32, background: darkMode ? "#30363d" : "#e2e8f0", flexShrink: 0 }} />
+              {/* Stats pills */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { label: "Total", val: items.length, color: accent },
+                  { label: "Completo", val: byStatus.completo || 0, color: "#22c55e" },
+                  { label: "Em curso", val: byStatus.assistindo || 0, color: "#f59e0b" },
+                  { label: "★", val: avgRating, color: "#f59e0b" },
+                ].map(s => (
+                  <div key={s.label} style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "4px 10px", borderRadius: 20,
+                    background: darkMode ? `${s.color}15` : `${s.color}18`,
+                    border: `1px solid ${s.color}30`,
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.val}</span>
+                    <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b" }}>{s.label}</span>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+              {/* Botões */}
+              <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexShrink: 0 }}>
+                <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Editar
+                </button>
+                {onSignOut && (
+                  <button onClick={onSignOut} title="Sair" style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Tabs — só no PC ── */}
       {!isMobileDevice && (
-        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 32px", marginTop: 16, marginBottom: 0 }}>
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 32px", marginTop: 0, marginBottom: 0, background: darkMode ? bgColor : "#f8fafc" }}>
           {[
             { id: "perfil", label: "Perfil" },
             { id: "estatisticas", label: "Estatísticas" },
@@ -1983,7 +1996,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Conteúdo por tab (PC) ou directo (mobile) ── */}
       {!isMobileDevice && profileTab === "perfil" && (
-        <div style={{ padding: "24px 32px" }}>
+        <div style={{ padding: "24px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: 400 }}>
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
@@ -2082,7 +2095,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Tab ESTATÍSTICAS ── */}
       {!isMobileDevice && profileTab === "estatisticas" && (
-        <div style={{ padding: "28px 32px" }}>
+        <div style={{ padding: "28px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: 400 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
               const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
@@ -2120,7 +2133,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Tab DEFINIÇÕES ── */}
       {(!isMobileDevice && profileTab === "definicoes") || isMobileDevice ? (
-      <div style={{ padding: isMobileDevice ? "0 16px" : "28px 32px" }}>
+      <div style={{ padding: isMobileDevice ? "0 16px" : "28px 32px", background: isMobileDevice ? "transparent" : (darkMode ? bgColor : "#f8fafc"), minHeight: isMobileDevice ? 0 : 400 }}>
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -5123,7 +5136,7 @@ export default function TrackAll() {
           <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
         )}
         {view === "profile" && (
-          <div className="profile-desktop-wrap" style={{ padding: isMobileDevice ? 0 : "24px 28px" }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0 }}>
           <ProfileView
             profile={profile}
             library={library}
