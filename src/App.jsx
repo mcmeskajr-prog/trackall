@@ -4426,8 +4426,7 @@ export default function TrackAll() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-          html { background: ${bgColor} !important; }
-          body { background: ${bgColor} !important; overscroll-behavior: none; }
+          body { overscroll-behavior: none; }
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
@@ -4518,7 +4517,7 @@ export default function TrackAll() {
             .bottom-nav { display: none !important; }
             .top-nav-bar { display: none !important; }
             .desktop-sidebar { display: flex !important; }
-            .desktop-main { margin-left: 220px !important; padding-bottom: 24px !important; background: ${bgColor} !important; }
+            .desktop-main { margin-left: 220px !important; padding-bottom: 24px !important; }
             .media-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important; gap: 16px !important; }
             .lib-sidebar { display: block !important; }
             .profile-desktop { display: grid !important; grid-template-columns: 300px 1fr !important; gap: 24px !important; align-items: flex-start !important; }
