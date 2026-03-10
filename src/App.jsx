@@ -1923,7 +1923,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       ) : (
         /* PC: nome + stats inline, à direita do avatar */
         <div style={{ display: "flex", alignItems: "flex-end", gap: 24, padding: "12px 32px 0", marginBottom: 0 }}>
-          <div style={{ width: 92, flexShrink: 0 }} />{/* spacer para o avatar */}
+          <div style={{ width: 92, flexShrink: 0 }} />
           <div style={{ flex: 1, paddingBottom: 8 }}>
             {editing ? (
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -2450,7 +2450,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         );
       })()}
 
-      </div>{/* fim tab definições */}
+      </div>
       ) : null}
     </div>
     {cropSrc && (
@@ -5229,7 +5229,7 @@ export default function TrackAll() {
           </>
         )}
 
-        </div>{/* fim desktop-main */}
+        </div>
 
         {/* BOTTOM NAV */}
         <nav className="bottom-nav">
@@ -5273,7 +5273,7 @@ export default function TrackAll() {
             Perfil
           </button>
         </nav>
-      </div>{/* fim div principal */}
+      </div>
     </ThemeContext.Provider>
   );
 }
