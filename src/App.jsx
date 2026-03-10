@@ -2068,7 +2068,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
 
 
-        </div>{/* fim tab perfil */}
+        </div>
       )}
 
       {/* Mobile: tudo numa coluna (sem tabs) */}
