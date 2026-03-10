@@ -4457,7 +4457,7 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh" }}>
+        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : bgColor }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -5137,7 +5137,7 @@ export default function TrackAll() {
           <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
         )}
         {view === "profile" && (
-          <div className="profile-desktop-wrap" style={{ padding: 0 }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
           <ProfileView
             profile={profile}
             library={library}
