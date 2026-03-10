@@ -1942,16 +1942,16 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               {/* Stats pills */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
-                  { label: "Total", val: items.length, color: accent },
-                  { label: "Completo", val: byStatus.completo || 0, color: "#22c55e" },
-                  { label: "Em curso", val: byStatus.assistindo || 0, color: "#f59e0b" },
-                  { label: "★", val: avgRating, color: "#f59e0b" },
-                ].map(s => (
+                  { label: "Total", val: items.length, color: accent, show: true },
+                  { label: "Completo", val: byStatus.completo || 0, color: "#22c55e", show: true },
+                  { label: "Em curso", val: byStatus.assistindo || 0, color: "#f59e0b", show: (byStatus.assistindo || 0) > 0 },
+                  { label: "★", val: avgRating, color: accent, show: true },
+                ].filter(s => s.show).map(s => (
                   <div key={s.label} style={{
                     display: "flex", alignItems: "center", gap: 5,
                     padding: "4px 10px", borderRadius: 20,
-                    background: darkMode ? `${s.color}15` : `${s.color}18`,
-                    border: `1px solid ${s.color}30`,
+                    background: `${s.color}18`,
+                    border: `1px solid ${s.color}35`,
                   }}>
                     <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.val}</span>
                     <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b" }}>{s.label}</span>
@@ -1996,7 +1996,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Conteúdo por tab (PC) ou directo (mobile) ── */}
       {!isMobileDevice && profileTab === "perfil" && (
-        <div style={{ padding: "24px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: 400 }}>
+        <div style={{ padding: "24px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: "calc(100vh - 360px)" }}>
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
@@ -2026,11 +2026,12 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                   const tc = accentVariant(accent, tIdx);
                   return (
                     <div key={t.id}>
-                      {/* Label categoria */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.12em" }}>{t.label}</span>
+                      {/* Label categoria — tipo centrado na linha */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(270deg, ${tc}50, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em", flexShrink: 0 }}>{t.label}</span>
                         <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
-                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
+                        <span style={{ fontSize: 10, color: "#484f58", flexShrink: 0 }}>{favByType[t.id].length}</span>
                       </div>
                       {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
                       {(() => {
@@ -2095,7 +2096,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Tab ESTATÍSTICAS ── */}
       {!isMobileDevice && profileTab === "estatisticas" && (
-        <div style={{ padding: "28px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: 400 }}>
+        <div style={{ padding: "28px 32px", background: darkMode ? bgColor : "#f8fafc", minHeight: "calc(100vh - 360px)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
               const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
@@ -2133,7 +2134,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* ── Tab DEFINIÇÕES ── */}
       {(!isMobileDevice && profileTab === "definicoes") || isMobileDevice ? (
-      <div style={{ padding: isMobileDevice ? "0 16px" : "28px 32px", background: isMobileDevice ? "transparent" : (darkMode ? bgColor : "#f8fafc"), minHeight: isMobileDevice ? 0 : 400 }}>
+      <div style={{ padding: isMobileDevice ? "0 16px" : "28px 32px", background: isMobileDevice ? "transparent" : (darkMode ? bgColor : "#f8fafc"), minHeight: isMobileDevice ? 0 : "calc(100vh - 360px)" }}>
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -4456,7 +4457,7 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main" style={{ position: "relative", zIndex: 2 }}>
+        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
