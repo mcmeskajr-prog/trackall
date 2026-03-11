@@ -1901,7 +1901,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
               <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
                 <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>✏ Editar Perfil</button>
-                {onSignOut && <button onClick={onSignOut} style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⏻</button>}
+                {onSignOut && <button onClick={onSignOut} title="Sair" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#8b949e", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>}
               </div>
             </>
           )}
@@ -1961,29 +1961,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-      {/* ── Tabs Perfil / Estatísticas ── */}
-      <div style={{ display: "flex", gap: 8, padding: "12px 16px", background: darkMode ? bgColor : "#f8fafc" }}>
-        {[{ id: "perfil", label: "Perfil", icon: "◉" }, { id: "estatisticas", label: "Estatísticas", icon: "📊" }].map(t => (
-          <button key={t.id} onClick={() => setProfileTab(t.id)} style={{
-            flex: 1, background: profileTab === t.id ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : (darkMode ? "#161b22" : "rgba(255,255,255,0.8)"),
-            border: profileTab === t.id ? "none" : `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-            cursor: "pointer", fontFamily: "inherit",
-            fontSize: 13, fontWeight: 700,
-            color: profileTab === t.id ? "white" : (darkMode ? "#8b949e" : "#64748b"),
-            padding: "10px 16px", borderRadius: 12,
-            transition: "all 0.2s",
-            boxShadow: profileTab === t.id ? `0 4px 16px ${accent}55` : "none",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}
-          </button>
-        ))}
-      </div>
-
       <div style={{ padding: isMobileDevice ? "16px 16px 0" : "20px 32px 0" }}>
-
-        {/* ── TAB PERFIL: Favoritos + Recentes ── */}
-        {profileTab === "perfil" && (<>
 
         {/* ── FAVORITOS ── */}
 
@@ -2063,12 +2041,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-        </>)}
-
-        {/* ── TAB ESTATÍSTICAS ── */}
-        {profileTab === "estatisticas" && (<>
-
-        {/* ── Stats grid ── */}
+        {/* ── ESTATÍSTICAS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
               const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
@@ -2087,7 +2060,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               const total = items.filter(i => i.type === t.id).length;
               const pct = total ? (count / total) * 100 : 0;
               if (!total) return null;
-              const ic = accentVariant(accent, tIdx);
               return (
                 <div key={t.id} style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -2095,13 +2067,12 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                     <span style={{ fontSize: 12, color: "#8b949e" }}>{count} / {total}</span>
                   </div>
                   <div style={{ height: 7, background: darkMode ? "#21262d" : "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${ic}, ${ic}88)`, borderRadius: 999, transition: "width 0.6s" }} />
+                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.6s" }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </>)}
 
         {/* ── DEFINIÇÕES ── */}
       {/* Temas */}
