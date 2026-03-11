@@ -1610,39 +1610,53 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
       {/* Completados — tamanho igual aos Favoritos */}
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          {completados.length > 10 && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>RECENT ACTIVITY</h3>
+            {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
               </button>
-            </div>
-          )}
+            )}
+          </div>
+          {/* Cards com mais destaque */}
           <div
             onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
             style={{
               display: showAllCompleto ? "grid" : "flex",
-              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(160px, 1fr))" : undefined,
-              gap: 12, overflowX: showAllCompleto ? "visible" : "auto",
-              paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(140px, 1fr))" : undefined,
+              gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
+              paddingBottom: 6, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
             }}>
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+              const tc = TYPE_COLORS[item.type];
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 130, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : 130, height: 195, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 6px 22px rgba(0,0,0,0.55)", transition: "transform 0.18s" }}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 140, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : 140, height: 200, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.45)", transition: "transform 0.15s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
-                    {/* Hover overlay: título + rating + data */}
-                    <div className="recent-hover-overlay" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
-                      <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 4 }}>{item.title}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {item.userRating > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>}
-                        {item.addedAt && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>}
-                      </div>
+                    {/* Overlay hover com rating */}
+                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                      {item.userRating > 0
+                        ? <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div></div>
+                        : <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>sem nota</div>
+                      }
+                    </div>
+                    {/* Rating badge sempre visível */}
+                    {item.userRating > 0 && (
+                      <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.88)", borderRadius: 6, padding: "2px 6px", fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</div>
+                    )}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%)", padding: "22px 7px 7px" }}>
+                      <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     </div>
                   </div>
+                  {item.addedAt && (
+                    <p style={{ fontSize: 10, color: "#484f58", marginTop: 5, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                      {new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -1961,29 +1975,8 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-      {/* ── Tabs Perfil / Estatísticas ── */}
-      <div style={{ display: "flex", gap: 8, padding: "12px 16px", background: darkMode ? bgColor : "#f8fafc" }}>
-        {[{ id: "perfil", label: "Perfil", icon: "◉" }, { id: "estatisticas", label: "Estatísticas", icon: "📊" }].map(t => (
-          <button key={t.id} onClick={() => setProfileTab(t.id)} style={{
-            flex: 1, background: profileTab === t.id ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : (darkMode ? "#161b22" : "rgba(255,255,255,0.8)"),
-            border: profileTab === t.id ? "none" : `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-            cursor: "pointer", fontFamily: "inherit",
-            fontSize: 13, fontWeight: 700,
-            color: profileTab === t.id ? "white" : (darkMode ? "#8b949e" : "#64748b"),
-            padding: "10px 16px", borderRadius: 12,
-            transition: "all 0.2s",
-            boxShadow: profileTab === t.id ? `0 4px 16px ${accent}55` : "none",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 14 }}>{t.icon}</span>{t.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ padding: isMobileDevice ? "16px 16px 0" : "20px 32px 0" }}>
-
-        {/* ── TAB PERFIL: Favoritos + Recentes ── */}
-        {profileTab === "perfil" && (<>
+      {/* ── Perfil + Stats + Definições (sem tabs, sempre visível) ── */}
+      <div style={{ padding: isMobileDevice ? "0 16px" : "0 32px" }}>
 
         {/* ── FAVORITOS ── */}
 
@@ -2022,28 +2015,41 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                         <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
                         <span style={{ fontSize: 10, color: "#484f58", flexShrink: 0 }}>{favByType[t.id].length}</span>
                       </div>
-                      {/* Grid 4 colunas, todos visíveis ao mesmo tempo */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                        {favByType[t.id].slice(0, 4).map(item => {
-                          const coverSrc = item.customCover || item.cover;
-                          return (
-                            <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)}
-                              style={{ position: "relative", cursor: "pointer" }}>
-                              <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.55)", position: "relative" }}>
-                                {coverSrc
-                                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{t.icon}</div>
-                                }
-                                {/* Hover overlay: nome + rating */}
-                                <div className="fav-hover-overlay" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 45%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "8px 7px 7px" }}>
-                                  <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 3 }}>{item.title}</p>
-                                  {item.userRating > 0 && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>}
+                      {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
+                      {(() => {
+                        const count = favByType[t.id].length;
+                        // Tamanho da capa: quanto menos itens, maior a capa
+                        const cardW = count === 1 ? 200 : count === 2 ? 180 : count === 3 ? 160 : count === 4 ? 145 : count <= 6 ? 130 : 115;
+                        const useScroll = count <= 6;
+                        return (
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+                            {favByType[t.id].map(item => {
+                              const coverSrc = item.customCover || item.cover;
+                              return (
+                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}
+                                  onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
+                                  onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
+                                  <div className="fav-thumb-d" style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                                    {coverSrc
+                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
+                                    }
+                                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                                      {item.userRating > 0
+                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
+                                        : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
+                                      }
+                                    </div>
+
+                                  </div>
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -2054,21 +2060,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>RECENT ACTIVITY</h3>
-          </div>
-          <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />
-        </div>
-      )}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
-        </>)}
-
-        {/* ── TAB ESTATÍSTICAS ── */}
-        {profileTab === "estatisticas" && (<>
-
-        {/* ── Stats grid ── */}
+        {/* ── ESTATÍSTICAS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
               const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
@@ -2101,8 +2095,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               );
             })}
           </div>
-        </>)}
-
         {/* ── DEFINIÇÕES ── */}
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
@@ -4494,11 +4486,8 @@ export default function TrackAll() {
           .fade-in { animation: fadeIn 0.2s ease; }
           .view-transition { animation: viewIn 0.18s ease both; }
           @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          .recent-card:hover > div { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.7) !important; }
-          .recent-card:hover .recent-hover-overlay { opacity: 1 !important; }
-          .fav-card-wrap:hover > div { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 28px rgba(0,0,0,0.65) !important; }
-          .fav-card-wrap > div { transition: transform 0.18s, box-shadow 0.18s; }
-          .fav-card-wrap:hover .fav-hover-overlay { opacity: 1 !important; }
+          .recent-card:hover > div { transform: translateY(-3px); }
+          .recent-card:hover .fav-overlay { opacity: 1 !important; }
           .media-grid .card { animation: cardIn 0.22s ease both; }
           .media-grid[data-key] .card { animation: cardIn 0.22s ease both; }
           .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
