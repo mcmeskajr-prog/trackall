@@ -1628,8 +1628,8 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : 130, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : 130, height: 195, borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 6px 22px rgba(0,0,0,0.55)", transition: "transform 0.18s" }}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : "calc((100vw - 56px) / 4)", cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: showAllCompleto ? "100%" : "calc((100vw - 56px) / 4)", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 6px 22px rgba(0,0,0,0.55)", transition: "transform 0.18s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -3546,6 +3546,46 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
 }
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
+function RatingOverlay({ item, accent, library, onDone }) {
+  const [rating, setRating] = React.useState(0);
+  const textColor = (() => {
+    const r=parseInt(accent.slice(1,3),16)/255, g=parseInt(accent.slice(3,5),16)/255, b=parseInt(accent.slice(5,7),16)/255;
+    return 0.2126*r+0.7152*g+0.0722*b > 0.45 ? "#111" : "#fff";
+  })();
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      onClick={() => onDone(0)}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, textAlign: "left" }}>
+          {(item.cover || item.thumbnailUrl)
+            ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 48, height: 68, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+            : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+          }
+          <div>
+            <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 4 }}>✓ Marcado como completo!</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3" }}>{item.title}</div>
+            <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}</div>
+          </div>
+        </div>
+        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>Queres dar uma avaliação?</p>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <StarRating value={rating} onChange={setRating} size={30} />
+          </div>
+          {rating > 0 && (
+            <button onClick={() => onDone(rating)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, background: accent, border: "none", color: textColor, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
+              Confirmar ★ {rating}
+            </button>
+          )}
+        </div>
+        <button onClick={() => onDone(0)} style={{ width: "100%", padding: "10px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+          Saltar avaliação
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
@@ -4544,60 +4584,21 @@ export default function TrackAll() {
 
         {/* ── Rating prompt after quick-log ── */}
         {logPendingItem && (
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 1100,
-            background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 20,
-          }} onClick={() => { showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent); setLogPendingItem(null); }}>
-            <div onClick={e => e.stopPropagation()} style={{
-              background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16,
-              padding: 24, width: "100%", maxWidth: 360, textAlign: "center",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, textAlign: "left" }}>
-                {(logPendingItem.cover || logPendingItem.thumbnailUrl)
-                  ? <img src={logPendingItem.cover || logPendingItem.thumbnailUrl} alt="" style={{ width: 48, height: 68, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
-                  : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(logPendingItem.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === logPendingItem.type)?.icon}</div>
-                }
-                <div>
-                  <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 4 }}>✓ Marcado como completo!</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3" }}>{logPendingItem.title}</div>
-                  <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === logPendingItem.type)?.label}</div>
-                </div>
-              </div>
-              <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>Queres dar uma avaliação?</p>
-              {(() => {
-                const [pendingRating, setPendingRating] = useState(0);
-                return (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                      <StarRating value={pendingRating} onChange={setPendingRating} size={30} />
-                    </div>
-                    {pendingRating > 0 && (
-                      <button onClick={() => {
-                        const base = library[logPendingItem.id] || logPendingItem;
-                        saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: pendingRating } });
-                        showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${pendingRating}`, accent);
-                        setLogPendingItem(null);
-                      }} style={{
-                        width: "100%", padding: "12px 0", borderRadius: 10,
-                        background: accent, border: "none",
-                        color: (() => { const r=parseInt(accent.slice(1,3),16)/255,g=parseInt(accent.slice(3,5),16)/255,b=parseInt(accent.slice(5,7),16)/255; return 0.2126*r+0.7152*g+0.0722*b > 0.45?"#111":"#fff"; })(),
-                        fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit",
-                        transition: "opacity 0.15s",
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-                        onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-                        Confirmar ★ {pendingRating}
-                      </button>
-                    )}
-                  </div>
-                );
-              })()}
-              <button onClick={() => { showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent); setLogPendingItem(null); }} style={{ width: "100%", padding: "10px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-                Saltar avaliação
-              </button>
-            </div>
-          </div>
+          <RatingOverlay
+            item={logPendingItem}
+            accent={accent}
+            library={library}
+            onDone={(rating) => {
+              if (rating > 0) {
+                const base = library[logPendingItem.id] || logPendingItem;
+                saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: rating } });
+                showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${rating}`, accent);
+              } else {
+                showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent);
+              }
+              setLogPendingItem(null);
+            }}
+          />
         )}
 
         {/* Detail Modal */}
