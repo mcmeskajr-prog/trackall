@@ -1562,7 +1562,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 }); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function RecentSection({ items, accent, darkMode, onOpen }) {
+function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
@@ -1628,7 +1628,7 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : "calc((100vw - 32px) / 4)", cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : (isMobileDevice ? "calc((100vw - 32px) / 4)" : "calc((100vw - 340px) / 4)"), cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
                   <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.5)", transition: "transform 0.18s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -2037,7 +2037,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>RECENT ACTIVITY</h3>
           </div>
-          <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />
+          <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />
         </div>
       )}
 
