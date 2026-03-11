@@ -1618,18 +1618,18 @@ function RecentSection({ items, accent, darkMode, onOpen }) {
             </div>
           )}
           <div
-            onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
+            onWheel={e => { if (showAllCompleto) { return; } }}
             style={{
-              display: showAllCompleto ? "grid" : "flex",
-              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(160px, 1fr))" : undefined,
-              gap: 12, overflowX: showAllCompleto ? "visible" : "auto",
-              paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+              display: showAllCompleto ? "grid" : "grid",
+              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(140px, 1fr))" : "repeat(4, 1fr)",
+              gap: 3, overflowX: "visible",
+              paddingBottom: 4,
             }}>
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : "calc((100vw - 56px) / 4)", cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: showAllCompleto ? "100%" : "calc((100vw - 56px) / 4)", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 6px 22px rgba(0,0,0,0.55)", transition: "transform 0.18s" }}>
+                <div key={item.id} className="recent-card" style={{ cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 6px 22px rgba(0,0,0,0.55)", transition: "transform 0.18s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -1988,26 +1988,26 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {activeTypes.map((t, tIdx) => {
-                  const tc = accentVariant(accent, tIdx);
+                  const tc = accent;
                   return (
                     <div key={t.id}>
-                      {/* Label categoria — tipo centrado na linha */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(270deg, ${tc}50, transparent)` }} />
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em", flexShrink: 0 }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
+                      {/* Label categoria — linhas decorativas com tipo no meio */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, padding: "0 16px" }}>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(270deg, ${accent}60, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: accent, textTransform: "uppercase", letterSpacing: "0.14em", flexShrink: 0 }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${accent}60, transparent)` }} />
                         <span style={{ fontSize: 10, color: "#484f58", flexShrink: 0 }}>{favByType[t.id].length}</span>
                       </div>
-                      {/* Grid 4 colunas, todos visíveis ao mesmo tempo */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                      {/* Grid 4 colunas full-width, gap mínimo — estilo Letterboxd */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, padding: "0 16px" }}>
                         {favByType[t.id].slice(0, 4).map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
                             <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)}
                               style={{ position: "relative", cursor: "pointer" }}>
-                              <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.55)", position: "relative" }}>
+                              <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
                                 {coverSrc
                                   ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{t.icon}</div>
