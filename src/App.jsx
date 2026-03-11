@@ -2062,9 +2062,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
-
-
-        </div>
         {/* ── ESTATÍSTICAS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
@@ -2098,7 +2095,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               );
             })}
           </div>
-        </div>
         {/* ── DEFINIÇÕES ── */}
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
