@@ -1563,7 +1563,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
 function DiaryPanel({ completados, onOpen, accent }) {
-  const [showAll, setShowAll] = React.useState(false);
+  const [showAll, setShowAll] = useState(false);
   if (!completados || !completados.length) return null;
   const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   const groups = {};
@@ -3586,7 +3586,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function RatingOverlay({ item, accent, library, onDone }) {
-  const [rating, setRating] = React.useState(0);
+  const [rating, setRating] = useState(0);
   const textColor = (() => {
     const r=parseInt(accent.slice(1,3),16)/255, g=parseInt(accent.slice(3,5),16)/255, b=parseInt(accent.slice(5,7),16)/255;
     return 0.2126*r+0.7152*g+0.0722*b > 0.45 ? "#111" : "#fff";
