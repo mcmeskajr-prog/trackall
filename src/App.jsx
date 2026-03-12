@@ -1977,8 +1977,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         )}
       </div>
 
-      {/* Stats and settings */}
-      <div style={{ padding: "0 16px" }}>
+      {/* Stats and settings — PC: grid 2 colunas com diário à direita */}
+      <div style={ !isMobileDevice
+        ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, padding: "0 32px", alignItems: "start" }
+        : { padding: "0 16px" }
+      }><div>
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
@@ -2060,7 +2063,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />}
 
       {/* Stats grid — colapsável */}
       <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
@@ -2445,6 +2448,13 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
             </div>
+      </div>{/* fim coluna esquerda */}
+      {!isMobileDevice && (
+        <div style={{ position: "sticky", top: 24 }}>
+          <DiaryPanel completados={items.filter(i => i.userStatus === "completo")} onOpen={onOpen} accent={accent} />
+        </div>
+      )}
+    </div>{/* fim grid */}
     </div>
     {cropSrc && (
       <CropModal
