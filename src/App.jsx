@@ -1978,12 +1978,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       </div>
 
       {/* Stats and settings */}
-      <div style={ !isMobileDevice
-        ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, padding: "0 32px", alignItems: "start" }
-        : { padding: "0 16px" }
-      }>
-      {/* Coluna esquerda (toda a largura no mobile) */}
-      <div>
+      <div style={{ padding: "0 16px" }}>
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
@@ -2450,19 +2445,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
             </div>
-      </div>{/* fim coluna esquerda */}
-
-      {/* Coluna direita: Diário (só PC) */}
-      {!isMobileDevice && (
-        <div style={{ position: "sticky", top: 24 }}>
-          <DiaryPanel
-            completados={items.filter(i => i.userStatus === "completo")}
-            onOpen={onOpen}
-            accent={accent}
-          />
-        </div>
-      )}
-    </div>{/* fim grid */}
+    </div>
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
