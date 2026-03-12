@@ -1628,7 +1628,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true 
             {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : (isMobileDevice ? "calc((100vw - 32px) / 4)" : "calc((100vw - 340px) / 4)"), cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : (isMobileDevice ? "calc((100vw - 32px) / 4)" : 120), cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
                   <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.5)", transition: "transform 0.18s" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -2001,7 +2001,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                         <span style={{ fontSize: 10, color: "#484f58", flexShrink: 0 }}>{favByType[t.id].length}</span>
                       </div>
                       {/* Grid 4 colunas full-width, gap mínimo — estilo Letterboxd */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, padding: "0 8px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, 1fr)" : "repeat(4, 120px)", gap: 4, padding: "0 8px" }}>
                         {favByType[t.id].slice(0, 4).map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
