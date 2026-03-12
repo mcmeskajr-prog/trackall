@@ -1816,7 +1816,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const [profileTab, setProfileTab] = useState("perfil");
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
@@ -1867,11 +1866,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: isMobileDevice ? 64 : 52 }}>
-        {/* Banner — full width no PC, rounded no mobile */}
+      <div style={{ position: "relative", marginBottom: 64 }}>
+        {/* Banner — taller, more impactful */}
         <div style={{
-          height: isMobileDevice ? 260 : 300, overflow: "hidden", position: "relative",
-          borderRadius: isMobileDevice ? "20px 20px 0 0" : 0,
+          height: 260, overflow: "hidden", position: "relative",
+          borderRadius: "20px 20px 0 0",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
             : darkMode ? "#0d1117" : "#f1f5f9",
@@ -1917,8 +1916,8 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           )}
         </div>
 
-        {/* Avatar — bottom-left no PC, centrado no mobile */}
-        <div style={{ position: "absolute", bottom: isMobileDevice ? -48 : -40, left: isMobileDevice ? "50%" : 28, transform: isMobileDevice ? "translateX(-50%)" : "none" }}>
+        {/* Avatar — overlaps banner */}
+        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
           <div style={{ position: "relative", display: "inline-block" }}>
             <div style={{
               width: 92, height: 92, borderRadius: 999, overflow: "hidden",
@@ -1946,99 +1945,53 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       </div>
 
       {/* Name / bio / edit */}
-      {isMobileDevice ? (
-        <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
-          {editing ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome..." style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
-              <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A tua bio..." style={{ padding: "10px 14px", fontSize: 13 }} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>Guardar</button>
-                <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-              </div>
+      <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
+        {editing ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome..." style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
+            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A tua bio..." style={{ padding: "10px 14px", fontSize: 13 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>Guardar</button>
+              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
             </div>
-          ) : (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
-              {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
-              <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
-                <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{ padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>✏ Editar Perfil</button>
-                {onSignOut && <button onClick={onSignOut} title="Sair" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d", background: "transparent", color: "#8b949e", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>}
-              </div>
-            </>
-          )}
-        </div>
-      ) : (
-        /* PC: nome alinhado à esquerda, stats em pills, botões à direita */
-        <div style={{ padding: "16px 32px 0", background: darkMode ? bgColor : "#f8fafc" }}>
-          {editing ? (
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", paddingLeft: 116, paddingBottom: 12 }}>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome..." style={{ padding: "8px 12px", fontSize: 16, fontWeight: 700, width: 200 }} />
-              <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio..." style={{ padding: "8px 12px", fontSize: 13, flex: 1, minWidth: 160 }} />
-              <button className="btn-accent" style={{ padding: "8px 16px" }} onClick={handleSave}>Guardar</button>
-              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ padding: "8px 14px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
+            {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
+            {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
+              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
+                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
+                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              }}>✏ Editar Perfil</button>
+              {onSignOut && (
+                <button onClick={onSignOut} title="Sair" style={{
+                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+                }}>⏻</button>
+              )}
             </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", paddingLeft: 116, paddingBottom: 14, gap: 20 }}>
-              {/* Nome + bio */}
-              <div style={{ minWidth: 0 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", margin: 0, lineHeight: 1.2 }}>{profile.name || "Utilizador"}</h2>
-                {profile.bio && <p style={{ color: "#8b949e", fontSize: 13, marginTop: 3, margin: "3px 0 0" }}>{profile.bio}</p>}
-              </div>
-              {/* Separador */}
-              <div style={{ width: 1, height: 32, background: darkMode ? "#30363d" : "#e2e8f0", flexShrink: 0 }} />
-              {/* Stats pills */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {[
-                  { label: "Total", val: items.length, color: accent, show: true },
-                  { label: "Completo", val: byStatus.completo || 0, color: "#22c55e", show: true },
-                  { label: "Em curso", val: byStatus.assistindo || 0, color: "#f59e0b", show: (byStatus.assistindo || 0) > 0 },
-                  { label: "★", val: avgRating, color: accent, show: true },
-                ].filter(s => s.show).map(s => (
-                  <div key={s.label} style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "4px 10px", borderRadius: 20,
-                    background: `${s.color}18`,
-                    border: `1px solid ${s.color}35`,
-                  }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.val}</span>
-                    <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b" }}>{s.label}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Botões */}
-              <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Editar
-                </button>
-                {onSignOut && (
-                  <button onClick={onSignOut} title="Sair" style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
-      {/* PC: grid 2 colunas — esquerda: favs+recentes, direita: diário */}
-      <div style={ !isMobileDevice ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 32, padding: "20px 32px 0", alignItems: "start" } : { padding: "16px 16px 0" } }>
-        {/* Coluna esquerda (ou única no mobile) */}
-        <div>
+      {/* Stats and settings */}
+      <div style={ !isMobileDevice
+        ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, padding: "0 32px", alignItems: "start" }
+        : { padding: "0 16px" }
+      }>
+      {/* Coluna esquerda (toda a largura no mobile) */}
+      <div>
 
-        {/* ── FAVORITOS ── */}
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
         const favByType = {};
         favorites.forEach(f => {
           if (!favByType[f.type]) favByType[f.type] = [];
-          // Merge com library para ter dados actualizados (rating, customCover, etc.)
-          const libData = items.find(i => i.id === f.id) || {};
-          favByType[f.type].push({ ...f, userRating: libData.userRating || f.userRating || 0, customCover: libData.customCover || f.customCover });
+          favByType[f.type].push(f);
         });
         const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
 
@@ -2054,40 +2007,54 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
-                  const tc = accent;
+                  const tc = accentVariant(accent, tIdx);
                   return (
                     <div key={t.id}>
-                      {/* Label categoria — linhas decorativas com tipo no meio */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, padding: "0 16px" }}>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(270deg, ${accent}60, transparent)` }} />
-                        <span style={{ fontSize: 10, fontWeight: 800, color: accent, textTransform: "uppercase", letterSpacing: "0.14em", flexShrink: 0 }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${accent}60, transparent)` }} />
-                        <span style={{ fontSize: 10, color: "#484f58", flexShrink: 0 }}>{favByType[t.id].length}</span>
+                      {/* Label categoria */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.12em" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
+                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
                       </div>
-                      {/* Grid 4 colunas full-width, gap mínimo — estilo Letterboxd */}
-                      <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, 1fr)" : "repeat(4, 120px)", gap: 4, padding: "0 8px" }}>
-                        {favByType[t.id].slice(0, 4).map(item => {
-                          const coverSrc = item.customCover || item.cover;
-                          return (
-                            <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)}
-                              style={{ position: "relative", cursor: "pointer" }}>
-                              <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                                {coverSrc
-                                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{t.icon}</div>
-                                }
-                                {/* Hover overlay: nome + rating */}
-                                <div className="fav-hover-overlay" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 45%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "8px 7px 7px" }}>
-                                  <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 3 }}>{item.title}</p>
-                                  {item.userRating > 0 && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>}
+                      {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
+                      {(() => {
+                        const count = favByType[t.id].length;
+                        // Tamanho da capa: quanto menos itens, maior a capa
+                        const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
+                        const useScroll = count <= 6;
+                        return (
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+                            {favByType[t.id].map(item => {
+                              const coverSrc = item.customCover || item.cover;
+                              return (
+                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}
+                                  onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
+                                  onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
+                                  <div className="fav-thumb-d" style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                                    {coverSrc
+                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
+                                    }
+                                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                                      {item.userRating > 0
+                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
+                                        : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
+                                      }
+                                    </div>
+                                    {item.userRating > 0 && (
+                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                                    )}
+                                  </div>
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -2098,64 +2065,61 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>RECENT ACTIVITY</h3>
-          </div>
-          <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />
-        </div>
-      )}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} />}
 
-        </div>{/* fim coluna esquerda */}
-
-        {/* Coluna direita: Diário (só no PC) */}
-        {!isMobileDevice && (
-          <div style={{ position: "sticky", top: 24 }}>
-            <DiaryPanel
-              completados={items.filter(i => i.userStatus === "completo")}
-              onOpen={onOpen}
-              accent={accent}
-            />
+      {/* Stats grid — colapsável */}
+      <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
+        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ transform: showStats ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block", fontSize: 11 }}>▾</span>
+          ESTATÍSTICAS
+          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+        </h3>
+      </button>
+      {showStats && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+            {STATUS_OPTIONS.map((s) => (
+              <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
+                <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
+            </div>
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
+            </div>
+            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
+            </div>
           </div>
-        )}
-      </div>{/* fim grid */}
-
-      <div style={{ padding: isMobileDevice ? "0 16px" : "0 32px" }}>
-        {/* ── ESTATÍSTICAS ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
-            {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
-              const val = s.id === "avg" ? avgRating : s.id === "total" ? items.length : s.id === "rated" ? totalRatings.length : (byStatus[s.id] || 0);
-              return (
-                <div key={s.id} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", borderRadius: 12, padding: "18px 16px", borderLeft: `3px solid ${s.color}` }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{val}</div>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginTop: 3 }}>{s.label}</div>
-                </div>
-              );
-            })}
-          </div>
-          <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>COMPLETOS POR TIPO</h3>
-          <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: "20px 24px" }}>
-            {MEDIA_TYPES.slice(1).map((t, tIdx) => {
+          <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>COMPLETOS POR TIPO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            {MEDIA_TYPES.slice(1).map((t) => {
               const count = byType[t.id] || 0;
               const total = items.filter(i => i.type === t.id).length;
               const pct = total ? (count / total) * 100 : 0;
               if (!total) return null;
               return (
-                <div key={t.id} style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: darkMode ? "#c9d1d9" : "#374151" }}>{t.icon} {t.label}</span>
-                    <span style={{ fontSize: 12, color: "#8b949e" }}>{count} / {total}</span>
+                <div key={t.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
+                    <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
                   </div>
-                  <div style={{ height: 7, background: darkMode ? "#21262d" : "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.6s" }} />
+                  <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
                   </div>
                 </div>
               );
             })}
           </div>
+        </>
+      )}
 
-        {/* ── DEFINIÇÕES ── */}
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -2485,9 +2449,20 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         );
       })()}
 
-      </div>{/* fim div stats+defs */}
+            </div>
+      </div>{/* fim coluna esquerda */}
 
-    </div>
+      {/* Coluna direita: Diário (só PC) */}
+      {!isMobileDevice && (
+        <div style={{ position: "sticky", top: 24 }}>
+          <DiaryPanel
+            completados={items.filter(i => i.userStatus === "completo")}
+            onOpen={onOpen}
+            accent={accent}
+          />
+        </div>
+      )}
+    </div>{/* fim grid */}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
