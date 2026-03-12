@@ -2024,12 +2024,10 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-      <div style={{ padding: isMobileDevice ? "16px 16px 0" : "20px 32px 0" }}>
-        {/* PC: grid 2 colunas — esquerda: favs+recentes, direita: diário */}
-        {!isMobileDevice && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 32, alignItems: "start" }}>
-            {/* coluna esquerda */}
-            <div>
+      {/* PC: grid 2 colunas — esquerda: favs+recentes, direita: diário */}
+      <div style={ !isMobileDevice ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 32, padding: "20px 32px 0", alignItems: "start" } : { padding: "16px 16px 0" } }>
+        {/* Coluna esquerda (ou única no mobile) */}
+        <div>
 
         {/* ── FAVORITOS ── */}
 
@@ -2109,20 +2107,21 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         </div>
       )}
 
-            </div>{/* fim coluna esquerda PC */}
-            {/* coluna direita: diário */}
-            <div style={{ position: "sticky", top: 24 }}>
-              <DiaryPanel
-                completados={items.filter(i => i.userStatus === "completo")}
-                onOpen={onOpen}
-                accent={accent}
-              />
-            </div>
+        </div>{/* fim coluna esquerda */}
+
+        {/* Coluna direita: Diário (só no PC) */}
+        {!isMobileDevice && (
+          <div style={{ position: "sticky", top: 24 }}>
+            <DiaryPanel
+              completados={items.filter(i => i.userStatus === "completo")}
+              onOpen={onOpen}
+              accent={accent}
+            />
           </div>
-        )}{/* fim grid PC */}
+        )}
+      </div>{/* fim grid */}
 
-        {/* Mobile: favoritos + recentes já renderizados acima dentro do div normal */}
-
+      <div style={{ padding: isMobileDevice ? "0 16px" : "0 32px" }}>
         {/* ── ESTATÍSTICAS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
             {[...STATUS_OPTIONS, { id: "avg", label: "Avg. Rating", emoji: "★", color: "#f59e0b" }, { id: "total", label: "Total", emoji: "◉", color: accent }, { id: "rated", label: "Avaliados", emoji: "🎯", color: accent }].map(s => {
