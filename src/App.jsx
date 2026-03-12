@@ -1562,6 +1562,69 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 }); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
+function DiaryPanel({ completados, onOpen, accent }) {
+  const [showAll, setShowAll] = React.useState(false);
+  if (!completados || !completados.length) return null;
+  const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+  const groups = {};
+  completados.filter(i => i.addedAt).forEach(item => {
+    const d = new Date(item.addedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+    groups[key].items.push({ ...item, _day: d.getDate() });
+  });
+  const sorted = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+  if (!sorted.length) return null;
+  const visible = showAll ? sorted : sorted.slice(0, 3);
+  const hiddenCount = sorted.slice(3).reduce((s,g) => s + g.items.length, 0);
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+        <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
+      </div>
+      {visible.map(group => (
+        <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
+          <div style={{ flexShrink: 0, width: 56, marginRight: 12 }}>
+            <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+              <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
+                {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
+              </div>
+              <div style={{ padding: "5px 0 6px", fontSize: group.key === "0000-00" ? 11 : 17, fontWeight: 900, color: "#e6edf3" }}>
+                {group.key === "0000-00" ? "Sem data" : group.year}
+              </div>
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
+              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "6px 4px",
+                borderBottom: idx < arr.length-1 ? "1px solid #21262d" : "none",
+                cursor: "pointer", borderRadius: 4,
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                {(item.customCover || item.cover || item.thumbnailUrl)
+                  ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 24, height: 36, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
+                  : <div style={{ width: 24, height: 36, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                }
+                <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★ {item.userRating}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {sorted.length > 3 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ width: "100%", padding: "8px", borderRadius: 8, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600 }}>
+          {showAll ? "↑ Mostrar menos" : `Ver mais — ${hiddenCount} entr${hiddenCount===1?"ada":"adas"}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
@@ -1962,6 +2025,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       )}
 
       <div style={{ padding: isMobileDevice ? "16px 16px 0" : "20px 32px 0" }}>
+        {/* PC: grid 2 colunas — esquerda: favs+recentes, direita: diário */}
+        {!isMobileDevice && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 32, alignItems: "start" }}>
+            {/* coluna esquerda */}
+            <div>
 
         {/* ── FAVORITOS ── */}
 
@@ -2040,6 +2108,20 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />
         </div>
       )}
+
+            </div>{/* fim coluna esquerda PC */}
+            {/* coluna direita: diário */}
+            <div style={{ position: "sticky", top: 24 }}>
+              <DiaryPanel
+                completados={items.filter(i => i.userStatus === "completo")}
+                onOpen={onOpen}
+                accent={accent}
+              />
+            </div>
+          </div>
+        )}{/* fim grid PC */}
+
+        {/* Mobile: favoritos + recentes já renderizados acima dentro do div normal */}
 
         {/* ── ESTATÍSTICAS ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
