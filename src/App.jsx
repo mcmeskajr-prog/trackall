@@ -5194,6 +5194,7 @@ export default function TrackAll() {
                   width: 280, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
                   padding: "28px 14px 28px 16px",
+                  paddingTop: 480,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
