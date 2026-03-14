@@ -1985,7 +1985,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 28, padding: "0 32px", alignItems: "flex-start" }
+        ? { display: "flex", flexDirection: "row", gap: 8, padding: "0 0 0 32px", alignItems: "flex-start" }
         : { padding: "0 16px" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
