@@ -1567,11 +1567,11 @@ function DiaryPanel({ completados, onOpen, accent }) {
   if (!completados || !completados.length) return null;
   const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   const groups = {};
-  completados.filter(i => i.addedAt).forEach(item => {
-    const d = new Date(item.addedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-    groups[key].items.push({ ...item, _day: d.getDate() });
+  completados.forEach(item => {
+    const d = item.addedAt ? new Date(item.addedAt) : null;
+    const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
+    if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
+    groups[key].items.push({ ...item, _day: d ? d.getDate() : 0 });
   });
   const sorted = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
   if (!sorted.length) return null;
@@ -1969,8 +1969,14 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               {onSignOut && (
                 <button onClick={onSignOut} title="Sair" style={{
                   width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
-                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-                }}>⏻</button>
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </button>
               )}
             </div>
           </>
