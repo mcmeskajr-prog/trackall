@@ -5144,10 +5144,10 @@ export default function TrackAll() {
           const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
           return (
             <div style={{
-              position: "fixed", right: 20, top: 70, width: 280,
-              maxHeight: "calc(100vh - 90px)", overflowY: "auto",
-              zIndex: 20, padding: "16px 12px",
-              background: darkMode ? "rgba(13,17,23,0.97)" : "rgba(255,252,247,0.97)",
+              position: "fixed", right: 0, top: 56, width: 300,
+              maxHeight: "calc(100vh - 56px)", overflowY: "auto",
+              zIndex: 20, padding: "24px 16px 24px 20px",
+              background: darkMode ? "rgba(13,17,23,0.98)" : "rgba(255,252,247,0.98)",
               borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
               scrollbarWidth: "none",
             }}>
@@ -5188,7 +5188,7 @@ export default function TrackAll() {
           );
         })()}
         {view === "profile" && (
-          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh", paddingRight: isMobileDevice ? 0 : 308 }}>
           <ProfileView
             profile={profile}
             library={library}
