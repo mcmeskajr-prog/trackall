@@ -1713,8 +1713,8 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true 
         </div>
       )}
 
-      {/* DIARY — Letterboxd style, grouped by month */}
-      {completados.length > 0 && (() => {
+      {/* DIARY — Letterboxd style, grouped by month (só mobile; PC usa DiaryPanel na coluna direita) */}
+      {isMobileDevice && completados.length > 0 && (() => {
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
         // Group by month — only items WITH addedAt appear in the diary
         const groups = {};
