@@ -1985,7 +1985,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 0 0 32px", alignItems: "flex-start" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
         : { padding: "0 16px" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
@@ -5188,9 +5188,9 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 280, flexShrink: 0,
+                  width: 380, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 28, paddingRight: 8,
+                  paddingLeft: 100, paddingRight: 0,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
