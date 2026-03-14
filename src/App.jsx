@@ -1567,11 +1567,11 @@ function DiaryPanel({ completados, onOpen, accent }) {
   if (!completados || !completados.length) return null;
   const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   const groups = {};
-  completados.forEach(item => {
-    const d = item.addedAt ? new Date(item.addedAt) : null;
-    const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
-    if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
-    groups[key].items.push({ ...item, _day: d ? d.getDate() : 0 });
+  completados.filter(i => i.addedAt).forEach(item => {
+    const d = new Date(item.addedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+    groups[key].items.push({ ...item, _day: d.getDate() });
   });
   const sorted = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
   if (!sorted.length) return null;
@@ -1625,7 +1625,7 @@ function DiaryPanel({ completados, onOpen, accent }) {
   );
 }
 
-function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
+function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
@@ -1713,8 +1713,8 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
         </div>
       )}
 
-      {/* DIARY — Letterboxd style, grouped by month (só mobile; PC usa DiaryPanel na coluna direita) */}
-      {showDiary && completados.length > 0 && (() => {
+      {/* DIARY — Letterboxd style, grouped by month */}
+      {completados.length > 0 && (() => {
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
         // Group by month — only items WITH addedAt appear in the diary
         const groups = {};
@@ -1810,7 +1810,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -1969,25 +1969,19 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               {onSignOut && (
                 <button onClick={onSignOut} title="Sair" style={{
                   width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
-                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                </button>
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+                }}>⏻</button>
               )}
             </div>
           </>
         )}
       </div>
 
-      {/* Stats and settings — PC: flex row com diário à direita */}
+      {/* Stats and settings — PC: grid 2 colunas com diário à direita */}
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 8, padding: "0 0 0 32px", alignItems: "flex-start" }
+        ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, padding: "0 32px", alignItems: "start" }
         : { padding: "0 16px" }
-      }><div style={{ flex: 1, minWidth: 0 }}>
+      }><div>
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
@@ -2001,7 +1995,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
         return (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
               <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
             </div>
@@ -2011,7 +2005,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
                   const tc = accentVariant(accent, tIdx);
                   return (
@@ -2025,11 +2019,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                       {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
                       {(() => {
                         const count = favByType[t.id].length;
-                        // Mobile: sempre grid 4 colunas (sem scroll) — PC: scroll row se ≤6 itens
-                        const useScroll = !isMobileDevice && count <= 6;
+                        // Tamanho da capa: quanto menos itens, maior a capa
                         const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
+                        const useScroll = count <= 6;
                         return (
-                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
                               return (
@@ -2069,7 +2063,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} showDiary={isMobileDevice} />}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />}
 
       {/* Stats grid — colapsável */}
       <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
@@ -2454,9 +2448,13 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
             </div>
-      {diaryPanel}
-      </div>
-    </div>{/* fim conteudo */}
+      </div>{/* fim coluna esquerda */}
+      {!isMobileDevice && (
+        <div style={{ position: "sticky", top: 24 }}>
+          <DiaryPanel completados={items.filter(i => i.userStatus === "completo")} onOpen={onOpen} accent={accent} />
+        </div>
+      )}
+    </div>{/* fim grid */}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
@@ -5173,61 +5171,6 @@ export default function TrackAll() {
             onAutoSync={autoSyncDrive}
             driveAutoSyncing={driveAutoSyncing}
             onOpen={setSelectedItem}
-            diaryPanel={!isMobileDevice ? (() => {
-              const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
-                .sort((a,b) => b.addedAt - a.addedAt);
-              if (!completados.length) return null;
-              const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-              const groups = {};
-              completados.forEach(item => {
-                const d = new Date(item.addedAt);
-                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-                if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-                groups[key].items.push({ ...item, _day: d.getDate() });
-              });
-              const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-              return (
-                <div style={{
-                  width: 280, flexShrink: 0,
-                  borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 28, paddingRight: 8, marginLeft: 16,
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
-                    <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
-                  </div>
-                  {sortedGroups.map(group => (
-                    <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
-                      <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
-                        <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
-                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
-                          <div key={item.id} onClick={() => setSelectedItem(item)} style={{
-                            display: "flex", alignItems: "center", gap: 7, padding: "5px 3px",
-                            borderBottom: idx < arr.length-1 ? `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` : "none",
-                            cursor: "pointer", borderRadius: 4,
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#ffffff08" : "#00000008"}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
-                            {(item.customCover || item.cover || item.thumbnailUrl)
-                              ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
-                              : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                            }
-                            <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
-                            {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })() : null}
           />
           </div>
         )}
