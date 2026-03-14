@@ -2455,7 +2455,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
             </div>
       </div>
-      </div>
     </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
