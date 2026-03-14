@@ -2025,11 +2025,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                       {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
                       {(() => {
                         const count = favByType[t.id].length;
-                        // Tamanho da capa: quanto menos itens, maior a capa
+                        // Mobile: sempre grid 4 colunas (sem scroll) — PC: scroll row se ≤6 itens
+                        const useScroll = !isMobileDevice && count <= 6;
                         const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
-                        const useScroll = count <= 6;
                         return (
-                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: isMobileDevice ? undefined : "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
                               return (
@@ -5188,9 +5188,9 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 260, flexShrink: 0,
+                  width: 280, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 20, paddingRight: 8,
+                  paddingLeft: 28, paddingRight: 8, marginLeft: 16,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
