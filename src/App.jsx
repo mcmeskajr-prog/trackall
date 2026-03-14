@@ -2456,15 +2456,15 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             </div>
       </div>{/* fim coluna esquerda */}
       {!isMobileDevice && (() => {
-        const completados = items.filter(i => i.userStatus === "completo");
+        const completados = items.filter(i => i.userStatus === "completo" && i.addedAt);
         if (!completados.length) return null;
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
         const groups = {};
         completados.forEach(item => {
-          const d = item.addedAt ? new Date(item.addedAt) : null;
-          const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
-          if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
-          groups[key].items.push({ ...item, _day: d ? d.getDate() : 0 });
+          const d = new Date(item.addedAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, _day: d.getDate() });
         });
         const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
         return (
@@ -2478,10 +2478,10 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
                   <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
                     <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                      {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
+                      {MONTH_PT[group.month]}
                     </div>
-                    <div style={{ padding: "4px 0 5px", fontSize: group.key === "0000-00" ? 10 : 15, fontWeight: 900, color: "#e6edf3" }}>
-                      {group.key === "0000-00" ? "Sem data" : group.year}
+                    <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>
+                      {group.year}
                     </div>
                   </div>
                 </div>
@@ -2494,7 +2494,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                     }}
                       onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day || ""}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
                       {(item.customCover || item.cover || item.thumbnailUrl)
                         ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
                         : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -2509,7 +2509,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           </div>
         );
       })()}
-    </div>{/* fim grid */}
+    </div>{/* fim flex container */}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
