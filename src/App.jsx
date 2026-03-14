@@ -1983,11 +1983,11 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         )}
       </div>
 
-      {/* Stats and settings — PC: grid 2 colunas com diário à direita */}
+      {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
-        ? { display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, padding: "0 32px", alignItems: "start" }
+        ? { display: "flex", flexDirection: "row", gap: 28, padding: "0 32px", alignItems: "flex-start" }
         : { padding: "0 16px" }
-      }><div>
+      }><div style={{ flex: 1, minWidth: 0 }}>
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
@@ -2455,11 +2455,60 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
             </div>
       </div>{/* fim coluna esquerda */}
-      {!isMobileDevice && (
-        <div style={{ paddingTop: 8 }}>
-          <DiaryPanel completados={items.filter(i => i.userStatus === "completo")} onOpen={onOpen} accent={accent} />
-        </div>
-      )}
+      {!isMobileDevice && (() => {
+        const completados = items.filter(i => i.userStatus === "completo");
+        if (!completados.length) return null;
+        const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+        const groups = {};
+        completados.forEach(item => {
+          const d = item.addedAt ? new Date(item.addedAt) : null;
+          const key = d ? `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}` : "0000-00";
+          if (!groups[key]) groups[key] = { key, year: d ? d.getFullYear() : 0, month: d ? d.getMonth() : 0, items: [] };
+          groups[key].items.push({ ...item, _day: d ? d.getDate() : 0 });
+        });
+        const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+        return (
+          <div style={{ width: 280, flexShrink: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+              <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
+            </div>
+            {sortedGroups.map(group => (
+              <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
+                <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
+                  <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                    <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
+                      {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
+                    </div>
+                    <div style={{ padding: "4px 0 5px", fontSize: group.key === "0000-00" ? 10 : 15, fontWeight: 900, color: "#e6edf3" }}>
+                      {group.key === "0000-00" ? "Sem data" : group.year}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
+                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                      display: "flex", alignItems: "center", gap: 7, padding: "5px 3px",
+                      borderBottom: idx < arr.length-1 ? "1px solid #21262d" : "none",
+                      cursor: "pointer", borderRadius: 4,
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#ffffff08"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day || ""}</span>
+                      {(item.customCover || item.cover || item.thumbnailUrl)
+                        ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
+                        : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: "#e6edf3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                      {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>{/* fim grid */}
     {cropSrc && (
       <CropModal
