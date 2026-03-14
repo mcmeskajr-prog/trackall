@@ -2027,10 +2027,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                         const count = favByType[t.id].length;
                         // Tamanho da capa: quanto menos itens, maior a capa
                         const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
-                        const useScroll = isMobileDevice && count <= 6;
-                        const gridCols = count <= 4 ? count : 4;
+                        const useScroll = count <= 6;
                         return (
-                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } : { display: "grid", gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 10 }}>
+                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: isMobileDevice ? undefined : "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
                               return (
