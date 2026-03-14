@@ -5188,9 +5188,9 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 420, flexShrink: 0,
+                  width: 520, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 140, paddingRight: 0,
+                  paddingLeft: 240, paddingRight: 0,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
