@@ -2001,7 +2001,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
 
         return (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
               <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
             </div>
@@ -2011,7 +2011,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
                   const tc = accentVariant(accent, tIdx);
                   return (
