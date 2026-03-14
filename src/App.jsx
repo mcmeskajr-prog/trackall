@@ -2011,7 +2011,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 18, maxWidth: !isMobileDevice ? 640 : undefined, margin: !isMobileDevice ? "0 auto" : undefined }}>
                 {activeTypes.map((t, tIdx) => {
                   const tc = accentVariant(accent, tIdx);
                   return (
@@ -5188,9 +5188,9 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 520, flexShrink: 0,
+                  width: 560, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 240, paddingRight: 0,
+                  paddingLeft: 280, paddingRight: 0,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
