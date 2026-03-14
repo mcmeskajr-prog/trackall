@@ -1810,7 +1810,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen }) {
+function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -2454,6 +2454,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
             </div>
+      {diaryPanel}
       </div>
     </div>{/* fim conteudo */}
     {cropSrc && (
@@ -5130,9 +5131,8 @@ export default function TrackAll() {
           <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
         )}
         {view === "profile" && (
-          <div style={{ display: isMobileDevice ? "block" : "flex", alignItems: "flex-start", background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-            <ProfileView
+          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
+          <ProfileView
             profile={profile}
             library={library}
             accent={accent}
@@ -5173,10 +5173,7 @@ export default function TrackAll() {
             onAutoSync={autoSyncDrive}
             driveAutoSyncing={driveAutoSyncing}
             onOpen={setSelectedItem}
-          />
-            </div>
-            {/* Coluna direita — Diary (só PC) */}
-            {!isMobileDevice && (() => {
+            diaryPanel={!isMobileDevice ? (() => {
               const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
                 .sort((a,b) => b.addedAt - a.addedAt);
               if (!completados.length) return null;
@@ -5191,10 +5188,9 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 280, flexShrink: 0,
+                  width: 260, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  padding: "28px 14px 28px 16px",
-                  paddingTop: 480,
+                  paddingLeft: 20, paddingRight: 8,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
@@ -5231,7 +5227,8 @@ export default function TrackAll() {
                   ))}
                 </div>
               );
-            })()}
+            })() : null}
+          />
           </div>
         )}
 
