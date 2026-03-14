@@ -1625,7 +1625,7 @@ function DiaryPanel({ completados, onOpen, accent }) {
   );
 }
 
-function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true }) {
+function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
@@ -1714,7 +1714,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true 
       )}
 
       {/* DIARY — Letterboxd style, grouped by month (só mobile; PC usa DiaryPanel na coluna direita) */}
-      {isMobileDevice && completados.length > 0 && (() => {
+      {showDiary && completados.length > 0 && (() => {
         const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
         // Group by month — only items WITH addedAt appear in the diary
         const groups = {};
@@ -2069,7 +2069,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} />}
+      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} showDiary={isMobileDevice} />}
 
       {/* Stats grid — colapsável */}
       <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
@@ -2456,7 +2456,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
             </div>
       </div>{/* fim coluna esquerda */}
       {!isMobileDevice && (
-        <div style={{ position: "sticky", top: 24 }}>
+        <div style={{ paddingTop: 8 }}>
           <DiaryPanel completados={items.filter(i => i.userStatus === "completo")} onOpen={onOpen} accent={accent} />
         </div>
       )}
