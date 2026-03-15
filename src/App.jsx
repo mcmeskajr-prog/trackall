@@ -5523,7 +5523,7 @@ export default function TrackAll() {
             {isSearching && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#8b949e" }}>
                 <div className="spin" style={{ fontSize: 40, display: "block", marginBottom: 12 }}>◌</div>
-                <p>A pesquisar{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : {lang === "en" ? " across all types" : " em todos os tipos"}}...</p>
+                <p>{lang === "en" ? "Searching" : "A pesquisar"}{activeTab !== "all" ? ` in ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : (lang === "en" ? " across all types" : " em todos os tipos")}...</p>
               </div>
             )}
             {searchError && (
