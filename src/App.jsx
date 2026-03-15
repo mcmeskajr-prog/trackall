@@ -3254,12 +3254,13 @@ const DEMO_LIBRARY = {
   "al-3": { id: "al-3", title: "Tokyo Ghoul", type: "manga", userStatus: "completo", userRating: 9, cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx46570-B06SXNKALXSD.jpg", addedAt: Date.now() - 86400000 * 6 },
   "al-4": { id: "al-4", title: "Jujutsu Kaisen", type: "anime", userStatus: "planeado", userRating: 0, cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-bbBWj4pEFseh.jpg", addedAt: Date.now() - 86400000 * 8 },
   "al-5": { id: "al-5", title: "One Piece", type: "manga", userStatus: "assistindo", userRating: 10, cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-ulXvn0KLshFO.jpg", addedAt: Date.now() - 86400000 * 10 },
+  "al-6": { id: "al-6", title: "Chainsaw Man", type: "manga", userStatus: "completo", userRating: 9, cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87216-IMfHSeVyCEkm.jpg", addedAt: Date.now() - 86400000 * 12 },
   "tmdb-1": { id: "tmdb-1", title: "Oppenheimer", type: "filmes", userStatus: "completo", userRating: 9, cover: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", addedAt: Date.now() - 86400000 * 3 },
   "tmdb-2": { id: "tmdb-2", title: "Breaking Bad", type: "series", userStatus: "completo", userRating: 10, cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg", addedAt: Date.now() - 86400000 * 5 },
   "tmdb-3": { id: "tmdb-3", title: "Dune: Part Two", type: "filmes", userStatus: "completo", userRating: 9, cover: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg", addedAt: Date.now() - 86400000 * 1 },
+  "tmdb-4": { id: "tmdb-4", title: "The Last of Us", type: "series", userStatus: "completo", userRating: 10, cover: "https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg", addedAt: Date.now() - 86400000 * 11 },
   "game-1": { id: "game-1", title: "Elden Ring", type: "jogos", userStatus: "completo", userRating: 10, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg", addedAt: Date.now() - 86400000 * 7 },
   "game-2": { id: "game-2", title: "Hollow Knight", type: "jogos", userStatus: "completo", userRating: 9, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rgi.jpg", addedAt: Date.now() - 86400000 * 14 },
-  "comic-1": { id: "comic-1", title: "Venom", type: "comics", userStatus: "completo", userRating: 8, cover: "https://comicvine.gamespot.com/a/uploads/scale_small/12/124259/8126579-01.jpg", addedAt: Date.now() - 86400000 * 9 },
 };
 const DEMO_PROFILE = { name: "Demo User", bio: "A explorar o TrackAll ✨", avatar: "", accent: "#f97316", favorites: [
   { id: "al-1", title: "Attack on Titan", type: "anime", cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg" },
@@ -3990,7 +3991,7 @@ function AuthScreen({ onAuth, accent, onBack }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
       <div style={{ width: "100%", maxWidth: 400 }}>
         {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", marginBottom: 20, padding: 0, display: "flex", alignItems: "center", gap: 6 }}>← Voltar</button>}
