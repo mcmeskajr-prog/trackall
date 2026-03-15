@@ -145,6 +145,9 @@ const supa = {
 // ─── Theme Context ────────────────────────────────────────────────────────────
 const ThemeContext = createContext(null);
 const useTheme = () => useContext(ThemeContext);
+const useAccent = () => useContext(ThemeContext)?.accent ?? "#f97316";
+const useDarkMode = () => useContext(ThemeContext)?.darkMode ?? true;
+const useIsMobile = () => useContext(ThemeContext)?.isMobileDevice ?? false;
 const _safeT = (k) => { try { const s = STRINGS?.[_globalLang]; return s?.[k] ?? STRINGS?.["en"]?.[k] ?? k; } catch { return k; } };
 const LangContext = createContext({ lang: _globalLang, useT: _safeT });
 const useLang = () => { const ctx = useContext(LangContext); return ctx ?? { lang: _globalLang, useT: _safeT }; };
@@ -806,7 +809,9 @@ async function driveDownloadFile(token, fileId) {
   return { arrayBuffer: () => Promise.resolve(ab) };
 }
 
-function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+function MihonImportModal({ onClose, onImport, driveClientId, onSaveClientId }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
   const [items, setItems] = useState([]);
@@ -1080,6 +1085,8 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
 
 
 function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const canvasRef = useRef(null);
   const [drag, setDrag] = useState(false);
@@ -1182,6 +1189,8 @@ function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "Recorta
 
 // ─── Cover Edit Modal ──────────────────────────────────────────────────────────
 function CoverEditModal({item, onSave, onClose }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [url, setUrl] = useState(item.customCover || item.cover || "");
   const [preview, setPreview] = useState(item.customCover || item.cover || "");
@@ -1263,6 +1272,8 @@ function CoverEditModal({item, onSave, onClose }) {
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
 function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
@@ -1590,7 +1601,9 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 }); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function DiaryPanel({completados, onOpen, accent }) {
+function DiaryPanel({ completados, onOpen }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [showAll, setShowAll] = useState(false);
   if (!completados || !completados.length) return null;
@@ -1653,7 +1666,9 @@ function DiaryPanel({completados, onOpen, accent }) {
   );
 }
 
-function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
+function RecentSection({ items, onOpen, showDiary = true }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
@@ -2151,7 +2166,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       })()}
 
       {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} accent={accent} darkMode={darkMode} onOpen={onOpen} isMobileDevice={isMobileDevice} showDiary={isMobileDevice} />}
+      {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={isMobileDevice} />}
 
       {/* Stats grid — colapsável */}
       <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
@@ -2454,8 +2469,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Mihon Modal */}
       {showMihon && (
         <MihonImportModal
-          accent={accent}
-          darkMode={darkMode}
+         
+         
           onClose={() => setShowMihon(false)}
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
           driveClientId={driveClientId}
@@ -2466,14 +2481,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Modais Paperback e Letterboxd */}
       {showPaperback && (
         <PaperbackImportModal
-          accent={accent} darkMode={darkMode}
+         
           onClose={() => setShowPaperback(false)}
           onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
         />
       )}
       {showLetterboxd && (
         <LetterboxdImportModal
-          accent={accent} darkMode={darkMode}
+         
           onClose={() => setShowLetterboxd(false)}
           onImport={(items) => { onImportLetterboxd && onImportLetterboxd(items); setShowLetterboxd(false); }}
         />
@@ -2680,6 +2695,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
 function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
@@ -3183,7 +3200,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
       </div>
 
       {/* ── Feed de Atividade ── */}
-      {tab === "feed" && <FeedTab accepted={accepted} getFriendInfo={getFriendInfo} accent={accent} darkMode={false} />}
+      {tab === "feed" && <FeedTab accepted={accepted} getFriendInfo={getFriendInfo} />}
 
       {/* Friends list */}
       {tab === "friends" && (
@@ -3519,7 +3536,9 @@ async function fetchTrendingGames(workerUrl) {
 }
 
 // ─── Recommendation Carousel ──────────────────────────────────────────────────
-function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) {
+function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   if (loading) return (
     <div style={{ padding: "0 16px 28px" }}>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
@@ -3569,6 +3588,8 @@ function RecoCarousel({ title, icon, items, library, onOpen, accent, loading }) 
 
 // ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
 function LibGroupedList({ items, library, accent, darkMode, onOpen }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const [collapsed, setCollapsed] = useState({});
   const toggle = (id) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
 
@@ -3759,7 +3780,9 @@ function parseLetterboxdCSV(text) {
 }
 
 // ─── Paperback Import Modal ───────────────────────────────────────────────────
-function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
+function PaperbackImportModal({ onClose, onImport }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [step, setStep] = useState('upload'); // upload | preview | done
   const [items, setItems] = useState([]);
@@ -3866,7 +3889,9 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
 }
 
 // ─── Letterboxd Import Modal ──────────────────────────────────────────────────
-function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
+function LetterboxdImportModal({ onClose, onImport }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [step, setStep] = useState('upload');
   const [items, setItems] = useState([]);
@@ -3968,7 +3993,9 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
 }
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
-function RatingOverlay({ item, accent, library, onDone }) {
+function RatingOverlay({ item, library, onDone }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+
   const { lang, useT } = useLang();
   const [rating, setRating] = useState(0);
   const textColor = (() => {
@@ -4919,7 +4946,7 @@ export default function TrackAll() {
   const baseTextColor = darkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
@@ -5228,7 +5255,7 @@ export default function TrackAll() {
         {logPendingItem && (
           <RatingOverlay
             item={logPendingItem}
-            accent={accent}
+           
             library={library}
             onDone={(rating) => {
               if (rating > 0) {
@@ -5524,11 +5551,11 @@ export default function TrackAll() {
                   {recoLoading ? useT("loading") : useT("refresh")}
                 </button>
               </div>
-              <RecoCarousel title={useT("animeTrending")} icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title={useT("mangaTrending")} icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
-              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("mangaTrending")} icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
             </div>
           </div>
         )}
