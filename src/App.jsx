@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, createContext, useContext } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { t, detectLang, saveLang, STRINGS } from './translations';
+// Safety fallback for lang
+let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
+
 
 // ─── Supabase (SDK oficial) ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
@@ -142,7 +145,7 @@ const supa = {
 // ─── Theme Context ────────────────────────────────────────────────────────────
 const ThemeContext = createContext(null);
 const useTheme = () => useContext(ThemeContext);
-const LangContext = createContext({ lang: "en", useT: (k) => k });
+const LangContext = createContext({ lang: _globalLang, useT: (k) => { const s = STRINGS[_globalLang]; return s?.[k] ?? STRINGS["en"]?.[k] ?? k; } });
 const useLang = () => useContext(LangContext);
 
 const ACCENT_PRESETS = [
