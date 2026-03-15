@@ -2925,8 +2925,8 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
         </div>
 
         {/* Layout PC: 2 colunas | Mobile: 1 coluna */}
-        <div style={ !isMobileDevice ? { display: "flex", gap: 24, padding: "0 24px", alignItems: "flex-start" } : {}}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={ !isMobileDevice ? { display: "flex", gap: 20, padding: "0 24px", alignItems: "flex-start", overflow: "hidden" } : {}}>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
 
         {/* Stats */}
         <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 20 }}>
@@ -3012,7 +3012,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: !isMobileDevice ? "repeat(4, minmax(0, 80px))" : "repeat(4, 1fr)", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                         {favByType[t.id].map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
@@ -3075,7 +3075,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           });
           const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
           return (
-            <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 24, marginLeft: "auto" }}>
+            <div style={{ width: 260, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
                 <span style={{ fontSize: 11, color: "#484f58" }}>{fCompletados.length} entradas</span>
