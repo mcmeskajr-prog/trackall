@@ -862,7 +862,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
   const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
   const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
 
-  const statusLabel = { assistindo: '▶ Em Curso', completo: '✓ Completo', planejado: '⏰ Planejado' };
+  const statusLabelLocal = (id) => { const s = STATUS_OPTIONS.find(x=>x.id===id); return s ? `${s.emoji} ${statusLabel(s,lang)}` : id; };
   const statusColor = { assistindo: accent, completo: '#10b981', planejado: '#06b6d4' };
   const bg = darkMode ? '#161b22' : '#ffffff';
   const border = darkMode ? '#30363d' : '#e2e8f0';
@@ -1038,7 +1038,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[m.userStatus] }}>{statusLabel[m.userStatus]}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[m.userStatus] }}>{statusLabelLocal(m.userStatus)}</span>
                       {m.lastChapter && <span style={{ fontSize: 10, color: '#8b949e' }}>· {m.lastChapter}</span>}
                       {m.totalChapters > 0 && <span style={{ fontSize: 10, color: '#484f58' }}>({m.chaptersRead}/{m.totalChapters})</span>}
                     </div>
@@ -1060,7 +1060,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>{useT("importSuccess")}</h3>
-            <p style={{ color: '#8b949e', fontSize: 14, marginBottom: 20 }}>Os teus mangas do Mihon já estão na biblioteca.</p>
+            <p style={{ color: '#8b949e', fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Your Mihon manga are now in your library." : "Os teus mangas do Mihon já estão na biblioteca."}</p>
             <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
@@ -1313,7 +1313,7 @@ function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRa
             <div style={{ flex: 1, paddingTop: 40 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                  {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type)?.label}
+                  {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}
                 </span>
                 {item.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{item.year}</span>}
                 {item.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {item.score}</span>}
@@ -1394,7 +1394,7 @@ function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRa
                         background: libItem.userStatus === s.id ? `${s.color}25` : "transparent",
                         color: libItem.userStatus === s.id ? s.color : "#8b949e",
                       }}>
-                        {s.emoji} {s.label}
+                        {s.emoji} {statusLabel(s, lang)}
                       </button>
                     ))}
                   </div>
@@ -1426,7 +1426,7 @@ function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRa
                       background: `${s.color}15`, color: s.color, cursor: "pointer",
                       fontFamily: "inherit", fontWeight: 600, fontSize: 13,
                     }}>
-                      {s.emoji} {s.label}
+                      {s.emoji} {statusLabel(s, lang)}
                     </button>
                   ))}
                 </div>
@@ -1565,7 +1565,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
       <div className="card-info" style={{ padding: "6px 8px 8px" }}>
         <p className="card-info-title card-title-text" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
         <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>
-          {MEDIA_TYPES.find((t) => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}
+          {MEDIA_TYPES.find((t) => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}
         </p>
         {libItem?.lastChapter && libItem?.userStatus === 'assistindo' && (
           <p style={{ fontSize: 10, color: accent, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1695,7 +1695,7 @@ function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, 
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>✓ COMPLETADOS</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{`✓ ${useT("completedLabel").toUpperCase()}`}</h3>
             {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
@@ -2015,7 +2015,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
             {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
-            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
@@ -2540,7 +2540,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList" },
           ].map(s => (
             <div key={s.label} style={{ background: "#0d1117", border: "1px solid #10b98122", borderRadius: 8, padding: "8px 10px" }}>
-              <div style={{ fontWeight: 700, fontSize: 12 }}><span style={{ color: "#10b981" }}>✓ </span>{s.icon} {s.label}</div>
+              <div style={{ fontWeight: 700, fontSize: 12 }}><span style={{ color: "#10b981" }}>✓ </span>{s.icon} {statusLabel(s, lang)}</div>
               <div style={{ color: "#484f58", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
             </div>
           ))}
@@ -3772,7 +3772,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
   const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
   const handleImport = () => { onImport(items.filter(m => selected[m.id])); setStep('done'); };
   const statusColor = { assistindo: accent, completo: '#10b981', planejado: '#06b6d4' };
-  const statusLabel = { assistindo: '▶ Em Curso', completo: '✓ Completo', planejado: '⏰ Planejado' };
+  const statusLabelLocal = (id) => { const s = STATUS_OPTIONS.find(x=>x.id===id); return s ? `${s.emoji} ${statusLabel(s,lang)}` : id; };
   const typeIcon = { manga: '🗒', comics: '💬' };
 
   return (
@@ -3828,7 +3828,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
                     <p style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
                     <p style={{ fontSize: 10, color: '#8b949e', marginTop: 1 }}>{typeIcon[item.type] || '📖'} {item.type} · {item.chaptersRead}/{item.totalChapters} cap.</p>
                   </div>
-                  <span style={{ fontSize: 10, color: statusColor[item.userStatus], fontWeight: 700, flexShrink: 0 }}>{statusLabel[item.userStatus]}</span>
+                  <span style={{ fontSize: 10, color: statusColor[item.userStatus], fontWeight: 700, flexShrink: 0 }}>{statusLabelLocal(item.userStatus)}</span>
                   <span style={{ fontSize: 16, flexShrink: 0 }}>{selected[item.id] ? '☑' : '☐'}</span>
                 </div>
               ))}
@@ -3843,7 +3843,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{lang === "en" ? "Import complete!" : "Importação concluída!"}</p>
-            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus itens do Paperback já estão na biblioteca.</p>
+            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>{lang === "en" ? "Your Paperback items are now in your library." : "Os teus itens do Paperback já estão na biblioteca."}</p>
             <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
@@ -3944,7 +3944,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{lang === "en" ? "Import complete!" : "Importação concluída!"}</p>
-            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus filmes do Letterboxd já estão na biblioteca.</p>
+            <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>{lang === "en" ? "Your Letterboxd films are now in your library." : "Os teus filmes do Letterboxd já estão na biblioteca."}</p>
             <button onClick={onClose} style={{ padding: '10px 28px', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
@@ -3972,7 +3972,7 @@ function RatingOverlay({ item, accent, library, onDone }) {
           <div>
             <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 4 }}>✓ Marcado como completo!</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3" }}>{item.title}</div>
-            <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}</div>
+            <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}</div>
           </div>
         </div>
         <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
@@ -4983,7 +4983,7 @@ export default function TrackAll() {
                 <button onClick={() => { setLogOpen(v => !v); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${accent}44`, background: `${accent}12`, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: accent, transition: "all 0.15s" }}
                   onMouseEnter={e => { e.currentTarget.style.background = `${accent}22`; }}
                   onMouseLeave={e => { e.currentTarget.style.background = `${accent}12`; }}>
-                  <span style={{ fontSize: 18 }}>+</span> Log Rápido
+                  <span style={{ fontSize: 18 }}>+</span> {useT("quickLog")}
                 </button>
               </div>
 
@@ -5025,7 +5025,7 @@ export default function TrackAll() {
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
-                    <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} na biblioteca</p>
+                    <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
                   </div>
                 </div>
               </div>
@@ -5303,7 +5303,7 @@ export default function TrackAll() {
                       {profile.name || "Utilizador"}
                     </h2>
                     <p style={{ fontSize: 12, color: darkMode ? "#6b7280" : "#94a3b8", marginBottom: 8, fontWeight: 500 }}>
-                      <span style={{ color: darkMode ? "#c9d1d9" : "#475569", fontWeight: 700 }}>{items.length}</span> na biblioteca
+                      <span style={{ color: darkMode ? "#c9d1d9" : "#475569", fontWeight: 700 }}>{items.length}</span> {useT("inLibraryCount")}
                     </p>
                     {/* Stats compactas numa linha */}
                     <div style={{ display: "flex", gap: 4 }}>
@@ -5675,7 +5675,7 @@ export default function TrackAll() {
                     <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{useT("all")}</button>
                     {STATUS_OPTIONS.map((s) => (
                       <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
-                        {s.emoji} {s.label}
+                        {s.emoji} {statusLabel(s, lang)}
                       </button>
                     ))}
                   </div>
@@ -5901,7 +5901,7 @@ export default function TrackAll() {
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}{item.year ? ` · ${item.year}` : ""}</p>
+                        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
                       </div>
                       <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700, flexShrink: 0 }}>✓</span>
                     </div>
