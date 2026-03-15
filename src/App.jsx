@@ -142,6 +142,8 @@ const supa = {
 // ─── Theme Context ────────────────────────────────────────────────────────────
 const ThemeContext = createContext(null);
 const useTheme = () => useContext(ThemeContext);
+const LangContext = createContext({ lang: "en", useT: (k) => k });
+const useLang = () => useContext(LangContext);
 
 const ACCENT_PRESETS = [
   { name: "Laranja", color: "#f97316" },
@@ -795,7 +797,8 @@ async function driveDownloadFile(token, fileId) {
   return { arrayBuffer: () => Promise.resolve(ab) };
 }
 
-function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+function MihonImportModal({
+  const { lang, useT } = useLang(); onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
   const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1067,7 +1070,8 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
 
 
 
-function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+function CropModal({
+  const { lang, useT } = useLang(); imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
   const canvasRef = useRef(null);
   const [drag, setDrag] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -1168,7 +1172,8 @@ function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recort
 }
 
 // ─── Cover Edit Modal ──────────────────────────────────────────────────────────
-function CoverEditModal({ item, onSave, onClose }) {
+function CoverEditModal({
+  const { lang, useT } = useLang(); item, onSave, onClose }) {
   const [url, setUrl] = useState(item.customCover || item.cover || "");
   const [preview, setPreview] = useState(item.customCover || item.cover || "");
   const [loading, setLoading] = useState(false);
@@ -1248,7 +1253,8 @@ function CoverEditModal({ item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+function DetailModal({
+  const { lang, useT } = useLang(); item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
@@ -1574,7 +1580,8 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 }); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function DiaryPanel({ completados, onOpen, accent }) {
+function DiaryPanel({
+  const { lang, useT } = useLang(); completados, onOpen, accent }) {
   const [showAll, setShowAll] = useState(false);
   if (!completados || !completados.length) return null;
   const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -1637,7 +1644,8 @@ function DiaryPanel({ completados, onOpen, accent }) {
   );
 }
 
-function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
+function RecentSection({
+  const { lang, useT } = useLang(); items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
@@ -2657,7 +2665,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 }
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
-function FeedTab({ accepted, getFriendInfo, accent, darkMode }) {
+function FeedTab({
+  const { lang, useT } = useLang(); accepted, getFriendInfo, accent, darkMode }) {
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
 
@@ -2763,7 +2772,8 @@ function FeedTab({ accepted, getFriendInfo, accent, darkMode }) {
   );
 }
 
-function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
+function FriendsView({
+  const { lang, useT } = useLang(); user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
   const [searchQ, setSearchQ] = useState("");
@@ -4887,6 +4897,7 @@ export default function TrackAll() {
 
   return (
     <ThemeContext.Provider value={{ accent, bg: activeBgColor }}>
+      <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
         background: activeBgColor,
@@ -5945,6 +5956,7 @@ export default function TrackAll() {
           </button>
         </nav>
       </div>
+      </LangContext.Provider>
     </ThemeContext.Provider>
   );
 }
