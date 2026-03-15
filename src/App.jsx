@@ -4817,18 +4817,24 @@ export default function TrackAll() {
             }
             const col = `rgb(${r},${g},${b})`;
             return `
-          p, span, h1, h2, h3, h4, h5, li, a,
+          /* Aplicar só fora dos overlays e elementos protegidos */
+          p:not(.no-tc):not(.rating-hover p):not(.recent-hover-overlay p):not(.fav-overlay p),
+          span:not(.no-tc):not(.rating-hover span):not(.recent-hover-overlay span):not(.fav-overlay span):not([style*="f59e0b"]):not([style*="fbbf24"]),
+          h1:not(.no-tc), h2:not(.no-tc), h3:not(.no-tc), h4:not(.no-tc), h5:not(.no-tc),
+          li:not(.no-tc), a:not(.no-tc),
           .card-info-title, .ds-nav-btn, .ds-type-item {
             color: ${col} !important;
           }
-          /* Excluir: overlays das capas (sempre branco), accent pills (sempre accent), estrelas (sempre amarelo) */
-          .rating-hover *, .recent-hover-overlay *, .fav-overlay *,
-          .card .media-thumb .rating-hover p,
-          .card .media-thumb .rating-hover span,
-          .no-tc, .no-tc *,
-          .btn-accent, .btn-accent *,
-          img, video, canvas {
-            color: initial !important;
+          /* Overlays das capas — sempre branco */
+          .rating-hover p, .rating-hover span,
+          .recent-hover-overlay p, .recent-hover-overlay span,
+          .fav-overlay p, .fav-overlay span, .fav-overlay div {
+            color: white !important;
+          }
+          /* Pills protegidos e botões accent */
+          .no-tc, .no-tc span, .no-tc p,
+          .btn-accent, .btn-accent span {
+            color: revert !important;
           }
           `;
           })()}
