@@ -1271,7 +1271,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -2694,7 +2694,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 }
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
-function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
+function FeedTab({ accepted, getFriendInfo }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -3587,7 +3587,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
 }
 
 // ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
-function LibGroupedList({ items, library, accent, darkMode, onOpen }) {
+function LibGroupedList({ items, library, onOpen }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const [collapsed, setCollapsed] = useState({});
@@ -5746,8 +5746,8 @@ export default function TrackAll() {
                   <LibGroupedList
                     items={sortedLib}
                     library={library}
-                    accent={accent}
-                    darkMode={darkMode}
+                   
+                   
                     onOpen={setSelectedItem}
                   />
                 ) : libViewMode === "compact" ? (
