@@ -1825,6 +1825,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
   const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
   const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
@@ -1884,7 +1885,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         }}>
           {/* Multi-layer gradient overlay for impact */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-          {/* Banner fallback — hexágonos animados */}
+          {/* Banner fallback — hexágonos + partículas animadas */}
           {!currentBanner && (
             <>
               <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
@@ -1899,8 +1900,28 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                   </pattern>
                 </defs>
                 <rect width="100%" height="100%" fill="url(#hex)"/>
+                {/* Partículas flutuantes */}
+                {[
+                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
+                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
+                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
+                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
+                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
+                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
+                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
+                ].map((p, i) => (
+                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
+                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
+                  </circle>
+                ))}
               </svg>
-              <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%), radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)` }} />
+              {/* Gradiente respirante */}
+              <div style={{ position: "absolute", inset: 0 }}>
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
+              </div>
+              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
             </>
           )}
           {editing && (
@@ -1981,6 +2002,23 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
               }}>✏ Editar Perfil</button>
+              <button onClick={() => {
+                const username = profile.username || profile.name?.toLowerCase().replace(/\s+/g,'-') || 'perfil';
+                const url = `${window.location.origin}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  // usar notif do pai não está disponível aqui — usar estado local
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2000);
+                }).catch(() => {});
+              }} title="Copiar link do perfil" style={{
+                width: 34, height: 34, borderRadius: 8, border: `1px solid ${shareCopied ? "#10b981" : accent + "44"}`,
+                background: shareCopied ? "#10b98120" : `${accent}15`,
+                color: shareCopied ? "#10b981" : accent,
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15,
+                transition: "all 0.2s",
+              }}>
+                {shareCopied ? "✓" : "🔗"}
+              </button>
               {onSignOut && (
                 <button onClick={onSignOut} title="Sair" style={{
                   width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
@@ -2026,16 +2064,16 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
               </div>
             ) : (
-              <div style={{ padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
                   const tc = accentVariant(accent, tIdx);
                   return (
                     <div key={t.id}>
                       {/* Label categoria */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.12em" }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}50, transparent)` }} />
-                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{t.label}</span>
+                        <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
                       {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
                       {(() => {
@@ -2047,6 +2085,8 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                           <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 8 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
+                              // Buscar rating atualizado da biblioteca
+                              const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
                               return (
                                 <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}
                                   onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
@@ -2057,13 +2097,13 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
                                     }
                                     <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
-                                      {item.userRating > 0
-                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {item.userRating}</div>
+                                      {currentRating > 0
+                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div>
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
                                       }
                                     </div>
-                                    {item.userRating > 0 && (
-                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                                    {currentRating > 0 && (
+                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{currentRating}</div>
                                     )}
                                   </div>
                                   <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
@@ -2715,7 +2755,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
     };
 
     return (
-      <div style={{ position: "relative", minHeight: "100vh", maxWidth: 600, margin: "0 auto", paddingBottom: 20,
+      <div style={{ position: "relative", minHeight: "100vh", maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto", paddingBottom: 20,
         background: fBgImage ? "transparent" : fBgColor,
         color: fDark ? "#e6edf3" : "#0d1117",
       }}>
@@ -2728,63 +2768,129 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
         <div style={{ position: "relative", zIndex: 1 }}>
         <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{ background: "none", border: "none", color: fAccent, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "16px" }}>← Voltar</button>
 
-        {/* Header */}
-        <div style={{ textAlign: "center", padding: "10px 16px 24px" }}>
-          <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", margin: "0 auto 14px", background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, border: `3px solid ${fAccent}` }}>
-            {friendData.profile?.avatar ? <img src={friendData.profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
+        {/* Banner + Avatar */}
+        <div style={{ position: "relative", marginBottom: 60 }}>
+          <div style={{
+            height: 180, overflow: "hidden", position: "relative",
+            borderRadius: "16px 16px 0 0",
+            background: friendData.profile?.banner
+              ? `url(${friendData.profile.banner}) center/cover no-repeat`
+              : fBgImage ? "transparent" : fBgColor,
+          }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+            {!friendData.profile?.banner && (
+              <>
+                <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.15 }} xmlns="http://www.w3.org/2000/svg">
+                  <defs><pattern id="fhex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={fAccent} strokeWidth="1"/>
+                  </pattern></defs>
+                  <rect width="100%" height="100%" fill="url(#fhex)"/>
+                </svg>
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 40% 50%, ${fAccent}28 0%, transparent 60%)` }} />
+              </>
+            )}
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 900, background: `linear-gradient(90deg, ${fAccent}, ${fDark ? "#e6edf3" : "#0d1117"})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{friendData.profile?.name || selectedFriend.name || "Utilizador"}</h2>
-          {friendData.profile?.username && <p style={{ color: fDark ? "#8b949e" : "#64748b", fontSize: 14, marginTop: 2 }}>@{friendData.profile.username}</p>}
-          {friendData.profile?.bio && <p style={{ color: fDark ? "#8b949e" : "#64748b", fontSize: 14, marginTop: 8, lineHeight: 1.5 }}>{friendData.profile.bio}</p>}
+          <div style={{ position: "absolute", bottom: -44, left: "50%", transform: "translateX(-50%)" }}>
+            <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", border: `3px solid ${fBgColor}`, boxShadow: `0 0 0 3px ${fAccent}, 0 8px 24px rgba(0,0,0,0.5)`, background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
+              {friendData.profile?.avatar ? <img src={friendData.profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
+            </div>
+          </div>
         </div>
 
+        {/* Nome + bio */}
+        <div style={{ textAlign: "center", padding: "0 16px 20px" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 900, background: `linear-gradient(90deg, ${fAccent}, ${fDark ? "#e6edf3" : "#0d1117"})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{friendData.profile?.name || selectedFriend.name || "Utilizador"}</h2>
+          {friendData.profile?.username && <p style={{ color: fDark ? "#8b949e" : "#64748b", fontSize: 13, marginTop: 2 }}>@{friendData.profile.username}</p>}
+          {friendData.profile?.bio && <p style={{ color: fDark ? "#8b949e" : "#64748b", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>{friendData.profile.bio}</p>}
+        </div>
+
+        {/* Layout PC: 2 colunas | Mobile: 1 coluna */}
+        <div style={ !isMobileDevice ? { display: "flex", gap: 24, padding: "0 24px", alignItems: "flex-start" } : {}}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+
         {/* Stats */}
-        <div style={{ padding: "0 16px", marginBottom: 24 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-            {STATUS_OPTIONS.map(s => (
-              <div key={s.id} style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${s.color}33`, borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
-                <div style={{ fontSize: 11, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{s.emoji} {s.label}</div>
+        <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 8 }}>
+            {STATUS_OPTIONS.slice(0,3).map(s => (
+              <div key={s.id} style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
+                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-            <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid #f59e0b33`, borderRadius: 12, padding: "12px", textAlign: "center" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#f59e0b" }}>{avgRating}</div>
-              <div style={{ fontSize: 11, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>★ Média de Rating</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+            {STATUS_OPTIONS.slice(3).map(s => (
+              <div key={s.id} style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
+                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+            <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid #f59e0b33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#f59e0b" }}>{avgRating}</div>
+              <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>★ Média</div>
             </div>
-            <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${fAccent}33`, borderRadius: 12, padding: "12px", textAlign: "center" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: fAccent }}>{libItems.length}</div>
-              <div style={{ fontSize: 11, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>📚 Total na Biblioteca</div>
+            <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${fAccent}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: fAccent }}>{libItems.length}</div>
+              <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>Total</div>
             </div>
           </div>
-          {libItems.length === 0 && (
-            <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginTop: 10 }}>
-              💡 Stats a 0? Executa o SQL de permissões no Supabase (ver documentação).
-            </p>
-          )}
         </div>
 
-        {/* Favoritos — grid 4 colunas com separadores */}
+        {/* Em comum */}
+        {(() => {
+          const myLib = Object.values(library || {});
+          const emComum = libItems.filter(fi => myLib.some(mi => mi.id === fi.id && mi.userStatus === "completo" && fi.userStatus === "completo"));
+          if (!emComum.length) return null;
+          return (
+            <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: fAccent, letterSpacing: "0.12em", textTransform: "uppercase" }}>EM COMUM</h3>
+                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${fAccent}55, transparent)` }} />
+                <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{emComum.length}</span>
+              </div>
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                {emComum.slice(0, 12).map(item => {
+                  const myItem = myLib.find(mi => mi.id === item.id);
+                  const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                  return (
+                    <div key={item.id} style={{ flexShrink: 0, width: 72 }}>
+                      <div style={{ width: 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", border: `1px solid ${fAccent}22` }}>
+                        {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                        {myItem?.userRating > 0 && item.userRating > 0 && myItem.userRating !== item.userRating && (
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: "3px 4px", display: "flex", justifyContent: "space-between", fontSize: 9 }}>
+                            <span style={{ color: accent }}>★{myItem.userRating}</span>
+                            <span style={{ color: fAccent }}>★{item.userRating}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Favoritos */}
         {favs.length > 0 && (() => {
           const favByType = {};
           favs.forEach(f => { if (!favByType[f.type]) favByType[f.type] = []; favByType[f.type].push(f); });
           const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
           return (
-            <div style={{ padding: "0 16px", marginBottom: 24 }}>
+            <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
-                <span style={{ fontSize: 11, color: "#484f58" }}>{favs.length}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{favs.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {activeTypes.map(t => {
-                  const tc = TYPE_COLORS[t.id] || accent;
+                  const tc = TYPE_COLORS[t.id] || fAccent;
                   return (
                     <div key={t.id}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
-                        <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
-                        <span style={{ fontSize: 10, color: "#484f58" }}>{favByType[t.id].length}</span>
+                        <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
                         {favByType[t.id].map(item => {
@@ -2795,7 +2901,6 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
                                 {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
                                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>}
                                 {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: tc, opacity: 0.6 }} />
                               </div>
                             </div>
                           );
@@ -2811,8 +2916,11 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
 
         {/* Completados */}
         {completados.length > 0 && (
-          <div style={{ padding: "0 16px", marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#8b949e", marginBottom: 12 }}>✓ COMPLETADOS</h3>
+          <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>COMPLETADOS</h3>
+              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+            </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
               {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
             </div>
@@ -2821,13 +2929,61 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
 
         {/* Em Curso */}
         {inCurso.length > 0 && (
-          <div style={{ padding: "0 16px", marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: fDark ? "#8b949e" : "#64748b", marginBottom: 12 }}>▶ EM CURSO</h3>
+          <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>EM CURSO</h3>
+              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+            </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
               {inCurso.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={90} />)}
             </div>
           </div>
         )}
+
+        </div>
+        {/* PC: coluna direita — diário do amigo */}
+        {!isMobileDevice && (() => {
+          const fCompletados = libItems.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
+          if (!fCompletados.length) return null;
+          const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+          const groups = {};
+          fCompletados.forEach(item => {
+            const d = new Date(item.addedAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+            if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+            groups[key].items.push({ ...item, _day: d.getDate() });
+          });
+          const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+          return (
+            <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 24, marginLeft: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+                <span style={{ fontSize: 11, color: "#484f58" }}>{fCompletados.length} entradas</span>
+              </div>
+              {sortedGroups.slice(0, 4).map(group => (
+                <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
+                  <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
+                    <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
+                      <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {[...group.items].sort((a,b) => b._day - a._day).slice(0, 5).map((item, idx, arr) => (
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 0", borderBottom: idx < arr.length-1 ? "1px solid #21262d" : "none" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                        {(item.cover || item.thumbnailUrl) ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} /> : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), flexShrink: 0 }} />}
+                        <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: fDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                        {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        </div>{/* fim layout PC */}
         </div>
       </div>
     );
@@ -2866,16 +3022,20 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) 
           : accepted.map(f => {
             const info = getFriendInfo(f);
             return (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}
-                onClick={() => openFriendProfile(info.id, info)}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#21262d", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer", transition: "all 0.15s" }}
+                onClick={() => openFriendProfile(info.id, info)}
+                onMouseEnter={e => e.currentTarget.style.borderColor = accent + "55"}
+                onMouseLeave={e => e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"}>
+                {/* Avatar */}
+                <div style={{ width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg, ${accent}44, ${accent}22)`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0, border: `2px solid ${accent}33` }}>
                   {info?.avatar ? <img src={info.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👤"}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700 }}>{info?.name || "Utilizador"}</p>
-                  {info?.username && <p style={{ fontSize: 12, color: "#484f58" }}>@{info.username}</p>}
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117" }}>{info?.name || "Utilizador"}</p>
+                  {info?.username && <p style={{ fontSize: 11, color: "#484f58", marginTop: 1 }}>@{info.username}</p>}
                 </div>
-                <span style={{ color: "#484f58", fontSize: 18 }}>→</span>
+                <span style={{ color: accent, fontSize: 16, opacity: 0.6 }}>→</span>
               </div>
             );
           })}
@@ -4828,10 +4988,9 @@ export default function TrackAll() {
               const thisMonth = items.filter(i => i.addedAt && i.userStatus === "completo" && i.addedAt >= startOfMonth).length;
               const rated = items.filter(i => i.userRating > 0);
               const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
-              const totalCompleto = items.filter(i => i.userStatus === "completo").length;
               const stats = [
-                { label: "este mês", value: thisMonth, show: thisMonth > 0 },
-                { label: "média ★", value: avgRating, show: !!avgRating },
+                { label: "completados este mês", value: thisMonth, show: thisMonth > 0, icon: "📅" },
+                { label: "rating médio", value: avgRating, show: !!avgRating, icon: "★" },
               ].filter(s => s.show);
               if (!stats.length) return null;
               return (
@@ -4839,9 +4998,16 @@ export default function TrackAll() {
                   {stats.map((s, si) => {
                     const c = accentVariant(accent, si);
                     return (
-                      <div key={s.label} style={{ flexShrink: 0, background: darkMode ? "#161b22" : "rgba(255,255,255,0.8)", border: `1px solid ${c}44`, borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 20, fontWeight: 900, color: c }}>{s.value}</span>
-                        <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600 }}>{s.label}</span>
+                      <div key={s.label} style={{
+                        flexShrink: 0,
+                        background: `linear-gradient(135deg, ${c}18 0%, ${c}08 100%)`,
+                        border: `1px solid ${c}33`,
+                        borderRadius: 12, padding: "10px 16px",
+                        display: "flex", flexDirection: "column", gap: 2,
+                        minWidth: 110,
+                      }}>
+                        <span style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{s.icon === "★" ? <span style={{ fontSize: 14, marginRight: 2 }}>★</span> : null}{s.value}</span>
+                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
                       </div>
                     );
                   })}
@@ -5038,8 +5204,8 @@ export default function TrackAll() {
                   <span style={{ flexShrink: 0, color: darkMode ? "#484f58" : "#94a3b8", fontSize: 11, marginLeft: 2 }}>· {filteredLib.length}</span>
                 </div>
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
-                  {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}].map(m => (
-                    <button key={m.id} onClick={() => setLibViewMode(m.id)} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                  {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
+                    <button key={m.id} onClick={() => setLibViewMode(m.id)} title={m.id === "compact" ? "Compacto" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
                   ))}
                 </div>
               </div>
@@ -5134,6 +5300,23 @@ export default function TrackAll() {
                     darkMode={darkMode}
                     onOpen={setSelectedItem}
                   />
+                ) : libViewMode === "compact" ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
+                    {sortedLib.map(item => {
+                      const libItem = library[item.id];
+                      const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
+                      const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
+                      return (
+                        <div key={item.id} onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", position: "relative" }}>
+                          <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", background: gradientFor(item.id) }}>
+                            {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            {status && <span style={{ position: "absolute", top: 3, right: 3, fontSize: 9, background: `${status.color}cc`, color: "white", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>{status.emoji}</span>}
+                            {libItem?.userRating > 0 && <span style={{ position: "absolute", bottom: 3, left: 3, fontSize: 9, background: "rgba(0,0,0,0.85)", color: "#f59e0b", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>★{libItem.userRating}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <VirtualGrid
                     key={`${filterStatus}-${activeTab}-${libSort}`}
