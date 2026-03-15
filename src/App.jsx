@@ -145,8 +145,9 @@ const supa = {
 // ─── Theme Context ────────────────────────────────────────────────────────────
 const ThemeContext = createContext(null);
 const useTheme = () => useContext(ThemeContext);
-const LangContext = createContext({ lang: _globalLang, useT: (k) => { const s = STRINGS[_globalLang]; return s?.[k] ?? STRINGS["en"]?.[k] ?? k; } });
-const useLang = () => useContext(LangContext);
+const _safeT = (k) => { try { const s = STRINGS?.[_globalLang]; return s?.[k] ?? STRINGS?.["en"]?.[k] ?? k; } catch { return k; } };
+const LangContext = createContext({ lang: _globalLang, useT: _safeT });
+const useLang = () => { const ctx = useContext(LangContext); return ctx ?? { lang: _globalLang, useT: _safeT }; };
 
 const ACCENT_PRESETS = [
   { name: "Laranja", color: "#f97316" },
@@ -1497,6 +1498,7 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
 }); // end memo(VirtualGrid)
 
 const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
+  const { lang, useT } = useLang();
   const libItem = library[item.id];
   const inLib = !!libItem;
   const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
