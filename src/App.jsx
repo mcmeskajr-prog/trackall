@@ -1235,7 +1235,7 @@ function CoverEditModal({ item, onSave, onClose }) {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn-accent" style={{ flex: 1, padding: "12px" }} onClick={() => onSave(url)} disabled={loading}>
-            {loading ? {useT("compressing")} : {useT("saveProfile")}}
+            {loading ? useT("compressing") : useT("saveProfile")}
           </button>
           <button onClick={onClose} style={{
             flex: 1, padding: "12px", background: "#21262d", border: "none",
@@ -1365,7 +1365,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                         cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed",
                         fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600,
                         opacity: !canAddFavorite && !isFavorite ? 0.4 : 1,
-                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : {useT("favoritesFull")}}>
+                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
                         {isFavorite ? "★ Favorito" : "☆ Favorito"}
                       </button>
                     )}
@@ -2626,7 +2626,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
                   <div style={{ display: "flex", gap: 10 }}>
                     <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                      {deleting ? {useT("deleting")} : "Sim, apagar tudo"}
+                      {deleting ? useT("deleting") : "Sim, apagar tudo"}
                     </button>
                     <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                       Cancelar
@@ -2817,7 +2817,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
 
   const handleAccept = async (fId) => {
     await supa.acceptFriendRequest(fId);
-    showNotif({useT("friendAdded")});
+    showNotif(useT("friendAdded"));
     await loadFriendships();
   };
 
@@ -2828,7 +2828,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
 
   const handleRemove = async (f) => {
     await supa.removeFriend(f.requester_id, f.addressee_id);
-    showNotif({useT("friendRemoved")});
+    showNotif(useT("friendRemoved"));
     await loadFriendships();
     setSelectedFriend(null);
   };
@@ -3146,7 +3146,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
         {[
           { id: "feed", label: "🕐 Feed" },
           { id: "friends", label: `Amigos (${accepted.length})` },
-          { id: "search", label: {useT("searchFriends")} },
+          { id: "search", label: useT("searchFriends") },
           { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -3306,12 +3306,12 @@ const DEMO_FEED = [
 function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, changeLang }) {
   const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
   const features = [
-    { icon: "📚", title: {useT("feature1Title")}, desc: "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
-    { icon: "⭐", title: {useT("feature2Title")}, desc: "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
-    { icon: "👥", title: {useT("feature3Title")}, desc: "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
-    { icon: "🎨", title: {useT("feature4Title")}, desc: "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
-    { icon: "📊", title: {useT("feature5Title")}, desc: "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
-    { icon: "🔍", title: {useT("feature6Title")}, desc: "Pesquisa em AniList, TMDB, IGDB, OpenLibrary e ComicVine ao mesmo tempo." },
+    { icon: "📚", title: useT("feature1Title"), desc: "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
+    { icon: "⭐", title: useT("feature2Title"), desc: "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
+    { icon: "👥", title: useT("feature3Title"), desc: "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
+    { icon: "🎨", title: useT("feature4Title"), desc: "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
+    { icon: "📊", title: useT("feature5Title"), desc: "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
+    { icon: "🔍", title: useT("feature6Title"), desc: "Pesquisa em AniList, TMDB, IGDB, OpenLibrary e ComicVine ao mesmo tempo." },
   ];
   const mediaTypes = ["🎌 Anime", "📖 Manga", "🎬 Filmes", "📺 Séries", "🎮 Jogos", "📚 Livros", "🇰🇷 Manhwa", "💬 Comics"];
 
@@ -4046,7 +4046,7 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
             <div style={{ display: "flex", background: "#0d1117", borderRadius: 10, padding: 4, marginBottom: 24 }}>
               {["login", "register"].map(m => (
                 <button key={m} onClick={() => { setMode(m); setError(""); setSuccess(""); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, transition: "all 0.15s", background: mode === m ? accent : "transparent", color: mode === m ? "white" : "#484f58" }}>
-                  {m === "login" ? {useT("signIn")} : {useT("createAccount")}}
+                  {m === "login" ? useT("signIn") : useT("createAccount")}
                 </button>
               ))}
             </div>
@@ -4063,7 +4063,7 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
             {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#ef444415", borderRadius: 8 }}>{error}</p>}
             {success && <p style={{ color: "#10b981", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#10b98115", borderRadius: 8 }}>{success}</p>}
             <button onClick={handleSubmit} disabled={loading} style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer", background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: "white", fontFamily: "inherit", fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>
-              {loading ? {useT("processing")} : mode === "login" ? {useT("signIn")} : {useT("createAccount")}}
+              {loading ? useT("processing") : mode === "login" ? useT("signIn") : useT("createAccount")}
             </button>
           </div>
         )}
@@ -4690,7 +4690,7 @@ export default function TrackAll() {
     // Atualizar addedAt quando muda para completo — para o diário mostrar a data correta
     if (status === "completo") update.addedAt = Date.now();
     saveLibrary({ ...library, [id]: update });
-    showNotif({useT("statusUpdated")}, accent);
+    showNotif(useT("statusUpdated"), accent);
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
 
@@ -4702,7 +4702,7 @@ export default function TrackAll() {
   const updateRating = (id, rating) => {
     if (!library[id]) return;
     saveLibrary({ ...library, [id]: { ...library[id], userRating: rating } });
-    showNotif(rating > 0 ? `${rating} ★` : {useT("ratingRemoved")}, "#f59e0b");
+    showNotif(rating > 0 ? `${rating} ★` : useT("ratingRemoved"), "#f59e0b");
   };
   const updateCover = async (id, url) => {
     if (!library[id]) return;
@@ -4714,7 +4714,7 @@ export default function TrackAll() {
       setFavorites(newFavs);
       if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
     }
-    showNotif({useT("coverUpdated")}, accent);
+    showNotif(useT("coverUpdated"), accent);
   };
 
   const toggleFavorite = async (item) => {
@@ -4726,7 +4726,7 @@ export default function TrackAll() {
     } else {
       if (favorites.length >= 30) { showNotif("Máximo de 30 favoritos!", "#ef4444"); return; }
       newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, customCover: library[item.id]?.customCover || item.customCover || "", type: item.type }];
-      showNotif({useT("addedToFavorites")}, "#f59e0b");
+      showNotif(useT("addedToFavorites"), "#f59e0b");
       if (navigator.vibrate) navigator.vibrate(50);
     }
     setFavorites(newFavs);
@@ -4926,9 +4926,9 @@ export default function TrackAll() {
         {!isMobileDevice && (() => {
           const libByType = Object.values(library);
           const navItems = [
-            { id: "home", icon: "⌂", label: {useT("home")} },
-            { id: "library", icon: "▤", label: {useT("library")} },
-            { id: "profile", icon: "◉", label: {useT("profile")} },
+            { id: "home", icon: "⌂", label: useT("home") },
+            { id: "library", icon: "▤", label: useT("library") },
+            { id: "profile", icon: "◉", label: useT("profile") },
           ];
           return (
             <aside className="desktop-sidebar">
@@ -5297,7 +5297,7 @@ export default function TrackAll() {
                     <div style={{ display: "flex", gap: 4 }}>
                       {[
                         { l: "Curso",    v: stats.assistindo, key: "assistindo" },
-                        { l: {useT("completo")}, v: stats.completo,   key: "completo"   },
+                        { l: useT("completo"), v: stats.completo,   key: "completo"   },
                         { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
                         { l: "Largado",  v: stats.largado,    key: "largado"    },
                         { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
@@ -5487,7 +5487,7 @@ export default function TrackAll() {
                   fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, padding: 0,
                 }}>
                   <span style={{ display: "inline-block", animation: recoLoading ? "spin 0.7s linear infinite" : "none", fontSize: 14 }}>↻</span>
-                  {recoLoading ? {useT("loading")} : {useT("refresh")}}
+                  {recoLoading ? useT("loading") : useT("refresh")}
                 </button>
               </div>
               <RecoCarousel title={useT("animeTrending")} icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} accent={accent} loading={recoLoading} />
@@ -5905,8 +5905,8 @@ export default function TrackAll() {
         {/* BOTTOM NAV */}
         <nav className="bottom-nav">
           {[
-            { id: "home", icon: "⌂", label: {useT("home")} },
-            { id: "library", icon: "▤", label: {useT("library")} },
+            { id: "home", icon: "⌂", label: useT("home") },
+            { id: "library", icon: "▤", label: useT("library") },
           ].map((n) => (
             <button key={n.id} className={`nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)} style={{ color: view === n.id ? accent : undefined }}>
               <span style={{ fontSize: 22 }}>{n.icon}</span>
