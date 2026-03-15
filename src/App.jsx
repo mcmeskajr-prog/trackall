@@ -899,7 +899,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <span style={{ fontSize: 22 }}>☁️</span>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700 }}>Google Drive <span style={{ fontSize: 10, background: `${accent}22`, color: accent, borderRadius: 6, padding: '1px 6px', marginLeft: 4 }}>AUTOMÁTICO</span></p>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>Google Drive <span style={{ fontSize: 10, background: `${accent}22`, color: accent, borderRadius: 6, padding: '1px 6px', marginLeft: 4 }}>{lang === "en" ? "AUTOMATIC" : "AUTOMÁTICO"}</span></p>
                   <p style={{ fontSize: 11, color: '#8b949e' }}>Liga ao Drive e sincroniza com 1 clique</p>
                 </div>
               </div>
@@ -961,7 +961,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
         {/* STEP: drive_files */}
         {step === 'drive_files' && (
           <div>
-            <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 12 }}>Seleciona o backup para importar:</p>
+            <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 12 }}>{lang === "en" ? "Select backup to import:" : "Seleciona o backup para importar:"}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {driveFiles.map(f => (
                 <button key={f.id} onClick={() => downloadAndImport(f.id)} disabled={loading} style={{
@@ -992,8 +992,8 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
           <div>
             <div style={{ background: subBg, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
               <p style={{ fontWeight: 700, color: accent, marginBottom: 6 }}>📱 Como exportar do Mihon:</p>
-              <p>1. Abre o Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong></p>
-              <p>2. Carrega em <strong>Criar backup</strong> → guarda o ficheiro</p>
+              <p>1. Abre o Mihon → <strong>{lang === "en" ? "More" : "Mais"}</strong> → <strong>{lang === "en" ? "Backup & Restore" : "Backup e Restauro"}</strong></p>
+              <p>2. Carrega em <strong>{lang === "en" ? "Create backup" : "Criar backup"}</strong> → guarda o ficheiro</p>
               <p>3. Seleciona o ficheiro <code style={{ background: '#21262d', padding: '1px 4px', borderRadius: 3 }}>.tachibk</code> abaixo</p>
             </div>
             <input ref={fileRef} type="file" accept=".tachibk,.proto,.bak" style={{ display: 'none' }} onChange={handleFile} />
@@ -1236,7 +1236,7 @@ function CoverEditModal({item, onSave, onClose }) {
                 background: "transparent", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 12,
               }}>🗑 Remover capa</button>
             )}
-            <p style={{ fontSize: 10, color: "#484f58", marginTop: 2 }}>Ficheiros são comprimidos automaticamente</p>
+            <p style={{ fontSize: 10, color: "#484f58", marginTop: 2 }}>{lang === "en" ? "Files are compressed automatically" : "Ficheiros são comprimidos automaticamente"}</p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -1950,7 +1950,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
                 background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
               }}>🖼 Alterar Banner</button>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>Recomendado: 1200×400px · Telemóvel: 390×160px</p>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
               <input
                 placeholder="ou cola URL do banner..."
                 value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
@@ -2406,7 +2406,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{useT("separateDevices")}</p>
-                <p style={{ fontSize: 11, color: "#484f58" }}>Cor, imagem e contraste diferentes por dispositivo</p>
+                <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Different color, image and contrast per device" : "Cor, imagem e contraste diferentes por dispositivo"}</p>
               </div>
               <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
                 <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
@@ -2478,7 +2478,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 ✓ Última sync: {lastDriveSync.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
               </p>
             ) : (
-              <p style={{ fontSize: 12, color: "#8b949e" }}>Biblioteca, progresso e estado de leitura</p>
+              <p style={{ fontSize: 12, color: "#8b949e" }}>{lang === "en" ? "Library, progress and reading status" : "Biblioteca, progresso e estado de leitura"}</p>
             )}
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -2502,7 +2502,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
           {driveClientId
             ? <>☁️ <strong style={{ color: "#10b981" }}>Google Drive ligado</strong> — sync automático ao abrir a app. Ou clica <strong>Sync</strong> para atualizar agora.</>
-            : <>💡 Mihon → <strong>Mais</strong> → <strong>Backup e Restauro</strong> → <strong>Criar backup</strong> → ou liga o Google Drive no modal de importação para sync automático.</>
+            : <>💡 Mihon → <strong>{lang === "en" ? "More" : "Mais"}</strong> → <strong>{lang === "en" ? "Backup & Restore" : "Backup e Restauro"}</strong> → <strong>{lang === "en" ? "Create backup" : "Criar backup"}</strong> → ou liga o Google Drive no modal de importação para sync automático.</>
           }
         </div>
         {/* Divider */}
@@ -2709,7 +2709,7 @@ function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
   if (accepted.length === 0) return (
     <div style={{ padding: "60px 16px", textAlign: "center" }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>👥</div>
-      <p style={{ color: "#484f58", fontSize: 14 }}>Adiciona amigos para ver a atividade aqui.</p>
+      <p style={{ color: "#484f58", fontSize: 14 }}>{lang === "en" ? "Add friends to see activity here." : "Adiciona amigos para ver a atividade aqui."}</p>
     </div>
   );
 
@@ -2723,7 +2723,7 @@ function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
   if (feedItems.length === 0) return (
     <div style={{ padding: "60px 16px", textAlign: "center" }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>📭</div>
-      <p style={{ color: "#484f58", fontSize: 14 }}>Ainda não há atividade recente dos teus amigos.</p>
+      <p style={{ color: "#484f58", fontSize: 14 }}>{lang === "en" ? "No recent activity from your friends yet." : "Ainda não há atividade recente dos teus amigos."}</p>
     </div>
   );
 
@@ -3793,7 +3793,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
           <div>
             <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 20, textAlign: 'center', border: `2px dashed ${darkMode ? '#30363d' : '#e2e8f0'}`, marginBottom: 16 }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
-              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Seleciona o ficheiro de backup</p>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Select backup file" : "Seleciona o ficheiro de backup"}</p>
               <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>Ficheiro .zip ou .pas4 exportado pelo Paperback</p>
               <input ref={fileRef} type="file" accept=".zip,.pas4" onChange={handleFile} style={{ display: 'none' }} />
               <button className="btn-accent" onClick={() => fileRef.current?.click()} style={{ padding: '10px 24px', fontSize: 13 }}>
@@ -3842,7 +3842,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{lang === "en" ? "Import complete!" : "Importação concluída!"}</p>
             <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus itens do Paperback já estão na biblioteca.</p>
             <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
@@ -3897,7 +3897,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
           <div>
             <div style={{ background: darkMode ? '#0d1117' : '#f8fafc', borderRadius: 12, padding: 20, textAlign: 'center', border: `2px dashed ${darkMode ? '#30363d' : '#e2e8f0'}`, marginBottom: 16 }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🎞️</div>
-              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Seleciona o ficheiro CSV</p>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Select CSV file" : "Seleciona o ficheiro CSV"}</p>
               <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 16 }}>diary.csv ou watched.csv exportado do Letterboxd</p>
               <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} style={{ display: 'none' }} />
               <button onClick={() => fileRef.current?.click()} style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -3943,7 +3943,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{lang === "en" ? "Import complete!" : "Importação concluída!"}</p>
             <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus filmes do Letterboxd já estão na biblioteca.</p>
             <button onClick={onClose} style={{ padding: '10px 28px', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
@@ -5858,7 +5858,7 @@ export default function TrackAll() {
             <div style={{ fontSize: 28 }}>📲</div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>{useT("installApp")}</p>
-              <p style={{ fontSize: 11, color: '#8b949e' }}>Adicionar ao ecrã inicial para acesso rápido</p>
+              <p style={{ fontSize: 11, color: '#8b949e' }}>{useT("installDesc")}</p>
             </div>
             <button onClick={async () => { pwaPrompt.prompt(); const r = await pwaPrompt.userChoice; if (r.outcome === 'accepted') setPwaInstalled(true); setPwaPrompt(null); }} style={{ background: accent, border: 'none', borderRadius: 10, padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>{useT("install")}</button>
             <button onClick={() => setPwaPrompt(null)} style={{ background: 'none', border: 'none', color: '#484f58', fontSize: 18, cursor: 'pointer', padding: '4px', flexShrink: 0 }}>✕</button>
