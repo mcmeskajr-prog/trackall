@@ -4851,12 +4851,13 @@ export default function TrackAll() {
       if (quickSearchType) {
         results = await smartSearch(q, quickSearchType, { tmdb: tmdbKey, workerUrl });
       } else {
-        const [anime, manga, filmes] = await Promise.allSettled([
+        const [anime, manga, filmes, series] = await Promise.allSettled([
           smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
-          tmdbKey ? smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }) : Promise.resolve([]),
+          smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }),
+          smartSearch(q, "series", { tmdb: tmdbKey, workerUrl }),
         ]);
-        const all = [...(anime.value||[]), ...(manga.value||[]), ...(filmes.value||[])];
+        const all = [...(anime.value||[]), ...(manga.value||[]), ...(filmes.value||[]), ...(series.value||[])];
         const seen = new Set();
         results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
       }
