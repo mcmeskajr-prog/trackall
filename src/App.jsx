@@ -4645,7 +4645,6 @@ export default function TrackAll() {
         minHeight: "100vh",
         background: activeBgColor,
         color: baseTextColor,
-        filter: textContrast !== 100 ? `none` : undefined,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
         position: "relative",
@@ -4775,16 +4774,37 @@ export default function TrackAll() {
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
           body { overscroll-behavior: none; }
           :root { --tc: ${textContrast / 100}; }
-          /* Contraste do texto — aplica brightness só a elementos de texto, não a imagens */
-          ${textContrast !== 100 ? `
-          p, span, h1, h2, h3, h4, h5, li, label, a, td, th,
-          .card-info, .card-info-title, .ds-nav-btn, .ds-type-item {
-            filter: brightness(${textContrast / 100});
+          /* Cor do texto baseada no slider: 0=preto puro, 100=cor normal, 200=branco puro */
+          ${(() => {
+            if (textContrast === 100) return '';
+            // Calcular cor do texto: interpolar entre preto(0,0,0) e branco(255,255,255)
+            // 0 = #000000, 100 = cor normal, 200 = #ffffff
+            const base = darkMode ? [230, 237, 243] : [13, 17, 23];
+            let r, g, b;
+            if (textContrast < 100) {
+              // Interpolar entre preto e cor base
+              const t = textContrast / 100;
+              r = Math.round(base[0] * t);
+              g = Math.round(base[1] * t);
+              b = Math.round(base[2] * t);
+            } else {
+              // Interpolar entre cor base e branco
+              const t = (textContrast - 100) / 100;
+              r = Math.round(base[0] + (255 - base[0]) * t);
+              g = Math.round(base[1] + (255 - base[1]) * t);
+              b = Math.round(base[2] + (255 - base[2]) * t);
+            }
+            const col = `rgb(${r},${g},${b})`;
+            return `
+          p, span, h1, h2, h3, h4, h5, li, a,
+          .card-info-title, .ds-nav-btn, .ds-type-item {
+            color: ${col} !important;
           }
-          img, video, canvas, svg, .media-thumb, .fav-thumb-d, .btn-accent {
-            filter: none !important;
+          img, video, canvas, .media-thumb img, .fav-thumb-d img, .btn-accent {
+            color: initial !important;
           }
-          ` : ''}
+          `;
+          })()}
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
