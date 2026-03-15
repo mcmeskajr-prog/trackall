@@ -244,12 +244,13 @@ const TYPE_COLORS = {
 };
 
 const STATUS_OPTIONS = [
-  { id: "assistindo", label: {useT("emCurso")}, color: "#f97316", emoji: "▶" },
-  { id: "completo", label: {useT("completo")}, color: "#10b981", emoji: "✓" },
-  { id: "planejado", label: "Planejado", color: "#06b6d4", emoji: "⏰" },
-  { id: "dropado", label: {useT("dropado")}, color: "#ef4444", emoji: "✕" },
-  { id: "pausado", label: {useT("pausado")}, color: "#eab308", emoji: "⏸" },
+  { id: "assistindo", label: "Em Curso", labelEn: "In Progress", color: "#f97316", emoji: "▶" },
+  { id: "completo", label: "Completo", labelEn: "Completed", color: "#10b981", emoji: "✓" },
+  { id: "planejado", label: "Planeado", labelEn: "Planned", color: "#06b6d4", emoji: "⏰" },
+  { id: "dropado", label: "Dropado", labelEn: "Dropped", color: "#ef4444", emoji: "✕" },
+  { id: "pausado", label: "Pausado", labelEn: "Paused", color: "#eab308", emoji: "⏸" },
 ];
+const statusLabel = (s, lang) => lang === "en" ? s.labelEn : s.label;
 
 // ─── Storage (Claude artifact + localStorage para APK/Capacitor) ──────────────
 const DB = {
