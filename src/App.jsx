@@ -4769,12 +4769,22 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : activeBgColor, filter: textContrast !== 100 ? `brightness(${textContrast / 100})` : undefined }}>
+        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : activeBgColor }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
           body { overscroll-behavior: none; }
-          :root { --text-brightness: ${textContrast / 100}; }
+          :root { --tc: ${textContrast / 100}; }
+          /* Contraste do texto — aplica brightness só a elementos de texto, não a imagens */
+          ${textContrast !== 100 ? `
+          p, span, h1, h2, h3, h4, h5, li, label, a, td, th,
+          .card-info, .card-info-title, .ds-nav-btn, .ds-type-item {
+            filter: brightness(${textContrast / 100});
+          }
+          img, video, canvas, svg, .media-thumb, .fav-thumb-d, .btn-accent {
+            filter: none !important;
+          }
+          ` : ''}
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
