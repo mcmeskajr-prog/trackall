@@ -2754,6 +2754,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
   const [searching, setSearching] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [friendData, setFriendData] = useState(null);
+  const [showAllDiary, setShowAllDiary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState("");
 
@@ -3012,7 +3013,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 90px))", gap: 8 }}>
                         {favByType[t.id].map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
@@ -3061,11 +3062,13 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
         )}
 
         </div>
-        {/* PC: coluna direita — diário do amigo */}
+        {/* Coluna direita — diário com mês atual + ver mais */}
         {!isMobileDevice && (() => {
           const fCompletados = libItems.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
           if (!fCompletados.length) return null;
           const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+          const now = new Date();
+          const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth()).padStart(2,"0")}`;
           const groups = {};
           fCompletados.forEach(item => {
             const d = new Date(item.addedAt);
@@ -3074,25 +3077,27 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
             groups[key].items.push({ ...item, _day: d.getDate() });
           });
           const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+          // Mostrar mês atual + mês anterior se existir; resto com "Ver mais"
+          const visibleGroups = showAllDiary ? sortedGroups : sortedGroups.slice(0, 2);
           return (
-            <div style={{ width: 260, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 20, overflowY: "auto", scrollbarWidth: "none" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ width: 240, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
-                <span style={{ fontSize: 11, color: "#484f58" }}>{fCompletados.length} entradas</span>
+                <span style={{ fontSize: 11, color: "#484f58" }}>{fCompletados.length}</span>
               </div>
-              {sortedGroups.slice(0, 6).map(group => (
-                <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
-                  <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
+              {visibleGroups.map(group => (
+                <div key={group.key} style={{ display: "flex", marginBottom: 16 }}>
+                  <div style={{ flexShrink: 0, width: 46, marginRight: 10 }}>
                     <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
-                      <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
+                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 9, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
+                      <div style={{ padding: "3px 0 4px", fontSize: 14, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {[...group.items].sort((a,b) => b._day - a._day).slice(0, 5).map((item, idx, arr) => (
-                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 0", borderBottom: idx < arr.length-1 ? "1px solid #21262d" : "none" }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
-                        {(item.cover || item.thumbnailUrl) ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} /> : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), flexShrink: 0 }} />}
+                    {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: idx < arr.length-1 ? `1px solid ${fDark ? "#21262d" : "#e2e8f0"}` : "none" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 12, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                        {(item.cover || item.thumbnailUrl) ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 20, height: 28, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: 20, height: 28, borderRadius: 3, background: gradientFor(item.id), flexShrink: 0 }} />}
                         <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: fDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
                         {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
                       </div>
@@ -3100,10 +3105,16 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                   </div>
                 </div>
               ))}
+              {sortedGroups.length > 2 && (
+                <button onClick={() => setShowAllDiary(v => !v)} style={{ width: "100%", background: "none", border: `1px solid ${fAccent}44`, borderRadius: 8, color: fAccent, fontSize: 11, fontWeight: 700, padding: "6px 0", cursor: "pointer", fontFamily: "inherit" }}>
+                  {showAllDiary ? "↑ Menos" : `Ver tudo (${fCompletados.length} entradas)`}
+                </button>
+              )}
             </div>
           );
         })()}
         </div>{/* fim layout PC */}
+
         </div>
       </div>
     );
