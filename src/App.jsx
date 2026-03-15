@@ -218,6 +218,8 @@ const MEDIA_TYPES = [
   { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "💬" },
 ];
 const mediaLabel = (m, lang) => lang === "en" ? m.labelEn : m.label;
+const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const MONTH_EN = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
 // Gera variações subtis do accent — hue ±10° + brilho ligeiramente diferente
 function accentVariant(hex, index) {
@@ -399,11 +401,11 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       if (!m) return null;
       return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status };
     }
-  } catch {}
+  } catch (err) {
+    console.error('[fetchMediaDetails] Erro:', err);
+  }
   return null;
 }
-
-// 3. OpenLibrary — Livros (sem chave, CORS aberto)
 async function searchOpenLibrary(query) {
   const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=15&fields=key,title,author_name,first_publish_year,cover_i,subject,ratings_average`);
   if (!res.ok) return null;
@@ -526,7 +528,9 @@ async function smartSearch(query, mediaType, keys = {}) {
       if (!results?.length) results = await searchSteam(query);
     }
     else if (mediaType === "comics") results = await searchComicVine(query, keys.workerUrl);
-  } catch {}
+  } catch (err) {
+    console.error('[Search] Erro na pesquisa:', err);
+  }
 
   if (results?.length) {
     CACHE.set(ck, results);
@@ -1590,7 +1594,6 @@ function DiaryPanel({completados, onOpen, accent }) {
   const { lang, useT } = useLang();
   const [showAll, setShowAll] = useState(false);
   if (!completados || !completados.length) return null;
-  const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
   const groups = {};
   completados.forEach(item => {
     const d = item.addedAt ? new Date(item.addedAt) : null;
@@ -1613,7 +1616,7 @@ function DiaryPanel({completados, onOpen, accent }) {
           <div style={{ flexShrink: 0, width: 56, marginRight: 12 }}>
             <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
               <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
+                {group.key === "0000-00" ? "—" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
               </div>
               <div style={{ padding: "5px 0 6px", fontSize: group.key === "0000-00" ? 11 : 17, fontWeight: 900, color: "#e6edf3" }}>
                 {group.key === "0000-00" ? "Sem data" : group.year}
@@ -1656,8 +1659,8 @@ function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, 
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
 
-  const inCurso = [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt);
-  const completados = [...items].filter(i => i.userStatus === "completo" && i.addedAt).sort((a, b) => b.addedAt - a.addedAt);
+  const inCurso = useMemo(() => [...items].filter(i => i.userStatus === "assistindo").sort((a, b) => b.addedAt - a.addedAt), [items]);
+  const completados = useMemo(() => [...items].filter(i => i.userStatus === "completo" && i.addedAt).sort((a, b) => b.addedAt - a.addedAt), [items]);
 
   const ItemGrid = ({ list, showAll, maxPreview = 10 }) => {
     const visible = showAll ? list : list.slice(0, maxPreview);
@@ -1742,7 +1745,6 @@ function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, 
 
       {/* DIARY — Letterboxd style, grouped by month (só mobile; PC usa DiaryPanel na coluna direita) */}
       {showDiary && completados.length > 0 && (() => {
-        const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
         // Group by month — only items WITH addedAt appear in the diary
         const groups = {};
         completados.filter(item => item.addedAt).forEach(item => {
@@ -1764,7 +1766,7 @@ function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, 
             <div style={{ flexShrink: 0, width: 68, marginRight: 16 }}>
               <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
                 <div style={{ background: "#30363d", padding: "4px 0", fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                  {group.key === "0000-00" ? "—" : MONTH_PT[group.month]}
+                  {group.key === "0000-00" ? "—" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
                 </div>
                 <div style={{ padding: "6px 0 8px", fontSize: group.key === "0000-00" ? 13 : 22, fontWeight: 900, color: "#e6edf3" }}>
                   {group.key === "0000-00" ? "Sem data" : group.year}
@@ -1857,12 +1859,18 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   const [cropType, setCropType] = useState(null); // "avatar" | "banner"
   const avatarRef = useRef();
   const bannerRef = useRef();
-  const items = Object.values(library);
-  const byType = {};
-  MEDIA_TYPES.slice(1).forEach((t) => { byType[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
-  const byStatus = {};
-  STATUS_OPTIONS.forEach((s) => { byStatus[s.id] = items.filter((i) => i.userStatus === s.id).length; });
-  const totalRatings = items.filter((i) => i.userRating > 0);
+  const items = useMemo(() => Object.values(library), [library]);
+  const byType = useMemo(() => {
+    const r = {};
+    MEDIA_TYPES.slice(1).forEach((t) => { r[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
+    return r;
+  }, [items]);
+  const byStatus = useMemo(() => {
+    const r = {};
+    STATUS_OPTIONS.forEach((s) => { r[s.id] = items.filter((i) => i.userStatus === s.id).length; });
+    return r;
+  }, [items]);
+  const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
   const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
 
   const handleAvatarFile = (e) => {
@@ -2802,9 +2810,9 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
     setLoading(false);
   };
 
-  const accepted = friendships.filter(f => f.status === "accepted");
-  const pending = friendships.filter(f => f.status === "pending" && f.addressee_id === user.id);
-  const sent = friendships.filter(f => f.status === "pending" && f.requester_id === user.id);
+  const accepted = useMemo(() => friendships.filter(f => f.status === "accepted"), [friendships]);
+  const pending = useMemo(() => friendships.filter(f => f.status === "pending" && f.addressee_id === user.id), [friendships, user.id]);
+  const sent = useMemo(() => friendships.filter(f => f.status === "pending" && f.requester_id === user.id), [friendships, user.id]);
 
   const getFriendInfo = (f) => f.requester_id === user.id ? f.addressee : f.requester;
 
@@ -3099,7 +3107,6 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
         {!isMobileDevice && (() => {
           const fCompletados = libItems.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
           if (!fCompletados.length) return null;
-          const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
           const now = new Date();
           const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth()).padStart(2,"0")}`;
           const groups = {};
@@ -3122,7 +3129,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 <div key={group.key} style={{ display: "flex", marginBottom: 16 }}>
                   <div style={{ flexShrink: 0, width: 46, marginRight: 10 }}>
                     <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 9, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
+                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 9, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
                       <div style={{ padding: "3px 0 4px", fontSize: 14, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
                     </div>
                   </div>
@@ -4327,7 +4334,9 @@ export default function TrackAll() {
         if (prof.favorites) setFavorites(prof.favorites);
       }
       if (lib) setLibrary(lib);
-    } catch {}
+    } catch (err) {
+      console.error('[TrackAll] Erro ao carregar dados do utilizador:', err);
+    }
   };
 
   // Lazy: só carrega recos quando o utilizador vai ao Início pela 1ª vez
@@ -4391,7 +4400,9 @@ export default function TrackAll() {
         for (const id of Object.keys(prev)) {
           if (!lib[id]) await supa.deleteLibraryItem(user.id, id);
         }
-      } catch {}
+      } catch (err) {
+        console.error('[TrackAll] Erro ao guardar biblioteca:', err);
+      }
     }
   };
 
@@ -4406,21 +4417,24 @@ export default function TrackAll() {
           banner: p.banner || "",
           hide_email: p.hideEmail || false,
         });
-      } catch {}
+      } catch (err) {
+        console.error('[TrackAll] Erro ao guardar perfil:', err);
+        showNotif(lang === "en" ? "Error saving profile. Check your connection." : "Erro ao guardar perfil. Verifica a ligação.", "#ef4444");
+      }
     }
   };
 
   const saveAccent = async (c) => {
     setAccent(c);
-    if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar accent:", err); }
   };
   const saveStatsCardBg = async (c) => {
     setStatsCardBg(c);
-    if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar stats_card_bg:", err); }
   };
   const saveSidebarColor = async (c) => {
     setSidebarColor(c);
-    if (user) try { await supa.upsertProfile(user.id, { sidebar_color: c }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { sidebar_color: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar sidebar_color:", err); }
   };
   const saveSavedThemes = (themes) => {
     setSavedThemes(themes);
@@ -4428,36 +4442,36 @@ export default function TrackAll() {
   };
   const saveTextContrast = async (v) => {
     setTextContrast(v);
-    if (user) try { await supa.upsertProfile(user.id, { text_contrast: v }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { text_contrast: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar text_contrast:", err); }
   };
   const saveTextContrastMobile = async (v) => {
     setTextContrastMobile(v);
-    if (user) try { await supa.upsertProfile(user.id, { text_contrast_mobile: v }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { text_contrast_mobile: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar text_contrast_mobile:", err); }
   };
   const saveBgColorMobile = async (c) => {
     setBgColorMobile(c);
-    if (user) try { await supa.upsertProfile(user.id, { bg_color_mobile: c }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_color_mobile: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_color_mobile:", err); }
   };
   const saveDriveClientId = async (id) => {
     setDriveClientId(id);
-    if (user) try { await supa.upsertProfile(user.id, { drive_client_id: id }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { drive_client_id: id }); } catch (err) { console.error("[TrackAll] Erro ao guardar drive_client_id:", err); }
   };
   const saveBg = async (c) => {
     setBgColor(c);
     setDarkMode(isColorDark(c));
-    if (user) try { await supa.upsertProfile(user.id, { bg_color: c }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_color: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_color:", err); }
   };
   const saveBgOverlay = async (o) => {
     setBgOverlay(o);
-    if (user) try { await supa.upsertProfile(user.id, { bg_overlay: o }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_overlay: o }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_overlay:", err); }
   };
   const saveBgBlur = async (v) => {
     setBgBlur(v);
-    if (user) try { await supa.upsertProfile(user.id, { bg_blur: v }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_blur: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_blur:", err); }
   };
   const saveBgParallax = async (v) => {
     setBgParallax(v);
-    if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_parallax:", err); }
   };
   // isMobile check — calculado uma vez, estável entre renders
   const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -4466,32 +4480,32 @@ export default function TrackAll() {
     if (bgSeparateDevices) {
       if (isMobileDevice) {
         setBgImageMobile(img);
-        if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+        if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image_mobile:", err); }
       } else {
         setBgImage(img);
-        if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch {}
+        if (user) try { await supa.upsertProfile(user.id, { bg_image: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image:", err); }
       }
     } else {
       setBgImage(img);
       setBgImageMobile(img);
-      if (user) try { await supa.upsertProfile(user.id, { bg_image: img, bg_image_mobile: img }); } catch {}
+      if (user) try { await supa.upsertProfile(user.id, { bg_image: img, bg_image_mobile: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image:", err); }
     }
   };
   const saveMobileBgImage = async (img) => {
     setBgImageMobile(img);
-    if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image_mobile:", err); }
   };
   const saveBgSeparateDevices = async (val) => {
     setBgSeparateDevices(val);
-    if (user) try { await supa.upsertProfile(user.id, { bg_separate_devices: val }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { bg_separate_devices: val }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_separate_devices:", err); }
   };
   const saveTmdbKey = async (k) => {
     setTmdbKey(k);
-    if (user) try { await supa.upsertProfile(user.id, { tmdb_key: k }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { tmdb_key: k }); } catch (err) { console.error("[TrackAll] Erro ao guardar tmdb_key:", err); }
   };
   const saveWorkerUrl = async (k) => {
     setWorkerUrl(k);
-    if (user) try { await supa.upsertProfile(user.id, { worker_url: k }); } catch {}
+    if (user) try { await supa.upsertProfile(user.id, { worker_url: k }); } catch (err) { console.error("[TrackAll] Erro ao guardar worker_url:", err); }
   };
 
   const addToLibrary = useCallback((item, status, rating = 0) => {
@@ -5804,7 +5818,6 @@ export default function TrackAll() {
               const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
                 .sort((a,b) => b.addedAt - a.addedAt);
               if (!completados.length) return null;
-              const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
               const groups = {};
               completados.forEach(item => {
                 const d = new Date(item.addedAt);
@@ -5828,7 +5841,7 @@ export default function TrackAll() {
                     <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
                       <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
                         <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{MONTH_PT[group.month]}</div>
+                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
                           <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
                         </div>
                       </div>
