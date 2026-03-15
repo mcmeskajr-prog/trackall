@@ -2185,7 +2185,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* ── Temas Guardados ── */}
       {(() => {
         const themes = onSavedThemes?.themes || [];
-        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg });
+        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
         const applyTheme = (t) => {
           if (t.accent) onAccentChange(t.accent);
           if (t.bgColor) onBgChange(t.bgColor);
@@ -2194,11 +2194,28 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           if (t.textContrast !== undefined) onTextContrast(t.textContrast);
           if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
           if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
+          if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
+          if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
+          if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
+          // Carregar imagens guardadas separadamente
+          try {
+            if (t.hasBgImage) { const img = localStorage.getItem(`trackall_theme_img_${t.name}`); onBgImage(img || ""); }
+            else onBgImage("");
+            if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
+            else onBgImageMobile("");
+          } catch {}
         };
         const saveTheme = () => {
           if (!themeName.trim()) return;
-          const newTheme = { name: themeName.trim(), ...getCurrentTheme() };
-          const updated = [...themes.filter(t => t.name !== themeName.trim()), newTheme];
+          const name = themeName.trim();
+          // Guardar imagens separadamente (são grandes)
+          try {
+            if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
+            if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
+          } catch {}
+          // Tema sem imagens (ficam no localStorage por chave separada)
+          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
+          const updated = [...themes.filter(t => t.name !== name), newTheme];
           onSavedThemes?.save(updated);
           setThemeName("");
         };
@@ -2218,7 +2235,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
                     <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
-                    <button onClick={() => onSavedThemes?.save(themes.filter(x => x.name !== t.name))} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
+                    <button onClick={() => {
+                      try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
+                      onSavedThemes?.save(themes.filter(x => x.name !== t.name));
+                    }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
                   </div>
                 ))}
               </div>
