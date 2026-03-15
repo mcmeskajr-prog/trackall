@@ -1817,7 +1817,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onSidebarColor, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -2202,9 +2202,29 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           </div>
         </div>
 
+        {/* ── Contraste do Texto ── */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Contraste do Texto</p>
+            <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{textContrast}%</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 11, color: "#484f58" }}>Escuro</span>
+            <input type="range" min={40} max={160} step={5} value={textContrast}
+              onChange={e => onTextContrast(Number(e.target.value))}
+              style={{ flex: 1, accentColor: accent, height: 4, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 11, color: "#484f58" }}>Claro</span>
+          </div>
+          <button onClick={() => onTextContrast(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor padrão</button>
+        </div>
+
         {/* ── Cor de fundo ── */}
         <div>
-          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo</p>
+            {bgSeparateDevices && <span style={{ fontSize: 10, color: accent, fontWeight: 700, background: `${accent}18`, padding: "1px 7px", borderRadius: 20 }}>PC</span>}
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             {BG_PRESETS.map((p) => (
               <button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />
@@ -2214,26 +2234,65 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               <input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
             </label>
           </div>
+          {/* Mobile color when separate */}
+          {bgSeparateDevices && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo 📱 Mobile</p>
+                {bgColorMobile && <button onClick={() => onBgColorMobile("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ usar igual ao PC</button>}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                {BG_PRESETS.map((p) => (
+                  <button key={p.name} onClick={() => onBgColorMobile(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: (bgColorMobile || bgColor) === p.value ? `2px solid #06b6d4` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />
+                ))}
+                <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }} title="Personalizada">
+                  +
+                  <input type="color" defaultValue={bgColorMobile || bgColor} onBlur={(e) => onBgColorMobile(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ── Imagem de fundo ── */}
+        {/* ── Cor da Sidebar ── */}
         <div>
-          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Imagem de fundo</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor da Sidebar</p>
+            {sidebarColor && <button onClick={() => onSidebarColor("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ usar cor do fundo</button>}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <button onClick={() => onSidebarColor("")} style={{ width: 32, height: 32, borderRadius: 8, background: bgColor, border: !sidebarColor ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 9, color: "#8b949e", fontFamily: "inherit", overflow: "hidden" }} title="Igual ao fundo">≡</button>
+            {BG_PRESETS.map((p) => (
+              <button key={p.name} onClick={() => onSidebarColor(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: sidebarColor === p.value ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />
+            ))}
+            <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }} title="Personalizada">
+              +
+              <input type="color" defaultValue={sidebarColor || bgColor} onBlur={(e) => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+            </label>
+          </div>
+        </div>
 
-          {/* Device toggle row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, color: "#8b949e" }}>Fundo igual em todos os dispositivos</span>
+        {/* ── Dispositivos separados ── */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Fundo PC/Mobile separados</p>
+              <p style={{ fontSize: 11, color: "#484f58" }}>Cor e imagem de fundo diferentes por dispositivo</p>
+            </div>
             <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
               <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
               <span style={{ position: "absolute", inset: 0, background: bgSeparateDevices ? accent : "#30363d", borderRadius: 22, transition: "background 0.2s" }} />
               <span style={{ position: "absolute", top: 3, left: bgSeparateDevices ? 21 : 3, width: 16, height: 16, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
             </label>
-            <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400 }}>{bgSeparateDevices ? "Separado 🖥≠📱" : "Igual 🖥=📱"}</span>
+            <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
           </div>
+        </div>
 
+        {/* ── Imagem de fundo ── */}
+        <div>
+          <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Imagem de fundo</p>
           {/* Upload buttons */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {/* PC / Único */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
               <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImage ? `url(${bgImage}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
                 {!bgImage && <><span>🖥</span><span style={{ fontSize: 9, color: "#484f58" }}>PC</span></>}
@@ -2245,8 +2304,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               </label>
               {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕ remover</button>}
             </div>
-
-            {/* Mobile (only when separate is ON) */}
             {bgSeparateDevices && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
                 <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
@@ -2261,8 +2318,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
               </div>
             )}
           </div>
-
-          {/* Image controls when any bg is set */}
           {(bgImage || bgImageMobile) && (
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
               <div>
@@ -3816,6 +3871,9 @@ function RatingOverlay({ item, accent, library, onDone }) {
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
+  const [bgColorMobile, setBgColorMobile] = useState(""); // "" = igual ao PC
+  const [sidebarColor, setSidebarColor] = useState(""); // "" = igual ao bgColor
+  const [textContrast, setTextContrast] = useState(100); // 0=escuro, 100=normal, 200=claro
   const [statsCardBg, setStatsCardBg] = useState("");
   const [driveClientId, setDriveClientId] = useState("");
   const [lastDriveSync, setLastDriveSync] = useState(null);
@@ -4000,6 +4058,9 @@ export default function TrackAll() {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
+        if (prof.sidebar_color !== undefined) setSidebarColor(prof.sidebar_color || "");
+        if (prof.text_contrast !== undefined) setTextContrast(prof.text_contrast ?? 100);
+        if (prof.bg_color_mobile) setBgColorMobile(prof.bg_color_mobile);
         if (prof.drive_client_id) {
           setDriveClientId(prof.drive_client_id);
           // Auto-sync: try silently after browser is idle (não bloqueia o arranque)
@@ -4109,6 +4170,18 @@ export default function TrackAll() {
   const saveStatsCardBg = async (c) => {
     setStatsCardBg(c);
     if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch {}
+  };
+  const saveSidebarColor = async (c) => {
+    setSidebarColor(c);
+    if (user) try { await supa.upsertProfile(user.id, { sidebar_color: c }); } catch {}
+  };
+  const saveTextContrast = async (v) => {
+    setTextContrast(v);
+    if (user) try { await supa.upsertProfile(user.id, { text_contrast: v }); } catch {}
+  };
+  const saveBgColorMobile = async (c) => {
+    setBgColorMobile(c);
+    if (user) try { await supa.upsertProfile(user.id, { bg_color_mobile: c }); } catch {}
   };
   const saveDriveClientId = async (id) => {
     setDriveClientId(id);
@@ -4559,12 +4632,20 @@ export default function TrackAll() {
     ? (isMobileDevice ? bgImageMobile : bgImage)
     : bgImage;
 
+  // Active bg color: mobile can have different color when bgSeparateDevices is on
+  const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
+
+  // Text color derived from textContrast slider (100=normal, <100=darker, >100=lighter)
+  const textBrightness = textContrast / 100; // e.g. 0.5 = half brightness, 1.5 = 50% brighter
+  const baseTextColor = darkMode ? "#e6edf3" : "#0d1117";
+
   return (
-    <ThemeContext.Provider value={{ accent, bg: bgColor }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor }}>
       <div style={{
         minHeight: "100vh",
-        background: bgColor,
-        color: darkMode ? "#e6edf3" : "#0d1117",
+        background: activeBgColor,
+        color: baseTextColor,
+        filter: textContrast !== 100 ? `none` : undefined,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
         position: "relative",
@@ -4688,11 +4769,12 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : bgColor }}>
+        <div className="desktop-main" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : activeBgColor, filter: textContrast !== 100 ? `brightness(${textContrast / 100})` : undefined }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
           body { overscroll-behavior: none; }
+          :root { --text-brightness: ${textContrast / 100}; }
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
@@ -4802,7 +4884,7 @@ export default function TrackAll() {
             display: none;
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
-            background: ${bgColor}f5;
+            background: ${sidebarColor || bgColor}f5;
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
@@ -5361,6 +5443,7 @@ export default function TrackAll() {
             library={library}
             accent={accent}
             bgColor={bgColor}
+            bgColorMobile={bgColorMobile}
             bgImage={bgImage}
             bgOverlay={bgOverlay}
             bgBlur={bgBlur}
@@ -5374,12 +5457,17 @@ export default function TrackAll() {
             bgSeparateDevices={bgSeparateDevices}
             onBgSeparateDevices={saveBgSeparateDevices}
             onBgImageMobile={saveMobileBgImage}
+            onBgColorMobile={saveBgColorMobile}
             isMobileDevice={isMobileDevice}
             onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
             statsCardBg={statsCardBg}
             onStatsCardBg={saveStatsCardBg}
+            textContrast={textContrast}
+            onTextContrast={saveTextContrast}
+            sidebarColor={sidebarColor}
+            onSidebarColor={saveSidebarColor}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
