@@ -1528,7 +1528,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           )}
         </div>
         {/* Hover rating overlay — desktop rico */}
-        <div className="rating-hover">
+        <div className="rating-hover no-tc">
           <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{item.title}</p>
             {libItem?.userRating > 0 ? (
@@ -1705,7 +1705,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
                     {/* Hover overlay: título + rating + data */}
-                    <div className="recent-hover-overlay" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
+                    <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
                       <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 4 }}>{item.title}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         {item.userRating > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>}
@@ -2095,7 +2095,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
                                     }
-                                    <div className="fav-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                                    <div className="fav-overlay no-tc" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
                                       {currentRating > 0
                                         ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div>
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
@@ -4817,23 +4817,15 @@ export default function TrackAll() {
             }
             const col = `rgb(${r},${g},${b})`;
             return `
-          /* Aplicar só fora dos overlays e elementos protegidos */
-          p:not(.no-tc):not(.rating-hover p):not(.recent-hover-overlay p):not(.fav-overlay p),
-          span:not(.no-tc):not(.rating-hover span):not(.recent-hover-overlay span):not(.fav-overlay span):not([style*="f59e0b"]):not([style*="fbbf24"]),
-          h1:not(.no-tc), h2:not(.no-tc), h3:not(.no-tc), h4:not(.no-tc), h5:not(.no-tc),
-          li:not(.no-tc), a:not(.no-tc),
+          /* Aplicar contraste ao texto geral, excluindo containers no-tc */
+          p:not(.no-tc *), span:not(.no-tc *),
+          h1, h2, h3, h4, h5, li, a,
           .card-info-title, .ds-nav-btn, .ds-type-item {
             color: ${col} !important;
           }
-          /* Overlays das capas — sempre branco */
-          .rating-hover p, .rating-hover span,
-          .recent-hover-overlay p, .recent-hover-overlay span,
-          .fav-overlay p, .fav-overlay span, .fav-overlay div {
-            color: white !important;
-          }
-          /* Pills protegidos e botões accent */
-          .no-tc, .no-tc span, .no-tc p,
-          .btn-accent, .btn-accent span {
+          /* Elementos protegidos — manter cor original */
+          .no-tc, .no-tc *, .no-tc p, .no-tc span, .no-tc div,
+          .btn-accent, .btn-accent * {
             color: revert !important;
           }
           `;
