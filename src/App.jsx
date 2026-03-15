@@ -797,8 +797,8 @@ async function driveDownloadFile(token, fileId) {
   return { arrayBuffer: () => Promise.resolve(ab) };
 }
 
-function MihonImportModal({
-  const { lang, useT } = useLang(); onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, onSaveClientId }) {
+  const { lang, useT } = useLang();
   const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1070,8 +1070,8 @@ function MihonImportModal({
 
 
 
-function CropModal({
-  const { lang, useT } = useLang(); imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+  const { lang, useT } = useLang();
   const canvasRef = useRef(null);
   const [drag, setDrag] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -1172,8 +1172,8 @@ function CropModal({
 }
 
 // ─── Cover Edit Modal ──────────────────────────────────────────────────────────
-function CoverEditModal({
-  const { lang, useT } = useLang(); item, onSave, onClose }) {
+function CoverEditModal({item, onSave, onClose }) {
+  const { lang, useT } = useLang();
   const [url, setUrl] = useState(item.customCover || item.cover || "");
   const [preview, setPreview] = useState(item.customCover || item.cover || "");
   const [loading, setLoading] = useState(false);
@@ -1253,8 +1253,8 @@ function CoverEditModal({
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({
-  const { lang, useT } = useLang(); item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+function DetailModal({item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, accent, favorites = [], onToggleFavorite, tmdbKey }) {
+  const { lang, useT } = useLang();
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
@@ -1580,8 +1580,8 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 }); // end memo(MediaCard)
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
-function DiaryPanel({
-  const { lang, useT } = useLang(); completados, onOpen, accent }) {
+function DiaryPanel({completados, onOpen, accent }) {
+  const { lang, useT } = useLang();
   const [showAll, setShowAll] = useState(false);
   if (!completados || !completados.length) return null;
   const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -1644,8 +1644,8 @@ function DiaryPanel({
   );
 }
 
-function RecentSection({
-  const { lang, useT } = useLang(); items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
+function RecentSection({items, accent, darkMode, onOpen, isMobileDevice = true, showDiary = true }) {
+  const { lang, useT } = useLang();
   const [showAllCurso, setShowAllCurso] = useState(false);
   const [showAllCompleto, setShowAllCompleto] = useState(false);
   const [showDiaryAll, setShowDiaryAll] = useState(false);
@@ -2665,8 +2665,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 }
 
 // ─── Friends View ─────────────────────────────────────────────────────────────
-function FeedTab({
-  const { lang, useT } = useLang(); accepted, getFriendInfo, accent, darkMode }) {
+function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
+  const { lang, useT } = useLang();
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
 
@@ -2772,8 +2772,8 @@ function FeedTab({
   );
 }
 
-function FriendsView({
-  const { lang, useT } = useLang(); user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
+function FriendsView({user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
+  const { lang, useT } = useLang();
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
   const [searchQ, setSearchQ] = useState("");
