@@ -1,12 +1,12 @@
 {
   "name": "TrackAll",
   "short_name": "TrackAll",
-  "description": "Acompanha filmes, séries, manga, jogos e muito mais",
+  "description": "Toda a tua mídia num só lugar — anime, manga, filmes, séries, jogos, livros e comics",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0d1117",
-  "theme_color": "#0d1117",
+  "theme_color": "#f97316",
   "icons": [
     {
       "src": "/icon-192.png",
