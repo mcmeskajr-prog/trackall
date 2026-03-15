@@ -1817,7 +1817,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onSidebarColor, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -2205,7 +2205,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         {/* ── Contraste do Texto ── */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Contraste do Texto</p>
+            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Contraste do Texto{bgSeparateDevices ? " 🖥 PC" : ""}</p>
             <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{textContrast}%</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2217,6 +2217,25 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             <span style={{ fontSize: 11, color: "#484f58" }}>Claro</span>
           </div>
           <button onClick={() => onTextContrast(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor padrão</button>
+
+          {/* Mobile slider — só quando dispositivos separados */}
+          {bgSeparateDevices && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Contraste do Texto 📱 Mobile</p>
+                <span style={{ fontSize: 11, color: "#06b6d4", fontWeight: 700 }}>{textContrastMobile}%</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#484f58" }}>Escuro</span>
+                <input type="range" min={40} max={160} step={5} value={textContrastMobile}
+                  onChange={e => onTextContrastMobile(Number(e.target.value))}
+                  style={{ flex: 1, accentColor: "#06b6d4", height: 4, cursor: "pointer" }}
+                />
+                <span style={{ fontSize: 11, color: "#484f58" }}>Claro</span>
+              </div>
+              <button onClick={() => onTextContrastMobile(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor padrão</button>
+            </div>
+          )}
         </div>
 
         {/* ── Cor de fundo ── */}
@@ -3874,6 +3893,7 @@ export default function TrackAll() {
   const [bgColorMobile, setBgColorMobile] = useState(""); // "" = igual ao PC
   const [sidebarColor, setSidebarColor] = useState(""); // "" = igual ao bgColor
   const [textContrast, setTextContrast] = useState(100); // 0=escuro, 100=normal, 200=claro
+  const [textContrastMobile, setTextContrastMobile] = useState(100); // separado para mobile
   const [statsCardBg, setStatsCardBg] = useState("");
   const [driveClientId, setDriveClientId] = useState("");
   const [lastDriveSync, setLastDriveSync] = useState(null);
@@ -4060,6 +4080,7 @@ export default function TrackAll() {
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
         if (prof.sidebar_color !== undefined) setSidebarColor(prof.sidebar_color || "");
         if (prof.text_contrast !== undefined) setTextContrast(prof.text_contrast ?? 100);
+        if (prof.text_contrast_mobile !== undefined) setTextContrastMobile(prof.text_contrast_mobile ?? 100);
         if (prof.bg_color_mobile) setBgColorMobile(prof.bg_color_mobile);
         if (prof.drive_client_id) {
           setDriveClientId(prof.drive_client_id);
@@ -4178,6 +4199,10 @@ export default function TrackAll() {
   const saveTextContrast = async (v) => {
     setTextContrast(v);
     if (user) try { await supa.upsertProfile(user.id, { text_contrast: v }); } catch {}
+  };
+  const saveTextContrastMobile = async (v) => {
+    setTextContrastMobile(v);
+    if (user) try { await supa.upsertProfile(user.id, { text_contrast_mobile: v }); } catch {}
   };
   const saveBgColorMobile = async (c) => {
     setBgColorMobile(c);
@@ -4635,8 +4660,8 @@ export default function TrackAll() {
   // Active bg color: mobile can have different color when bgSeparateDevices is on
   const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
 
-  // Text color derived from textContrast slider (100=normal, <100=darker, >100=lighter)
-  const textBrightness = textContrast / 100; // e.g. 0.5 = half brightness, 1.5 = 50% brighter
+  // Active text contrast: mobile can have different value when bgSeparateDevices is on
+  const activeTextContrast = (bgSeparateDevices && isMobileDevice) ? textContrastMobile : textContrast;
   const baseTextColor = darkMode ? "#e6edf3" : "#0d1117";
 
   return (
@@ -4773,23 +4798,19 @@ export default function TrackAll() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
           body { overscroll-behavior: none; }
-          :root { --tc: ${textContrast / 100}; }
+          :root { --tc: ${activeTextContrast / 100}; }
           /* Cor do texto baseada no slider: 0=preto puro, 100=cor normal, 200=branco puro */
           ${(() => {
-            if (textContrast === 100) return '';
-            // Calcular cor do texto: interpolar entre preto(0,0,0) e branco(255,255,255)
-            // 0 = #000000, 100 = cor normal, 200 = #ffffff
+            if (activeTextContrast === 100) return '';
             const base = darkMode ? [230, 237, 243] : [13, 17, 23];
             let r, g, b;
-            if (textContrast < 100) {
-              // Interpolar entre preto e cor base
-              const t = textContrast / 100;
+            if (activeTextContrast < 100) {
+              const t = activeTextContrast / 100;
               r = Math.round(base[0] * t);
               g = Math.round(base[1] * t);
               b = Math.round(base[2] * t);
             } else {
-              // Interpolar entre cor base e branco
-              const t = (textContrast - 100) / 100;
+              const t = (activeTextContrast - 100) / 100;
               r = Math.round(base[0] + (255 - base[0]) * t);
               g = Math.round(base[1] + (255 - base[1]) * t);
               b = Math.round(base[2] + (255 - base[2]) * t);
@@ -4800,7 +4821,13 @@ export default function TrackAll() {
           .card-info-title, .ds-nav-btn, .ds-type-item {
             color: ${col} !important;
           }
-          img, video, canvas, .media-thumb img, .fav-thumb-d img, .btn-accent {
+          /* Excluir: overlays das capas (sempre branco), accent pills (sempre accent), estrelas (sempre amarelo) */
+          .rating-hover *, .recent-hover-overlay *, .fav-overlay *,
+          .card .media-thumb .rating-hover p,
+          .card .media-thumb .rating-hover span,
+          .no-tc, .no-tc *,
+          .btn-accent, .btn-accent *,
+          img, video, canvas {
             color: initial !important;
           }
           `;
@@ -5128,7 +5155,7 @@ export default function TrackAll() {
                   {stats.map((s, si) => {
                     const c = accentVariant(accent, si);
                     return (
-                      <div key={s.label} style={{
+                      <div key={s.label} className="no-tc" style={{
                         flexShrink: 0,
                         background: `linear-gradient(135deg, ${c}18 0%, ${c}08 100%)`,
                         border: `1px solid ${c}33`,
@@ -5496,6 +5523,8 @@ export default function TrackAll() {
             onStatsCardBg={saveStatsCardBg}
             textContrast={textContrast}
             onTextContrast={saveTextContrast}
+            textContrastMobile={textContrastMobile}
+            onTextContrastMobile={saveTextContrastMobile}
             sidebarColor={sidebarColor}
             onSidebarColor={saveSidebarColor}
             onTmdbKey={saveTmdbKey}
