@@ -2761,18 +2761,16 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           </div>
         )}
         <div style={{ position: "relative", zIndex: 1 }}>
-        <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{ background: "none", border: "none", color: fAccent, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "16px" }}>← Voltar</button>
 
-        {/* Banner + Avatar */}
-        <div style={{ position: "relative", marginBottom: 60 }}>
+        {/* Banner + Avatar — Voltar sobreposto */}
+        <div style={{ position: "relative", marginBottom: 56 }}>
           <div style={{
-            height: 180, overflow: "hidden", position: "relative",
-            borderRadius: "16px 16px 0 0",
+            height: 220, position: "relative", overflow: "hidden",
             background: friendData.profile?.banner
               ? `url(${friendData.profile.banner}) center/cover no-repeat`
               : fBgImage ? "transparent" : fBgColor,
           }}>
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
             {!friendData.profile?.banner && (
               <>
                 <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.15 }} xmlns="http://www.w3.org/2000/svg">
@@ -2784,6 +2782,14 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                 <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 40% 50%, ${fAccent}28 0%, transparent 60%)` }} />
               </>
             )}
+            {/* Botão Voltar sobreposto no banner */}
+            <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{
+              position: "absolute", top: 14, left: 14, zIndex: 10,
+              background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
+              border: `1px solid rgba(255,255,255,0.2)`, color: "white",
+              cursor: "pointer", fontSize: 13, fontWeight: 700, padding: "6px 14px",
+              borderRadius: 20, display: "flex", alignItems: "center", gap: 6,
+            }}>← Voltar</button>
           </div>
           <div style={{ position: "absolute", bottom: -44, left: "50%", transform: "translateX(-50%)" }}>
             <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", border: `3px solid ${fBgColor}`, boxShadow: `0 0 0 3px ${fAccent}, 0 8px 24px rgba(0,0,0,0.5)`, background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
@@ -2887,7 +2893,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: !isMobileDevice ? "repeat(4, minmax(0, 80px))" : "repeat(4, 1fr)", gap: 6 }}>
                         {favByType[t.id].map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
@@ -3896,23 +3902,35 @@ export default function TrackAll() {
   }, []);
 
   // Attach mouse-wheel → horizontal scroll on all .recents-row elements
+  // + keyboard arrow keys when hovering
   useEffect(() => {
+    let hoveredRow = null;
+    const onKeyDown = (e) => {
+      if (!hoveredRow) return;
+      if (hoveredRow.scrollWidth <= hoveredRow.clientWidth) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); hoveredRow.scrollLeft -= 200; }
+      if (e.key === "ArrowRight") { e.preventDefault(); hoveredRow.scrollLeft += 200; }
+    };
+    document.addEventListener('keydown', onKeyDown);
+
     const attach = () => {
       document.querySelectorAll('.recents-row').forEach(el => {
         if (el._wheelOk) return;
         el._wheelOk = true;
         el.addEventListener('wheel', (e) => {
-          if (el.scrollWidth <= el.clientWidth) return; // not scrollable
-          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // already horizontal
+          if (el.scrollWidth <= el.clientWidth) return;
+          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
           e.preventDefault();
           el.scrollLeft += e.deltaY;
         }, { passive: false });
+        el.addEventListener('mouseenter', () => { hoveredRow = el; });
+        el.addEventListener('mouseleave', () => { if (hoveredRow === el) hoveredRow = null; });
       });
     };
     attach();
     const obs = new MutationObserver(attach);
     obs.observe(document.body, { childList: true, subtree: true });
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); document.removeEventListener('keydown', onKeyDown); };
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -4780,7 +4798,7 @@ export default function TrackAll() {
             display: none;
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
-            background: ${darkMode ? "rgba(13,17,23,0.97)" : "rgba(255,252,247,0.97)"};
+            background: ${bgColor}f5;
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
