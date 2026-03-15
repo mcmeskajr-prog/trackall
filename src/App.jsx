@@ -3013,7 +3013,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 120px))", gap: 8, maxWidth: 520 }}>
                         {favByType[t.id].map(item => {
                           const coverSrc = item.customCover || item.cover;
                           return (
