@@ -1679,13 +1679,14 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
       {/* Completados — tamanho igual aos Favoritos */}
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          {completados.length > 10 && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>✓ COMPLETADOS</h3>
+            {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
               </button>
-            </div>
-          )}
+            )}
+          </div>
           <div
             onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
             style={{
@@ -3902,9 +3903,10 @@ export default function TrackAll() {
   }, []);
 
   // Attach mouse-wheel → horizontal scroll on all .recents-row elements
-  // + keyboard arrow keys when hovering
+  // + keyboard arrow keys when hovering ANY horizontal scroll container
   useEffect(() => {
     let hoveredRow = null;
+
     const onKeyDown = (e) => {
       if (!hoveredRow) return;
       if (hoveredRow.scrollWidth <= hoveredRow.clientWidth) return;
@@ -3913,9 +3915,14 @@ export default function TrackAll() {
     };
     document.addEventListener('keydown', onKeyDown);
 
-    const attach = () => {
-      document.querySelectorAll('.recents-row').forEach(el => {
-        if (el._wheelOk) return;
+    // Selector que cobre todos os scrolls horizontais
+    const SCROLL_SEL = '.recents-row, .tabs-scroll, [style*="overflowX: auto"], [style*="overflow-x: auto"]';
+
+    const attachEl = (el) => {
+      if (el._scrollKeyOk) return;
+      el._scrollKeyOk = true;
+      // wheel
+      if (!el._wheelOk) {
         el._wheelOk = true;
         el.addEventListener('wheel', (e) => {
           if (el.scrollWidth <= el.clientWidth) return;
@@ -3923,10 +3930,16 @@ export default function TrackAll() {
           e.preventDefault();
           el.scrollLeft += e.deltaY;
         }, { passive: false });
-        el.addEventListener('mouseenter', () => { hoveredRow = el; });
-        el.addEventListener('mouseleave', () => { if (hoveredRow === el) hoveredRow = null; });
-      });
+      }
+      // keyboard hover
+      el.addEventListener('mouseenter', () => { hoveredRow = el; });
+      el.addEventListener('mouseleave', () => { if (hoveredRow === el) hoveredRow = null; });
     };
+
+    const attach = () => {
+      document.querySelectorAll(SCROLL_SEL).forEach(attachEl);
+    };
+
     attach();
     const obs = new MutationObserver(attach);
     obs.observe(document.body, { childList: true, subtree: true });
@@ -4596,36 +4609,28 @@ export default function TrackAll() {
 
               {/* Nav principal */}
               <div style={{ padding: "4px 0" }}>
-                {navItems.map((n, nIdx) => {
-                  const ic = accentVariant(accent, nIdx);
-                  return (
-                    <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`}
-                      onClick={() => setView(n.id)}
-                      style={view === n.id ? { background: `${ic}1a`, color: ic } : {}}>
-                      <span className="ds-icon" style={view === n.id ? { color: ic } : {}}>{n.icon}</span>
-                      {n.label}
-                    </button>
-                  );
-                })}
-                {/* Amigos — com SVG colorido */}
-                {(() => {
-                  const ic = accentVariant(accent, navItems.length);
-                  return (
-                    <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`}
-                      onClick={() => setView("friends")}
-                      style={view === "friends" ? { background: `${ic}1a`, color: ic } : {}}>
-                      <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} />
-                          <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
-                          <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-                          <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? ic : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
-                        </svg>
-                      </span>
-                      Amigos
-                    </button>
-                  );
-                })()}
+                {navItems.map((n) => (
+                  <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`}
+                    onClick={() => setView(n.id)}
+                    style={view === n.id ? { background: `${accent}1a`, color: accent } : {}}>
+                    <span className="ds-icon" style={view === n.id ? { color: accent } : {}}>{n.icon}</span>
+                    {n.label}
+                  </button>
+                ))}
+                {/* Amigos */}
+                <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`}
+                  onClick={() => setView("friends")}
+                  style={view === "friends" ? { background: `${accent}1a`, color: accent } : {}}>
+                  <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} />
+                      <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
+                      <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                      <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
+                    </svg>
+                  </span>
+                  Amigos
+                </button>
               </div>
 
               {/* Botão + Log Rápido */}
@@ -4643,7 +4648,6 @@ export default function TrackAll() {
                   <p className="ds-section" style={{ marginTop: 12 }}>Biblioteca</p>
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
-                    const ic = accentVariant(accent, tIdx + 1);
                     const isActive = view === "library" && activeTab === t.id;
                     const typeIcons = {
                       anime: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 9.5c.5-1 1.5-1.5 2.5-1s1.5 1.5 1 2.5L9 14h5"/><circle cx="16" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
@@ -4658,10 +4662,10 @@ export default function TrackAll() {
                     };
                     return (
                       <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
-                        style={{ background: isActive ? `${ic}18` : undefined, borderRadius: 8, color: isActive ? ic : (darkMode ? "#8b949e" : "#64748b") }}>
-                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? ic : (darkMode ? "#8b949e" : "#64748b") }}>{typeIcons[t.id] || t.icon}</span>
-                        <span style={{ flex: 1, color: isActive ? ic : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{t.label}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? ic : "#484f58" }}>{cnt}</span>
+                        style={{ background: isActive ? `${accent}18` : undefined, borderRadius: 8, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>
+                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>{typeIcons[t.id] || t.icon}</span>
+                        <span style={{ flex: 1, color: isActive ? accent : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{t.label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? accent : "#484f58" }}>{cnt}</span>
                       </div>
                     );
                   })}
@@ -5408,10 +5412,10 @@ export default function TrackAll() {
               const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
               return (
                 <div style={{
-                  width: 280, flexShrink: 0,
+                  width: 320, flexShrink: 0,
                   borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
                   paddingLeft: 24, paddingRight: 16,
-                  marginLeft: "auto",
+                  marginLeft: 60,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                     <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
