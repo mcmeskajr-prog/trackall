@@ -1561,7 +1561,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
             )}
             {status && (
               <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
-                {status.emoji} {status.label}
+                {status.emoji} {statusLabel(status, lang)}
               </span>
             )}
           </div>
@@ -2094,7 +2094,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     <div key={t.id}>
                       {/* Label categoria */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{t.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{mediaLabel(t, lang)}</span>
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
@@ -3042,7 +3042,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                   return (
                     <div key={t.id}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.1em" }}>{mediaLabel(t, lang)}</span>
                         <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}55, transparent)` }} />
                         <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
                       </div>
@@ -3579,7 +3579,7 @@ function LibGroupedList({ items, library, accent, darkMode, onOpen }) {
             fontFamily: "inherit", textAlign: "left", WebkitTapHighlightColor: "transparent",
           }}>
             <span style={{ fontSize: 15 }}>{t.icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>{t.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>{mediaLabel(t, lang)}</span>
             <span style={{ fontSize: 10, color: accent, background: `${accent}18`, padding: "1px 7px", borderRadius: 20, fontWeight: 700 }}>{gItems.length}</span>
             <span style={{ marginLeft: "auto", color: "#484f58", fontSize: 13, transform: collapsed[t.id] ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
           </button>
@@ -5017,7 +5017,7 @@ export default function TrackAll() {
                       <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
                         style={{ background: isActive ? `${accent}18` : undefined, borderRadius: 8, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>
                         <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>{typeIcons[t.id] || t.icon}</span>
-                        <span style={{ flex: 1, color: isActive ? accent : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{t.label}</span>
+                        <span style={{ flex: 1, color: isActive ? accent : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{mediaLabel(t, lang)}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? accent : "#484f58" }}>{cnt}</span>
                       </div>
                     );
@@ -5316,11 +5316,11 @@ export default function TrackAll() {
                     {/* Stats compactas numa linha */}
                     <div style={{ display: "flex", gap: 4 }}>
                       {[
-                        { l: "Curso",    v: stats.assistindo, key: "assistindo" },
-                        { l: useT("completo"), v: stats.completo,   key: "completo"   },
-                        { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
-                        { l: useT("dropado"),  v: stats.largado,    key: "largado"    },
-                        { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
+                        { l: lang === "en" ? "Progress" : "Curso",   v: stats.assistindo, key: "assistindo" },
+                        { l: useT("completo"),                        v: stats.completo,   key: "completo"   },
+                        { l: lang === "en" ? "Paused" : "Pausa",     v: stats.pausa,      key: "pausa"      },
+                        { l: useT("dropado"),                         v: stats.largado,    key: "largado"    },
+                        { l: lang === "en" ? "Planned" : "Planej.",   v: stats.planejado,  key: "planejado"  },
                       ].filter(s => s.v > 0).map((s) => {
                         const col = homeStatColors[s.key];
                         return (
@@ -5385,7 +5385,7 @@ export default function TrackAll() {
               const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
               const stats = [
                 { label: useT("completedThisMonth"), value: thisMonth, show: thisMonth > 0, icon: "📅" },
-                { label: "rating médio", value: avgRating, show: !!avgRating, icon: "★" },
+                { label: lang === "en" ? "avg rating" : "rating médio", value: avgRating, show: !!avgRating, icon: "★" },
               ].filter(s => s.show);
               if (!stats.length) return null;
               return (
@@ -5402,7 +5402,7 @@ export default function TrackAll() {
                         minWidth: 110,
                       }}>
                         <span style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{s.icon === "★" ? <span style={{ fontSize: 14, marginRight: 2 }}>★</span> : null}{s.value}</span>
-                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{statusLabel(s, lang)}</span>
+                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
                       </div>
                     );
                   })}
@@ -5651,7 +5651,7 @@ export default function TrackAll() {
                     cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: filterStatus === s.id ? 700 : 500,
                     marginBottom: 2,
                   }}>
-                    <span>{s.emoji}</span> {s.label}
+                    <span>{s.emoji}</span> {s.id === "all" ? useT("all") : statusLabel(s, lang)}
                     <span style={{ marginLeft: "auto", fontSize: 11, color: filterStatus === s.id ? s.color : "#484f58" }}>
                       {s.id === "all" ? filteredLib.length : items.filter(i => i.userStatus === s.id && (activeTab === "all" || i.type === activeTab)).length}
                     </span>
@@ -5659,7 +5659,7 @@ export default function TrackAll() {
                 ))}
                 <div style={{ height: 1, background: "#21262d", margin: "12px 0" }} />
                 <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{lang === "en" ? "Sort" : "Ordenar"}</p>
-                {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★ Rating"}].map(s => (
+                {[{id:"date",label: lang === "en" ? "Date" : "Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★ Rating"}].map(s => (
                   <button key={s.id} onClick={() => setLibSort(s.id)} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 8,
                     padding: "8px 10px", borderRadius: 8, border: "none", textAlign: "left",
@@ -5884,7 +5884,7 @@ export default function TrackAll() {
               <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 10 }}>
                 {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
                   <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 20, background: quickSearchType === t.id ? accent : (darkMode ? "#21262d" : "#f1f5f9"), border: `1px solid ${quickSearchType === t.id ? accent : "transparent"}`, color: quickSearchType === t.id ? "white" : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
-                    <span>{t.icon}</span> {t.label}
+                    <span>{t.icon}</span> {mediaLabel(t, lang) || useT("all")}
                   </button>
                 ))}
               </div>
