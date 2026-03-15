@@ -2003,10 +2003,9 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
               }}>✏ Editar Perfil</button>
               <button onClick={() => {
-                const username = profile.username || profile.name?.toLowerCase().replace(/\s+/g,'-') || 'perfil';
-                const url = `${window.location.origin}`;
+                const name = profile.name || "perfil";
+                const url = window.location.href;
                 navigator.clipboard.writeText(url).then(() => {
-                  // usar notif do pai não está disponível aqui — usar estado local
                   setShareCopied(true);
                   setTimeout(() => setShareCopied(false), 2000);
                 }).catch(() => {});
@@ -2078,20 +2077,19 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                       {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
                       {(() => {
                         const count = favByType[t.id].length;
-                        // Mobile: sempre grid 4 colunas (sem scroll) — PC: scroll row se ≤6 itens
-                        const useScroll = !isMobileDevice && count <= 6;
-                        const cardW = count === 1 ? 150 : count === 2 ? 136 : count === 3 ? 122 : count === 4 ? 108 : count <= 6 ? 96 : 88;
+                        // Sempre grid 4 colunas — sem scroll em nenhum dispositivo
+                        const useScroll = false;
+                        const cardW = 0; // não usado no grid
                         return (
-                          <div style={useScroll ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", justifyContent: "center" } : { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 8 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
-                              // Buscar rating atualizado da biblioteca
                               const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
                               return (
-                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer", flexShrink: 0, width: useScroll ? cardW : undefined }}
+                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
                                   onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
                                   onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
-                                  <div className="fav-thumb-d" style={{ width: useScroll ? cardW : "100%", height: useScroll ? Math.round(cardW * 1.48) : undefined, aspectRatio: useScroll ? undefined : "2/3", borderRadius: useScroll ? 9 : (isMobileDevice ? 6 : 9), overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                                  <div className="fav-thumb-d" style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
                                     {coverSrc
                                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
@@ -2102,9 +2100,6 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
                                         : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
                                       }
                                     </div>
-                                    {currentRating > 0 && (
-                                      <div style={{ position: "absolute", bottom: 5, left: 5, background: "rgba(0,0,0,0.88)", borderRadius: 5, padding: "2px 6px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{currentRating}</div>
-                                    )}
                                   </div>
                                   <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
@@ -2632,7 +2627,7 @@ function FeedTab({ accepted, getFriendInfo, accent, darkMode }) {
   );
 }
 
-function FriendsView({ user, accent, darkMode = true, isMobileDevice = false }) {
+function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
   const [searchQ, setSearchQ] = useState("");
@@ -3931,7 +3926,8 @@ export default function TrackAll() {
   const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
-  const [libViewMode, setLibViewMode] = useState("grid");
+  const [libViewMode, setLibViewMode] = useState(() => { try { return localStorage.getItem("trackall_lib_view") || "grid"; } catch { return "grid"; } });
+  const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
@@ -5205,7 +5201,7 @@ export default function TrackAll() {
                 </div>
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
                   {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
-                    <button key={m.id} onClick={() => setLibViewMode(m.id)} title={m.id === "compact" ? "Compacto" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                    <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? "Compacto" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
                   ))}
                 </div>
               </div>
@@ -5334,7 +5330,7 @@ export default function TrackAll() {
 
         {/* ── PROFILE ── */}
         {view === "friends" && (
-          <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} />
+          <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} library={library} />
         )}
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
