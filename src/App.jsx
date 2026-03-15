@@ -164,7 +164,7 @@ const BG_PRESETS = [
   { name: "Papel", value: "#f5f0eb", dark: false },
   { name: "Creme", value: "#fdf6e3", dark: false },
   { name: "Nuvem", value: "#f0f4f8", dark: false },
-  { name: "Branco", value: "#ffffff", dark: false },
+  { name: useT("overlayWhite"), value: "#ffffff", dark: false },
 ];
 
 // Detecta se uma cor hex é escura ou clara
@@ -201,15 +201,15 @@ function accentShade(hex, shiftDeg) {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
   { id: "all", label: "Todos", icon: "⊞" },
-  { id: "anime", label: "Anime", icon: "⛩" },
-  { id: "manga", label: "Manga", icon: "🗒" },
-  { id: "series", label: "Séries", icon: "📺" },
-  { id: "filmes", label: "Filmes", icon: "🎬" },
-  { id: "jogos", label: "Jogos", icon: "🎮" },
-  { id: "livros", label: "Livros", icon: "📚" },
-  { id: "manhwa", label: "Manhwa", icon: "🇰🇷" },
-  { id: "lightnovels", label: "Light Novels", icon: "✍" },
-  { id: "comics", label: "Comics", icon: "💬" },
+  { id: "anime", label: useT("anime"), icon: "⛩" },
+  { id: "manga", label: useT("manga"), icon: "🗒" },
+  { id: "series", label: useT("series"), icon: "📺" },
+  { id: "filmes", label: useT("filmes"), icon: "🎬" },
+  { id: "jogos", label: useT("jogos"), icon: "🎮" },
+  { id: "livros", label: useT("livros"), icon: "📚" },
+  { id: "manhwa", label: useT("manhwa"), icon: "🇰🇷" },
+  { id: "lightnovels", label: useT("lightnovels"), icon: "✍" },
+  { id: "comics", label: useT("comics"), icon: "💬" },
 ];
 
 // Gera variações subtis do accent — hue ±10° + brilho ligeiramente diferente
@@ -245,10 +245,10 @@ const TYPE_COLORS = {
 
 const STATUS_OPTIONS = [
   { id: "assistindo", label: "Em Curso", labelEn: "In Progress", color: "#f97316", emoji: "▶" },
-  { id: "completo", label: "Completo", labelEn: "Completed", color: "#10b981", emoji: "✓" },
-  { id: "planejado", label: "Planeado", labelEn: "Planned", color: "#06b6d4", emoji: "⏰" },
-  { id: "dropado", label: "Dropado", labelEn: "Dropped", color: "#ef4444", emoji: "✕" },
-  { id: "pausado", label: "Pausado", labelEn: "Paused", color: "#eab308", emoji: "⏸" },
+  { id: "completo", label: useT("completo"), labelEn: "Completed", color: "#10b981", emoji: "✓" },
+  { id: "planejado", label: useT("planeado"), labelEn: "Planned", color: "#06b6d4", emoji: "⏰" },
+  { id: "dropado", label: useT("dropado"), labelEn: "Dropped", color: "#ef4444", emoji: "✕" },
+  { id: "pausado", label: useT("pausado"), labelEn: "Paused", color: "#eab308", emoji: "⏸" },
 ];
 const statusLabel = (s, lang) => lang === "en" ? s.labelEn : s.label;
 
@@ -873,7 +873,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Mihon</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>{lang === "en" ? "Import from Mihon" : "Importar do Mihon"}</h3>
               <p style={{ fontSize: 11, color: '#8b949e' }}>
                 {step === 'choose' && 'Escolhe como importar'}
                 {step === 'drive_files' && `${driveFiles.length} backups encontrados`}
@@ -978,7 +978,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
                 </button>
               ))}
             </div>
-            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>← Voltar</button>
+            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>{useT("back")}</button>
             {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, textAlign: 'center' }}>{error}</p>}
           </div>
         )}
@@ -1000,7 +1000,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
             }}>
               {loading ? <span className="spin">◌</span> : '📂'} {loading ? 'A processar...' : 'Selecionar ficheiro .tachibk'}
             </button>
-            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, marginTop: 8, background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>← Voltar</button>
+            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, marginTop: 8, background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>{useT("back")}</button>
             {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</p>}
           </div>
         )}
@@ -1011,8 +1011,8 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <p style={{ fontSize: 12, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => toggleAll(true)} style={{ fontSize: 11, color: accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>Todos</button>
-                <button onClick={() => toggleAll(false)} style={{ fontSize: 11, color: '#8b949e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Nenhum</button>
+                <button onClick={() => toggleAll(true)} style={{ fontSize: 11, color: accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>{useT("all")}</button>
+                <button onClick={() => toggleAll(false)} style={{ fontSize: 11, color: '#8b949e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>{useT("overlayNone")}</button>
               </div>
             </div>
             <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
@@ -1043,7 +1043,7 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setStep('choose')} style={{ flex: 1, padding: 12, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>← Voltar</button>
+              <button onClick={() => setStep('choose')} style={{ flex: 1, padding: 12, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{useT("back")}</button>
               <button onClick={handleImport} style={{ flex: 2, padding: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: 'none', borderRadius: 10, color: 'white', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 14 }}>
                 Importar {Object.values(selected).filter(Boolean).length} mangas
               </button>
@@ -1055,9 +1055,9 @@ function MihonImportModal({ onClose, onImport, accent, darkMode, driveClientId, 
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Importado com sucesso!</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>{useT("importSuccess")}</h3>
             <p style={{ color: '#8b949e', fontSize: 14, marginBottom: 20 }}>Os teus mangas do Mihon já estão na biblioteca.</p>
-            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>Fechar</button>
+            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
       </div>
@@ -1152,7 +1152,7 @@ function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recort
             onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}
           />
         </div>
-        <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginBottom: 12 }}>Arrasta para reposicionar</p>
+        <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginBottom: 12 }}>{lang === "en" ? "Drag to reposition" : "Arrasta para reposicionar"}</p>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16 }}>
           <button onClick={() => handleZoom(-0.1)} style={{ padding: "6px 16px", background: "#21262d", border: "none", borderRadius: 8, color: "#e6edf3", cursor: "pointer", fontSize: 18, fontFamily: "inherit" }}>−</button>
           <span style={{ color: "#8b949e", fontSize: 12, alignSelf: "center" }}>Zoom</span>
@@ -1160,7 +1160,7 @@ function CropModal({ imageSrc, aspectRatio = 1, onSave, onClose, title = "Recort
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleSave} style={{ flex: 1, padding: 12, background: "#f97316", border: "none", borderRadius: 10, color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14 }}>✓ Guardar</button>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Cancelar</button>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
         </div>
       </div>
     </div>
@@ -1240,7 +1240,7 @@ function CoverEditModal({ item, onSave, onClose }) {
           <button onClick={onClose} style={{
             flex: 1, padding: "12px", background: "#21262d", border: "none",
             borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
-          }}>Cancelar</button>
+          }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
         </div>
       </div>
     </div>
@@ -1299,7 +1299,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   position: "absolute", bottom: 4, right: 4, width: 26, height: 26,
                   borderRadius: 999, background: `${accent}`, border: "none",
                   cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                }} title="Alterar capa">🖊</button>
+                }} title={useT("customCover")}>🖊</button>
               )}
             </div>
 
@@ -1320,12 +1320,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
           {/* Stats row */}
           <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderTop: "1px solid #21262d", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
-            {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Episódios</div></div>}
-            {(detailExtra?.seasons) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Temporadas</div></div>}
-            {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Capítulos</div></div>}
-            {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Volumes</div></div>}
-            {(detailExtra?.runtime) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Duração</div></div>}
-            {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>Estado</div></div>}
+            {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
+            {(detailExtra?.seasons) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
+            {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
+            {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
+            {(detailExtra?.runtime) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
+            {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
           </div>
 
           {/* Genres */}
@@ -1350,7 +1350,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>NA TUA BIBLIOTECA</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
                     {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
                       const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
                       return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
@@ -1373,11 +1373,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>A TUA AVALIAÇÃO</div>
+                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{useT("rating").toUpperCase()}</div>
                   <StarRating value={libItem.userRating || 0} onChange={(r) => onUpdateRating(item.id, r)} size={22} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>ESTADO</div>
+                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{useT("status").toUpperCase()}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {STATUS_OPTIONS.map((s) => (
                       <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{
@@ -1407,9 +1407,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               </>
             ) : (
               <>
-                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 12, fontWeight: 600 }}>ADICIONAR À BIBLIOTECA</p>
+                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 12, fontWeight: 600 }}>{useT("addToLibrary").toUpperCase()}</p>
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>AVALIAÇÃO (opcional)</div>
+                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{`${useT("rating")} (${lang === "en" ? "optional" : "opcional"})`}</div>
                   <StarRating value={addRating} onChange={setAddRating} size={24} />
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -1592,7 +1592,7 @@ function DiaryPanel({ completados, onOpen, accent }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
         <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
       </div>
       {visible.map(group => (
@@ -1785,7 +1785,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
         return (
           <div style={{ marginBottom: 24, marginTop: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
               <span style={{ fontSize: 12, color: "#484f58" }}>{completados.length} entradas</span>
             </div>
             {visibleGroups.map(renderGroup)}
@@ -1809,7 +1809,7 @@ function RecentSection({ items, accent, darkMode, onOpen, isMobileDevice = true,
       {inCurso.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>IN PROGRESS</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>
             {inCurso.length > 10 && (
               <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCurso ? "↑ Menos" : `Ver todos (${inCurso.length})`}
@@ -1990,15 +1990,15 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
         {editing ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome..." style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
-            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A tua bio..." style={{ padding: "10px 14px", fontSize: 13 }} />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
+            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
               <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>Esconder email no perfil</span>
+              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{useT("hideEmail")}</span>
             </label>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>Guardar</button>
-              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
+              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
             </div>
           </div>
         ) : (
@@ -2064,13 +2064,13 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         return (
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
               <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
             </div>
 
             {favorites.length === 0 ? (
               <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-                <p style={{ color: "#484f58", fontSize: 13 }}>Abre qualquer item e clica em ☆ Favorito</p>
+                <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
               </div>
             ) : (
               <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -2150,18 +2150,18 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             ))}
             <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avg. Rating</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("avgRating")}</div>
             </div>
             <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
               <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Total</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("totalItems")}</div>
             </div>
             <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>Avaliados</div>
+              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{lang === "en" ? "Rated" : "Avaliados"}</div>
             </div>
           </div>
-          <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>COMPLETOS POR TIPO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+          <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>{lang === "en" ? "COMPLETED BY TYPE" : "COMPLETOS POR TIPO"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
           <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
             {MEDIA_TYPES.slice(1).map((t) => {
               const count = byType[t.id] || 0;
@@ -2186,7 +2186,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
 
       {/* Temas */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>APARÊNCIA<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
 
       {/* ── Temas Guardados ── */}
       {(() => {
@@ -2229,11 +2229,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
               <span style={{ fontSize: 13 }}>🎨</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>Temas Guardados</span>
-              <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder="Nome do tema..."
+              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
+              <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
                 onKeyDown={e => e.key === "Enter" && saveTheme()}
                 style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
-              <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>Guardar</button>
+              <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
             </div>
             {themes.length > 0 ? (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -2259,17 +2259,17 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
         {/* Sub-secção: CORES */}
         {[
-          { key: "cores", label: "🎨 Cores", content: (
+          { key: "cores", label: useT("colorsSection"), content: (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Modo</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>🌙 Noturno</button>
-                  <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>☀️ Diurno</button>
+                  <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
+                  <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
                 </div>
               </div>
               <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor de destaque</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("accentColor")}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                   {ACCENT_PRESETS.map((p) => (
                     <button key={p.name} onClick={() => onAccentChange(p.color)} style={{ width: 32, height: 32, borderRadius: 999, background: p.color, border: accent === p.color ? "3px solid white" : "3px solid transparent", cursor: "pointer" }} title={p.name} />
@@ -2279,7 +2279,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               </div>
             </div>
           )},
-          { key: "texto", label: "✏ Contraste do Texto", content: (
+          { key: "texto", label: useT("textSection"), content: (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -2287,9 +2287,9 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{textContrast}%</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 11, color: "#484f58" }}>Escuro</span>
+                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
                   <input type="range" min={40} max={160} step={5} value={textContrast} onChange={e => onTextContrast(Number(e.target.value))} style={{ flex: 1, accentColor: accent, height: 4, cursor: "pointer" }} />
-                  <span style={{ fontSize: 11, color: "#484f58" }}>Claro</span>
+                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
                 </div>
                 <button onClick={() => onTextContrast(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
               </div>
@@ -2300,16 +2300,16 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     <span style={{ fontSize: 11, color: "#06b6d4", fontWeight: 700 }}>{textContrastMobile}%</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: "#484f58" }}>Escuro</span>
+                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
                     <input type="range" min={40} max={160} step={5} value={textContrastMobile} onChange={e => onTextContrastMobile(Number(e.target.value))} style={{ flex: 1, accentColor: "#06b6d4", height: 4, cursor: "pointer" }} />
-                    <span style={{ fontSize: 11, color: "#484f58" }}>Claro</span>
+                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
                   </div>
                   <button onClick={() => onTextContrastMobile(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
                 </div>
               )}
             </div>
           )},
-          { key: "fundo", label: "🖼 Fundo", content: (
+          { key: "fundo", label: useT("bgSection"), content: (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -2323,7 +2323,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               {bgSeparateDevices && (
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo 📱 Mobile</p>
+                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgColorMobile")}</p>
                     {bgColorMobile && <button onClick={() => onBgColorMobile("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual PC</button>}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -2333,7 +2333,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 </div>
               )}
               <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Imagem de fundo</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgImage")}</p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
                     <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImage ? `url(${bgImage}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
@@ -2355,9 +2355,9 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 {(bgImage || bgImageMobile) && (
                   <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
                     <div>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Sobreposição</p>
+                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("overlay")}</p>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {[{ label: "Nenhum", val: "rgba(0,0,0,0)" }, { label: "Suave", val: "rgba(0,0,0,0.3)" }, { label: "Médio", val: "rgba(0,0,0,0.55)" }, { label: "Forte", val: "rgba(0,0,0,0.75)" }, { label: "Branco", val: "rgba(255,255,255,0.6)" }].map(o => (
+                        {[{ label: "Nenhum", val: "rgba(0,0,0,0)" }, { label: useT("overlaySoft"), val: "rgba(0,0,0,0.3)" }, { label: useT("overlayMid"), val: "rgba(0,0,0,0.55)" }, { label: useT("overlayStrong"), val: "rgba(0,0,0,0.75)" }, { label: useT("overlayWhite"), val: "rgba(255,255,255,0.6)" }].map(o => (
                           <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay===o.val?accent:"#30363d"}`, background: bgOverlay===o.val?`${accent}22`:"transparent", color: bgOverlay===o.val?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{o.label}</button>
                         ))}
                       </div>
@@ -2369,10 +2369,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                       </div>
                     </div>
                     <div>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Scroll</p>
+                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("scroll")}</p>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => onBgParallax(true)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax?accent:"#30363d"}`, background: bgParallax?`${accent}22`:"transparent", color: bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>✦ Parallax</button>
-                        <button onClick={() => onBgParallax(false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax?accent:"#30363d"}`, background: !bgParallax?`${accent}22`:"transparent", color: !bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>◼ Estático</button>
+                        <button onClick={() => onBgParallax(true)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax?accent:"#30363d"}`, background: bgParallax?`${accent}22`:"transparent", color: bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("parallax")}</button>
+                        <button onClick={() => onBgParallax(false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax?accent:"#30363d"}`, background: !bgParallax?`${accent}22`:"transparent", color: !bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("staticScroll")}</button>
                       </div>
                     </div>
                   </div>
@@ -2380,23 +2380,23 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               </div>
             </div>
           )},
-          { key: "sidebar", label: "◧ Sidebar", content: (
+          { key: "sidebar", label: useT("sidebarSection"), content: (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor da Sidebar</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("sidebarSection")}</p>
                 {sidebarColor && <button onClick={() => onSidebarColor("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual ao fundo</button>}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                <button onClick={() => onSidebarColor("")} style={{ width: 32, height: 32, borderRadius: 8, background: bgColor, border: !sidebarColor ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 9, color: "#8b949e", fontFamily: "inherit" }} title="Igual ao fundo">≡</button>
+                <button onClick={() => onSidebarColor("")} style={{ width: 32, height: 32, borderRadius: 8, background: bgColor, border: !sidebarColor ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 9, color: "#8b949e", fontFamily: "inherit" }} title={useT("sameAsBg")}>≡</button>
                 {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onSidebarColor(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: sidebarColor===p.value?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
                 <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={sidebarColor||bgColor} onBlur={(e) => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
               </div>
             </div>
           )},
-          { key: "dispositivos", label: "🖥📱 Dispositivos", content: (
+          { key: "dispositivos", label: useT("devicesSection"), content: (
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Fundo PC/Mobile separados</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{useT("separateDevices")}</p>
                 <p style={{ fontSize: 11, color: "#484f58" }}>Cor, imagem e contraste diferentes por dispositivo</p>
               </div>
               <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
@@ -2407,11 +2407,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
             </div>
           )},
-          { key: "stats", label: "📊 Blocos de Stats", content: (
+          { key: "stats", label: useT("statsCards"), content: (
             <div>
-              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Cor dos blocos</p>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Auto">Auto</button>
+                <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Auto">{useT("colorAuto")}</button>
                 {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (<button key={c} onClick={() => onStatsCardBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: statsCardBg===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={c} />))}
                 <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
               </div>
@@ -2458,7 +2458,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       )}
 
       {/* ── Mihon Sync ── */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>SINCRONIZAÇÃO<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "SYNC" : "SINCRONIZAÇÃO"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
@@ -2504,7 +2504,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 13, fontWeight: 700 }}>Paperback <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>— iOS manga e comics</span></p>
           </div>
-          <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>Importar</button>
+          <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{useT("importMihon").replace("Import Mihon","Import").replace("Importar Mihon","Importar")}</button>
         </div>
         {/* Letterboxd */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2512,22 +2512,22 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 13, fontWeight: 700 }}>Letterboxd <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>— filmes vistos</span></p>
           </div>
-          <button onClick={() => setShowLetterboxd(true)} style={{ padding: "7px 14px", fontSize: 12, fontWeight: 700, borderRadius: 10, background: "#00e05422", border: "1px solid #00e05444", color: "#00e054", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Importar</button>
+          <button onClick={() => setShowLetterboxd(true)} style={{ padding: "7px 14px", fontSize: 12, fontWeight: 700, borderRadius: 10, background: "#00e05422", border: "1px solid #00e05444", color: "#00e054", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>{useT("importMihon").replace("Import Mihon","Import").replace("Importar Mihon","Importar")}</button>
         </div>
       </div>
 
 
       {/* API Status — tudo pré-configurado */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>CONFIGURAÇÕES API<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "API SETTINGS" : "CONFIGURAÇÕES API"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
             { icon: "⛩", label: "Anime/Manga", sub: "AniList" },
-            { icon: "📚", label: "Livros", sub: "OpenLibrary" },
-            { icon: "🎮", label: "Jogos", sub: "IGDB + Steam" },
+            { icon: "📚", label: useT("livros"), sub: "OpenLibrary" },
+            { icon: "🎮", label: useT("jogos"), sub: "IGDB + Steam" },
             { icon: "🎬", label: "Filmes/Séries", sub: "TMDB" },
-            { icon: "💬", label: "Comics", sub: "ComicVine" },
+            { icon: "💬", label: useT("comics"), sub: "ComicVine" },
             { icon: "🇰🇷", label: "Manhwa/LN", sub: "AniList" },
           ].map(s => (
             <div key={s.label} style={{ background: "#0d1117", border: "1px solid #10b98122", borderRadius: 8, padding: "8px 10px" }}>
@@ -2567,7 +2567,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>Política de Privacidade</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
             </div>
             <a href="https://raw.githubusercontent.com/mcmeskajr-prog/trackall/main/public/privacy.pdf" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
@@ -2577,7 +2577,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ height: 1, background: darkMode ? "#21262d" : "#e8e0d5" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>Versão da App</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
             </div>
           </div>
@@ -2926,7 +2926,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
               border: `1px solid rgba(255,255,255,0.2)`, color: "white",
               cursor: "pointer", fontSize: 13, fontWeight: 700, padding: "6px 14px",
               borderRadius: 20, display: "flex", alignItems: "center", gap: 6,
-            }}>← Voltar</button>
+            }}>{useT("back")}</button>
           </div>
           <div style={{ position: "absolute", bottom: -44, left: "50%", transform: "translateX(-50%)" }}>
             <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", border: `3px solid ${fBgColor}`, boxShadow: `0 0 0 3px ${fAccent}, 0 8px 24px rgba(0,0,0,0.5)`, background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
@@ -2969,7 +2969,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
             </div>
             <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${fAccent}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
               <div style={{ fontSize: 20, fontWeight: 900, color: fAccent }}>{libItems.length}</div>
-              <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>Total</div>
+              <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{useT("totalItems")}</div>
             </div>
           </div>
         </div>
@@ -2982,7 +2982,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           return (
             <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, color: fAccent, letterSpacing: "0.12em", textTransform: "uppercase" }}>EM COMUM</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: fAccent, letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inCommon").toUpperCase()}</h3>
                 <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${fAccent}55, transparent)` }} />
                 <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{emComum.length}</span>
               </div>
@@ -3017,7 +3017,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           return (
             <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>FAVORITES</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
                 <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{favs.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -3056,7 +3056,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
         {completados.length > 0 && (
           <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>COMPLETADOS</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("completedLabel").toUpperCase()}</h3>
               <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
             </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
@@ -3069,7 +3069,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
         {inCurso.length > 0 && (
           <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>EM CURSO</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>
               <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
             </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
@@ -3099,7 +3099,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           return (
             <div style={{ width: 240, flexShrink: 0, borderLeft: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, paddingLeft: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
                 <span style={{ fontSize: 11, color: "#484f58" }}>{fCompletados.length}</span>
               </div>
               {visibleGroups.map(group => (
@@ -3165,7 +3165,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
       {/* Friends list */}
       {tab === "friends" && (
         <div style={{ padding: "0 16px" }}>
-          {loading ? <p style={{ color: "#484f58", textAlign: "center" }}>A carregar...</p>
+          {loading ? <p style={{ color: "#484f58", textAlign: "center" }}>{useT("loading")}</p>
           : accepted.length === 0 ? <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Ainda não tens amigos. Pesquisa pelo nome ou username!</p>
           : accepted.map(f => {
             const info = getFriendInfo(f);
@@ -3217,9 +3217,9 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                 ) : fs.status === "accepted" ? (
                   <span style={{ fontSize: 12, color: "#10b981", fontWeight: 700 }}>✓ Amigos</span>
                 ) : fs.isRequester ? (
-                  <span style={{ fontSize: 12, color: "#484f58" }}>Pendente</span>
+                  <span style={{ fontSize: 12, color: "#484f58" }}>{lang === "en" ? "Pending" : "Pendente"}</span>
                 ) : (
-                  <button onClick={() => handleAccept(fs.id)} style={{ padding: "6px 12px", background: "#10b98122", border: "1px solid #10b98144", borderRadius: 8, color: "#10b981", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>Aceitar</button>
+                  <button onClick={() => handleAccept(fs.id)} style={{ padding: "6px 12px", background: "#10b98122", border: "1px solid #10b98144", borderRadius: 8, color: "#10b981", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>{lang === "en" ? "Accept" : "Aceitar"}</button>
                 )}
               </div>
             );
@@ -3230,10 +3230,10 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
       {/* Requests */}
       {tab === "requests" && (
         <div style={{ padding: "0 16px" }}>
-          {pending.length === 0 && sent.length === 0 && <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Sem pedidos pendentes.</p>}
+          {pending.length === 0 && sent.length === 0 && <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>{lang === "en" ? "No pending requests." : "Sem pedidos pendentes."}</p>}
           {pending.length > 0 && (
             <>
-              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8 }}>PEDIDOS RECEBIDOS</p>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8 }}>{lang === "en" ? "INCOMING REQUESTS" : "PEDIDOS RECEBIDOS"}</p>
               {pending.map(f => {
                 const info = f.requester;
                 return (
@@ -3253,7 +3253,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
           )}
           {sent.length > 0 && (
             <>
-              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, marginTop: 16 }}>PEDIDOS ENVIADOS</p>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, marginTop: 16 }}>{lang === "en" ? "SENT REQUESTS" : "PEDIDOS ENVIADOS"}</p>
               {sent.map(f => {
                 const info = f.addressee;
                 return (
@@ -3262,7 +3262,7 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 14, fontWeight: 700 }}>{info?.name || "Utilizador"}</p>
                     </div>
-                    <span style={{ fontSize: 12, color: "#484f58" }}>Aguarda...</span>
+                    <span style={{ fontSize: 12, color: "#484f58" }}>{lang === "en" ? "Waiting..." : "Aguarda..."}</span>
                   </div>
                 );
               })}
@@ -3338,8 +3338,8 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
           <span style={{ fontSize: 20, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={onDemo} className="land-btn2" style={{ padding: "9px 20px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>Ver Demo</button>
-          <button onClick={onEnter} className="land-btn" style={{ padding: "9px 20px", borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>Entrar</button>
+          <button onClick={onDemo} className="land-btn2" style={{ padding: "9px 20px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>{useT("landingDemoBtn")}</button>
+          <button onClick={onEnter} className="land-btn" style={{ padding: "9px 20px", borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>{useT("sinIn")}</button>
         </div>
       </nav>
 
@@ -3384,8 +3384,8 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
       {/* Features */}
       <section style={{ padding: "80px 20px", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
-          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 12 }}>Tudo o que precisas</h2>
-          <p style={{ color: "#484f58", fontSize: 16 }}>Feito para quem leva a mídia a sério</p>
+          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 12 }}>{lang === "en" ? "Everything you need" : "Tudo o que precisas"}</h2>
+          <p style={{ color: "#484f58", fontSize: 16 }}>{lang === "en" ? "Made for those who take media seriously" : "Feito para quem leva a mídia a sério"}</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
           {features.map((f, i) => (
@@ -3401,7 +3401,7 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
       {/* CTA Final */}
       <section style={{ padding: "80px 20px", textAlign: "center" }}>
         <div style={{ maxWidth: 600, margin: "0 auto", background: `linear-gradient(135deg, ${accent}18 0%, #8b5cf618 100%)`, border: `1px solid ${accent}33`, borderRadius: 24, padding: "60px 40px" }}>
-          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 16 }}>Pronto para começar?</h2>
+          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 16 }}>{useT("landingReadyTitle")}</h2>
           <p style={{ color: "#8b949e", fontSize: 16, marginBottom: 36, lineHeight: 1.6 }}>Cria a tua conta gratuita e começa a organizar a tua biblioteca hoje.</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={onEnter} className="land-btn" style={{ padding: "14px 36px", borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 15, fontWeight: 800, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 6px 24px rgba(${accentRgb},0.35)` }}>
@@ -3420,7 +3420,7 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
           <div style={{ width: 24, height: 24, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "white" }}>T</div>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#484f58" }}>TrackAll</span>
         </div>
-        <span style={{ fontSize: 12, color: "#30363d" }}>Feito com ❤️ para a comunidade</span>
+        <span style={{ fontSize: 12, color: "#30363d" }}>{useT("landingMadeWith")}</span>
       </footer>
     </div>
   );
@@ -3771,7 +3771,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📖</div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Paperback</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>{lang === "en" ? "Import from Paperback" : "Importar do Paperback"}</h3>
               <p style={{ fontSize: 11, color: '#8b949e' }}>{step === 'preview' ? `${items.length} itens encontrados` : 'Backup iOS'}</p>
             </div>
           </div>
@@ -3802,8 +3802,8 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontSize: 13, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Todos</button>
-                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>Nenhum</button>
+                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>{useT("all")}</button>
+                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>{useT("overlayNone")}</button>
               </div>
             </div>
             <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
@@ -3833,7 +3833,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
             <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus itens do Paperback já estão na biblioteca.</p>
-            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>Fechar</button>
+            <button onClick={onClose} className="btn-accent" style={{ padding: '10px 28px', fontSize: 14 }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
       </div>
@@ -3875,7 +3875,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: '#00e05422', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 800 }}>Importar do Letterboxd</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>{lang === "en" ? "Import from Letterboxd" : "Importar do Letterboxd"}</h3>
               <p style={{ fontSize: 11, color: '#8b949e' }}>{step === 'preview' ? `${items.length} filmes encontrados` : 'CSV de filmes vistos'}</p>
             </div>
           </div>
@@ -3906,8 +3906,8 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontSize: 13, color: '#8b949e' }}>{Object.values(selected).filter(Boolean).length} selecionados</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Todos</button>
-                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>Nenhum</button>
+                <button onClick={() => toggleAll(true)}  style={{ background: 'none', border: 'none', color: accent, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>{useT("all")}</button>
+                <button onClick={() => toggleAll(false)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>{useT("overlayNone")}</button>
               </div>
             </div>
             <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
@@ -3934,7 +3934,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importação concluída!</p>
             <p style={{ fontSize: 13, color: '#8b949e', marginBottom: 20 }}>Os teus filmes do Letterboxd já estão na biblioteca.</p>
-            <button onClick={onClose} style={{ padding: '10px 28px', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+            <button onClick={onClose} style={{ padding: '10px 28px', fontSize: 14, fontWeight: 700, borderRadius: 10, background: '#00e054', border: 'none', color: '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>{lang === "en" ? "Close" : "Fechar"}</button>
           </div>
         )}
       </div>
@@ -3964,7 +3964,7 @@ function RatingOverlay({ item, accent, library, onDone }) {
             <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.label}</div>
           </div>
         </div>
-        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>Queres dar uma avaliação?</p>
+        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
             <StarRating value={rating} onChange={setRating} size={30} />
@@ -4021,17 +4021,17 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
   return (
     <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif", position: "relative" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
-      {onBack && <button onClick={onBack} style={{ position: "absolute", top: 20, left: 20, background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", padding: 0, display: "flex", alignItems: "center", gap: 6 }}>← Voltar</button>}
+      {onBack && <button onClick={onBack} style={{ position: "absolute", top: 20, left: 20, background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", padding: 0, display: "flex", alignItems: "center", gap: 6 }}>{useT("back")}</button>}
       <div style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ width: 64, height: 64, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "white", marginBottom: 16 }}>T</div>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px" }}>TrackAll</h1>
-          <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>Organiza toda a tua mídia num só lugar</p>
+          <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>{useT("landingTagline")}</p>
         </div>
         {awaitingVerification ? (
           <div style={{ background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16, padding: 32, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#e6edf3", marginBottom: 12 }}>Verifica o teu email</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#e6edf3", marginBottom: 12 }}>{useT("verifyEmail")}</h2>
             <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
               Enviámos um link de confirmação para<br/>
               <strong style={{ color: accent }}>{email}</strong>
@@ -4052,11 +4052,11 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>EMAIL</label>
+                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>{useT("email").toUpperCase()}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={useT("emailPlaceholder")} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>PASSWORD</label>
+                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>{useT("password").toUpperCase()}</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={useT("passwordPlaceholder")} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }} />
               </div>
             </div>
@@ -4900,7 +4900,7 @@ export default function TrackAll() {
         {demoMode && (
           <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
             <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>👀 Modo Demonstração — os dados são fictícios</span>
-            <button onClick={() => { setDemoMode(false); setShowLanding(false); }} style={{ padding: "5px 14px", borderRadius: 8, background: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.4)", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Criar conta grátis</button>
+            <button onClick={() => { setDemoMode(false); setShowLanding(false); }} style={{ padding: "5px 14px", borderRadius: 8, background: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.4)", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{useT("landingCreateFree")}</button>
             <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>✕ Sair</button>
           </div>
         )}
@@ -4978,7 +4978,7 @@ export default function TrackAll() {
               {/* Biblioteca por tipo */}
               {libByType.length > 0 && (
                 <>
-                  <p className="ds-section" style={{ marginTop: 12 }}>Biblioteca</p>
+                  <p className="ds-section" style={{ marginTop: 12 }}>{useT("library")}</p>
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const isActive = view === "library" && activeTab === t.id;
@@ -5299,7 +5299,7 @@ export default function TrackAll() {
                         { l: "Curso",    v: stats.assistindo, key: "assistindo" },
                         { l: useT("completo"), v: stats.completo,   key: "completo"   },
                         { l: "Pausa",    v: stats.pausa,      key: "pausa"      },
-                        { l: "Largado",  v: stats.largado,    key: "largado"    },
+                        { l: useT("dropado"),  v: stats.largado,    key: "largado"    },
                         { l: "Planej.",  v: stats.planejado,  key: "planejado"  },
                       ].filter(s => s.v > 0).map((s) => {
                         const col = homeStatColors[s.key];
@@ -5364,7 +5364,7 @@ export default function TrackAll() {
               const rated = items.filter(i => i.userRating > 0);
               const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
               const stats = [
-                { label: "completados este mês", value: thisMonth, show: thisMonth > 0, icon: "📅" },
+                { label: useT("completedThisMonth"), value: thisMonth, show: thisMonth > 0, icon: "📅" },
                 { label: "rating médio", value: avgRating, show: !!avgRating, icon: "★" },
               ].filter(s => s.show);
               if (!stats.length) return null;
@@ -5394,7 +5394,7 @@ export default function TrackAll() {
             {items.length === 0 && (
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>A tua biblioteca está vazia</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>{lang === "en" ? "Your library is empty" : "A tua biblioteca está vazia"}</h3>
                 <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>Começa a adicionar animes, filmes, jogos e muito mais</p>
                 <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>
                   + Explorar títulos
@@ -5417,7 +5417,7 @@ export default function TrackAll() {
 
               if (inCurso.length === 0 && completados.length === 0 && homeFilter.length > 0) return (
                 <div style={{ padding: "28px 16px", textAlign: "center", color: darkMode ? "#484f58" : "#94a3b8" }}>
-                  <p style={{ fontSize: 14 }}>Nenhum item com esse filtro</p>
+                  <p style={{ fontSize: 14 }}>{lang === "en" ? "No items with this filter" : "Nenhum item com esse filtro"}</p>
                 </div>
               );
 
@@ -5454,7 +5454,7 @@ export default function TrackAll() {
                     icon="✓"
                     items={completados}
                     filterBtn={
-                      <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>
+                      <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>
                     }
                   />
 
@@ -5467,7 +5467,7 @@ export default function TrackAll() {
                     items={inCurso}
                     collapsed={homeCollapsedCurso}
                     onToggleCollapse={() => setHomeCollapsedCurso(v => !v)}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>Ver tudo →</button>}
+                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>}
                   />
                 </>
               );
@@ -5480,7 +5480,7 @@ export default function TrackAll() {
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Em Destaque</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{useT("featured")}</h3>
                 <button onClick={loadRecos} disabled={recoLoading} style={{
                   background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
                   cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
@@ -5529,8 +5529,8 @@ export default function TrackAll() {
                 {searchHistory.length > 0 && !searchQuery && (
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                      <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b949e" }}>Pesquisas recentes</p>
-                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem("trackall_search_history"); } catch {} }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>Limpar</button>
+                      <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b949e" }}>{useT("recentSearches")}</p>
+                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem("trackall_search_history"); } catch {} }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>{useT("clearHistory")}</button>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {searchHistory.map((h, i) => (
@@ -5544,7 +5544,7 @@ export default function TrackAll() {
                 {!searchQuery && (
                   <div style={{ textAlign: "center", padding: "32px 0" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-                    <p style={{ marginBottom: 8 }}>Pesquisa algo acima!</p>
+                    <p style={{ marginBottom: 8 }}>{lang === "en" ? "Search something above!" : "Pesquisa algo acima!"}</p>
                     <p style={{ fontSize: 12, color: "#30363d" }}>Anime · Manga · Séries · Filmes · Jogos · Livros · e mais</p>
                   </div>
                 )}
@@ -5567,7 +5567,7 @@ export default function TrackAll() {
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900 }}>Biblioteca</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 900 }}>{useT("library")}</h2>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {/* Search input */}
                 <div style={{ position: "relative" }}>
@@ -5620,7 +5620,7 @@ export default function TrackAll() {
 
               {/* SIDEBAR — desktop only */}
               <aside className="lib-sidebar">
-                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Estado</p>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{useT("status")}</p>
                 {[{ id: "all", emoji: "▤", label: "Todos", color: accent }, ...STATUS_OPTIONS].map((s) => (
                   <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 8,
@@ -5638,7 +5638,7 @@ export default function TrackAll() {
                   </button>
                 ))}
                 <div style={{ height: 1, background: "#21262d", margin: "12px 0" }} />
-                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Ordenar</p>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>{lang === "en" ? "Sort" : "Ordenar"}</p>
                 {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★ Rating"}].map(s => (
                   <button key={s.id} onClick={() => setLibSort(s.id)} style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 8,
@@ -5660,7 +5660,7 @@ export default function TrackAll() {
                 {/* Mobile-only: filtros + sort compactos */}
                 <div className="lib-mobile-controls">
                   <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                    <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>Todos</button>
+                    <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{useT("all")}</button>
                     {STATUS_OPTIONS.map((s) => (
                       <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
                         {s.emoji} {s.label}
@@ -5677,9 +5677,9 @@ export default function TrackAll() {
                 {sortedLib.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
                     <div style={{ fontSize: 60, marginBottom: 16 }}>📭</div>
-                    <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>Nada aqui ainda</p>
-                    <p style={{ fontSize: 14, marginBottom: 20 }}>Usa a pesquisa para adicionar mídias!</p>
-                    <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>Pesquisar</button>
+                    <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#8b949e" }}>{lang === "en" ? "Nothing here yet" : "Nada aqui ainda"}</p>
+                    <p style={{ fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Use search to add media!" : "Usa a pesquisa para adicionar mídias!"}</p>
+                    <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>{useT("search")}</button>
                   </div>
                 ) : libViewMode === "list" ? (
                   <LibGroupedList
@@ -5801,7 +5801,7 @@ export default function TrackAll() {
                   marginLeft: 60,
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>DIARY</h3>
+                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
                     <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
                   </div>
                   {sortedGroups.map(group => (
@@ -5845,10 +5845,10 @@ export default function TrackAll() {
           <div style={{ position: 'fixed', bottom: 72, left: 12, right: 12, zIndex: 60, background: '#161b22', border: `1px solid ${accent}44`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
             <div style={{ fontSize: 28 }}>📲</div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>Instalar TrackAll</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>{useT("installApp")}</p>
               <p style={{ fontSize: 11, color: '#8b949e' }}>Adicionar ao ecrã inicial para acesso rápido</p>
             </div>
-            <button onClick={async () => { pwaPrompt.prompt(); const r = await pwaPrompt.userChoice; if (r.outcome === 'accepted') setPwaInstalled(true); setPwaPrompt(null); }} style={{ background: accent, border: 'none', borderRadius: 10, padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Instalar</button>
+            <button onClick={async () => { pwaPrompt.prompt(); const r = await pwaPrompt.userChoice; if (r.outcome === 'accepted') setPwaInstalled(true); setPwaPrompt(null); }} style={{ background: accent, border: 'none', borderRadius: 10, padding: '8px 14px', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>{useT("install")}</button>
             <button onClick={() => setPwaPrompt(null)} style={{ background: 'none', border: 'none', color: '#484f58', fontSize: 18, cursor: 'pointer', padding: '4px', flexShrink: 0 }}>✕</button>
           </div>
         )}
@@ -5871,7 +5871,7 @@ export default function TrackAll() {
               <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
                 placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
-              {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>A pesquisar...</p>}
+              {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>{useT("searching")}</p>}
               {!logQuery && !logSearching && (
                 <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>Escreve para pesquisar · toca para marcar como completo</p>
               )}
