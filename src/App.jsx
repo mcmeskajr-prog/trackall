@@ -1343,7 +1343,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             {inLib ? (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>NA TUA BIBLIOTECA</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>NA TUA BIBLIOTECA</span>
+                    {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
+                      const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
+                      return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
+                    })()}
+                  </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     {inLib && onToggleFavorite && (
                       <button onClick={() => onToggleFavorite(item)} style={{
@@ -1818,6 +1824,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
   const [showStats, setShowStats] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
+  const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
   const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
   const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
@@ -1854,7 +1861,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
   };
 
   const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl });
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail });
     setEditing(false);
   };
 
@@ -1877,19 +1884,23 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
         }}>
           {/* Multi-layer gradient overlay for impact */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-          {/* Banner fallback — padrão geométrico */}
+          {/* Banner fallback — hexágonos animados */}
           {!currentBanner && (
             <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.1 }} xmlns="http://www.w3.org/2000/svg">
-                <defs><pattern id="geo" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
-                  <polygon points="22,3 41,13 41,31 22,41 3,31 3,13" fill="none" stroke={accent} strokeWidth="1"/>
-                  <line x1="22" y1="3" x2="22" y2="41" stroke={accent} strokeWidth="0.4"/>
-                  <line x1="3" y1="13" x2="41" y2="31" stroke={accent} strokeWidth="0.4"/>
-                  <line x1="41" y1="13" x2="3" y2="31" stroke={accent} strokeWidth="0.4"/>
-                </pattern></defs>
-                <rect width="100%" height="100%" fill="url(#geo)"/>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
+                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
+                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#hex)"/>
               </svg>
-              <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${accent}22 0%, transparent 60%)` }} />
+              <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%), radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)` }} />
             </>
           )}
           {editing && (
@@ -1950,6 +1961,10 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome..." style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
             <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A tua bio..." style={{ padding: "10px 14px", fontSize: 13 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>Esconder email no perfil</span>
+            </label>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>Guardar</button>
               <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
@@ -1959,7 +1974,7 @@ function ProfileView({ profile, library, accent, bgColor, bgImage, bgImageMobile
           <>
             <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
-            {userEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
+            {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
             <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} na biblioteca</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
@@ -3795,13 +3810,17 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "" });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
         if (prof.drive_client_id) {
           setDriveClientId(prof.drive_client_id);
-          // Auto-sync: try silently if never synced this session
-          setTimeout(() => autoSyncDrive(prof.drive_client_id), 2000);
+          // Auto-sync: try silently after browser is idle (não bloqueia o arranque)
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => autoSyncDrive(prof.drive_client_id), { timeout: 5000 });
+          } else {
+            setTimeout(() => autoSyncDrive(prof.drive_client_id), 5000);
+          }
         }
         if (prof.bg_color) {
           setBgColor(prof.bg_color);
@@ -3890,6 +3909,7 @@ export default function TrackAll() {
           bio: p.bio || "",
           avatar: p.avatar || "",
           banner: p.banner || "",
+          hide_email: p.hideEmail || false,
         });
       } catch {}
     }
@@ -4170,7 +4190,10 @@ export default function TrackAll() {
   };
   const updateStatus = useCallback((id, status) => {
     if (!library[id]) return;
-    saveLibrary({ ...library, [id]: { ...library[id], userStatus: status } });
+    const update = { ...library[id], userStatus: status };
+    // Atualizar addedAt quando muda para completo — para o diário mostrar a data correta
+    if (status === "completo") update.addedAt = Date.now();
+    saveLibrary({ ...library, [id]: update });
     showNotif("Estado atualizado!", accent);
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
@@ -4916,7 +4939,7 @@ export default function TrackAll() {
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.1em", textTransform: "uppercase" }}>Em Destaque</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Em Destaque</h3>
                 <button onClick={loadRecos} disabled={recoLoading} style={{
                   background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
                   cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
