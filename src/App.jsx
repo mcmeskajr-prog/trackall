@@ -3748,6 +3748,7 @@ function parseLetterboxdCSV(text) {
 
 // ─── Paperback Import Modal ───────────────────────────────────────────────────
 function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
+  const { lang, useT } = useLang();
   const [step, setStep] = useState('upload'); // upload | preview | done
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState({});
@@ -3854,6 +3855,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
 
 // ─── Letterboxd Import Modal ──────────────────────────────────────────────────
 function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
+  const { lang, useT } = useLang();
   const [step, setStep] = useState('upload');
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState({});
@@ -3955,6 +3957,7 @@ function LetterboxdImportModal({ onClose, onImport, accent, darkMode }) {
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function RatingOverlay({ item, accent, library, onDone }) {
+  const { lang, useT } = useLang();
   const [rating, setRating] = useState(0);
   const textColor = (() => {
     const r=parseInt(accent.slice(1,3),16)/255, g=parseInt(accent.slice(3,5),16)/255, b=parseInt(accent.slice(5,7),16)/255;
