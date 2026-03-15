@@ -306,8 +306,8 @@ async function searchAniList(query, type, workerUrl) {
     query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
-  // Usar Worker se disponível, senão chamar AniList diretamente (é API pública)
-  const url = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
+  // Usar AniList directamente (API pública com CORS aberto) — evita rate limit no Worker
+  const url = "https://graphql.anilist.co";
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -4874,7 +4874,7 @@ export default function TrackAll() {
   }, [logOpen]);
 
   useEffect(() => {
-    const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 350);
+    const t = setTimeout(() => { if (logQuery) doLogSearch(logQuery); else setLogResults([]); }, 600);
     return () => clearTimeout(t);
   }, [logQuery, quickSearchType]);
 
