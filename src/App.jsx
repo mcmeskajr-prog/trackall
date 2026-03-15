@@ -2263,7 +2263,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: 11, color: "#484f58" }}>Guarda o teu setup atual com um nome para trocar depois.</p>
+              <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
             )}
           </div>
         );
@@ -3182,7 +3182,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
       {tab === "friends" && (
         <div style={{ padding: "0 16px" }}>
           {loading ? <p style={{ color: "#484f58", textAlign: "center" }}>{useT("loading")}</p>
-          : accepted.length === 0 ? <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>Ainda não tens amigos. Pesquisa pelo nome ou username!</p>
+          : accepted.length === 0 ? <p style={{ color: "#484f58", textAlign: "center", padding: 20 }}>{lang === "en" ? "No friends yet. Search by name or username!" : "Ainda não tens amigos. Pesquisa pelo nome ou username!"}</p>
           : accepted.map(f => {
             const info = getFriendInfo(f);
             return (
@@ -3808,7 +3808,7 @@ function PaperbackImportModal({ onClose, onImport, accent, darkMode }) {
             </div>
             <div style={{ background: darkMode ? '#161b2288' : '#f8fafc', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
               💡 <strong>Como exportar do Paperback:</strong><br />
-              Paperback → <strong>Definições</strong> → <strong>Backup</strong> → <strong>Criar Backup</strong> → partilhar o ficheiro .zip
+              Paperback → <strong>{lang === "en" ? "Settings" : "Definições"}</strong> → <strong>Backup</strong> → <strong>{lang === "en" ? "Create Backup" : "Criar Backup"}</strong> → {lang === "en" ? "share the .zip file" : "partilhar o ficheiro .zip"}
             </div>
             {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10 }}>{error}</p>}
           </div>
@@ -5415,9 +5415,9 @@ export default function TrackAll() {
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
                 <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>{lang === "en" ? "Your library is empty" : "A tua biblioteca está vazia"}</h3>
-                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>Começa a adicionar animes, filmes, jogos e muito mais</p>
+                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>{lang === "en" ? "Start adding anime, movies, games and much more" : "Começa a adicionar animes, filmes, jogos e muito mais"}</p>
                 <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>
-                  + Explorar títulos
+                  {lang === "en" ? "+ Explore titles" : "+ Explorar títulos"}
                 </button>
               </div>
             )}
@@ -5565,7 +5565,7 @@ export default function TrackAll() {
                   <div style={{ textAlign: "center", padding: "32px 0" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
                     <p style={{ marginBottom: 8 }}>{lang === "en" ? "Search something above!" : "Pesquisa algo acima!"}</p>
-                    <p style={{ fontSize: 12, color: "#30363d" }}>Anime · Manga · Séries · Filmes · Jogos · Livros · e mais</p>
+                    <p style={{ fontSize: 12, color: "#30363d" }}>{lang === "en" ? "Anime · Manga · Series · Movies · Games · Books · and more" : "Anime · Manga · Séries · Filmes · Jogos · Livros · e mais"}</p>
                   </div>
                 )}
               </div>
@@ -5893,7 +5893,7 @@ export default function TrackAll() {
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
               {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>{useT("searching")}</p>}
               {!logQuery && !logSearching && (
-                <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>Escreve para pesquisar · toca para marcar como completo</p>
+                <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>{lang === "en" ? "Type to search · tap to mark as complete" : "Escreve para pesquisar · toca para marcar como completo"}</p>
               )}
               {logResults.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
