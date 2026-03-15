@@ -166,7 +166,7 @@ const BG_PRESETS = [
   { name: "Papel", value: "#f5f0eb", dark: false },
   { name: "Creme", value: "#fdf6e3", dark: false },
   { name: "Nuvem", value: "#f0f4f8", dark: false },
-  { name: useT("overlayWhite"), value: "#ffffff", dark: false },
+  { name: "Branco", value: "#ffffff", dark: false },
 ];
 
 // Detecta se uma cor hex é escura ou clara
@@ -202,17 +202,18 @@ function accentShade(hex, shiftDeg) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
-  { id: "all", label: "Todos", icon: "⊞" },
-  { id: "anime", label: useT("anime"), icon: "⛩" },
-  { id: "manga", label: useT("manga"), icon: "🗒" },
-  { id: "series", label: useT("series"), icon: "📺" },
-  { id: "filmes", label: useT("filmes"), icon: "🎬" },
-  { id: "jogos", label: useT("jogos"), icon: "🎮" },
-  { id: "livros", label: useT("livros"), icon: "📚" },
-  { id: "manhwa", label: useT("manhwa"), icon: "🇰🇷" },
-  { id: "lightnovels", label: useT("lightnovels"), icon: "✍" },
-  { id: "comics", label: useT("comics"), icon: "💬" },
+  { id: "all",         label: "Todos",        labelEn: "All",          icon: "⊞" },
+  { id: "anime",       label: "Anime",        labelEn: "Anime",        icon: "⛩" },
+  { id: "manga",       label: "Manga",        labelEn: "Manga",        icon: "🗒" },
+  { id: "series",      label: "Séries",       labelEn: "Series",       icon: "📺" },
+  { id: "filmes",      label: "Filmes",       labelEn: "Movies",       icon: "🎬" },
+  { id: "jogos",       label: "Jogos",        labelEn: "Games",        icon: "🎮" },
+  { id: "livros",      label: "Livros",       labelEn: "Books",        icon: "📚" },
+  { id: "manhwa",      label: "Manhwa",       labelEn: "Manhwa",       icon: "🇰🇷" },
+  { id: "lightnovels", label: "Light Novels", labelEn: "Light Novels", icon: "✍" },
+  { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "💬" },
 ];
+const mediaLabel = (m, lang) => lang === "en" ? m.labelEn : m.label;
 
 // Gera variações subtis do accent — hue ±10° + brilho ligeiramente diferente
 function accentVariant(hex, index) {
@@ -246,11 +247,11 @@ const TYPE_COLORS = {
 };
 
 const STATUS_OPTIONS = [
-  { id: "assistindo", label: "Em Curso", labelEn: "In Progress", color: "#f97316", emoji: "▶" },
-  { id: "completo", label: useT("completo"), labelEn: "Completed", color: "#10b981", emoji: "✓" },
-  { id: "planejado", label: useT("planeado"), labelEn: "Planned", color: "#06b6d4", emoji: "⏰" },
-  { id: "dropado", label: useT("dropado"), labelEn: "Dropped", color: "#ef4444", emoji: "✕" },
-  { id: "pausado", label: useT("pausado"), labelEn: "Paused", color: "#eab308", emoji: "⏸" },
+  { id: "assistindo", label: "Em Curso",  labelEn: "In Progress", color: "#f97316", emoji: "▶" },
+  { id: "completo",   label: "Completo",  labelEn: "Completed",   color: "#10b981", emoji: "✓" },
+  { id: "planejado",  label: "Planeado",  labelEn: "Planned",     color: "#06b6d4", emoji: "⏰" },
+  { id: "dropado",    label: "Dropado",   labelEn: "Dropped",     color: "#ef4444", emoji: "✕" },
+  { id: "pausado",    label: "Pausado",   labelEn: "Paused",      color: "#eab308", emoji: "⏸" },
 ];
 const statusLabel = (s, lang) => lang === "en" ? s.labelEn : s.label;
 
@@ -2153,7 +2154,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             {STATUS_OPTIONS.map((s) => (
               <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
-                <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{statusLabel(s, lang)}</div>
               </div>
             ))}
             <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
@@ -2179,7 +2180,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               return (
                 <div key={t.id} style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13 }}>{t.icon} {t.label}</span>
+                    <span style={{ fontSize: 13 }}>{t.icon} {mediaLabel(t, lang)}</span>
                     <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
                   </div>
                   <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
@@ -2749,7 +2750,7 @@ function FeedTab({accepted, getFriendInfo, accent, darkMode }) {
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 {mt && tc && (
                   <span style={{ background: `${tc}18`, color: tc, borderRadius: 6, padding: "2px 7px", fontSize: 10, fontWeight: 800, letterSpacing: "0.03em" }}>
-                    {mt.label}
+                    {mediaLabel(mt, lang)}
                   </span>
                 )}
                 {item.userRating > 0 && (
@@ -2962,7 +2963,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             {STATUS_OPTIONS.slice(0,3).map(s => (
               <div key={s.id} style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
-                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{statusLabel(s, lang)}</div>
               </div>
             ))}
           </div>
@@ -2970,7 +2971,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             {STATUS_OPTIONS.slice(3).map(s => (
               <div key={s.id} style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid ${s.color}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{byStatus[s.id] || 0}</div>
-                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: fDark ? "#8b949e" : "#64748b", marginTop: 2 }}>{statusLabel(s, lang)}</div>
               </div>
             ))}
             <div style={{ background: fDark ? "rgba(22,27,34,0.8)" : "rgba(255,255,255,0.7)", border: `1px solid #f59e0b33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
@@ -3165,7 +3166,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             fontFamily: "inherit", fontSize: 13, fontWeight: 700,
             background: tab === t.id ? accent : "#21262d",
             color: tab === t.id ? "white" : "#8b949e",
-          }}>{t.label}</button>
+          }}>{mediaLabel(t, lang)}</button>
         ))}
       </div>
 
@@ -5350,7 +5351,7 @@ export default function TrackAll() {
                         display: "flex", alignItems: "center", gap: 5,
                         WebkitTapHighlightColor: "transparent",
                       }}>
-                        {t.icon} {t.label}
+                        {t.icon} {mediaLabel(t, lang)}
                       </button>
                     );
                   })}
@@ -5393,7 +5394,7 @@ export default function TrackAll() {
                         minWidth: 110,
                       }}>
                         <span style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{s.icon === "★" ? <span style={{ fontSize: 14, marginRight: 2 }}>★</span> : null}{s.value}</span>
-                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
+                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{statusLabel(s, lang)}</span>
                       </div>
                     );
                   })}
@@ -5515,14 +5516,14 @@ export default function TrackAll() {
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
                 <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery) doSearch(searchQuery, t.id); }}>
-                  {t.icon} {t.label}
+                  {t.icon} {mediaLabel(t, lang)}
                 </button>
               ))}
             </div>
             {isSearching && (
               <div style={{ textAlign: "center", padding: "60px 0", color: "#8b949e" }}>
                 <div className="spin" style={{ fontSize: 40, display: "block", marginBottom: 12 }}>◌</div>
-                <p>A pesquisar{activeTab !== "all" ? ` em ${MEDIA_TYPES.find(t=>t.id===activeTab)?.label}` : " em todos os tipos"}...</p>
+                <p>A pesquisar{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : {lang === "en" ? " across all types" : " em todos os tipos"}}...</p>
               </div>
             )}
             {searchError && (
@@ -5617,7 +5618,7 @@ export default function TrackAll() {
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
                   <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
-                    {t.icon} {t.label}
+                    {t.icon} {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
                     </span>
@@ -5680,7 +5681,7 @@ export default function TrackAll() {
                   </div>
                   <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center", justifyContent: "flex-end" }}>
                     {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-                      <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>{s.label}</button>
+                      <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>{statusLabel(s, lang)}</button>
                     ))}
                   </div>
                 </div>
