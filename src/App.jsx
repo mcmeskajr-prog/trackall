@@ -3247,106 +3247,152 @@ function FriendsView({ user, accent, darkMode = true, isMobileDevice = false, li
 }
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
-function AuthScreen({ onAuth, accent }) {
-  const [mode, setMode] = useState("login"); // login | register
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+// ─── Demo Data ────────────────────────────────────────────────────────────────
+const DEMO_LIBRARY = {
+  "al-1": { id: "al-1", title: "Attack on Titan", type: "anime", userStatus: "completo", userRating: 10, cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg", addedAt: Date.now() - 86400000 * 2 },
+  "al-2": { id: "al-2", title: "Demon Slayer", type: "anime", userStatus: "assistindo", userRating: 9, cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101922-WBsBl0ClmgYL.jpg", addedAt: Date.now() - 86400000 * 4 },
+  "al-3": { id: "al-3", title: "Tokyo Ghoul", type: "manga", userStatus: "completo", userRating: 9, cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx46570-B06SXNKALXSD.jpg", addedAt: Date.now() - 86400000 * 6 },
+  "al-4": { id: "al-4", title: "Jujutsu Kaisen", type: "anime", userStatus: "planeado", userRating: 0, cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-bbBWj4pEFseh.jpg", addedAt: Date.now() - 86400000 * 8 },
+  "al-5": { id: "al-5", title: "One Piece", type: "manga", userStatus: "assistindo", userRating: 10, cover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-ulXvn0KLshFO.jpg", addedAt: Date.now() - 86400000 * 10 },
+  "tmdb-1": { id: "tmdb-1", title: "Oppenheimer", type: "filmes", userStatus: "completo", userRating: 9, cover: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", addedAt: Date.now() - 86400000 * 3 },
+  "tmdb-2": { id: "tmdb-2", title: "Breaking Bad", type: "series", userStatus: "completo", userRating: 10, cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg", addedAt: Date.now() - 86400000 * 5 },
+  "tmdb-3": { id: "tmdb-3", title: "Dune: Part Two", type: "filmes", userStatus: "completo", userRating: 9, cover: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg", addedAt: Date.now() - 86400000 * 1 },
+  "game-1": { id: "game-1", title: "Elden Ring", type: "jogos", userStatus: "completo", userRating: 10, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg", addedAt: Date.now() - 86400000 * 7 },
+  "game-2": { id: "game-2", title: "Hollow Knight", type: "jogos", userStatus: "completo", userRating: 9, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rgi.jpg", addedAt: Date.now() - 86400000 * 14 },
+  "comic-1": { id: "comic-1", title: "Venom", type: "comics", userStatus: "completo", userRating: 8, cover: "https://comicvine.gamespot.com/a/uploads/scale_small/12/124259/8126579-01.jpg", addedAt: Date.now() - 86400000 * 9 },
+};
+const DEMO_PROFILE = { name: "Demo User", bio: "A explorar o TrackAll ✨", avatar: "", accent: "#f97316", favorites: [
+  { id: "al-1", title: "Attack on Titan", type: "anime", cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg" },
+  { id: "tmdb-2", title: "Breaking Bad", type: "series", cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg" },
+  { id: "game-1", title: "Elden Ring", type: "jogos", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg" },
+]};
+const DEMO_FEED = [
+  { user: "mrdk", avatar: "", action: "completou", item: "Chainsaw Man", type: "manga", rating: 9, time: "há 2h" },
+  { user: "shutw", avatar: "", action: "adicionou à biblioteca", item: "Frieren", type: "anime", rating: 0, time: "há 5h" },
+  { user: "wmans", avatar: "", action: "completou", item: "The Last of Us", type: "series", rating: 10, time: "há 1d" },
+  { user: "mrdk", avatar: "", action: "avaliou", item: "Oppenheimer", type: "filmes", rating: 8, time: "há 1d" },
+];
 
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+function LandingPage({ accent, onEnter, onDemo }) {
   const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
-
-  const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
-    if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
-    setLoading(true); setError(""); setSuccess("");
-    try {
-      if (mode === "register") {
-        const { user: u } = await supa.signUp(email.trim(), password);
-        if (u) {
-          onAuth(u);
-        } else {
-          setSuccess("Conta criada! Faz login para entrar.");
-          setMode("login");
-        }
-      } else {
-        const { user: u } = await supa.signIn(email.trim(), password);
-        onAuth(u);
-      }
-    } catch (e) {
-      setError(e.message || "Erro desconhecido.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const features = [
+    { icon: "📚", title: "Tudo num só lugar", desc: "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
+    { icon: "⭐", title: "Avalia e acompanha", desc: "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
+    { icon: "👥", title: "Partilha com amigos", desc: "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
+    { icon: "🎨", title: "100% personalizável", desc: "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
+    { icon: "📊", title: "As tuas estatísticas", desc: "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
+    { icon: "🔍", title: "Pesquisa global", desc: "Pesquisa em AniList, TMDB, IGDB, OpenLibrary e ComicVine ao mesmo tempo." },
+  ];
+  const mediaTypes = ["🎌 Anime", "📖 Manga", "🎬 Filmes", "📺 Séries", "🎮 Jogos", "📚 Livros", "🇰🇷 Manhwa", "💬 Comics"];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
-      <div style={{ width: "100%", maxWidth: 400 }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ width: 64, height: 64, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "white", marginBottom: 16 }}>T</div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px" }}>TrackAll</h1>
-          <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>Organiza toda a tua mídia num só lugar</p>
+    <div style={{ minHeight: "100vh", background: "#0d1117", fontFamily: "'Outfit', 'Segoe UI', sans-serif", overflowX: "hidden" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes gradAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+        .land-fade { animation: fadeUp 0.7s ease forwards; }
+        .land-float { animation: float 4s ease-in-out infinite; }
+        .land-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 40px rgba(${accentRgb},0.5) !important; }
+        .land-btn2:hover { transform: translateY(-2px) !important; background: rgba(255,255,255,0.12) !important; }
+        .feat-card:hover { transform: translateY(-4px); border-color: ${accent}55 !important; }
+        .feat-card { transition: all 0.2s; }
+      `}</style>
+
+      {/* Nav */}
+      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 40px", borderBottom: "1px solid #21262d", position: "sticky", top: 0, background: "rgba(13,17,23,0.9)", backdropFilter: "blur(12px)", zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "white" }}>T</div>
+          <span style={{ fontSize: 20, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={onDemo} className="land-btn2" style={{ padding: "9px 20px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>Ver Demo</button>
+          <button onClick={onEnter} className="land-btn" style={{ padding: "9px 20px", borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>Entrar</button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section style={{ textAlign: "center", padding: "100px 20px 80px", position: "relative", overflow: "hidden" }}>
+        {/* Glow blobs */}
+        <div style={{ position: "absolute", top: -100, left: "20%", width: 500, height: 500, background: `radial-gradient(circle, ${accent}20 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: 50, right: "10%", width: 300, height: 300, background: `radial-gradient(circle, #8b5cf620 0%, transparent 70%)`, pointerEvents: "none", animation: "pulse 4s ease-in-out infinite" }} />
+
+        <div className="land-fade" style={{ animationDelay: "0.1s", opacity: 0 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `${accent}18`, border: `1px solid ${accent}44`, borderRadius: 20, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: accent, marginBottom: 28, letterSpacing: "0.05em" }}>
+            ✨ GRÁTIS PARA SEMPRE
+          </div>
+        </div>
+        <div className="land-fade" style={{ animationDelay: "0.2s", opacity: 0 }}>
+          <h1 style={{ fontSize: "clamp(42px, 7vw, 80px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px", marginBottom: 24, background: `linear-gradient(135deg, #e6edf3 30%, ${accent} 70%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            Toda a tua mídia.<br/>Num só lugar.
+          </h1>
+        </div>
+        <div className="land-fade" style={{ animationDelay: "0.35s", opacity: 0 }}>
+          <p style={{ fontSize: 20, color: "#8b949e", maxWidth: 560, margin: "0 auto 48px", lineHeight: 1.7, fontWeight: 400 }}>
+            Anime, manga, filmes, séries, jogos, livros e comics — acompanha tudo, avalia, partilha com amigos.
+          </p>
+        </div>
+        <div className="land-fade" style={{ animationDelay: "0.5s", opacity: 0, display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={onEnter} className="land-btn" style={{ padding: "16px 40px", borderRadius: 14, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 16, fontWeight: 800, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 8px 32px rgba(${accentRgb},0.4)` }}>
+            Começar grátis →
+          </button>
+          <button onClick={onDemo} className="land-btn2" style={{ padding: "16px 36px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>
+            Ver demonstração
+          </button>
         </div>
 
-        {/* Card */}
-        <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: 28 }}>
-          {/* Tabs */}
-          <div style={{ display: "flex", background: "#0d1117", borderRadius: 10, padding: 4, marginBottom: 24 }}>
-            {["login", "register"].map(m => (
-              <button key={m} onClick={() => { setMode(m); setError(""); setSuccess(""); }} style={{
-                flex: 1, padding: "8px", borderRadius: 8, border: "none", cursor: "pointer",
-                fontFamily: "inherit", fontSize: 13, fontWeight: 700, transition: "all 0.15s",
-                background: mode === m ? accent : "transparent",
-                color: mode === m ? "white" : "#484f58",
-              }}>{m === "login" ? "Entrar" : "Criar Conta"}</button>
-            ))}
-          </div>
-
-          {/* Fields */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>EMAIL</label>
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="o-teu@email.com"
-                onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>PASSWORD</label>
-              <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="mínimo 6 caracteres"
-                onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }}
-              />
-            </div>
-          </div>
-
-          {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#ef444415", borderRadius: 8 }}>{error}</p>}
-          {success && <p style={{ color: "#10b981", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#10b98115", borderRadius: 8 }}>{success}</p>}
-
-          <button
-            onClick={handleSubmit} disabled={loading}
-            style={{
-              width: "100%", padding: "13px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer",
-              background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: "white",
-              fontFamily: "inherit", fontSize: 15, fontWeight: 700,
-              opacity: loading ? 0.7 : 1, transition: "all 0.2s",
-              boxShadow: `0 4px 20px rgba(${accentRgb},0.3)`,
-            }}
-          >{loading ? "A processar..." : mode === "login" ? "Entrar" : "Criar Conta"}</button>
+        {/* Media type pills */}
+        <div className="land-fade" style={{ animationDelay: "0.7s", opacity: 0, marginTop: 56, display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 600, margin: "56px auto 0" }}>
+          {mediaTypes.map((m, i) => (
+            <span key={m} style={{ padding: "8px 18px", borderRadius: 20, background: "#161b22", border: "1px solid #21262d", fontSize: 13, fontWeight: 600, color: "#8b949e", animation: `float ${3 + i * 0.3}s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}>{m}</span>
+          ))}
         </div>
+      </section>
 
-        <p style={{ textAlign: "center", color: "#30363d", fontSize: 11, marginTop: 20 }}>
-          Os teus dados ficam guardados em segurança na nuvem
-        </p>
-      </div>
+      {/* Features */}
+      <section style={{ padding: "80px 20px", maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 60 }}>
+          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 12 }}>Tudo o que precisas</h2>
+          <p style={{ color: "#484f58", fontSize: 16 }}>Feito para quem leva a mídia a sério</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+          {features.map((f, i) => (
+            <div key={i} className="feat-card" style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: "28px 24px" }}>
+              <div style={{ width: 48, height: 48, background: `${accent}18`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#e6edf3", marginBottom: 8 }}>{f.title}</h3>
+              <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Final */}
+      <section style={{ padding: "80px 20px", textAlign: "center" }}>
+        <div style={{ maxWidth: 600, margin: "0 auto", background: `linear-gradient(135deg, ${accent}18 0%, #8b5cf618 100%)`, border: `1px solid ${accent}33`, borderRadius: 24, padding: "60px 40px" }}>
+          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 16 }}>Pronto para começar?</h2>
+          <p style={{ color: "#8b949e", fontSize: 16, marginBottom: 36, lineHeight: 1.6 }}>Cria a tua conta gratuita e começa a organizar a tua biblioteca hoje.</p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={onEnter} className="land-btn" style={{ padding: "14px 36px", borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 15, fontWeight: 800, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 6px 24px rgba(${accentRgb},0.35)` }}>
+              Criar conta grátis
+            </button>
+            <button onClick={onDemo} className="land-btn2" style={{ padding: "14px 28px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>
+              Ver demo primeiro
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: "1px solid #21262d", padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 24, height: 24, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "white" }}>T</div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#484f58" }}>TrackAll</span>
+        </div>
+        <span style={{ fontSize: 12, color: "#30363d" }}>Feito com ❤️ para a comunidade</span>
+      </footer>
     </div>
   );
 }
@@ -3908,6 +3954,98 @@ function RatingOverlay({ item, accent, library, onDone }) {
   );
 }
 
+// ─── Auth Screen ──────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth, accent, onBack }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
+    if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      if (mode === "register") {
+        const { user: u } = await supa.signUp(email.trim(), password);
+        if (u && u.identities && u.identities.length > 0) {
+          onAuth(u);
+        } else {
+          setAwaitingVerification(true);
+          setSuccess(`Email de confirmação enviado para ${email.trim()}.`);
+        }
+      } else {
+        const { user: u } = await supa.signIn(email.trim(), password);
+        onAuth(u);
+      }
+    } catch (e) {
+      setError(e.message || "Erro desconhecido.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');`}</style>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", marginBottom: 20, padding: 0, display: "flex", alignItems: "center", gap: 6 }}>← Voltar</button>}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ width: 64, height: 64, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "white", marginBottom: 16 }}>T</div>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px" }}>TrackAll</h1>
+          <p style={{ color: "#484f58", fontSize: 14, marginTop: 6 }}>Organiza toda a tua mídia num só lugar</p>
+        </div>
+        {awaitingVerification ? (
+          <div style={{ background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16, padding: 32, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#e6edf3", marginBottom: 12 }}>Verifica o teu email</h2>
+            <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+              Enviámos um link de confirmação para<br/>
+              <strong style={{ color: accent }}>{email}</strong>
+            </p>
+            <p style={{ color: "#484f58", fontSize: 12, marginBottom: 24 }}>Clica no link no email para ativar a tua conta. Verifica também a pasta de spam.</p>
+            <button onClick={() => { setAwaitingVerification(false); setMode("login"); setSuccess(""); }} style={{ padding: "10px 24px", borderRadius: 10, background: `${accent}22`, border: `1px solid ${accent}44`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+              Já verifiquei — Entrar
+            </button>
+          </div>
+        ) : (
+          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: 28 }}>
+            <div style={{ display: "flex", background: "#0d1117", borderRadius: 10, padding: 4, marginBottom: 24 }}>
+              {["login", "register"].map(m => (
+                <button key={m} onClick={() => { setMode(m); setError(""); setSuccess(""); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, transition: "all 0.15s", background: mode === m ? accent : "transparent", color: mode === m ? "white" : "#484f58" }}>
+                  {m === "login" ? "Entrar" : "Criar Conta"}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>EMAIL</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="o-teu@email.com" onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>PASSWORD</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }} />
+              </div>
+            </div>
+            {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#ef444415", borderRadius: 8 }}>{error}</p>}
+            {success && <p style={{ color: "#10b981", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#10b98115", borderRadius: 8 }}>{success}</p>}
+            <button onClick={handleSubmit} disabled={loading} style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer", background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: "white", fontFamily: "inherit", fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>
+              {loading ? "A processar..." : mode === "login" ? "Entrar" : "Criar Conta"}
+            </button>
+          </div>
+        )}
+        <p style={{ textAlign: "center", color: "#30363d", fontSize: 11, marginTop: 20 }}>
+          Os teus dados ficam guardados em segurança na nuvem
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function TrackAll() {
   const [accent, setAccent] = useState("#f97316");
   const [bgColor, setBgColor] = useState("#0d1117");
@@ -4075,6 +4213,8 @@ export default function TrackAll() {
   // Auth state
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showLanding, setShowLanding] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
@@ -4084,8 +4224,10 @@ export default function TrackAll() {
         if (user) {
           setUser(user);
           await loadUserData(user.id);
+        } else {
+          setShowLanding(true);
         }
-      } catch {}
+      } catch { setShowLanding(true); }
       setAuthLoading(false);
     };
     restore();
@@ -4630,7 +4772,13 @@ export default function TrackAll() {
     return () => clearTimeout(t);
   }, [logQuery, quickSearchType]);
 
-  const items = useMemo(() => Object.values(library), [library]);
+  const items = useMemo(() => {
+    if (demoMode) return Object.values(DEMO_LIBRARY);
+    return Object.values(library);
+  }, [library, demoMode]);
+
+  const activeProfile = demoMode ? DEMO_PROFILE : profile;
+  const activeFavorites = demoMode ? DEMO_PROFILE.favorites : favorites;
 
   const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
@@ -4677,7 +4825,10 @@ export default function TrackAll() {
   }
 
   // Auth screen
-  if (!user) return <AuthScreen onAuth={handleAuth} accent={accent} />;
+  if (!user && !demoMode) {
+    if (showLanding) return <LandingPage accent={accent} onEnter={() => setShowLanding(false)} onDemo={() => { setDemoMode(true); setShowLanding(false); }} />;
+    return <AuthScreen onAuth={handleAuth} accent={accent} onBack={() => setShowLanding(true)} />;
+  }
 
   // Which bg image to show based on device + separate setting
   const activeBgImage = bgSeparateDevices
@@ -4702,7 +4853,14 @@ export default function TrackAll() {
         position: "relative",
         overflowX: "hidden",
       }}>
-        {/* Background image layer */}
+        {/* Demo mode banner */}
+        {demoMode && (
+          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+            <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>👀 Modo Demonstração — os dados são fictícios</span>
+            <button onClick={() => { setDemoMode(false); setShowLanding(false); }} style={{ padding: "5px 14px", borderRadius: 8, background: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.4)", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Criar conta grátis</button>
+            <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>✕ Sair</button>
+          </div>
+        )}
         {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 0,
@@ -5021,7 +5179,7 @@ export default function TrackAll() {
             onChangeCover={updateCover}
             onClose={() => setSelectedItem(null)}
             accent={accent}
-            favorites={favorites}
+            favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
             tmdbKey={tmdbKey}
           />
@@ -5524,7 +5682,7 @@ export default function TrackAll() {
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
           <ProfileView
-            profile={profile}
+            profile={activeProfile}
             library={library}
             accent={accent}
             bgColor={bgColor}
@@ -5562,7 +5720,7 @@ export default function TrackAll() {
             onWorkerUrl={saveWorkerUrl}
             onSignOut={handleSignOut}
             userEmail={user?.email || ""}
-            favorites={favorites}
+            favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
