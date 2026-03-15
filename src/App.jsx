@@ -4099,11 +4099,14 @@ export default function TrackAll() {
       link.href = '/manifest.json';
       document.head.appendChild(link);
     }
-    // Theme color meta
-    if (!document.querySelector('meta[name="theme-color"]')) {
+    // Theme color meta — segue a cor de fundo do utilizador
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.content = bgColor;
+    } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = '#0d1117';
+      meta.content = bgColor;
       document.head.appendChild(meta);
     }
     // Apple mobile web app
@@ -4150,7 +4153,7 @@ export default function TrackAll() {
       window.removeEventListener('beforeinstallprompt', onPrompt);
       window.removeEventListener('appinstalled', onInstalled);
     };
-  }, []);
+  }, [bgColor]);
 
   // Attach mouse-wheel → horizontal scroll on all .recents-row elements
   // + keyboard arrow keys when hovering ANY horizontal scroll container
@@ -4297,15 +4300,23 @@ export default function TrackAll() {
 
   const loadRecos = async () => {
     setRecoLoading(true);
+    setRecos({});
     try {
+      // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
+      if (anime?.length) setRecos(r => ({ ...r, anime }));
+
       const manga = await fetchTrendingManga(workerUrl);
-      const [filmes, series, jogos] = await Promise.all([
-        fetchTrendingMovies(tmdbKey, workerUrl),
-        fetchTrendingSeries(tmdbKey, workerUrl),
-        fetchTrendingGames(workerUrl),
-      ]);
-      setRecos({ anime, manga, filmes, series, jogos });
+      if (manga?.length) setRecos(r => ({ ...r, manga }));
+
+      const filmes = await fetchTrendingMovies(tmdbKey, workerUrl);
+      if (filmes?.length) setRecos(r => ({ ...r, filmes }));
+
+      const series = await fetchTrendingSeries(tmdbKey, workerUrl);
+      if (series?.length) setRecos(r => ({ ...r, series }));
+
+      const jogos = await fetchTrendingGames(workerUrl);
+      if (jogos?.length) setRecos(r => ({ ...r, jogos }));
     } catch {}
     setRecoLoading(false);
   };
@@ -5549,15 +5560,18 @@ export default function TrackAll() {
                   />
                   {libSearch && <button onClick={() => setLibSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1 }}>✕</button>}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", scrollbarWidth: "none", flex: 1, minWidth: 0 }}>
-                  {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
-                    <span key={t.id} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
-                      <span style={{ fontSize: 13 }}>{t.icon}</span>
-                      <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700, fontSize: 11 }}>{filteredLib.filter(i => i.type === t.id).length}</span>
-                    </span>
-                  ))}
-                  <span style={{ flexShrink: 0, color: darkMode ? "#484f58" : "#94a3b8", fontSize: 11, marginLeft: 2 }}>· {filteredLib.length}</span>
-                </div>
+                {/* Type counters — PC only */}
+                {!isMobileDevice && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", scrollbarWidth: "none", flex: 1, minWidth: 0 }}>
+                    {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
+                      <span key={t.id} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
+                        <span style={{ fontSize: 13 }}>{t.icon}</span>
+                        <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700, fontSize: 11 }}>{filteredLib.filter(i => i.type === t.id).length}</span>
+                      </span>
+                    ))}
+                    <span style={{ flexShrink: 0, color: darkMode ? "#484f58" : "#94a3b8", fontSize: 11, marginLeft: 2 }}>· {filteredLib.length}</span>
+                  </div>
+                )}
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
                   {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
                     <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? "Compacto" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
