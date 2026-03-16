@@ -1445,11 +1445,11 @@ function DiaryPanel({ completados, onOpen }) {
         <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
           <div style={{ flexShrink: 0, width: 56, marginRight: 12 }}>
             <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-              <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                {group.key === "0000-00" ? "—" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
+              <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>
+                {group.key === "0000-00" ? "—" : group.year}
               </div>
               <div style={{ padding: "5px 0 6px", fontSize: group.key === "0000-00" ? 11 : 17, fontWeight: 900, color: "#e6edf3" }}>
-                {group.key === "0000-00" ? "Sem data" : group.year}
+                {group.key === "0000-00" ? "Sem data" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
               </div>
             </div>
           </div>
@@ -1597,11 +1597,11 @@ function RecentSection({ items, onOpen, showDiary = true }) {
             {/* Month/Year block */}
             <div style={{ flexShrink: 0, width: 68, marginRight: 16 }}>
               <div style={{ background: "#21262d", borderRadius: 10, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                <div style={{ background: "#30363d", padding: "4px 0", fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>
-                  {group.key === "0000-00" ? "—" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
+                  <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>
+                    {group.key === "0000-00" ? "—" : group.year}
                 </div>
                 <div style={{ padding: "6px 0 8px", fontSize: group.key === "0000-00" ? 13 : 22, fontWeight: 900, color: "#e6edf3" }}>
-                  {group.key === "0000-00" ? "Sem data" : group.year}
+                    {group.key === "0000-00" ? "Sem data" : (lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}
                 </div>
               </div>
             </div>
@@ -1866,22 +1866,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
               }}>✏ Editar Perfil</button>
-              <button onClick={() => {
-                const name = profile.name || "perfil";
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(() => {
-                  setShareCopied(true);
-                  setTimeout(() => setShareCopied(false), 2000);
-                }).catch(() => {});
-              }} title={useT("copyLink")} style={{
-                width: 34, height: 34, borderRadius: 8, border: `1px solid ${shareCopied ? "#10b981" : accent + "44"}`,
-                background: shareCopied ? "#10b98120" : `${accent}15`,
-                color: shareCopied ? "#10b981" : accent,
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15,
-                transition: "all 0.2s",
-              }}>
-                {shareCopied ? "✓" : "🔗"}
-              </button>
               {onSignOut && (
                 <button onClick={onSignOut} title={useT("signOut")} style={{
                   width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
@@ -2935,8 +2919,8 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 <div key={group.key} style={{ display: "flex", marginBottom: 16 }}>
                   <div style={{ flexShrink: 0, width: 46, marginRight: 10 }}>
                     <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 9, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
-                      <div style={{ padding: "3px 0 4px", fontSize: 14, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
+                      <div style={{ background: "#30363d", padding: "3px 0", fontSize: 9, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>{group.year}</div>
+                      <div style={{ padding: "3px 0 4px", fontSize: 14, fontWeight: 900, color: "#8b949e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -3044,7 +3028,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 {!fs ? (
                   <button onClick={() => handleSendRequest(r.id)} style={{ padding: "6px 12px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 8, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>+ Adicionar</button>
                 ) : fs.status === "accepted" ? (
-                  <span style={{ fontSize: 12, color: "#10b981", fontWeight: 700 }}>✓ Amigos</span>
+                  <span style={{ fontSize: 12, color: "#10b981", fontWeight: 700 }}>✓ {lang === "en" ? "Friends" : "Amigos"}</span>
                 ) : fs.isRequester ? (
                   <span style={{ fontSize: 12, color: "#484f58" }}>{lang === "en" ? "Pending" : "Pendente"}</span>
                 ) : (
@@ -3180,7 +3164,6 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
 
         <div className="land-fade" style={{ animationDelay: "0.1s", opacity: 0 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `${accent}18`, border: `1px solid ${accent}44`, borderRadius: 20, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: accent, marginBottom: 28, letterSpacing: "0.05em" }}>
-            ✨ GRÁTIS PARA SEMPRE
           </div>
         </div>
         <div className="land-fade" style={{ animationDelay: "0.2s", opacity: 0 }}>
@@ -4770,7 +4753,7 @@ export default function TrackAll() {
                       <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
                     </svg>
                   </span>
-                  Amigos
+                  {useT("friends")}
                 </button>
               </div>
 
@@ -5529,9 +5512,20 @@ export default function TrackAll() {
           </div>
         )}
 
-        {/* ── PROFILE ── */}
+        {/* ── FRIENDS ── */}
         {view === "friends" && (
-          <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} library={library} />
+          demoMode || !user ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
+              <div style={{ fontSize: 52, marginBottom: 16 }}>👥</div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{lang === "en" ? "Friends are waiting!" : "Os teus amigos estão à espera!"}</h3>
+              <p style={{ fontSize: 14, color: darkMode ? "#8b949e" : "#64748b", marginBottom: 24, maxWidth: 300, lineHeight: 1.6 }}>{lang === "en" ? "Create a free account to add friends and share your library." : "Cria uma conta gratuita para adicionar amigos e partilhar a tua biblioteca."}</p>
+              <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 15, borderRadius: 12 }} onClick={() => { setDemoMode(false); setShowLanding(false); }}>
+                {lang === "en" ? "Create free account" : "Criar conta grátis"}
+              </button>
+            </div>
+          ) : (
+            <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} library={library} />
+          )
         )}
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
@@ -5610,8 +5604,8 @@ export default function TrackAll() {
                     <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
                       <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
                         <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#8b949e", letterSpacing: 1 }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
-                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#e6edf3" }}>{group.year}</div>
+                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>{group.year}</div>
+                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#8b949e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
                         </div>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -5739,7 +5733,7 @@ export default function TrackAll() {
               <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : "#8b949e"} strokeWidth="1.8" fill="none" strokeLinecap="round" />
               <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : "#8b949e"} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
             </svg>
-            Amigos
+            {useT("friends")}
           </button>
           <button className={`nav-btn${view === "profile" ? " active" : ""}`} onClick={() => setView("profile")} style={{ color: view === "profile" ? accent : undefined }}>
             <span style={{ fontSize: 22 }}>◉</span>
