@@ -598,10 +598,10 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
         );
       })}
       {active > 0 && !readOnly && (
-        <span style={{ fontSize: size * 0.85, color: "#f59e0b", fontWeight: 700, marginLeft: 4, minWidth: "2ch", display: "inline-block" }}>{active}</span>
+        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4, minWidth: "2.2ch", display: "inline-block" }}>{active}</span>
       )}
       {readOnly && value > 0 && (
-        <span style={{ fontSize: size * 0.85, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{value}</span>
+        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{value}</span>
       )}
     </div>
   );
@@ -3907,11 +3907,11 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   const inputRef = useRef(null);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
   return (
-    <div style={{ padding: "2px 8px 0" }}>
+    <>
       {!open ? (
         <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
           <span className="ds-icon">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
               <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -3919,8 +3919,8 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, margin: "2px 0" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: accent }}>
+        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
           </svg>
@@ -3934,7 +3934,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -4793,7 +4793,6 @@ export default function TrackAll() {
                   </span>
                   {useT("friends")}
                 </button>
-                {/* Pesquisa PC */}
                 <SidebarSearch accent={accent} darkMode={darkMode} activeTab={activeTab} doSearch={doSearch} useT={useT} />
               </div>
 
@@ -4809,7 +4808,7 @@ export default function TrackAll() {
               {/* Biblioteca por tipo */}
               {libByType.length > 0 && (
                 <>
-                  <p className="ds-section" style={{ marginTop: 4 }}>{useT("library")}</p>
+                  <p className="ds-section" style={{ marginTop: 6, paddingBottom: 6 }}>{useT("library")}</p>
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const isActive = view === "library" && activeTab === t.id;
@@ -4833,6 +4832,7 @@ export default function TrackAll() {
                       </div>
                     );
                   })}
+                  <div style={{ height: 12 }} />
                 </>
               )}
 
@@ -5005,7 +5005,7 @@ export default function TrackAll() {
           }
           .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
           .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
-          .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+          .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
           .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 24px 6px; }
           .ds-type-item {
             display: flex; align-items: center; gap: 8px;
