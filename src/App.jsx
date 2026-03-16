@@ -3379,7 +3379,7 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
         </div>
         <div style={{ display: "flex", gap: 12 }}>
           <button onClick={onDemo} className="land-btn2" style={{ padding: "9px 20px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>{useT("landingDemoBtn")}</button>
-          <button onClick={onEnter} className="land-btn" style={{ padding: "9px 20px", borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>{useT("sinIn")}</button>
+          <button onClick={onEnter} className="land-btn" style={{ padding: "9px 20px", borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 4px 20px rgba(${accentRgb},0.3)` }}>{useT("signIn")}</button>
         </div>
       </nav>
 
