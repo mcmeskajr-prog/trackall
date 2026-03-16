@@ -3185,9 +3185,9 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
       <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         {[
           { id: "feed", label: "🕐 Feed" },
-          { id: "friends", label: `Amigos (${accepted.length})` },
+          { id: "friends", label: `${lang === "en" ? "Friends" : "Amigos"} (${accepted.length})` },
           { id: "search", label: useT("searchFriends") },
-          { id: "requests", label: `Pedidos${pending.length > 0 ? ` (${pending.length})` : ""}` },
+          { id: "requests", label: `${lang === "en" ? "Requests" : "Pedidos"}${pending.length > 0 ? ` (${pending.length})` : ""}` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             flexShrink: 0,
@@ -3195,7 +3195,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             fontFamily: "inherit", fontSize: 13, fontWeight: 700,
             background: tab === t.id ? accent : "#21262d",
             color: tab === t.id ? "white" : "#8b949e",
-          }}>{mediaLabel(t, lang)}</button>
+          }}>{t.label}</button>
         ))}
       </div>
 
@@ -5733,8 +5733,8 @@ export default function TrackAll() {
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center", justifyContent: "flex-end" }}>
-                    {[{id:"date",label:"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-                      <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>{statusLabel(s, lang)}</button>
+                    {[{id:"date",label: lang === "en" ? "Date" : "Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+                      <button key={s.id} onClick={() => setLibSort(s.id)} style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${libSort === s.id ? accent : "#30363d"}`, background: libSort === s.id ? `${accent}22` : "transparent", color: libSort === s.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>{s.label}</button>
                     ))}
                   </div>
                 </div>
