@@ -563,7 +563,7 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
   // Each star = 1 point, but we support 0.5 increments
   // We render 10 stars, each star can be empty, half, or full
   return (
-    <div style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "nowrap" }}>
+    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
       {[1,2,3,4,5,6,7,8,9,10].map((star) => {
         const full = active >= star;
         const half = !full && active >= star - 0.5;
@@ -3791,10 +3791,8 @@ function RatingOverlay({ item, library, onDone }) {
         </div>
         <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
         <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, overflow: "hidden" }}>
-            <div style={{ maxWidth: "100%", overflowX: "auto", scrollbarWidth: "none" }}>
-              <StarRating value={rating} onChange={setRating} size={26} />
-            </div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, overflow: "hidden", padding: "0 4px" }}>
+            <StarRating value={rating} onChange={setRating} size={26} />
           </div>
           {rating > 0 && (
             <button onClick={() => onDone(rating)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, background: accent, border: "none", color: textColor, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
@@ -3898,6 +3896,38 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
           Os teus dados ficam guardados em segurança na nuvem
         </p>
       </div>
+    </div>
+  );
+}
+
+// ─── Sidebar Search ───────────────────────────────────────────────────────────
+function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
+  return (
+    <div style={{ padding: "4px 8px 0" }}>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "11px 16px" }}>
+          <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24 }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </span>
+          {useT("search")}
+        </button>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}44`, margin: "2px 0" }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}><circle cx="6.5" cy="6.5" r="4.5" stroke={accent} strokeWidth="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke={accent} strokeWidth="1.5" strokeLinecap="round"/></svg>
+          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
+              if (e.key === "Escape") { setOpen(false); setQ(""); }
+            }}
+            placeholder={useT("search") + "..."}
+            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: "5px 0" }} />
+          <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✕</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -4757,36 +4787,9 @@ export default function TrackAll() {
                   </span>
                   {useT("friends")}
                 </button>
+                {/* Pesquisa PC */}
+                <SidebarSearch accent={accent} darkMode={darkMode} activeTab={activeTab} doSearch={doSearch} useT={useT} />
               </div>
-
-              {/* Pesquisa PC — inline na sidebar */}
-              {(() => {
-                const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false);
-                const [sidebarSearchQ, setSidebarSearchQ] = useState("");
-                const sidebarSearchRef = useRef(null);
-                useEffect(() => { if (sidebarSearchOpen) setTimeout(() => sidebarSearchRef.current?.focus(), 60); }, [sidebarSearchOpen]);
-                return (
-                  <div style={{ padding: "4px 8px 0" }}>
-                    {!sidebarSearchOpen ? (
-                      <button onClick={() => setSidebarSearchOpen(true)} className={`ds-nav-btn`} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "11px 16px" }}>
-                        <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 24 }}>
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.5" strokeLinecap="round"/></svg>
-                        </span>
-                        {useT("search")}
-                      </button>
-                    ) : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}44`, margin: "2px 0" }}>
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}><circle cx="6.5" cy="6.5" r="4.5" stroke={accent} strokeWidth="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke={accent} strokeWidth="1.5" strokeLinecap="round"/></svg>
-                        <input ref={sidebarSearchRef} value={sidebarSearchQ} onChange={e => setSidebarSearchQ(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter" && sidebarSearchQ.trim()) { doSearch(sidebarSearchQ, activeTab); setSidebarSearchOpen(false); setSidebarSearchQ(""); } if (e.key === "Escape") { setSidebarSearchOpen(false); setSidebarSearchQ(""); } }}
-                          placeholder={useT("search") + "..."}
-                          style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: "5px 0" }} />
-                        <button onClick={() => { setSidebarSearchOpen(false); setSidebarSearchQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0 }}>✕</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
 
               {/* Botão + Log Rápido */}
               <div style={{ padding: "8px 8px 4px" }}>
