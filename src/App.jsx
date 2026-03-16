@@ -3905,17 +3905,9 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
-  const wrapRef = useRef(null);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) { setOpen(false); setQ(""); } };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-  const close = () => { setOpen(false); setQ(""); };
   return (
-    <div ref={wrapRef} style={{ padding: "2px 8px 0" }}>
+    <>
       {!open ? (
         <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
           <span className="ds-icon">
@@ -3927,19 +3919,22 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, margin: "2px 0" }}>
+        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); close(); } if (e.key === "Escape") close(); }}
+            onKeyDown={e => {
+              if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
+              if (e.key === "Escape") { setOpen(false); setQ(""); }
+            }}
             placeholder={useT("search") + "..."}
             style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0 }} />
-          <button onClick={close} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
+          <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -4813,7 +4808,7 @@ export default function TrackAll() {
               {/* Biblioteca por tipo */}
               {libByType.length > 0 && (
                 <>
-                  <p className="ds-section" style={{ marginTop: 6 }}>{useT("library")}</p>
+                  <p className="ds-section" style={{ marginTop: 6, paddingBottom: 6 }}>{useT("library")}</p>
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const isActive = view === "library" && activeTab === t.id;
@@ -4837,11 +4832,12 @@ export default function TrackAll() {
                       </div>
                     );
                   })}
+                  <div style={{ height: 12 }} />
                 </>
               )}
 
               {/* Avatar + nome em baixo */}
-              <div style={{ marginTop: "auto", padding: "16px", paddingTop: 20, borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+              <div style={{ marginTop: "auto", padding: "16px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setView("profile")}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
