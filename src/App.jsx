@@ -774,102 +774,26 @@ async function parseMihonBackup(file) {
 // Client ID criado em console.cloud.google.com — o utilizador tem de inserir o seu
 const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-async function driveGetToken(clientId) {
-  return new Promise((resolve, reject) => {
-    if (!window.google?.accounts?.oauth2) { reject(new Error('GIS não carregado')); return; }
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: DRIVE_SCOPES,
-      callback: (resp) => {
-        if (resp.error) reject(new Error(resp.error));
-        else resolve(resp.access_token);
-      },
-    });
-    client.requestAccessToken({ prompt: '' });
-  });
-}
-
-async function driveFindBackups(token) {
-  const q = encodeURIComponent("name contains '.tachibk' or name contains '.proto'");
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime+desc&pageSize=10&fields=files(id,name,modifiedTime,size)`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const data = await res.json();
-  return data.files || [];
-}
-
-async function driveDownloadFile(token, fileId) {
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const ab = await res.arrayBuffer();
-  // wrap as File-like object
-  return { arrayBuffer: () => Promise.resolve(ab) };
-}
-
-function MihonImportModal({ onClose, onImport, driveClientId, onSaveClientId }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
-
+function MihonImportModal({ onClose, onImport }) {
+  const { accent, darkMode } = useTheme();
   const { lang, useT } = useLang();
-  const [step, setStep] = useState('choose'); // choose | drive_files | upload | preview | done
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState({});
-  const [driveFiles, setDriveFiles] = useState([]);
-  const [token, setToken] = useState(null);
-  const [clientIdInput, setClientIdInput] = useState(driveClientId || '');
+  const [step, setStep] = useState('upload'); // upload | preview | done
   const fileRef = useRef();
 
-  const processFile = async (fileLike) => {
+  const processFile = async (file) => {
     setLoading(true); setError('');
     try {
-      const parsed = await parseMihonBackup(fileLike);
-      if (!parsed.length) { setError('Nenhum manga encontrado. Certifica-te que é um ficheiro .tachibk válido.'); setLoading(false); return; }
+      const parsed = await parseMihonBackup(file);
+      if (!parsed.length) { setError(lang === "en" ? "No manga found. Make sure it\'s a valid .tachibk file." : "Nenhum manga encontrado. Certifica-te que é um ficheiro .tachibk válido."); setLoading(false); return; }
       const sel = {};
       parsed.forEach(m => { sel[m.id] = true; });
       setItems(parsed); setSelected(sel); setStep('preview');
-    } catch (err) { setError('Erro: ' + err.message); }
+    } catch (err) { setError((lang === "en" ? "Error: " : "Erro: ") + err.message); }
     setLoading(false);
-  };
-
-  const handleFile = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    await processFile(file);
-  };
-
-  const connectDrive = async () => {
-    if (!clientIdInput.trim()) { setError('Insere o Client ID do Google primeiro.'); return; }
-    if (onSaveClientId) onSaveClientId(clientIdInput.trim());
-    setLoading(true); setError('');
-    try {
-      // Load GIS script if needed
-      if (!window.google?.accounts?.oauth2) {
-        await new Promise((res, rej) => {
-          const s = document.createElement('script');
-          s.src = 'https://accounts.google.com/gsi/client';
-          s.onload = res; s.onerror = () => rej(new Error('Falha ao carregar Google'));
-          document.head.appendChild(s);
-        });
-        await new Promise(r => setTimeout(r, 500));
-      }
-      const t = await driveGetToken(clientIdInput.trim());
-      setToken(t);
-      const files = await driveFindBackups(t);
-      if (!files.length) { setError('Nenhum ficheiro .tachibk encontrado no Google Drive.'); setLoading(false); return; }
-      setDriveFiles(files); setStep('drive_files');
-    } catch (err) { setError('Erro Google Drive: ' + err.message); }
-    setLoading(false);
-  };
-
-  const downloadAndImport = async (fileId) => {
-    setLoading(true); setError('');
-    try {
-      const fileLike = await driveDownloadFile(token, fileId);
-      await processFile(fileLike);
-    } catch (err) { setError('Erro ao descarregar: ' + err.message); setLoading(false); }
   };
 
   const toggleAll = (v) => { const s = {}; items.forEach(m => { s[m.id] = v; }); setSelected(s); };
@@ -884,141 +808,33 @@ function MihonImportModal({ onClose, onImport, driveClientId, onSaveClientId }) 
   return (
     <div className="modal-bg" onClick={onClose}>
       <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, padding: 20, width: '100%', maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📚</div>
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 800 }}>{lang === "en" ? "Import from Mihon" : "Importar do Mihon"}</h3>
               <p style={{ fontSize: 11, color: '#8b949e' }}>
-                {step === 'choose' && 'Escolhe como importar'}
-                {step === 'drive_files' && `${driveFiles.length} backups encontrados`}
-                {step === 'upload' && 'Upload manual'}
-                {step === 'preview' && `${items.length} mangas encontrados`}
-                {step === 'done' && 'Importação concluída!'}
+                {step === 'upload' && (lang === "en" ? "Select backup file" : "Seleciona o ficheiro de backup")}
+                {step === 'preview' && `${items.length} ${lang === "en" ? "manga found" : "mangas encontrados"}`}
+                {step === 'done' && (lang === "en" ? "Import complete!" : "Importação concluída!")}
               </p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
 
-        {/* STEP: choose */}
-        {step === 'choose' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            {/* Google Drive option */}
-            <div style={{ background: subBg, border: `1px solid ${border}`, borderRadius: 12, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 22 }}>☁️</span>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 700 }}>Google Drive <span style={{ fontSize: 10, background: `${accent}22`, color: accent, borderRadius: 6, padding: '1px 6px', marginLeft: 4 }}>{lang === "en" ? "AUTOMATIC" : "AUTOMÁTICO"}</span></p>
-                  <p style={{ fontSize: 11, color: '#8b949e' }}>Liga ao Drive e sincroniza com 1 clique</p>
-                </div>
-              </div>
-
-              <input
-                placeholder="Google Client ID (ex: 123...apps.googleusercontent.com)"
-                value={clientIdInput}
-                onChange={e => setClientIdInput(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', fontSize: 12, borderRadius: 8, marginBottom: 8, background: bg }}
-              />
-
-              {/* Setup instructions */}
-              <details style={{ marginBottom: 10 }}>
-                <summary style={{ fontSize: 11, color: accent, cursor: 'pointer', fontWeight: 700 }}>📋 Como obter o Client ID?</summary>
-                <div style={{ fontSize: 11, color: '#8b949e', lineHeight: 1.7, marginTop: 8, paddingLeft: 8 }}>
-                  <p>1. Vai a <strong>console.cloud.google.com</strong></p>
-                  <p>2. Cria projeto → <strong>APIs & Services</strong> → <strong>Credentials</strong></p>
-                  <p>3. <strong>Create OAuth Client ID</strong> → Web Application</p>
-                  <p>4. Em "Authorized JavaScript origins" adiciona:<br />
-                    <code style={{ background: '#21262d', padding: '1px 4px', borderRadius: 3 }}>https://teu-app.vercel.app</code>
-                  </p>
-                  <p>5. Ativa a <strong>Google Drive API</strong> no projeto</p>
-                  <p>6. Copia o Client ID para aqui</p>
-                </div>
-              </details>
-
-              <button onClick={connectDrive} disabled={loading} style={{
-                width: '100%', padding: '10px', borderRadius: 10, border: 'none',
-                background: loading ? '#21262d' : `linear-gradient(135deg, #4285f4, #34a853)`,
-                color: 'white', cursor: loading ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>
-                {loading ? <span className="spin">◌</span> : '☁️'} {loading ? 'A conectar...' : 'Ligar ao Google Drive'}
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ flex: 1, height: 1, background: border }} />
-              <span style={{ fontSize: 11, color: '#484f58' }}>ou</span>
-              <div style={{ flex: 1, height: 1, background: border }} />
-            </div>
-
-            {/* Manual upload option */}
-            <button onClick={() => setStep('upload')} style={{
-              width: '100%', padding: '10px 14px', borderRadius: 10,
-              border: `1px dashed ${accent}66`, background: `${accent}11`,
-              color: accent, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 700,
-            }}>
-              📂 Upload manual do ficheiro .tachibk
-            </button>
-
-            {error && <p style={{ color: '#ef4444', fontSize: 12, textAlign: 'center' }}>{error}</p>}
-          </div>
-        )}
-
-        {/* STEP: drive_files */}
-        {step === 'drive_files' && (
-          <div>
-            <p style={{ fontSize: 12, color: '#8b949e', marginBottom: 12 }}>{lang === "en" ? "Select backup to import:" : "Seleciona o backup para importar:"}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              {driveFiles.map(f => (
-                <button key={f.id} onClick={() => downloadAndImport(f.id)} disabled={loading} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '12px 14px', borderRadius: 10,
-                  background: subBg, border: `1px solid ${border}`,
-                  cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                  opacity: loading ? 0.6 : 1, transition: 'all 0.15s',
-                }}>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 700 }}>📦 {f.name}</p>
-                    <p style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>
-                      {new Date(f.modifiedTime).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      {f.size && ` · ${(f.size / 1024).toFixed(0)} KB`}
-                    </p>
-                  </div>
-                  {loading ? <span className="spin" style={{ color: accent }}>◌</span> : <span style={{ color: accent, fontSize: 18 }}>→</span>}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, background: darkMode ? '#21262d' : '#f1f5f9', border: 'none', borderRadius: 10, color: darkMode ? '#e6edf3' : '#0d1117', cursor: 'pointer', fontFamily: 'inherit' }}>{useT("back")}</button>
-            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8, textAlign: 'center' }}>{error}</p>}
-          </div>
-        )}
-
-        {/* STEP: upload manual */}
         {step === 'upload' && (
           <div>
-            <div style={{ background: subBg, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 12, color: '#8b949e', lineHeight: 1.7 }}>
-              <p style={{ fontWeight: 700, color: accent, marginBottom: 6 }}>📱 Como exportar do Mihon:</p>
-              <p>1. Abre o Mihon → <strong>{lang === "en" ? "More" : "Mais"}</strong> → <strong>{lang === "en" ? "Backup & Restore" : "Backup e Restauro"}</strong></p>
-              <p>2. Carrega em <strong>{lang === "en" ? "Create backup" : "Criar backup"}</strong> → guarda o ficheiro</p>
-              <p>3. Seleciona o ficheiro <code style={{ background: '#21262d', padding: '1px 4px', borderRadius: 3 }}>.tachibk</code> abaixo</p>
+            <div style={{ background: subBg, border: `2px dashed ${accent}44`, borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📂</div>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{lang === "en" ? "Select .tachibk backup file" : "Seleciona o ficheiro .tachibk"}</p>
+              <p style={{ fontSize: 11, color: '#8b949e', marginBottom: 16 }}>Mihon → {lang === "en" ? "More" : "Mais"} → {lang === "en" ? "Backup & Restore" : "Backup e Restauro"} → {lang === "en" ? "Create backup" : "Criar backup"}</p>
+              <input ref={fileRef} type="file" accept=".tachibk,.proto.gz,.gz" onChange={e => e.target.files[0] && processFile(e.target.files[0])} style={{ display: 'none' }} />
+              <button onClick={() => fileRef.current?.click()} disabled={loading} style={{ padding: '10px 24px', borderRadius: 10, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700 }}>
+                {loading ? <span className="spin">◌</span> : (lang === "en" ? "Choose file" : "Escolher ficheiro")}
+              </button>
             </div>
-            <input ref={fileRef} type="file" accept=".tachibk,.proto,.bak" style={{ display: 'none' }} onChange={handleFile} />
-            <button onClick={() => fileRef.current?.click()} disabled={loading} style={{
-              width: '100%', padding: 14, borderRadius: 12, border: `2px dashed ${accent}66`,
-              background: `${accent}11`, color: accent, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              {loading ? <span className="spin">◌</span> : '📂'} {loading ? 'A processar...' : 'Selecionar ficheiro .tachibk'}
-            </button>
-            <button onClick={() => setStep('choose')} style={{ width: '100%', padding: 10, marginTop: 8, background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>{useT("back")}</button>
-            {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</p>}
+            {error && <p style={{ color: '#ef4444', fontSize: 12, textAlign: 'center' }}>{error}</p>}
           </div>
         )}
 
@@ -1081,6 +897,7 @@ function MihonImportModal({ onClose, onImport, driveClientId, onSaveClientId }) 
     </div>
   );
 }
+
 
 
 
@@ -1854,7 +1671,7 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, driveClientId, onSaveDriveClientId, lastDriveSync, onAutoSync, driveAutoSyncing, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang }) {
   const [editing, setEditing] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -2473,8 +2290,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
          
           onClose={() => setShowMihon(false)}
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
-          driveClientId={driveClientId}
-          onSaveClientId={onSaveDriveClientId}
         />
       )}
 
@@ -2494,54 +2309,28 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         />
       )}
 
-      {/* ── Mihon Sync ── */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "SYNC" : "SINCRONIZAÇÃO"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+      {/* ── Import ── */}
+      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "IMPORT" : "IMPORTAR"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Mihon</p>
-            {lastDriveSync ? (
-              <p style={{ fontSize: 11, color: "#10b981", marginBottom: 2 }}>
-                ✓ Última sync: {lastDriveSync.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            ) : (
-              <p style={{ fontSize: 12, color: "#8b949e" }}>{lang === "en" ? "Library, progress and reading status" : "Biblioteca, progresso e estado de leitura"}</p>
-            )}
+            <p style={{ fontSize: 12, color: "#8b949e" }}>{lang === "en" ? "Library, progress and reading status" : "Biblioteca, progresso e estado de leitura"}</p>
           </div>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {driveClientId && (
-              <button onClick={() => onAutoSync && onAutoSync(driveClientId)} disabled={driveAutoSyncing} style={{
-                padding: "8px 12px", fontSize: 12, fontWeight: 700, borderRadius: 10,
-                background: driveAutoSyncing ? "#21262d" : `${accent}22`,
-                border: `1px solid ${accent}44`, color: driveAutoSyncing ? "#484f58" : accent,
-                cursor: driveAutoSyncing ? "not-allowed" : "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 5,
-              }}>
-                {driveAutoSyncing ? <span className="spin">◌</span> : "☁️"} Sync
-              </button>
-            )}
-            <button onClick={() => setShowMihon(true)} className="btn-accent" style={{ padding: "8px 14px", fontSize: 13 }}>
-              Importar
-            </button>
-          </div>
-        </div>
-        {/* Status bar */}
-        <div style={{ marginTop: 12, padding: "8px 10px", background: darkMode ? "#0d111766" : "#f8fafc", borderRadius: 8, fontSize: 11, color: "#484f58", lineHeight: 1.6 }}>
-          {driveClientId
-            ? <>☁️ <strong style={{ color: "#10b981" }}>Google Drive ligado</strong> — sync automático ao abrir a app. Ou clica <strong>Sync</strong> para atualizar agora.</>
-            : <>💡 Mihon → <strong>{lang === "en" ? "More" : "Mais"}</strong> → <strong>{lang === "en" ? "Backup & Restore" : "Backup e Restauro"}</strong> → <strong>{lang === "en" ? "Create backup" : "Criar backup"}</strong> → ou liga o Google Drive no modal de importação para sync automático.</>
-          }
+          <button onClick={() => setShowMihon(true)} className="btn-accent" style={{ padding: "8px 14px", fontSize: 13, flexShrink: 0 }}>
+            {lang === "en" ? "Import" : "Importar"}
+          </button>
         </div>
         {/* Divider */}
-        <div style={{ borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "12px 0" }} />
+        <div style={{ borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "10px 0" }} />
         {/* Paperback */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           <span style={{ fontSize: 20, width: 36, textAlign: "center" }}>📖</span>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 13, fontWeight: 700 }}>Paperback <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>— iOS manga e comics</span></p>
           </div>
-          <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{useT("importMihon").replace("Import Mihon","Import").replace("Importar Mihon","Importar")}</button>
+          <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{lang === "en" ? "Import" : "Importar"}</button>
         </div>
         {/* Letterboxd */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -4140,9 +3929,7 @@ export default function TrackAll() {
   const [textContrastMobile, setTextContrastMobile] = useState(100);
   const [savedThemes, setSavedThemes] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_themes") || "[]"); } catch { return []; } });
   const [statsCardBg, setStatsCardBg] = useState("");
-  const [driveClientId, setDriveClientId] = useState("");
-  const [lastDriveSync, setLastDriveSync] = useState(null);
-  const [driveAutoSyncing, setDriveAutoSyncing] = useState(false);
+
   const [bgImage, setBgImage] = useState("");
   const [bgImageMobile, setBgImageMobile] = useState("");
   const [bgSeparateDevices, setBgSeparateDevices] = useState(false);
@@ -4335,15 +4122,7 @@ export default function TrackAll() {
         if (prof.text_contrast !== undefined) setTextContrast(prof.text_contrast ?? 100);
         if (prof.text_contrast_mobile !== undefined) setTextContrastMobile(prof.text_contrast_mobile ?? 100);
         if (prof.bg_color_mobile) setBgColorMobile(prof.bg_color_mobile);
-        if (prof.drive_client_id) {
-          setDriveClientId(prof.drive_client_id);
-          // Auto-sync: try silently after browser is idle (não bloqueia o arranque)
-          if (window.requestIdleCallback) {
-            window.requestIdleCallback(() => autoSyncDrive(prof.drive_client_id), { timeout: 5000 });
-          } else {
-            setTimeout(() => autoSyncDrive(prof.drive_client_id), 5000);
-          }
-        }
+
         if (prof.bg_color) {
           setBgColor(prof.bg_color);
           setDarkMode(isColorDark(prof.bg_color));
@@ -4479,10 +4258,6 @@ export default function TrackAll() {
     setBgColorMobile(c);
     if (user) try { await supa.upsertProfile(user.id, { bg_color_mobile: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_color_mobile:", err); }
   };
-  const saveDriveClientId = async (id) => {
-    setDriveClientId(id);
-    if (user) try { await supa.upsertProfile(user.id, { drive_client_id: id }); } catch (err) { console.error("[TrackAll] Erro ao guardar drive_client_id:", err); }
-  };
   const saveBg = async (c) => {
     setBgColor(c);
     setDarkMode(isColorDark(c));
@@ -4542,38 +4317,6 @@ export default function TrackAll() {
     if (navigator.vibrate) navigator.vibrate(50);
   }, [library]);
 
-  const autoSyncDrive = async (clientId) => {
-    if (!clientId || driveAutoSyncing) return;
-    // Only auto-sync once per session (silent, no popup if token fails)
-    try {
-      setDriveAutoSyncing(true);
-      // Try to get token silently (no prompt)
-      const token = await new Promise((resolve, reject) => {
-        if (!window.google?.accounts?.oauth2) { reject(); return; }
-        const client = window.google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: 'https://www.googleapis.com/auth/drive.readonly',
-          prompt: 'none', // silent — no popup
-          callback: (resp) => resp.error ? reject() : resolve(resp.access_token),
-        });
-        client.requestAccessToken({ prompt: 'none' });
-      });
-      const files = await driveFindBackups(token);
-      if (!files.length) return;
-      // Download most recent backup
-      const fileLike = await driveDownloadFile(token, files[0].id);
-      const parsed = await parseMihonBackup(fileLike);
-      if (parsed.length) {
-        importMihon(parsed);
-        setLastDriveSync(new Date());
-        showNotif(`Mihon auto-sync: ${parsed.length} mangas ✓`, "#10b981");
-      }
-    } catch {
-      // Silent fail — user will sync manually if needed
-    } finally {
-      setDriveAutoSyncing(false);
-    }
-  };
 
   const importPaperback = async (pbItems) => {
     const lib = { ...library };
@@ -5839,11 +5582,6 @@ export default function TrackAll() {
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
-            driveClientId={driveClientId}
-            onSaveDriveClientId={saveDriveClientId}
-            lastDriveSync={lastDriveSync}
-            onAutoSync={autoSyncDrive}
-            driveAutoSyncing={driveAutoSyncing}
             onOpen={setSelectedItem}
             diaryPanel={!isMobileDevice ? (() => {
               const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
