@@ -560,8 +560,10 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
   const [hover, setHover] = useState(0);
   const active = hover || value;
 
+  // Each star = 1 point, but we support 0.5 increments
+  // We render 10 stars, each star can be empty, half, or full
   return (
-    <div style={{ display: "flex", gap: 2, alignItems: "center", flexShrink: 0 }}>
+    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
       {[1,2,3,4,5,6,7,8,9,10].map((star) => {
         const full = active >= star;
         const half = !full && active >= star - 0.5;
@@ -580,13 +582,13 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
                 lineHeight: 1, overflow: "hidden", width: full ? "100%" : "50%", userSelect: "none",
               }}>★</span>
             )}
-            {/* Left half hitbox */}
+            {/* Left half hitbox (X - 0.5) */}
             <div
               style={{ position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star - 0.5)}
               onClick={() => !readOnly && onChange && onChange(value === star - 0.5 ? 0 : star - 0.5)}
             />
-            {/* Right half hitbox */}
+            {/* Right half hitbox (X) */}
             <div
               style={{ position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star)}
@@ -595,10 +597,12 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
           </div>
         );
       })}
-      {/* Número com largura fixa para não causar layout shift */}
-      <span style={{ fontSize: size * 0.85, color: "#f59e0b", fontWeight: 700, marginLeft: 4, minWidth: size * 1.6, display: "inline-block" }}>
-        {active > 0 ? active : (!readOnly ? "" : "")}
-      </span>
+      {active > 0 && !readOnly && (
+        <span style={{ fontSize: size * 0.85, color: "#f59e0b", fontWeight: 700, marginLeft: 4, minWidth: "2ch", display: "inline-block" }}>{active}</span>
+      )}
+      {readOnly && value > 0 && (
+        <span style={{ fontSize: size * 0.85, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{value}</span>
+      )}
     </div>
   );
 }
@@ -3785,10 +3789,10 @@ function RatingOverlay({ item, library, onDone }) {
             <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}</div>
           </div>
         </div>
-        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 20 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
+        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 16 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-            <StarRating value={rating} onChange={setRating} size={isMobileDevice ? 24 : 28} />
+            <StarRating value={rating} onChange={setRating} size={isMobileDevice ? 22 : 26} />
           </div>
           {rating > 0 && (
             <button onClick={() => onDone(rating)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, background: accent, border: "none", color: textColor, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
@@ -3907,18 +3911,18 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
       {!open ? (
         <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
           <span className="ds-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="10.5" cy="10.5" r="6.5" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.8"/>
-              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={darkMode ? "#8b949e" : "#64748b"} strokeWidth="1.8" strokeLinecap="round"/>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
+              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </span>
           {useT("search")}
         </button>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, margin: "2px 0" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="1.8"/>
-            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="1.8" strokeLinecap="round"/>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, margin: "2px 0" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: accent }}>
+            <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
+            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => {
@@ -4805,8 +4809,7 @@ export default function TrackAll() {
               {/* Biblioteca por tipo */}
               {libByType.length > 0 && (
                 <>
-                  <p className="ds-section" style={{ marginTop: 12 }}>{useT("library")}</p>
-                  <div style={{ paddingBottom: 12 }}>
+                  <p className="ds-section" style={{ marginTop: 4 }}>{useT("library")}</p>
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const isActive = view === "library" && activeTab === t.id;
@@ -4830,7 +4833,6 @@ export default function TrackAll() {
                       </div>
                     );
                   })}
-                  </div>
                 </>
               )}
 
@@ -5003,7 +5005,7 @@ export default function TrackAll() {
           }
           .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
           .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
-          .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+          .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
           .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 24px 6px; }
           .ds-type-item {
             display: flex; align-items: center; gap: 8px;
