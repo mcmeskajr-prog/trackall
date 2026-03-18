@@ -4660,6 +4660,9 @@ export default function TrackAll() {
     return () => clearTimeout(t);
   }, [logQuery, quickSearchType]);
 
+  // Reset página ao mudar filtros/sort/search/tab
+  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
+
   const items = useMemo(() => {
     if (demoMode) return Object.values(DEMO_LIBRARY);
     return Object.values(library);
@@ -4691,8 +4694,6 @@ export default function TrackAll() {
   const ITEMS_PER_PAGE = 40;
   const totalPages = Math.ceil(sortedLib.length / ITEMS_PER_PAGE);
   const pagedLib = sortedLib.slice(libPage * ITEMS_PER_PAGE, (libPage + 1) * ITEMS_PER_PAGE);
-  // Reset página ao mudar filtros/sort/search
-  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
 
   const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
 
