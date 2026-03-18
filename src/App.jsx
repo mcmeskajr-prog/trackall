@@ -4107,8 +4107,6 @@ export default function TrackAll() {
   const [libSearch, setLibSearch] = useState("");
   const [libViewMode, setLibViewMode] = useState(() => { try { const m = localStorage.getItem("trackall_lib_view") || "grid"; return m; } catch { return "grid"; } });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
-  // No mobile, compact não existe — fallback para grid
-  const activeLibViewMode = (isMobileDevice && libViewMode === "compact") ? "grid" : libViewMode;
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
@@ -4314,6 +4312,8 @@ export default function TrackAll() {
   };
   // isMobile check — calculado uma vez, estável entre renders
   const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  // No mobile, compact não existe — fallback para grid
+  const activeLibViewMode = (isMobileDevice && libViewMode === "compact") ? "grid" : libViewMode;
 
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
