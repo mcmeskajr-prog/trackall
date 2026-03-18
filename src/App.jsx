@@ -4709,6 +4709,13 @@ export default function TrackAll() {
     return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
   }, [filteredLib, libSort]);
 
+  const ITEMS_PER_PAGE = 40;
+  const [libPage, setLibPage] = useState(0);
+  // Reset página ao mudar filtros/sort/search
+  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
+  const totalPages = Math.ceil(sortedLib.length / ITEMS_PER_PAGE);
+  const pagedLib = sortedLib.slice(libPage * ITEMS_PER_PAGE, (libPage + 1) * ITEMS_PER_PAGE);
+
   const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
 
   // Stat colors pré-calculados — evita accentShade() em cada render
@@ -4938,6 +4945,7 @@ export default function TrackAll() {
           input, select, textarea { background: ${darkMode ? "#0d1117" : "#ffffff"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
+          .desktop-sidebar input:focus { box-shadow: none; border-color: transparent; }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
@@ -5033,6 +5041,7 @@ export default function TrackAll() {
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
             overflow-y: auto;
+            scrollbar-gutter: stable;
           }
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
@@ -5553,7 +5562,7 @@ export default function TrackAll() {
                   </div>
                 ) : libViewMode === "list" ? (
                   <LibGroupedList
-                    items={sortedLib}
+                    items={pagedLib}
                     library={library}
                    
                    
@@ -5561,7 +5570,7 @@ export default function TrackAll() {
                   />
                 ) : libViewMode === "compact" ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
-                    {sortedLib.map(item => {
+                    {pagedLib.map(item => {
                       const libItem = library[item.id];
                       const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
                       const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
@@ -5578,13 +5587,37 @@ export default function TrackAll() {
                   </div>
                 ) : (
                   <VirtualGrid
-                    key={`${filterStatus}-${activeTab}-${libSort}`}
-                    items={sortedLib}
+                    key={`${filterStatus}-${activeTab}-${libSort}-${libPage}`}
+                    items={pagedLib}
                     library={library}
                     onOpen={setSelectedItem}
                     accent={accent}
                     columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5}
                   />
+                )}
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 24, paddingBottom: 8 }}>
+                    <button onClick={() => { setLibPage(p => Math.max(0, p - 1)); window.scrollTo(0, 0); }}
+                      disabled={libPage === 0}
+                      style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: libPage === 0 ? "#484f58" : (darkMode ? "#e6edf3" : "#0d1117"), cursor: libPage === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13, opacity: libPage === 0 ? 0.4 : 1 }}>
+                      ← {lang === "en" ? "Prev" : "Ant"}
+                    </button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button key={i} onClick={() => { setLibPage(i); window.scrollTo(0, 0); }}
+                          style={{ width: 30, height: 30, borderRadius: 6, border: "none", background: i === libPage ? accent : (darkMode ? "#21262d" : "#f1f5f9"), color: i === libPage ? "white" : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12 }}>
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => { setLibPage(p => Math.min(totalPages - 1, p + 1)); window.scrollTo(0, 0); }}
+                      disabled={libPage === totalPages - 1}
+                      style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: libPage === totalPages - 1 ? "#484f58" : (darkMode ? "#e6edf3" : "#0d1117"), cursor: libPage === totalPages - 1 ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13, opacity: libPage === totalPages - 1 ? 0.4 : 1 }}>
+                      {lang === "en" ? "Next" : "Próx"} →
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
