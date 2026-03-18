@@ -1099,7 +1099,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   useEffect(() => {
     setDetailExtra(null);
-    if (item && tmdbKey) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+    if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
@@ -1112,7 +1112,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }} onClick={(e) => e.stopPropagation()}>
         {/* Hero backdrop */}
         <div style={{
           height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)),
@@ -1181,11 +1181,15 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           )}
 
           {/* Synopsis */}
-          {item.synopsis && (
-            <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
-              {item.synopsis.slice(0, 500)}{item.synopsis.length > 500 ? "…" : ""}
-            </p>
-          )}
+          {(() => {
+            const synopsis = detailExtra?.synopsis || item.synopsis;
+            if (!synopsis) return null;
+            return (
+              <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
+                {synopsis.slice(0, 500)}{synopsis.length > 500 ? "…" : ""}
+              </p>
+            );
+          })()}
 
           {/* Library section */}
           <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
@@ -1680,6 +1684,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
+  const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
   const [shareCopied, setShareCopied] = useState(false);
   const [themeName, setThemeName] = useState("");
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
@@ -1726,7 +1731,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   };
 
   const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail });
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
     setEditing(false);
   };
 
@@ -1740,6 +1745,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* ── Banner + Avatar header ── */}
       <div style={{ position: "relative", marginBottom: 64 }}>
         {/* Banner — taller, more impactful */}
+        {!(isMobileDevice && profile.hideBannerMobile) && (
         <div style={{
           height: 260, overflow: "hidden", position: "relative",
           borderRadius: "20px 20px 0 0",
@@ -1811,6 +1817,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           )}
         </div>
+        )}
 
         {/* Avatar — overlaps banner */}
         <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
@@ -1849,6 +1856,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
               <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
               <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{useT("hideEmail")}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no telemóvel"}</span>
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
@@ -3905,9 +3916,23 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
+  const wrapRef = useRef(null);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
+
+  // Fecha ao clicar fora (mesmo efeito que ESC)
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false); setQ("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
   return (
-    <>
+    <div ref={wrapRef}>
       {!open ? (
         <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
           <span className="ds-icon">
@@ -3930,11 +3955,11 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
               if (e.key === "Escape") { setOpen(false); setQ(""); }
             }}
             placeholder={useT("search") + "..."}
-            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0 }} />
+            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, boxShadow: "none" }} />
           <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -4136,7 +4161,7 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
         if (prof.sidebar_color !== undefined) setSidebarColor(prof.sidebar_color || "");
@@ -4243,6 +4268,7 @@ export default function TrackAll() {
           avatar: p.avatar || "",
           banner: p.banner || "",
           hide_email: p.hideEmail || false,
+          hide_banner_mobile: p.hideBannerMobile || false,
         });
       } catch (err) {
         console.error('[TrackAll] Erro ao guardar perfil:', err);
@@ -4961,7 +4987,7 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .media-grid .card { animation: none !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
-            .modal { border-radius: 24px 24px 0 0 !important; max-height: 92vh !important; width: 100% !important; max-width: 100% !important; }
+            .modal { border-radius: 24px 24px 0 0 !important; max-height: calc(92vh - 64px) !important; width: 100% !important; max-width: 100% !important; margin-bottom: 64px !important; }
             .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
           }
           @keyframes spin { to { transform: rotate(360deg); } }
@@ -5705,7 +5731,7 @@ export default function TrackAll() {
                 ))}
               </div>
               <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
+                placeholder={quickSearchType ? `${lang === "en" ? "Search" : "Pesquisar"} ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.[lang === "en" ? "labelEn" : "label"] || ""}...` : (lang === "en" ? "Search any title..." : "Pesquisar qualquer título...")}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
               {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>{useT("searching")}</p>}
               {!logQuery && !logSearching && (
@@ -5713,23 +5739,43 @@ export default function TrackAll() {
               )}
               {logResults.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-                  {logResults.map(item => (
-                    <div key={item.id} onClick={() => {
-                      if (library[item.id]) updateStatus(item.id, "completo");
-                      else addToLibrary(item, "completo");
-                      setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
-                    }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", cursor: "pointer" }}>
-                      {(item.cover || item.thumbnailUrl)
-                        ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                        : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                      }
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
+                  {logResults.map(item => {
+                    const inLib = !!library[item.id];
+                    return (
+                      <div key={item.id} style={{ borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
+                          {(item.cover || item.thumbnailUrl)
+                            ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                            : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                            <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
+                          </div>
+                          {inLib && <span style={{ fontSize: 10, color: "#10b981", fontWeight: 700, flexShrink: 0, background: "#10b98122", padding: "2px 6px", borderRadius: 5 }}>✓ {lang === "en" ? "In lib" : "Na lib"}</span>}
+                        </div>
+                        {/* Status buttons */}
+                        <div style={{ display: "flex", borderTop: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, overflow: "hidden" }}>
+                          {STATUS_OPTIONS.map((s, si) => (
+                            <button key={s.id} onClick={() => {
+                              if (inLib) updateStatus(item.id, s.id);
+                              else addToLibrary(item, s.id);
+                              setLogOpen(false); setLogQuery(""); setLogResults([]);
+                              if (s.id === "completo") setLogPendingItem(item);
+                            }} style={{
+                              flex: 1, padding: "7px 2px", border: "none", borderRight: si < STATUS_OPTIONS.length - 1 ? `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` : "none",
+                              background: inLib && library[item.id]?.userStatus === s.id ? `${s.color}25` : "transparent",
+                              color: s.color, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                            }}>
+                              <span style={{ fontSize: 14 }}>{s.emoji}</span>
+                              <span style={{ fontSize: 9, opacity: 0.8 }}>{statusLabel(s, lang).slice(0, 8)}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
