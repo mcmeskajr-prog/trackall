@@ -1746,7 +1746,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* ── Banner + Avatar header ── */}
       <div style={{ position: "relative", marginBottom: 64 }}>
         {/* Banner — taller, more impactful */}
-        {!(isMobileDevice && profile.hideBannerMobile) && (
+        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) && (
         <div style={{
           height: 260, overflow: "hidden", position: "relative",
           borderRadius: "20px 20px 0 0",
@@ -3914,63 +3914,27 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
 
 // ─── Sidebar Search ───────────────────────────────────────────────────────────
 function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
-  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const inputRef = useRef(null);
-  const wrapRef = useRef(null);
-  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
-
-  // Fecha ao clicar fora (mesmo efeito que ESC)
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false); setQ("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
   return (
-    <div ref={wrapRef} style={{ margin: "1px 8px", borderRadius: 10 }}>
-      {!open ? (
-        <button onClick={() => setOpen(true)} style={{
-          display: "flex", alignItems: "center", gap: 12,
-          width: "100%", padding: "11px 16px", border: "none", background: "none",
-          cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600,
-          color: darkMode ? "#8b949e" : "#64748b", borderRadius: 10, textAlign: "left",
-          transition: "all 0.15s",
-        }}
-          onMouseEnter={e => { e.currentTarget.style.background = darkMode ? "#161b22" : "#f1f5f9"; e.currentTarget.style.color = darkMode ? "#e6edf3" : "#0d1117"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = darkMode ? "#8b949e" : "#64748b"; }}
-        >
-          <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
-              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </span>
-          {useT("search")}
-        </button>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
-          <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
-              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </span>
-          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
-              if (e.key === "Escape") { setOpen(false); setQ(""); }
-            }}
-            placeholder={useT("search") + "..."}
-            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, boxShadow: "none" }} />
-          <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
-        </div>
-      )}
+    <div style={{ margin: "4px 8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f1f5f9", borderRadius: 10, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, transition: "border-color 0.15s" }}>
+        <span style={{ display: "flex", alignItems: "center", flexShrink: 0, color: "#484f58" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
+            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </span>
+        <input value={q} onChange={e => setQ(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setQ(""); }
+            if (e.key === "Escape") setQ("");
+          }}
+          onFocus={e => { e.currentTarget.parentElement.style.borderColor = accent + "88"; }}
+          onBlur={e => { e.currentTarget.parentElement.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"; }}
+          placeholder={useT("search") + "..."}
+          style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, boxShadow: "none" }} />
+        {q && <button onClick={() => setQ("")} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 12, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>}
+      </div>
     </div>
   );
 }
