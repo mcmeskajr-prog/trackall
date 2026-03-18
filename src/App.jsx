@@ -140,6 +140,67 @@ const supa = {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
     return data;
   },
+
+  // ── Tier Lists ──
+  async getPopularTierlists(limit = 10) {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase.from('tierlists')
+      .select('*, profiles(name, username, avatar)')
+      .gte('created_at', since)
+      .order('likes_count', { ascending: false })
+      .limit(limit);
+    return data || [];
+  },
+
+  async getUserTierlists(userId) {
+    const { data } = await supabase.from('tierlists')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  async createTierlist(userId, title, tiers) {
+    const { data, error } = await supabase.from('tierlists')
+      .insert({ user_id: userId, title, tiers })
+      .select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async updateTierlist(id, title, tiers) {
+    const { error } = await supabase.from('tierlists')
+      .update({ title, tiers })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteTierlist(id) {
+    await supabase.from('tierlists').delete().eq('id', id);
+  },
+
+  async toggleTierlistLike(userId, tierlistId) {
+    const { data: existing } = await supabase.from('tierlist_likes')
+      .select('id').eq('user_id', userId).eq('tierlist_id', tierlistId).single();
+    if (existing) {
+      await supabase.from('tierlist_likes').delete().eq('id', existing.id);
+      await supabase.from('tierlists').update({ likes_count: supabase.rpc('decrement', { x: 1 }) }).eq('id', tierlistId);
+      // fallback manual
+      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
+      await supabase.from('tierlists').update({ likes_count: Math.max(0, (tl?.likes_count || 1) - 1) }).eq('id', tierlistId);
+      return false;
+    } else {
+      await supabase.from('tierlist_likes').insert({ user_id: userId, tierlist_id: tierlistId });
+      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
+      await supabase.from('tierlists').update({ likes_count: (tl?.likes_count || 0) + 1 }).eq('id', tierlistId);
+      return true;
+    }
+  },
+
+  async getUserLikes(userId) {
+    const { data } = await supabase.from('tierlist_likes').select('tierlist_id').eq('user_id', userId);
+    return (data || []).map(r => r.tierlist_id);
+  },
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
@@ -1676,8 +1737,11 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [] }) {
   const [editing, setEditing] = useState(false);
+  const [profileTab, setProfileTab] = useState("perfil"); // perfil | completos | tierlists | diario
+  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
+  const [completosSortMode, setCompletosSortMode] = useState("date");
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
@@ -1895,10 +1959,32 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         )}
       </div>
 
-      {/* Stats and settings — PC: flex row com diário à direita */}
+      {/* ── Profile Tabs ── */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "0 0 0 0", overflowX: "auto", scrollbarWidth: "none" }}>
+        {[
+          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
+          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
+          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
+          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
+            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
+            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
+            color: profileTab === tab.id ? accent : "#484f58",
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
+            display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+            marginBottom: -1,
+          }}>
+            <span>{tab.icon}</span> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: PERFIL ── */}
+      {profileTab === "perfil" && (
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
-        : { padding: "0 16px" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
+        : { padding: "16px 16px 0" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
 
@@ -2464,6 +2550,151 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
       {diaryPanel}
       </div>
+      </div>
+      )} {/* fim tab perfil */}
+
+      {/* ── TAB: COMPLETOS ── */}
+      {profileTab === "completos" && (() => {
+        const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+        const typeFilter = completosTypeFilter;
+        const setTypeFilter = setCompletosTypeFilter;
+        const sortMode = completosSortMode;
+        const setSortMode = setCompletosSortMode;
+        const filtered = completados
+          .filter(i => typeFilter === "all" || i.type === typeFilter)
+          .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
+        return (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+                  <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
+              {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
+                <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                  {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
+                </button>
+              ))}
+            </div>
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
+                {filtered.map(item => {
+                  const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                  return (
+                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                      <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                        {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                        {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                      </div>
+                      <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── TAB: TIER LISTS ── */}
+      {profileTab === "tierlists" && (
+        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
+            <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
+              + {lang === "en" ? "New Tier List" : "Nova Tier List"}
+            </button>
+          </div>
+          {userTierlists.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+              <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
+              <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
+                + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+              {userTierlists.map(tl => (
+                <TierListCard
+                  key={tl.id}
+                  tl={tl}
+                  onOpen={tl => { /* view inline */ }}
+                  onLike={onLikeTierlist}
+                  liked={userLikes.includes(tl.id)}
+                  currentUserId={tl.user_id}
+                  onDelete={onDeleteTierlist}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB: DIÁRIO ── */}
+      {profileTab === "diario" && (() => {
+        const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
+        if (completados.length === 0) return (
+          <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+            <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
+          </div>
+        );
+        const groups = {};
+        completados.forEach(item => {
+          const d = new Date(item.addedAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+          groups[key].items.push({ ...item, _day: d.getDate() });
+        });
+        const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+        return (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {sortedGroups.map(group => (
+                <div key={group.key}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
+                      <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
+                      <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: "var(--text-primary)" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
+                    </div>
+                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
+                    <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+                    {[...group.items].sort((a,b) => b._day - a._day).map(item => {
+                      const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                      return (
+                        <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                          <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                            {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                            <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
+                            {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                          </div>
+                          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--text-muted)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
     </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
@@ -3789,6 +4020,235 @@ function LetterboxdImportModal({ onClose, onImport }) {
   );
 }
 
+// ─── Tier List Components ─────────────────────────────────────────────────────
+const TIER_LEVELS = [
+  { id: "S", label: "S", color: "#ef4444" },
+  { id: "A", label: "A", color: "#f97316" },
+  { id: "B", label: "B", color: "#eab308" },
+  { id: "C", label: "C", color: "#22c55e" },
+  { id: "D", label: "D", color: "#3b82f6" },
+];
+
+function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
+  const { accent, darkMode } = useTheme();
+  const { lang } = useLang();
+  const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
+  const preview = allItems.slice(0, 6);
+  return (
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: 14, cursor: "pointer", transition: "all 0.15s" }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = accent + "66"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
+          {tl.profiles && <p style={{ fontSize: 11, color: "#484f58" }}>@{tl.profiles.username || tl.profiles.name}</p>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "3px 10px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+            ♥ {tl.likes_count || 0}
+          </button>
+          {currentUserId === tl.user_id && onDelete && (
+            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>🗑</button>
+          )}
+        </div>
+      </div>
+      {/* Preview das tiers */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
+        {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).slice(0, 3).map(tier => (
+          <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 5, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "white", flexShrink: 0 }}>{tier.id}</span>
+            <div style={{ display: "flex", gap: 3, overflow: "hidden" }}>
+              {(tl.tiers[tier.id] || []).slice(0, 5).map(item => {
+                const cover = item.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} style={{ width: 22, height: 32, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                  </div>
+                );
+              })}
+              {(tl.tiers[tier.id] || []).length > 5 && <span style={{ fontSize: 10, color: "#484f58", alignSelf: "center" }}>+{(tl.tiers[tier.id] || []).length - 5}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} {lang === "en" ? "items" : "itens"}</span>
+        <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString(lang === "en" ? "en-US" : "pt-PT", { day: "2-digit", month: "short" })}</span>
+      </div>
+    </div>
+  );
+}
+
+function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", flex: 1, marginRight: 12 }}>{tl.title}</h2>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>✕</button>
+          </div>
+          {tl.profiles && <p style={{ fontSize: 12, color: "#484f58", marginBottom: 16 }}>por @{tl.profiles.username || tl.profiles.name}</p>}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <button onClick={() => onLike && onLike(tl.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "6px 16px", color: liked ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+              ♥ {tl.likes_count || 0} {lang === "en" ? "likes" : "gostos"}
+            </button>
+            {currentUserId === tl.user_id && onEdit && (
+              <button onClick={() => { onClose(); onEdit(tl); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid #30363d`, borderRadius: 20, padding: "6px 16px", color: "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+                ✏ {lang === "en" ? "Edit" : "Editar"}
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: "0 20px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {TIER_LEVELS.map(tier => {
+            const items = tl.tiers[tier.id] || [];
+            return (
+              <div key={tier.id} style={{ display: "flex", gap: 0, minHeight: 56, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                <div style={{ width: 48, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{tier.id}</span>
+                </div>
+                <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 6, padding: 8, alignContent: "flex-start" }}>
+                  {items.length === 0 ? (
+                    <span style={{ fontSize: 12, color: "#484f58", alignSelf: "center" }}>{lang === "en" ? "Empty" : "Vazio"}</span>
+                  ) : items.map(item => {
+                    const cover = item.customCover || item.cover || item.thumbnailUrl;
+                    return (
+                      <div key={item.id} style={{ position: "relative" }} title={item.title}>
+                        <div style={{ width: 40, height: 58, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id) }}>
+                          {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TierListEditor({ initialData, library, onSave, onClose }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [tiers, setTiers] = useState(initialData?.tiers || { S: [], A: [], B: [], C: [], D: [] });
+  const [search, setSearch] = useState("");
+  const [searchType, setSearchType] = useState("all");
+  const [dragItem, setDragItem] = useState(null);
+  const [dragFrom, setDragFrom] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const libItems = Object.values(library);
+  const unranked = libItems.filter(i =>
+    i.userStatus === "completo" &&
+    !Object.values(tiers).flat().some(t => t.id === i.id) &&
+    (searchType === "all" || i.type === searchType) &&
+    (search === "" || i.title?.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const moveItem = (item, fromTier, toTier) => {
+    setTiers(prev => {
+      const next = { ...prev };
+      if (fromTier && next[fromTier]) next[fromTier] = next[fromTier].filter(i => i.id !== item.id);
+      if (toTier) next[toTier] = [...(next[toTier] || []), item];
+      return next;
+    });
+  };
+
+  const removeFromTier = (item, tierId) => {
+    setTiers(prev => ({ ...prev, [tierId]: prev[tierId].filter(i => i.id !== item.id) }));
+  };
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    await onSave(title.trim(), tiers);
+    setSaving(false);
+  };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade-in" style={{ maxWidth: 680, maxHeight: "92vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 20px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 900 }}>{initialData ? (lang === "en" ? "Edit Tier List" : "Editar Tier List") : (lang === "en" ? "New Tier List" : "Nova Tier List")}</h2>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20 }}>✕</button>
+          </div>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder={lang === "en" ? "Tier list title..." : "Título da tier list..."} style={{ width: "100%", padding: "10px 14px", fontSize: 14, fontWeight: 700, borderRadius: 10, boxSizing: "border-box" }} />
+        </div>
+
+        {/* Tiers */}
+        <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {TIER_LEVELS.map(tier => (
+            <div key={tier.id} style={{ display: "flex", gap: 0, minHeight: 52, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); if (dragItem) { moveItem(dragItem, dragFrom, tier.id); setDragItem(null); setDragFrom(null); } }}>
+              <div style={{ width: 44, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "default" }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: "white" }}>{tier.id}</span>
+              </div>
+              <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 5, padding: 6, alignContent: "flex-start", minHeight: 52 }}>
+                {(tiers[tier.id] || []).map(item => {
+                  const cover = item.customCover || item.cover || item.thumbnailUrl;
+                  return (
+                    <div key={item.id} draggable onDragStart={() => { setDragItem(item); setDragFrom(tier.id); }} style={{ position: "relative", cursor: "grab" }} title={item.title}>
+                      <div style={{ width: 34, height: 50, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id) }}>
+                        {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                      </div>
+                      <button onClick={() => removeFromTier(item, tier.id)} style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: "50%", background: "#ef4444", border: "none", color: "white", fontSize: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>✕</button>
+                    </div>
+                  );
+                })}
+                {(tiers[tier.id] || []).length === 0 && (
+                  <span style={{ fontSize: 11, color: "#30363d", alignSelf: "center", paddingLeft: 4 }}>{lang === "en" ? "Drop here" : "Arrasta aqui"}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Unranked pool */}
+        <div style={{ padding: "0 20px 20px" }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{lang === "en" ? "Your completed items" : "Os teus itens completos"}</p>
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none" }}>
+            {[{ id: "all", label: lang === "en" ? "All" : "Todos" }, ...MEDIA_TYPES.slice(1)].map(t => (
+              <button key={t.id} onClick={() => setSearchType(t.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 20, border: `1px solid ${searchType === t.id ? accent : "#30363d"}`, background: searchType === t.id ? `${accent}22` : "transparent", color: searchType === t.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
+                {t.icon || ""} {t.labelEn ? (lang === "en" ? t.labelEn : t.label) : t.label}
+              </button>
+            ))}
+          </div>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === "en" ? "Search..." : "Pesquisar..."} style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, marginBottom: 10, boxSizing: "border-box" }} />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+            {unranked.slice(0, 60).map(item => {
+              const cover = item.customCover || item.cover || item.thumbnailUrl;
+              return (
+                <div key={item.id} draggable onDragStart={() => { setDragItem(item); setDragFrom(null); }} title={item.title} style={{ cursor: "grab" }}>
+                  <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                  </div>
+                </div>
+              );
+            })}
+            {unranked.length === 0 && <p style={{ fontSize: 12, color: "#484f58" }}>{lang === "en" ? "All completed items are ranked!" : "Todos os itens completos estão na lista!"}</p>}
+          </div>
+        </div>
+
+        <div style={{ padding: "12px 20px 20px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10 }}>
+          <button onClick={handleSave} disabled={!title.trim() || saving} className="btn-accent" style={{ flex: 2, padding: "12px", fontSize: 14, opacity: !title.trim() ? 0.5 : 1 }}>
+            {saving ? "..." : (lang === "en" ? "Save Tier List" : "Guardar Tier List")}
+          </button>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: darkMode ? "#21262d" : "#f1f5f9", border: "none", borderRadius: 10, color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function RatingOverlay({ item, library, onDone }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -4119,6 +4579,13 @@ export default function TrackAll() {
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
+  const [popularTierlists, setPopularTierlists] = useState([]);
+  const [tierlistsLoading, setTierlistsLoading] = useState(false);
+  const [userTierlists, setUserTierlists] = useState([]);
+  const [userLikes, setUserLikes] = useState([]);
+  const [viewingTierlist, setViewingTierlist] = useState(null);
+  const [editingTierlist, setEditingTierlist] = useState(null); // null | {} | tierlist
+  const [showTierlistEditor, setShowTierlistEditor] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -4184,6 +4651,10 @@ export default function TrackAll() {
   useEffect(() => {
     if (view === "home" && user && !recoLoading && Object.keys(recos).length === 0) {
       loadRecos();
+      loadPopularTierlists();
+    }
+    if (view === "profile" && user && userTierlists.length === 0) {
+      loadUserTierlists();
     }
   }, [view, user]);
 
@@ -4191,23 +4662,66 @@ export default function TrackAll() {
     setRecoLoading(true);
     setRecos({});
     try {
-      // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
       if (anime?.length) setRecos(r => ({ ...r, anime }));
-
       const manga = await fetchTrendingManga(workerUrl);
       if (manga?.length) setRecos(r => ({ ...r, manga }));
-
       const filmes = await fetchTrendingMovies(tmdbKey, workerUrl);
       if (filmes?.length) setRecos(r => ({ ...r, filmes }));
-
       const series = await fetchTrendingSeries(tmdbKey, workerUrl);
       if (series?.length) setRecos(r => ({ ...r, series }));
-
       const jogos = await fetchTrendingGames(workerUrl);
       if (jogos?.length) setRecos(r => ({ ...r, jogos }));
     } catch {}
     setRecoLoading(false);
+  };
+
+  const loadPopularTierlists = async () => {
+    setTierlistsLoading(true);
+    try {
+      const [tls, likes] = await Promise.all([
+        supa.getPopularTierlists(10),
+        user ? supa.getUserLikes(user.id) : Promise.resolve([]),
+      ]);
+      setPopularTierlists(tls);
+      setUserLikes(likes);
+    } catch {}
+    setTierlistsLoading(false);
+  };
+
+  const loadUserTierlists = async () => {
+    if (!user) return;
+    try {
+      const tls = await supa.getUserTierlists(user.id);
+      setUserTierlists(tls);
+    } catch {}
+  };
+
+  const handleTierlistLike = async (tierlistId) => {
+    if (!user) return;
+    const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
+    setUserLikes(prev => isLiked ? [...prev, tierlistId] : prev.filter(id => id !== tierlistId));
+    setPopularTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: tl.likes_count + (isLiked ? 1 : -1) } : tl));
+    setUserTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: tl.likes_count + (isLiked ? 1 : -1) } : tl));
+  };
+
+  const handleSaveTierlist = async (title, tiers) => {
+    if (!user) return;
+    if (editingTierlist?.id) {
+      await supa.updateTierlist(editingTierlist.id, title, tiers);
+    } else {
+      await supa.createTierlist(user.id, title, tiers);
+    }
+    setShowTierlistEditor(false);
+    setEditingTierlist(null);
+    loadUserTierlists();
+    loadPopularTierlists();
+  };
+
+  const handleDeleteTierlist = async (id) => {
+    await supa.deleteTierlist(id);
+    setUserTierlists(prev => prev.filter(tl => tl.id !== id));
+    setPopularTierlists(prev => prev.filter(tl => tl.id !== id));
   };
 
   const handleAuth = async (u) => {
@@ -5333,6 +5847,37 @@ export default function TrackAll() {
             {/* Divider */}
             <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
 
+            {/* ── Tier Lists Populares ── */}
+            {(popularTierlists.length > 0 || tierlistsLoading) && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                    {lang === "en" ? "🏆 Popular Tier Lists" : "🏆 Tier Lists Populares"}
+                  </h3>
+                  <button onClick={() => { setView("profile"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: 0 }}>
+                    {lang === "en" ? "+ Create" : "+ Criar"}
+                  </button>
+                </div>
+                {tierlistsLoading ? (
+                  <div style={{ padding: "20px 16px", textAlign: "center", color: "#484f58", fontSize: 13 }}>⏳</div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 10, padding: "0 16px" }}>
+                    {popularTierlists.slice(0, isMobileDevice ? 3 : 6).map(tl => (
+                      <TierListCard
+                        key={tl.id}
+                        tl={tl}
+                        onOpen={setViewingTierlist}
+                        onLike={handleTierlistLike}
+                        liked={userLikes.includes(tl.id)}
+                        currentUserId={user?.id}
+                        onDelete={handleDeleteTierlist}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -5643,65 +6188,38 @@ export default function TrackAll() {
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
             onOpen={setSelectedItem}
-            diaryPanel={!isMobileDevice ? (() => {
-              const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
-                .sort((a,b) => b.addedAt - a.addedAt);
-              if (!completados.length) return null;
-              const groups = {};
-              completados.forEach(item => {
-                const d = new Date(item.addedAt);
-                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-                if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-                groups[key].items.push({ ...item, _day: d.getDate() });
-              });
-              const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-              return (
-                <div style={{
-                  width: 320, flexShrink: 0,
-                  borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 24, paddingRight: 16,
-                  marginLeft: 60,
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
-                    <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
-                  </div>
-                  {sortedGroups.map(group => (
-                    <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
-                      <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
-                        <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>{group.year}</div>
-                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#8b949e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
-                          <div key={item.id} onClick={() => setSelectedItem(item)} style={{
-                            display: "flex", alignItems: "center", gap: 7, padding: "5px 3px",
-                            borderBottom: idx < arr.length-1 ? `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` : "none",
-                            cursor: "pointer", borderRadius: 4,
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#ffffff08" : "#00000008"}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
-                            {(item.customCover || item.cover || item.thumbnailUrl)
-                              ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
-                              : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                            }
-                            <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
-                            {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })() : null}
+            diaryPanel={null}
+            userTierlists={userTierlists}
+            onCreateTierlist={() => { setEditingTierlist(null); setShowTierlistEditor(true); }}
+            onEditTierlist={(tl) => { setEditingTierlist(tl); setShowTierlistEditor(true); }}
+            onDeleteTierlist={handleDeleteTierlist}
+            onLikeTierlist={handleTierlistLike}
+            userLikes={userLikes}
           />
           </div>
         )}
 
+        {/* TierList Viewer */}
+        {viewingTierlist && (
+          <TierListViewer
+            tl={viewingTierlist}
+            onClose={() => setViewingTierlist(null)}
+            onLike={handleTierlistLike}
+            liked={userLikes.includes(viewingTierlist.id)}
+            currentUserId={user?.id}
+            onEdit={(tl) => { setEditingTierlist(tl); setShowTierlistEditor(true); setViewingTierlist(null); }}
+          />
+        )}
+
+        {/* TierList Editor */}
+        {showTierlistEditor && (
+          <TierListEditor
+            initialData={editingTierlist}
+            library={library}
+            onSave={handleSaveTierlist}
+            onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
+          />
+        )}
         {/* PWA Install Banner — mobile only */}
         {pwaPrompt && !pwaInstalled && isMobileDevice && (
           <div style={{ position: 'fixed', bottom: 72, left: 12, right: 12, zIndex: 60, background: '#161b22', border: `1px solid ${accent}44`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
