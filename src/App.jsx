@@ -5041,7 +5041,7 @@ export default function TrackAll() {
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
             overflow-y: auto;
-            scrollbar-gutter: stable;
+            overflow-x: hidden;
           }
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
