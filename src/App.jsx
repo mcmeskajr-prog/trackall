@@ -3933,10 +3933,19 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   }, [open]);
 
   return (
-    <div ref={wrapRef} style={{ margin: "1px 8px" }}>
+    <div ref={wrapRef} style={{ margin: "1px 8px", borderRadius: 10 }}>
       {!open ? (
-        <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
-          <span className="ds-icon">
+        <button onClick={() => setOpen(true)} style={{
+          display: "flex", alignItems: "center", gap: 12,
+          width: "100%", padding: "11px 16px", border: "none", background: "none",
+          cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600,
+          color: darkMode ? "#8b949e" : "#64748b", borderRadius: 10, textAlign: "left",
+          transition: "all 0.15s",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = darkMode ? "#161b22" : "#f1f5f9"; e.currentTarget.style.color = darkMode ? "#e6edf3" : "#0d1117"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = darkMode ? "#8b949e" : "#64748b"; }}
+        >
+          <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
               <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -3945,11 +3954,13 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
-            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
-          </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
+          <span style={{ width: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
+              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </span>
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => {
               if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
