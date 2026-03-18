@@ -1744,9 +1744,9 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: 64 }}>
+      <div style={{ position: "relative", marginBottom: isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile) ? 56 : 64 }}>
         {/* Banner — taller, more impactful */}
-        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) && (
+        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) ? (
         <div style={{
           height: 260, overflow: "hidden", position: "relative",
           borderRadius: "20px 20px 0 0",
@@ -1818,7 +1818,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           )}
         </div>
-        )}
+        ) : <div style={{ height: 48 }} />}
 
         {/* Avatar — overlaps banner */}
         <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
@@ -2598,6 +2598,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [friendData, setFriendData] = useState(null);
   const [showAllDiary, setShowAllDiary] = useState(false);
+  const [friendViewAll, setFriendViewAll] = useState(null); // null | "completo" | "planejado"
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState("");
 
@@ -2884,10 +2885,20 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("completedLabel").toUpperCase()}</h3>
               <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+              <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{completados.length}</span>
+              <button onClick={() => setFriendViewAll(friendViewAll === "completo" ? null : "completo")} style={{ fontSize: 11, fontWeight: 700, color: fAccent, background: "none", border: `1px solid ${fAccent}44`, borderRadius: 8, padding: "3px 10px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                {friendViewAll === "completo" ? "↑ " + (lang === "en" ? "Less" : "Menos") : (lang === "en" ? "See all" : "Ver todos")}
+              </button>
             </div>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-              {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
-            </div>
+            {friendViewAll === "completo" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+                {completados.map(item => <FriendCard key={item.id} item={item} size={90} />)}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
+              </div>
+            )}
           </div>
         )}
 
@@ -2903,6 +2914,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             </div>
           </div>
         )}
+
 
         </div>
         {/* Coluna direita — diário com mês atual + ver mais */}
@@ -4093,8 +4105,10 @@ export default function TrackAll() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
-  const [libViewMode, setLibViewMode] = useState(() => { try { return localStorage.getItem("trackall_lib_view") || "grid"; } catch { return "grid"; } });
+  const [libViewMode, setLibViewMode] = useState(() => { try { const m = localStorage.getItem("trackall_lib_view") || "grid"; return m; } catch { return "grid"; } });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
+  // No mobile, compact não existe — fallback para grid
+  const activeLibViewMode = (isMobileDevice && libViewMode === "compact") ? "grid" : libViewMode;
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
@@ -5529,7 +5543,7 @@ export default function TrackAll() {
                     <p style={{ fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Use search to add media!" : "Usa a pesquisa para adicionar mídias!"}</p>
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>{useT("search")}</button>
                   </div>
-                ) : libViewMode === "list" ? (
+                ) : activeLibViewMode === "list" ? (
                   <LibGroupedList
                     items={pagedLib}
                     library={library}
@@ -5537,7 +5551,7 @@ export default function TrackAll() {
                    
                     onOpen={setSelectedItem}
                   />
-                ) : libViewMode === "compact" ? (
+                ) : activeLibViewMode === "compact" ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
                     {pagedLib.map(item => {
                       const libItem = library[item.id];
