@@ -338,7 +338,7 @@ async function searchTMDB(query, type, key, workerUrl) {
   try {
     if (workerUrl) {
       // Usar Worker — chave não exposta
-      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`;
+      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
       const res = await fetch(url);
       if (!res.ok) return null;
       const data = await res.json();
@@ -355,7 +355,7 @@ async function searchTMDB(query, type, key, workerUrl) {
     }
     // Fallback direto (só se não houver workerUrl)
     if (!key) return null;
-    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`);
+    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
@@ -377,8 +377,8 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (item.id.startsWith("tmdb-filmes-")) {
       const tmdbId = item.id.replace("tmdb-filmes-", "");
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`
-        : `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`
+        : `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=en-US`;
       const r = await fetch(url);
       const d = await r.json();
       return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year };
@@ -386,23 +386,24 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (item.id.startsWith("tmdb-series-")) {
       const tmdbId = item.id.replace("tmdb-series-", "");
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`
-        : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${tmdbId}&language=en-US`
+        : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=en-US`;
       const r = await fetch(url);
       const d = await r.json();
       return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status };
     }
     if (item.id.startsWith("al-")) {
       const alId = item.id.replace(/al-[a-z]+-/, "").replace("al-", "");
-      const aniUrl = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
+      const aniUrl = "https://graphql.anilist.co";
       const r = await fetch(aniUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format } }` }),
+        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format description(asHtml:false) } }` }),
       });
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status };
+      const synopsis = m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n{2,}/g, " ").slice(0, 500) : null;
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -3278,8 +3279,8 @@ async function fetchTrendingMovies(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=pt-PT&page=${page}`
-        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=en-US&page=${page}`
+        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -3290,8 +3291,8 @@ async function fetchTrendingSeries(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=pt-PT&page=${page}`
-        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=en-US&page=${page}`
+        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -3932,7 +3933,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   }, [open]);
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} style={{ margin: "1px 8px" }}>
       {!open ? (
         <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
           <span className="ds-icon">
