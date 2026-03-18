@@ -2548,7 +2548,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       })()}
 
             </div>
-      {diaryPanel}
       </div>
       </div>
       )} {/* fim tab perfil */}
