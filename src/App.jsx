@@ -4105,6 +4105,7 @@ export default function TrackAll() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
+  const [libPage, setLibPage] = useState(0);
   const [libViewMode, setLibViewMode] = useState(() => { try { const m = localStorage.getItem("trackall_lib_view") || "grid"; return m; } catch { return "grid"; } });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
@@ -4688,11 +4689,10 @@ export default function TrackAll() {
   }, [filteredLib, libSort]);
 
   const ITEMS_PER_PAGE = 40;
-  const [libPage, setLibPage] = useState(0);
-  // Reset página ao mudar filtros/sort/search
-  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
   const totalPages = Math.ceil(sortedLib.length / ITEMS_PER_PAGE);
   const pagedLib = sortedLib.slice(libPage * ITEMS_PER_PAGE, (libPage + 1) * ITEMS_PER_PAGE);
+  // Reset página ao mudar filtros/sort/search
+  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
 
   const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
 
