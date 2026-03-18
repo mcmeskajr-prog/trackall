@@ -3385,6 +3385,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
 // ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
 function LibGroupedList({ items, library, onOpen }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
 
   const [collapsed, setCollapsed] = useState({});
   const toggle = (id) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
@@ -4105,7 +4106,6 @@ export default function TrackAll() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
-  const [libPage, setLibPage] = useState(0);
   const [libViewMode, setLibViewMode] = useState(() => { try { const m = localStorage.getItem("trackall_lib_view") || "grid"; return m; } catch { return "grid"; } });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
@@ -4313,8 +4313,6 @@ export default function TrackAll() {
   };
   // isMobile check — calculado uma vez, estável entre renders
   const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
-  // No mobile, compact não existe — fallback para grid
-  const activeLibViewMode = (isMobileDevice && libViewMode === "compact") ? "grid" : libViewMode;
 
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
@@ -4660,9 +4658,6 @@ export default function TrackAll() {
     return () => clearTimeout(t);
   }, [logQuery, quickSearchType]);
 
-  // Reset página ao mudar filtros/sort/search/tab
-  useEffect(() => { setLibPage(0); }, [filterStatus, activeTab, libSearch, libSort]);
-
   const items = useMemo(() => {
     if (demoMode) return Object.values(DEMO_LIBRARY);
     return Object.values(library);
@@ -4691,9 +4686,7 @@ export default function TrackAll() {
     return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
   }, [filteredLib, libSort]);
 
-  const ITEMS_PER_PAGE = 40;
-  const totalPages = Math.ceil(sortedLib.length / ITEMS_PER_PAGE);
-  const pagedLib = sortedLib.slice(libPage * ITEMS_PER_PAGE, (libPage + 1) * ITEMS_PER_PAGE);
+
 
   const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
 
@@ -5544,17 +5537,17 @@ export default function TrackAll() {
                     <p style={{ fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Use search to add media!" : "Usa a pesquisa para adicionar mídias!"}</p>
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>{useT("search")}</button>
                   </div>
-                ) : activeLibViewMode === "list" ? (
+                ) : (isMobileDevice ? libViewMode !== "compact" && libViewMode === "list" : libViewMode === "list") ? (
                   <LibGroupedList
-                    items={pagedLib}
+                    items={sortedLib}
                     library={library}
                    
                    
                     onOpen={setSelectedItem}
                   />
-                ) : activeLibViewMode === "compact" ? (
+                ) : libViewMode === "compact" ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
-                    {pagedLib.map(item => {
+                    {sortedLib.map(item => {
                       const libItem = library[item.id];
                       const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
                       const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
@@ -5571,8 +5564,8 @@ export default function TrackAll() {
                   </div>
                 ) : (
                   <VirtualGrid
-                    key={`${filterStatus}-${activeTab}-${libSort}-${libPage}`}
-                    items={pagedLib}
+                    key={`${filterStatus}-${activeTab}-${libSort}`}
+                    items={sortedLib}
                     library={library}
                     onOpen={setSelectedItem}
                     accent={accent}
@@ -5580,29 +5573,6 @@ export default function TrackAll() {
                   />
                 )}
 
-                {/* Paginação */}
-                {totalPages > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 24, paddingBottom: 8 }}>
-                    <button onClick={() => { setLibPage(p => Math.max(0, p - 1)); window.scrollTo(0, 0); }}
-                      disabled={libPage === 0}
-                      style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: libPage === 0 ? "#484f58" : (darkMode ? "#e6edf3" : "#0d1117"), cursor: libPage === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13, opacity: libPage === 0 ? 0.4 : 1 }}>
-                      ← {lang === "en" ? "Prev" : "Ant"}
-                    </button>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <button key={i} onClick={() => { setLibPage(i); window.scrollTo(0, 0); }}
-                          style={{ width: 30, height: 30, borderRadius: 6, border: "none", background: i === libPage ? accent : (darkMode ? "#21262d" : "#f1f5f9"), color: i === libPage ? "white" : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12 }}>
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={() => { setLibPage(p => Math.min(totalPages - 1, p + 1)); window.scrollTo(0, 0); }}
-                      disabled={libPage === totalPages - 1}
-                      style={{ padding: "7px 16px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: libPage === totalPages - 1 ? "#484f58" : (darkMode ? "#e6edf3" : "#0d1117"), cursor: libPage === totalPages - 1 ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13, opacity: libPage === totalPages - 1 ? 0.4 : 1 }}>
-                      {lang === "en" ? "Next" : "Próx"} →
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
