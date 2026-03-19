@@ -2331,9 +2331,9 @@ function ProfileTabPerfil({ profile, library, favorites, accent, darkMode, isMob
               )}
             </div>
           </div>
+            </div>
         );
       })()}
-    </div>
   );
 }
 
