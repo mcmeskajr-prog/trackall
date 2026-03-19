@@ -2512,8 +2512,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Mihon Modal */}
       {showMihon && (
         <MihonImportModal
-         
-         
+          accent={accent} darkMode={darkMode}
           onClose={() => setShowMihon(false)}
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
         />
@@ -2522,14 +2521,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Modais Paperback e Letterboxd */}
       {showPaperback && (
         <PaperbackImportModal
-         
+          accent={accent} darkMode={darkMode}
           onClose={() => setShowPaperback(false)}
           onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
         />
       )}
       {showLetterboxd && (
         <LetterboxdImportModal
-         
+          accent={accent} darkMode={darkMode}
           onClose={() => setShowLetterboxd(false)}
           onImport={(items) => { onImportLetterboxd && onImportLetterboxd(items); setShowLetterboxd(false); }}
         />
