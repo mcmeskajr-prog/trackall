@@ -1739,9 +1739,11 @@ function RecentSection({ items, onOpen, showDiary = true }) {
 
 function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [] }) {
   const [editing, setEditing] = useState(false);
-  const [profileTab, setProfileTab] = useState("perfil"); // perfil | completos | tierlists | diario
+  const [profileTab, setProfileTab] = useState("perfil");
   const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
   const [completosSortMode, setCompletosSortMode] = useState("date");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
@@ -2494,8 +2496,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── Zona de Perigo ── */}
       {(() => {
-        const [confirmDelete, setConfirmDelete] = useState(false);
-        const [deleting, setDeleting] = useState(false);
         const handleDeleteAccount = async () => {
           if (!confirmDelete) { setConfirmDelete(true); return; }
           setDeleting(true);
