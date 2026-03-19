@@ -1983,7 +1983,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── TAB: PERFIL ── */}
-      {profileTab === "perfil" && (
+      <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
         : { padding: "16px 16px 0" }
@@ -2538,9 +2538,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
       </div>
       </div>
-      )} {/* fim tab perfil */}
+      </div> {/* fim tab perfil */}
 
       {/* ── TAB: COMPLETOS ── */}
+      <div style={{ display: profileTab === "completos" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
       {profileTab === "completos" && (() => {
         const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
         const typeFilter = completosTypeFilter;
@@ -2551,7 +2552,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           .filter(i => typeFilter === "all" || i.type === typeFilter)
           .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
         return (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+          <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
               <div style={{ display: "flex", gap: 6 }}>
@@ -2591,10 +2592,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           </div>
         );
       })()}
+      </div>
 
       {/* ── TAB: TIER LISTS ── */}
-      {profileTab === "tierlists" && (
-        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+      <div style={{ display: profileTab === "tierlists" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
             <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
@@ -2625,10 +2626,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* ── TAB: DIÁRIO ── */}
-      {profileTab === "diario" && (() => {
+      <div style={{ display: profileTab === "diario" ? "block" : "none" }}>
+      {true && (() => {
         const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
         if (completados.length === 0) return (
           <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
@@ -2681,6 +2683,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           </div>
         );
       })()}
+      </div>
 
     </div>{/* fim conteudo */}
     {cropSrc && (
