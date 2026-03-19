@@ -1736,31 +1736,52 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
     groups[key].items.push({ ...item, _day: d.getDate() });
   });
   const sortedGroups = Object.values(groups).sort((a,b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`));
+  const typeIcon = (type) => MEDIA_TYPES.find(t => t.id === type)?.icon || "◉";
   return (
     <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 24 }}>{completados.length} {lang === "en" ? "entries" : "entradas"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
         {sortedGroups.map((group, gi) => (
           <div key={gi}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
-                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white" }}>{group.year}</div>
-                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{MONTH_PT[group.month]}</div>
+            {/* Header do mês */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+              <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 12, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0, minWidth: 56 }}>
+                <div style={{ background: accent, padding: "4px 0", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
+                <div style={{ padding: "6px 8px 8px", fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{MONTH_PT[group.month]}</div>
               </div>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
-              <span style={{ fontSize: 11, color: "#484f58" }}>{group.items.length}</span>
+              <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${accent}44, transparent)` }} />
+              <span style={{ fontSize: 12, color: "#484f58", fontWeight: 700, background: darkMode ? "#21262d" : "#f1f5f9", padding: "3px 10px", borderRadius: 20 }}>{group.items.length}</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-              {group.items.sort((a,b) => b._day - a._day).map(item => {
+            {/* Lista de itens */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {group.items.sort((a,b) => b._day - a._day).map((item, idx, arr) => {
                 const cover = item.customCover || item.cover || item.thumbnailUrl;
                 return (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                      {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
-                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
+                    borderRadius: 10, cursor: "pointer", transition: "background 0.12s",
+                    borderBottom: idx < arr.length-1 ? `1px solid ${darkMode ? "#21262d44" : "#e2e8f044"}` : "none",
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#ffffff08" : "#00000005"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    {/* Dia em destaque */}
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}18`, border: `1px solid ${accent}33`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 15, fontWeight: 900, color: accent, lineHeight: 1 }}>{item._day}</span>
                     </div>
-                    <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    {/* Capa */}
+                    <div style={{ width: 36, height: 52, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                      {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{item.title}</p>
+                      <p style={{ fontSize: 11, color: "#484f58" }}>{typeIcon(item.type)} {item.type}</p>
+                    </div>
+                    {/* Rating */}
+                    {item.userRating > 0 && (
+                      <div style={{ flexShrink: 0, background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                    )}
                   </div>
                 );
               })}
@@ -2003,8 +2024,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
-        : { padding: "0 16px" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
+        : { padding: "16px 16px 0" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
 
