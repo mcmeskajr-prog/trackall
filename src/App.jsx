@@ -1831,6 +1831,68 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
   );
 }
 
+// ─── Profile Favorites Section ───────────────────────────────────────────────
+function ProfileFavorites({ favorites, library, accent, darkMode, isMobileDevice, lang, onOpen, onToggleFavorite }) {
+  if (favorites.length === 0) return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
+        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{lang === "en" ? "FAVORITES" : "FAVORITOS"}</h3>
+        <span style={{ fontSize: 11, color: "#484f58" }}>0</span>
+      </div>
+      <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+        <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
+      </div>
+    </div>
+  );
+  const favByType = {};
+  favorites.forEach(f => { if (!favByType[f.type]) favByType[f.type] = []; favByType[f.type].push(f); });
+  const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
+        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{lang === "en" ? "FAVORITES" : "FAVORITOS"}</h3>
+        <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
+      </div>
+      <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+        {activeTypes.map((t, tIdx) => {
+          const tc = accentVariant(accent, tIdx);
+          const items = favByType[t.id];
+          return (
+            <div key={t.id}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{mediaLabel(t, lang)}</span>
+                <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
+                <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{items.length}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
+                {items.map(item => {
+                  const coverSrc = item.customCover || item.cover;
+                  const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
+                  return (
+                    <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
+                      onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
+                      onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
+                      <div className="fav-thumb-d" style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                        {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>}
+                        <div className="fav-overlay no-tc" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                          {currentRating > 0 ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div> : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>}
+                        </div>
+                      </div>
+                      <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                        style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
@@ -2112,80 +2174,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
-      {(() => {
-        const favByType = {};
-        favorites.forEach(f => {
-          if (!favByType[f.type]) favByType[f.type] = [];
-          favByType[f.type].push(f);
-        });
-        const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
-
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
-              <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
-            </div>
-
-            {favorites.length === 0 ? (
-              <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-                <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
-              </div>
-            ) : (
-              <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
-                {activeTypes.map((t, tIdx) => {
-                  const tc = accentVariant(accent, tIdx);
-                  return (
-                    <div key={t.id}>
-                      {/* Label categoria */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{mediaLabel(t, lang)}</span>
-                        <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
-                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
-                      </div>
-                      {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
-                      {(() => {
-                        const count = favByType[t.id].length;
-                        // Sempre grid 4 colunas — sem scroll em nenhum dispositivo
-                        const useScroll = false;
-                        const cardW = 0; // não usado no grid
-                        return (
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
-                            {favByType[t.id].map(item => {
-                              const coverSrc = item.customCover || item.cover;
-                              const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
-                              return (
-                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
-                                  onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
-                                  onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
-                                  <div className="fav-thumb-d" style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
-                                    {coverSrc
-                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
-                                    }
-                                    <div className="fav-overlay no-tc" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
-                                      {currentRating > 0
-                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div>
-                                        : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
-                                      }
-                                    </div>
-                                  </div>
-                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <ProfileFavorites favorites={favorites} library={library} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} onToggleFavorite={onToggleFavorite} />
 
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={isMobileDevice} />}
