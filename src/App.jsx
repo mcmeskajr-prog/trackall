@@ -399,7 +399,7 @@ async function searchTMDB(query, type, key, workerUrl) {
   try {
     if (workerUrl) {
       // Usar Worker — chave não exposta
-      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
+      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`;
       const res = await fetch(url);
       if (!res.ok) return null;
       const data = await res.json();
@@ -416,7 +416,7 @@ async function searchTMDB(query, type, key, workerUrl) {
     }
     // Fallback direto (só se não houver workerUrl)
     if (!key) return null;
-    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
+    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
@@ -438,8 +438,8 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (item.id.startsWith("tmdb-filmes-")) {
       const tmdbId = item.id.replace("tmdb-filmes-", "");
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`
-        : `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=en-US`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`
+        : `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
       const r = await fetch(url);
       const d = await r.json();
       return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year };
@@ -447,24 +447,23 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (item.id.startsWith("tmdb-series-")) {
       const tmdbId = item.id.replace("tmdb-series-", "");
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${tmdbId}&language=en-US`
-        : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=en-US`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`
+        : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
       const r = await fetch(url);
       const d = await r.json();
       return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status };
     }
     if (item.id.startsWith("al-")) {
       const alId = item.id.replace(/al-[a-z]+-/, "").replace("al-", "");
-      const aniUrl = "https://graphql.anilist.co";
+      const aniUrl = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
       const r = await fetch(aniUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format description(asHtml:false) } }` }),
+        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format } }` }),
       });
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
-      const synopsis = m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n{2,}/g, " ").slice(0, 500) : null;
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis };
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -1150,7 +1149,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -1161,7 +1160,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   useEffect(() => {
     setDetailExtra(null);
-    if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+    if (item && tmdbKey) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
@@ -1174,7 +1173,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)" }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
         {/* Hero backdrop */}
         <div style={{
           height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)),
@@ -1243,15 +1242,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           )}
 
           {/* Synopsis */}
-          {(() => {
-            const synopsis = detailExtra?.synopsis || item.synopsis;
-            if (!synopsis) return null;
-            return (
-              <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
-                {synopsis.slice(0, 500)}{synopsis.length > 500 ? "…" : ""}
-              </p>
-            );
-          })()}
+          {item.synopsis && (
+            <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
+              {item.synopsis.slice(0, 500)}{item.synopsis.length > 500 ? "…" : ""}
+            </p>
+          )}
 
           {/* Library section */}
           <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
@@ -1587,7 +1582,7 @@ function RecentSection({ items, onOpen, showDiary = true }) {
                   </div>
                 )}
               </div>
-              <p style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+              <p style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
             </div>
           );
         })}
@@ -1601,7 +1596,7 @@ function RecentSection({ items, onOpen, showDiary = true }) {
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{`✓ ${useT("completedLabel").toUpperCase()}`}</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{`✓ ${useT("completedLabel").toUpperCase()}`}</h3>
             {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
@@ -1737,37 +1732,382 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
-// ─── Profile Tab Components ───────────────────────────────────────────────────
+function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+  const filtered = completados
+    .filter(i => typeFilter === "all" || i.type === typeFilter)
+    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
+        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
+          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
+          {filtered.map(item => {
+            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+            return (
+              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                </div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
 
-// ─── Profile Tab: Perfil ──────────────────────────────────────────────────────
-function ProfileTabPerfil({ profile, library, favorites, accent, darkMode, isMobileDevice,
-  bgColor, bgImage, bgImageMobile, bgColorMobile, bgSeparateDevices, bgOverlay, bgBlur, bgParallax,
-  statsCardBg, textContrast, textContrastMobile, sidebarColor, tmdbKey, workerUrl,
-  onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg,
-  onTextContrast, onTextContrastMobile, onSidebarColor, onBgSeparateDevices, onBgColorMobile,
-  onBgImageMobile, onSavedThemes, onTmdbKey, onWorkerUrl, onSignOut, userEmail,
-  onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen,
-  lang, useT, onChangeLang, items, user }) {
+function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
+  if (completados.length === 0) return (
+    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
+    </div>
+  );
+  const groups = {};
+  completados.forEach(item => {
+    const d = new Date(item.addedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+    groups[key].items.push({ ...item, _day: d.getDate() });
+  });
+  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+  return (
+    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {sortedGroups.map(group => (
+          <div key={group.key}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
+                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
+                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
+              </div>
+              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
+              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
+                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
+                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                    </div>
+                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
+  const [editing, setEditing] = useState(false);
+  const [profileTab, setProfileTab] = useState("perfil");
+  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
+  const [completosSortMode, setCompletosSortMode] = useState("date");
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [name, setName] = useState(profile.name || "");
+  const [bio, setBio] = useState(profile.bio || "");
+  const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [themeName, setThemeName] = useState("");
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
   const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
-  const [shareCopied, setShareCopied] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const byType = items.reduce((acc, i) => { acc[i.type] = (acc[i.type]||0)+1; return acc; }, {});
-  const stats = {
-    completo: items.filter(i=>i.userStatus==="completo").length,
-    assistindo: items.filter(i=>i.userStatus==="assistindo").length,
-    planejado: items.filter(i=>i.userStatus==="planejado").length,
-    dropado: items.filter(i=>i.userStatus==="dropado").length,
-    pausado: items.filter(i=>i.userStatus==="pausado").length,
+  const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
+  const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
+  const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
+  const avatarRef = useRef();
+  const bannerRef = useRef();
+  const items = useMemo(() => Object.values(library), [library]);
+  const byType = useMemo(() => {
+    const r = {};
+    MEDIA_TYPES.slice(1).forEach((t) => { r[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
+    return r;
+  }, [items]);
+  const byStatus = useMemo(() => {
+    const r = {};
+    STATUS_OPTIONS.forEach((s) => { r[s.id] = items.filter((i) => i.userStatus === s.id).length; });
+    return r;
+  }, [items]);
+  const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
+  const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
+
+  const handleAvatarFile = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("avatar");
   };
+
+  const handleBannerFile = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("banner");
+  };
+
+  const handleCropSave = (dataUrl) => {
+    if (cropType === "avatar") setAvatarPreview(dataUrl);
+    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
+    setCropSrc(null); setCropType(null);
+  };
+
+  const handleSave = async () => {
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail });
+    setEditing(false);
+  };
+
+  const currentBanner = editing ? bannerPreview : profile.banner;
+  const currentAvatar = editing ? avatarPreview : profile.avatar;
+
   return (
-    <div>
+    <>
+    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
+
+      {/* ── Banner + Avatar header ── */}
+      <div style={{ position: "relative", marginBottom: 64 }}>
+        {/* Banner — taller, more impactful */}
+        <div style={{
+          height: 260, overflow: "hidden", position: "relative",
+          borderRadius: "20px 20px 0 0",
+          background: currentBanner
+            ? `url(${currentBanner}) center/cover no-repeat`
+            : darkMode ? "#0d1117" : "#f1f5f9",
+        }}>
+          {/* Multi-layer gradient overlay for impact */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+          {/* Banner fallback — hexágonos + partículas animadas */}
+          {!currentBanner && (
+            <>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
+                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
+                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#hex)"/>
+                {/* Partículas flutuantes */}
+                {[
+                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
+                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
+                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
+                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
+                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
+                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
+                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
+                ].map((p, i) => (
+                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
+                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
+                  </circle>
+                ))}
+              </svg>
+              {/* Gradiente respirante */}
+              <div style={{ position: "absolute", inset: 0 }}>
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
+              </div>
+              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
+            </>
+          )}
+          {editing && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
+              <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
+              <button onClick={() => bannerRef.current?.click()} style={{
+                padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
+                background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
+              }}>🖼 Alterar Banner</button>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
+              <input
+                placeholder="ou cola URL do banner..."
+                value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
+                onChange={(e) => { setBannerUrl(e.target.value); setBannerPreview(e.target.value); }}
+                style={{ padding: "7px 12px", fontSize: 12, width: "70%", maxWidth: 300, borderRadius: 8 }}
+              />
+              {bannerUrl && (
+                <button onClick={() => { setBannerUrl(""); setBannerPreview(""); }} style={{
+                  padding: "4px 10px", borderRadius: 6, border: "1px solid #ef444466",
+                  background: "rgba(239,68,68,0.15)", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                }}>✕ Remover banner</button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Avatar — overlaps banner */}
+        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <div style={{
+              width: 92, height: 92, borderRadius: 999, overflow: "hidden",
+              background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+              border: `3px solid ${bgColor}`,
+              boxShadow: `0 0 0 3px ${accent}, 0 0 24px ${accent}66, 0 8px 32px rgba(0,0,0,0.5)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {currentAvatar
+                ? <img src={currentAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 38 }}>👤</span>}
+            </div>
+            {editing && (
+              <>
+                <input type="file" accept="image/*" ref={avatarRef} onChange={handleAvatarFile} style={{ display: "none" }} />
+                <button onClick={() => avatarRef.current?.click()} style={{
+                  position: "absolute", bottom: 2, right: 2, width: 26, height: 26, borderRadius: 999,
+                  background: accent, border: `2px solid ${bgColor}`, cursor: "pointer", fontSize: 12,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>🖊</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Name / bio / edit */}
+      <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
+        {editing ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
+            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{useT("hideEmail")}</span>
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
+              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
+            {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
+            {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
+              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
+                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
+                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              }}>✏ Editar Perfil</button>
+              {onSignOut && (
+                <button onClick={onSignOut} title={useT("signOut")} style={{
+                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Profile Tabs ── */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
+        {[
+          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
+          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
+          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
+          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
+            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
+            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
+            color: profileTab === tab.id ? accent : "#484f58",
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
+            display: "flex", alignItems: "center", gap: 6, marginBottom: -1,
+          }}>
+            <span>{tab.icon}</span> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {profileTab !== "perfil" ? (
+        profileTab === "completos" ? (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+            <ProfileTabCompletos
+              items={items} library={library} accent={accent} darkMode={darkMode}
+              isMobileDevice={isMobileDevice} lang={lang}
+              typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
+              sortMode={completosSortMode} setSortMode={setCompletosSortMode}
+              onOpen={onOpen}
+            />
+          </div>
+        ) : profileTab === "tierlists" ? (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
+              <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
+                + {lang === "en" ? "New Tier List" : "Nova Tier List"}
+              </button>
+            </div>
+            {userTierlists.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
+                <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
+                  + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+                {userTierlists.map(tl => (
+                  <TierListCard key={tl.id} tl={tl} onOpen={onOpenTierlist} onLike={onLikeTierlist} liked={userLikes.includes(tl.id)} currentUserId={tl.user_id} onDelete={onDeleteTierlist} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
+        )
+      ) : null}
+
+      {profileTab === "perfil" && (
+      <div>
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
@@ -2331,441 +2671,15 @@ function ProfileTabPerfil({ profile, library, favorites, accent, darkMode, isMob
               )}
             </div>
           </div>
-            </div>
         );
       })()}
-  );
-}
 
-function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-  const filtered = completados
-    .filter(i => typeFilter === "all" || i.type === typeFilter)
-    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
-  return (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
-        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
-          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
-          </button>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-          {filtered.map(item => {
-            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                </div>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
-function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
-  if (completados.length === 0) return (
-    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
-    </div>
-  );
-  const groups = {};
-  completados.forEach(item => {
-    const d = new Date(item.addedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-    groups[key].items.push({ ...item, _day: d.getDate() });
-  });
-  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-  return (
-    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {sortedGroups.map(group => (
-          <div key={group.key}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
-                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
-              </div>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
-              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
-                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-                return (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
-                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                    </div>
-                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+      {diaryPanel}
       </div>
     </div>
-  );
-}
-
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
-  const [editing, setEditing] = useState(false);
-  const [profileTab, setProfileTab] = useState("perfil");
-  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
-  const [completosSortMode, setCompletosSortMode] = useState("date");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [showMihon, setShowMihon] = useState(false);
-  const [showPaperback, setShowPaperback] = useState(false);
-  const [showLetterboxd, setShowLetterboxd] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [name, setName] = useState(profile.name || "");
-  const [bio, setBio] = useState(profile.bio || "");
-  const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
-  const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [themeName, setThemeName] = useState("");
-  const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
-  const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
-  const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
-  const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
-  const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
-  const [cropSrc, setCropSrc] = useState(null);
-  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
-  const avatarRef = useRef();
-  const bannerRef = useRef();
-  const items = useMemo(() => Object.values(library), [library]);
-  const byType = useMemo(() => {
-    const r = {};
-    MEDIA_TYPES.slice(1).forEach((t) => { r[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
-    return r;
-  }, [items]);
-  const byStatus = useMemo(() => {
-    const r = {};
-    STATUS_OPTIONS.forEach((s) => { r[s.id] = items.filter((i) => i.userStatus === s.id).length; });
-    return r;
-  }, [items]);
-  const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
-  const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
-
-  const handleAvatarFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc(url);
-    setCropType("avatar");
-  };
-
-  const handleBannerFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc(url);
-    setCropType("banner");
-  };
-
-  const handleCropSave = (dataUrl) => {
-    if (cropType === "avatar") setAvatarPreview(dataUrl);
-    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
-    setCropSrc(null); setCropType(null);
-  };
-
-  const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
-    setEditing(false);
-  };
-
-  const currentBanner = editing ? bannerPreview : profile.banner;
-  const currentAvatar = editing ? avatarPreview : profile.avatar;
-
-  return (
-    <>
-    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
-
-      {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile) ? 56 : 64 }}>
-        {/* Banner — taller, more impactful */}
-        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) ? (
-        <div style={{
-          height: 260, overflow: "hidden", position: "relative",
-          borderRadius: "20px 20px 0 0",
-          background: currentBanner
-            ? `url(${currentBanner}) center/cover no-repeat`
-            : darkMode ? "#0d1117" : "#f1f5f9",
-        }}>
-          {/* Multi-layer gradient overlay for impact */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-          {/* Banner fallback — hexágonos + partículas animadas */}
-          {!currentBanner && (
-            <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
-                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
-                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#hex)"/>
-                {/* Partículas flutuantes */}
-                {[
-                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
-                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
-                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
-                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
-                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
-                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
-                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
-                ].map((p, i) => (
-                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
-                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
-                  </circle>
-                ))}
-              </svg>
-              {/* Gradiente respirante */}
-              <div style={{ position: "absolute", inset: 0 }}>
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
-              </div>
-              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
-            </>
-          )}
-          {editing && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
-              <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
-              <button onClick={() => bannerRef.current?.click()} style={{
-                padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
-                background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
-              }}>🖼 Alterar Banner</button>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
-              <input
-                placeholder="ou cola URL do banner..."
-                value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
-                onChange={(e) => { setBannerUrl(e.target.value); setBannerPreview(e.target.value); }}
-                style={{ padding: "7px 12px", fontSize: 12, width: "70%", maxWidth: 300, borderRadius: 8 }}
-              />
-              {bannerUrl && (
-                <button onClick={() => { setBannerUrl(""); setBannerPreview(""); }} style={{
-                  padding: "4px 10px", borderRadius: 6, border: "1px solid #ef444466",
-                  background: "rgba(239,68,68,0.15)", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                }}>✕ Remover banner</button>
-              )}
-            </div>
-          )}
-        </div>
-        ) : <div style={{ height: 48 }} />}
-
-        {/* Avatar — overlaps banner */}
-        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
-          <div style={{ position: "relative", display: "inline-block" }}>
-            <div style={{
-              width: 92, height: 92, borderRadius: 999, overflow: "hidden",
-              background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
-              border: `3px solid ${bgColor}`,
-              boxShadow: `0 0 0 3px ${accent}, 0 0 24px ${accent}66, 0 8px 32px rgba(0,0,0,0.5)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {currentAvatar
-                ? <img src={currentAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 38 }}>👤</span>}
-            </div>
-            {editing && (
-              <>
-                <input type="file" accept="image/*" ref={avatarRef} onChange={handleAvatarFile} style={{ display: "none" }} />
-                <button onClick={() => avatarRef.current?.click()} style={{
-                  position: "absolute", bottom: 2, right: 2, width: 26, height: 26, borderRadius: 999,
-                  background: accent, border: `2px solid ${bgColor}`, cursor: "pointer", fontSize: 12,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>🖊</button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Name / bio / edit */}
-      <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
-        {editing ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
-            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
-            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{useT("hideEmail")}</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no telemóvel"}</span>
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
-              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
-            {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
-            {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
-            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
-              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
-                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
-                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-              }}>✏ Editar Perfil</button>
-              {onSignOut && (
-                <button onClick={onSignOut} title={useT("signOut")} style={{
-                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
-                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "0 0 0 0", overflowX: "auto", scrollbarWidth: "none" }}>
-        {[
-          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
-          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
-          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
-          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
-            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
-            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
-            color: profileTab === tab.id ? accent : "#484f58",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
-            display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
-            marginBottom: -1,
-          }}>
-            <span>{tab.icon}</span> {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── TAB: PERFIL ── */}
-      {profileTab === "perfil" && (
-        <div style={{ display: "block" }}>
-          <ProfileTabPerfil
-            profile={profile} library={library} favorites={favorites}
-            accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice}
-            bgColor={bgColor} bgImage={bgImage} bgImageMobile={bgImageMobile}
-            bgColorMobile={bgColorMobile} bgSeparateDevices={bgSeparateDevices}
-            bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax}
-            statsCardBg={statsCardBg} textContrast={textContrast}
-            textContrastMobile={textContrastMobile} sidebarColor={sidebarColor}
-            tmdbKey={tmdbKey} workerUrl={workerUrl}
-            onAccentChange={onAccentChange} onBgChange={onBgChange}
-            onBgImage={onBgImage} onBgOverlay={onBgOverlay} onBgBlur={onBgBlur}
-            onBgParallax={onBgParallax} onStatsCardBg={onStatsCardBg}
-            onTextContrast={onTextContrast} onTextContrastMobile={onTextContrastMobile}
-            onSidebarColor={onSidebarColor} onBgSeparateDevices={onBgSeparateDevices}
-            onBgColorMobile={onBgColorMobile} onBgImageMobile={onBgImageMobile}
-            onSavedThemes={onSavedThemes} onTmdbKey={onTmdbKey} onWorkerUrl={onWorkerUrl}
-            onSignOut={onSignOut} userEmail={userEmail} onToggleFavorite={onToggleFavorite}
-            onImportMihon={onImportMihon} onImportPaperback={onImportPaperback}
-            onImportLetterboxd={onImportLetterboxd} onOpen={onOpen}
-            lang={lang} useT={useT} onChangeLang={onChangeLang}
-            items={items} user={user}
-          />
-        </div>
       )} {/* fim tab perfil */}
-
-      {/* ── TAB: COMPLETOS ── */}
-      {profileTab === "completos" && (
-        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-          <ProfileTabCompletos
-            items={items} library={library} accent={accent} darkMode={darkMode}
-            isMobileDevice={isMobileDevice} lang={lang}
-            typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
-            sortMode={completosSortMode} setSortMode={setCompletosSortMode}
-            onOpen={onOpen}
-          />
-        </div>
-      )}
-
-      {/* ── TAB: TIER LISTS ── */}
-      {profileTab === "tierlists" && (
-        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
-            <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
-              + {lang === "en" ? "New Tier List" : "Nova Tier List"}
-            </button>
-          </div>
-          {userTierlists.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
-              <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
-              <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
-                + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
-              {userTierlists.map(tl => (
-                <TierListCard
-                  key={tl.id}
-                  tl={tl}
-                  onOpen={onOpenTierlist}
-                  onLike={onLikeTierlist}
-                  liked={userLikes.includes(tl.id)}
-                  currentUserId={tl.user_id}
-                  onDelete={onDeleteTierlist}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── TAB: DIÁRIO ── */}
-      {profileTab === "diario" && (
-        <ProfileTabDiario
-          items={items} accent={accent} darkMode={darkMode}
-          isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen}
-        />
-      )}
-
-        </div>{/* fim conteudo */}
+    </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
@@ -2860,8 +2774,8 @@ function FeedTab({ accepted, getFriendInfo }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 5 }}>
                 <span style={{ fontWeight: 800, color: accent }}>{item.friendName}</span>
-                <span style={{ color: "var(--text-muted)" }}> {isCompleto ? "completou" : "está a ver"} </span>
-                <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.title}</span>
+                <span style={{ color: darkMode ? "#6b7280" : "#94a3b8" }}> {isCompleto ? "completou" : "está a ver"} </span>
+                <span style={{ fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117" }}>{item.title}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 {mt && tc && (
@@ -2899,7 +2813,6 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [friendData, setFriendData] = useState(null);
   const [showAllDiary, setShowAllDiary] = useState(false);
-  const [friendViewAll, setFriendViewAll] = useState(null); // null | "completo" | "planejado"
   const [loading, setLoading] = useState(true);
   const [notif, setNotif] = useState("");
 
@@ -3186,20 +3099,10 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("completedLabel").toUpperCase()}</h3>
               <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
-              <span style={{ fontSize: 10, fontWeight: 800, color: fAccent, background: `${fAccent}18`, padding: "1px 7px", borderRadius: 20 }}>{completados.length}</span>
-              <button onClick={() => setFriendViewAll(friendViewAll === "completo" ? null : "completo")} style={{ fontSize: 11, fontWeight: 700, color: fAccent, background: "none", border: `1px solid ${fAccent}44`, borderRadius: 8, padding: "3px 10px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-                {friendViewAll === "completo" ? "↑ " + (lang === "en" ? "Less" : "Menos") : (lang === "en" ? "See all" : "Ver todos")}
-              </button>
             </div>
-            {friendViewAll === "completo" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-                {completados.map(item => <FriendCard key={item.id} item={item} size={90} />)}
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-                {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
-              </div>
-            )}
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+              {completados.slice(0, 15).map(item => <FriendCard key={item.id} item={item} size={110} />)}
+            </div>
           </div>
         )}
 
@@ -3215,7 +3118,6 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             </div>
           </div>
         )}
-
 
         </div>
         {/* Coluna direita — diário com mês atual + ver mais */}
@@ -3318,7 +3220,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 </div>
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>{info?.name || "Utilizador"}</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117" }}>{info?.name || "Utilizador"}</p>
                   {info?.username && <p style={{ fontSize: 11, color: "#484f58", marginTop: 1 }}>@{info.username}</p>}
                 </div>
                 <span style={{ color: accent, fontSize: 16, opacity: 0.6 }}>→</span>
@@ -3592,8 +3494,8 @@ async function fetchTrendingMovies(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=en-US&page=${page}`
-        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=pt-PT&page=${page}`
+        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -3604,8 +3506,8 @@ async function fetchTrendingSeries(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=en-US&page=${page}`
-        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=pt-PT&page=${page}`
+        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -3686,7 +3588,6 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
 // ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
 function LibGroupedList({ items, library, onOpen }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
-  const { lang } = useLang();
 
   const [collapsed, setCollapsed] = useState({});
   const toggle = (id) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
@@ -3705,7 +3606,7 @@ function LibGroupedList({ items, library, onOpen }) {
             fontFamily: "inherit", textAlign: "left", WebkitTapHighlightColor: "transparent",
           }}>
             <span style={{ fontSize: 15 }}>{t.icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>{mediaLabel(t, lang)}</span>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>{mediaLabel(t, lang)}</span>
             <span style={{ fontSize: 10, color: accent, background: `${accent}18`, padding: "1px 7px", borderRadius: 20, fontWeight: 700 }}>{gItems.length}</span>
             <span style={{ marginLeft: "auto", color: "#484f58", fontSize: 13, transform: collapsed[t.id] ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
           </button>
@@ -3729,7 +3630,7 @@ function LibGroupedList({ items, library, onOpen }) {
                       {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>{item.title}</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#1a1a2e" }}>{item.title}</p>
                       {item.year && <p style={{ fontSize: 11, color: "#8b949e", marginTop: 1 }}>{item.year}</p>}
                     </div>
                     {status && <span style={{ fontSize: 12, flexShrink: 0 }}>{status.emoji}</span>}
@@ -4457,28 +4358,39 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
 
 // ─── Sidebar Search ───────────────────────────────────────────────────────────
 function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
+  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
   return (
-    <div style={{ margin: "4px 8px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f1f5f9", borderRadius: 10, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, transition: "border-color 0.15s" }}>
-        <span style={{ display: "flex", alignItems: "center", flexShrink: 0, color: "#484f58" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
-            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="ds-nav-btn" style={{ padding: "11px 16px" }}>
+          <span className="ds-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2"/>
+              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </span>
+          {useT("search")}
+        </button>
+      ) : (
+        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
+            <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
           </svg>
-        </span>
-        <input value={q} onChange={e => setQ(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setQ(""); }
-            if (e.key === "Escape") setQ("");
-          }}
-          onFocus={e => { e.currentTarget.parentElement.style.borderColor = accent + "88"; }}
-          onBlur={e => { e.currentTarget.parentElement.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"; }}
-          placeholder={useT("search") + "..."}
-          style={{ flex: 1, background: "transparent", border: "none", color: "var(--text-primary)", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, boxShadow: "none" }} />
-        {q && <button onClick={() => setQ("")} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 12, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>}
-      </div>
-    </div>
+          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
+              if (e.key === "Escape") { setOpen(false); setQ(""); }
+            }}
+            placeholder={useT("search") + "..."}
+            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0 }} />
+          <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -4636,7 +4548,7 @@ export default function TrackAll() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
-  const [libViewMode, setLibViewMode] = useState(() => { try { const m = localStorage.getItem("trackall_lib_view") || "grid"; return m; } catch { return "grid"; } });
+  const [libViewMode, setLibViewMode] = useState(() => { try { return localStorage.getItem("trackall_lib_view") || "grid"; } catch { return "grid"; } });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
@@ -4654,7 +4566,7 @@ export default function TrackAll() {
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
   const [viewingTierlist, setViewingTierlist] = useState(null);
-  const [editingTierlist, setEditingTierlist] = useState(null); // null | {} | tierlist
+  const [editingTierlist, setEditingTierlist] = useState(null);
   const [showTierlistEditor, setShowTierlistEditor] = useState(false);
 
   // Auth state
@@ -4687,7 +4599,7 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
         if (prof.accent) setAccent(prof.accent);
         if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
         if (prof.sidebar_color !== undefined) setSidebarColor(prof.sidebar_color || "");
@@ -4732,14 +4644,19 @@ export default function TrackAll() {
     setRecoLoading(true);
     setRecos({});
     try {
+      // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
       if (anime?.length) setRecos(r => ({ ...r, anime }));
+
       const manga = await fetchTrendingManga(workerUrl);
       if (manga?.length) setRecos(r => ({ ...r, manga }));
+
       const filmes = await fetchTrendingMovies(tmdbKey, workerUrl);
       if (filmes?.length) setRecos(r => ({ ...r, filmes }));
+
       const series = await fetchTrendingSeries(tmdbKey, workerUrl);
       if (series?.length) setRecos(r => ({ ...r, series }));
+
       const jogos = await fetchTrendingGames(workerUrl);
       if (jogos?.length) setRecos(r => ({ ...r, jogos }));
     } catch {}
@@ -4841,7 +4758,6 @@ export default function TrackAll() {
           avatar: p.avatar || "",
           banner: p.banner || "",
           hide_email: p.hideEmail || false,
-          hide_banner_mobile: p.hideBannerMobile || false,
         });
       } catch (err) {
         console.error('[TrackAll] Erro ao guardar perfil:', err);
@@ -5270,8 +5186,6 @@ export default function TrackAll() {
     return arr.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
   }, [filteredLib, libSort]);
 
-
-
   const accentRgb = useMemo(() => `${parseInt(accent.slice(1, 3), 16)},${parseInt(accent.slice(3, 5), 16)},${parseInt(accent.slice(5, 7), 16)}`, [accent]);
 
   // Stat colors pré-calculados — evita accentShade() em cada render
@@ -5366,7 +5280,7 @@ export default function TrackAll() {
               <div style={{ padding: "20px 16px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "white", flexShrink: 0 }}>T</div>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>TrackAll</span>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
                 </div>
               </div>
 
@@ -5444,7 +5358,7 @@ export default function TrackAll() {
                     {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
                     <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
                   </div>
                 </div>
@@ -5460,31 +5374,26 @@ export default function TrackAll() {
           body { overscroll-behavior: none; }
           :root { --tc: ${activeTextContrast / 100}; }
           ${(() => {
-            // Calcula cor ajustada pelo contraste
-            const adjust = (base, contrast) => {
-              if (contrast === 100) return base;
-              const [r0,g0,b0] = base;
-              let r,g,b;
-              if (contrast < 100) {
-                const t = contrast / 100;
-                r = Math.round(r0 * t); g = Math.round(g0 * t); b = Math.round(b0 * t);
-              } else {
-                const t = (contrast - 100) / 100;
-                r = Math.round(r0 + (255-r0)*t); g = Math.round(g0 + (255-g0)*t); b = Math.round(b0 + (255-b0)*t);
-              }
-              return `rgb(${r},${g},${b})`;
-            };
-            const c = activeTextContrast;
-            // Cores base dependendo do modo
-            const primary   = darkMode ? [230,237,243] : [13,17,23];
-            const secondary = darkMode ? [201,209,217] : [71,85,105];
-            const muted     = darkMode ? [139,148,158] : [100,116,139];
+            if (activeTextContrast === 100) return '';
+            const base = darkMode ? [230, 237, 243] : [13, 17, 23];
+            let r, g, b;
+            if (activeTextContrast < 100) {
+              const t = activeTextContrast / 100;
+              r = Math.round(base[0] * t); g = Math.round(base[1] * t); b = Math.round(base[2] * t);
+            } else {
+              const t = (activeTextContrast - 100) / 100;
+              r = Math.round(base[0] + (255-base[0])*t); g = Math.round(base[1] + (255-base[1])*t); b = Math.round(base[2] + (255-base[2])*t);
+            }
+            const col = `rgb(${r},${g},${b})`;
             return `
-          .tc-zone {
-            --text-primary:   ${adjust(primary, c)};
-            --text-secondary: ${adjust(secondary, c)};
-            --text-muted:     ${adjust(muted, c)};
-          }
+          .tc-zone { color: ${col}; }
+          .tc-zone p, .tc-zone span, .tc-zone h1, .tc-zone h2, .tc-zone h3,
+          .tc-zone h4, .tc-zone h5, .tc-zone li, .tc-zone a { color: ${col}; }
+          .tc-zone .no-tc, .tc-zone .no-tc *,
+          .tc-zone .rating-hover, .tc-zone .rating-hover *,
+          .tc-zone .fav-overlay, .tc-zone .fav-overlay *,
+          .tc-zone .recent-hover-overlay, .tc-zone .recent-hover-overlay *,
+          .tc-zone .btn-accent, .tc-zone .btn-accent * { color: unset; }
           `;
           })()}
           ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -5506,7 +5415,6 @@ export default function TrackAll() {
           input, select, textarea { background: ${darkMode ? "#0d1117" : "#ffffff"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
-          .desktop-sidebar input:focus { box-shadow: none; border-color: transparent; }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
@@ -5568,7 +5476,7 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .media-grid .card { animation: none !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
-            .modal { border-radius: 24px 24px 0 0 !important; max-height: calc(92vh - 64px) !important; width: 100% !important; max-width: 100% !important; margin-bottom: 64px !important; }
+            .modal { border-radius: 24px 24px 0 0 !important; max-height: 92vh !important; width: 100% !important; max-width: 100% !important; }
             .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
           }
           @keyframes spin { to { transform: rotate(360deg); } }
@@ -5602,7 +5510,6 @@ export default function TrackAll() {
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
             overflow-y: auto;
-            overflow-x: hidden;
           }
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
@@ -5664,7 +5571,6 @@ export default function TrackAll() {
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
             tmdbKey={tmdbKey}
-            workerUrl={workerUrl}
           />
         )}
 
@@ -5730,8 +5636,8 @@ export default function TrackAll() {
                     <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 2, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
                       {profile.name || "Utilizador"}
                     </h2>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, fontWeight: 500 }}>
-                      <span style={{ color: "var(--text-secondary)", fontWeight: 700 }}>{items.length}</span> {useT("inLibraryCount")}
+                    <p style={{ fontSize: 12, color: darkMode ? "#6b7280" : "#94a3b8", marginBottom: 8, fontWeight: 500 }}>
+                      <span style={{ color: darkMode ? "#c9d1d9" : "#475569", fontWeight: 700 }}>{items.length}</span> {useT("inLibraryCount")}
                     </p>
                     {/* Stats compactas numa linha */}
                     <div style={{ display: "flex", gap: 4 }}>
@@ -5822,7 +5728,7 @@ export default function TrackAll() {
                         minWidth: 110,
                       }}>
                         <span style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{s.icon === "★" ? <span style={{ fontSize: 14, marginRight: 2 }}>★</span> : null}{s.value}</span>
-                        <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
+                        <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
                       </div>
                     );
                   })}
@@ -5834,7 +5740,7 @@ export default function TrackAll() {
             {items.length === 0 && (
               <div style={{ padding: "40px 24px", textAlign: "center" }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>🎬</div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: "var(--text-primary)" }}>{lang === "en" ? "Your library is empty" : "A tua biblioteca está vazia"}</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: darkMode ? "#e6edf3" : "#0d1117" }}>{lang === "en" ? "Your library is empty" : "A tua biblioteca está vazia"}</h3>
                 <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 24, lineHeight: 1.5 }}>{lang === "en" ? "Start adding anime, movies, games and much more" : "Começa a adicionar animes, filmes, jogos e muito mais"}</p>
                 <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 14, borderRadius: 12 }} onClick={() => setView("search")}>
                   {lang === "en" ? "+ Explore titles" : "+ Explorar títulos"}
@@ -6005,7 +5911,7 @@ export default function TrackAll() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {searchHistory.map((h, i) => (
-                        <button key={i} onClick={() => { setSearchQuery(h); doSearch(h, activeTab); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f8fafc", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: "var(--text-primary)", fontSize: 13, WebkitTapHighlightColor: "transparent" }}>
+                        <button key={i} onClick={() => { setSearchQuery(h); doSearch(h, activeTab); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f8fafc", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, WebkitTapHighlightColor: "transparent" }}>
                           <span style={{ color: "#484f58", fontSize: 13 }}>↩</span> {h}
                         </button>
                       ))}
@@ -6057,7 +5963,7 @@ export default function TrackAll() {
                     {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
                       <span key={t.id} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
                         <span style={{ fontSize: 13 }}>{t.icon}</span>
-                        <span style={{ color: "var(--text-muted)", fontWeight: 700, fontSize: 11 }}>{filteredLib.filter(i => i.type === t.id).length}</span>
+                        <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700, fontSize: 11 }}>{filteredLib.filter(i => i.type === t.id).length}</span>
                       </span>
                     ))}
                     <span style={{ flexShrink: 0, color: darkMode ? "#484f58" : "#94a3b8", fontSize: 11, marginLeft: 2 }}>· {filteredLib.length}</span>
@@ -6152,7 +6058,7 @@ export default function TrackAll() {
                     <p style={{ fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Use search to add media!" : "Usa a pesquisa para adicionar mídias!"}</p>
                     <button className="btn-accent" style={{ padding: "12px 24px" }} onClick={() => { setView("search"); }}>{useT("search")}</button>
                   </div>
-                ) : (isMobileDevice ? libViewMode !== "compact" && libViewMode === "list" : libViewMode === "list") ? (
+                ) : libViewMode === "list" ? (
                   <LibGroupedList
                     items={sortedLib}
                     library={library}
@@ -6187,7 +6093,6 @@ export default function TrackAll() {
                     columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5}
                   />
                 )}
-
               </div>
             </div>
           </div>
@@ -6199,7 +6104,7 @@ export default function TrackAll() {
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>👥</div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{lang === "en" ? "Friends are waiting!" : "Os teus amigos estão à espera!"}</h3>
-              <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 24, maxWidth: 300, lineHeight: 1.6 }}>{lang === "en" ? "Create a free account to add friends and share your library." : "Cria uma conta gratuita para adicionar amigos e partilhar a tua biblioteca."}</p>
+              <p style={{ fontSize: 14, color: darkMode ? "#8b949e" : "#64748b", marginBottom: 24, maxWidth: 300, lineHeight: 1.6 }}>{lang === "en" ? "Create a free account to add friends and share your library." : "Cria uma conta gratuita para adicionar amigos e partilhar a tua biblioteca."}</p>
               <button className="btn-accent" style={{ padding: "12px 28px", fontSize: 15, borderRadius: 12 }} onClick={() => { setDemoMode(false); setShowLanding(false); }}>
                 {lang === "en" ? "Create free account" : "Criar conta grátis"}
               </button>
@@ -6258,10 +6163,63 @@ export default function TrackAll() {
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
             onOpen={setSelectedItem}
-            diaryPanel={null}
+            diaryPanel={!isMobileDevice ? (() => {
+              const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
+                .sort((a,b) => b.addedAt - a.addedAt);
+              if (!completados.length) return null;
+              const groups = {};
+              completados.forEach(item => {
+                const d = new Date(item.addedAt);
+                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+                if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+                groups[key].items.push({ ...item, _day: d.getDate() });
+              });
+              const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+              return (
+                <div style={{
+                  width: 320, flexShrink: 0,
+                  borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+                  paddingLeft: 24, paddingRight: 16,
+                  marginLeft: 60,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
+                    <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
+                  </div>
+                  {sortedGroups.map(group => (
+                    <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
+                      <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
+                        <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
+                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>{group.year}</div>
+                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#8b949e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
+                          <div key={item.id} onClick={() => setSelectedItem(item)} style={{
+                            display: "flex", alignItems: "center", gap: 7, padding: "5px 3px",
+                            borderBottom: idx < arr.length-1 ? `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` : "none",
+                            cursor: "pointer", borderRadius: 4,
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#ffffff08" : "#00000008"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
+                            {(item.customCover || item.cover || item.thumbnailUrl)
+                              ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
+                              : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                            }
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                            {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })() : null}
             userTierlists={userTierlists}
             onCreateTierlist={() => { setEditingTierlist(null); setShowTierlistEditor(true); }}
-            onEditTierlist={(tl) => { setEditingTierlist(tl); setShowTierlistEditor(true); }}
             onDeleteTierlist={handleDeleteTierlist}
             onLikeTierlist={handleTierlistLike}
             userLikes={userLikes}
@@ -6291,6 +6249,7 @@ export default function TrackAll() {
             onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
           />
         )}
+
         {/* PWA Install Banner — mobile only */}
         {pwaPrompt && !pwaInstalled && isMobileDevice && (
           <div style={{ position: 'fixed', bottom: 72, left: 12, right: 12, zIndex: 60, background: '#161b22', border: `1px solid ${accent}44`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
@@ -6320,51 +6279,31 @@ export default function TrackAll() {
                 ))}
               </div>
               <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                placeholder={quickSearchType ? `${lang === "en" ? "Search" : "Pesquisar"} ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.[lang === "en" ? "labelEn" : "label"] || ""}...` : (lang === "en" ? "Search any title..." : "Pesquisar qualquer título...")}
-                style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: "var(--text-primary)", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+                placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
               {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>{useT("searching")}</p>}
               {!logQuery && !logSearching && (
                 <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>{lang === "en" ? "Type to search · tap to mark as complete" : "Escreve para pesquisar · toca para marcar como completo"}</p>
               )}
               {logResults.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-                  {logResults.map(item => {
-                    const inLib = !!library[item.id];
-                    return (
-                      <div key={item.id} style={{ borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", overflow: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
-                          {(item.cover || item.thumbnailUrl)
-                            ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                            : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                          }
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                            <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
-                          </div>
-                          {inLib && <span style={{ fontSize: 10, color: "#10b981", fontWeight: 700, flexShrink: 0, background: "#10b98122", padding: "2px 6px", borderRadius: 5 }}>✓ {lang === "en" ? "In lib" : "Na lib"}</span>}
-                        </div>
-                        {/* Status buttons */}
-                        <div style={{ display: "flex", borderTop: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, overflow: "hidden" }}>
-                          {STATUS_OPTIONS.map((s, si) => (
-                            <button key={s.id} onClick={() => {
-                              if (inLib) updateStatus(item.id, s.id);
-                              else addToLibrary(item, s.id);
-                              setLogOpen(false); setLogQuery(""); setLogResults([]);
-                              if (s.id === "completo") setLogPendingItem(item);
-                            }} style={{
-                              flex: 1, padding: "7px 2px", border: "none", borderRight: si < STATUS_OPTIONS.length - 1 ? `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` : "none",
-                              background: inLib && library[item.id]?.userStatus === s.id ? `${s.color}25` : "transparent",
-                              color: s.color, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
-                              display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-                            }}>
-                              <span style={{ fontSize: 14 }}>{s.emoji}</span>
-                              <span style={{ fontSize: 9, opacity: 0.8 }}>{statusLabel(s, lang).slice(0, 8)}</span>
-                            </button>
-                          ))}
-                        </div>
+                  {logResults.map(item => (
+                    <div key={item.id} onClick={() => {
+                      if (library[item.id]) updateStatus(item.id, "completo");
+                      else addToLibrary(item, "completo");
+                      setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
+                    }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", cursor: "pointer" }}>
+                      {(item.cover || item.thumbnailUrl)
+                        ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                      }
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                        <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
                       </div>
-                    );
-                  })}
+                      <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
