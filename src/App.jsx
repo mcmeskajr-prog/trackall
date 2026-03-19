@@ -2045,6 +2045,69 @@ function ProfileCustomization({ accent, darkMode, isMobileDevice, lang, useT,
   );
 }
 
+function SavedThemesPanel({ accent, darkMode, lang, useT, themeName, setThemeName, onSavedThemes,
+  bgColor, bgColorMobile, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax, bgSeparateDevices,
+  statsCardBg, textContrast, textContrastMobile, sidebarColor,
+  onAccentChange, onBgChange, onBgImage, onBgImageMobile, onBgColorMobile,
+  onBgOverlay, onBgBlur, onBgParallax, onSidebarColor, onTextContrast, onTextContrastMobile, onStatsCardBg }) {
+  const themes = onSavedThemes?.themes || [];
+  const applyTheme = (t) => {
+    if (t.accent) onAccentChange(t.accent);
+    if (t.bgColor) onBgChange(t.bgColor);
+    if (t.bgColorMobile !== undefined) onBgColorMobile(t.bgColorMobile);
+    if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
+    if (t.textContrast !== undefined) onTextContrast(t.textContrast);
+    if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
+    if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
+    if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
+    if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
+    if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
+    try {
+      onBgImage(t.hasBgImage ? (localStorage.getItem(`trackall_theme_img_${t.name}`) || "") : "");
+      onBgImageMobile(t.hasBgImageMobile ? (localStorage.getItem(`trackall_theme_imgm_${t.name}`) || "") : "");
+    } catch {}
+  };
+  const saveTheme = () => {
+    if (!themeName.trim()) return;
+    const name = themeName.trim();
+    try {
+      if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
+      if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
+    } catch {}
+    const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
+    onSavedThemes?.save([...themes.filter(t => t.name !== name), newTheme]);
+    setThemeName("");
+  };
+  return (
+    <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
+        <span style={{ fontSize: 13 }}>🎨</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
+        <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
+          onKeyDown={e => e.key === "Enter" && saveTheme()}
+          style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
+        <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
+      </div>
+      {themes.length > 0 ? (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {themes.map(t => (
+            <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
+              <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
+              <button onClick={() => {
+                try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
+                onSavedThemes?.save(themes.filter(x => x.name !== t.name));
+              }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
+      )}
+    </div>
+  );
+}
+
 function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
@@ -2389,71 +2452,20 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
 
       {/* ── Temas Guardados ── */}
-      {(() => {
-        const themes = onSavedThemes?.themes || [];
-        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
-        const applyTheme = (t) => {
-          if (t.accent) onAccentChange(t.accent);
-          if (t.bgColor) onBgChange(t.bgColor);
-          if (t.bgColorMobile !== undefined) onBgColorMobile(t.bgColorMobile);
-          if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
-          if (t.textContrast !== undefined) onTextContrast(t.textContrast);
-          if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
-          if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
-          if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
-          if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
-          if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
-          // Carregar imagens guardadas separadamente
-          try {
-            if (t.hasBgImage) { const img = localStorage.getItem(`trackall_theme_img_${t.name}`); onBgImage(img || ""); }
-            else onBgImage("");
-            if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
-            else onBgImageMobile("");
-          } catch {}
-        };
-        const saveTheme = () => {
-          if (!themeName.trim()) return;
-          const name = themeName.trim();
-          // Guardar imagens separadamente (são grandes)
-          try {
-            if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
-            if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
-          } catch {}
-          // Tema sem imagens (ficam no localStorage por chave separada)
-          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
-          const updated = [...themes.filter(t => t.name !== name), newTheme];
-          onSavedThemes?.save(updated);
-          setThemeName("");
-        };
-        return (
-          <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
-              <span style={{ fontSize: 13 }}>🎨</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
-              <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
-                onKeyDown={e => e.key === "Enter" && saveTheme()}
-                style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
-              <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
-            </div>
-            {themes.length > 0 ? (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {themes.map(t => (
-                  <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
-                    <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
-                    <button onClick={() => {
-                      try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
-                      onSavedThemes?.save(themes.filter(x => x.name !== t.name));
-                    }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
-            )}
-          </div>
-        );
-      })()}
+      <SavedThemesPanel
+        accent={accent} darkMode={darkMode} lang={lang} useT={useT}
+        themeName={themeName} setThemeName={setThemeName}
+        onSavedThemes={onSavedThemes}
+        bgColor={bgColor} bgColorMobile={bgColorMobile} bgImage={bgImage} bgImageMobile={bgImageMobile}
+        bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax} bgSeparateDevices={bgSeparateDevices}
+        statsCardBg={statsCardBg} textContrast={textContrast} textContrastMobile={textContrastMobile}
+        sidebarColor={sidebarColor}
+        onAccentChange={onAccentChange} onBgChange={onBgChange} onBgImage={onBgImage}
+        onBgImageMobile={onBgImageMobile} onBgColorMobile={onBgColorMobile}
+        onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
+        onSidebarColor={onSidebarColor} onTextContrast={onTextContrast}
+        onTextContrastMobile={onTextContrastMobile} onStatsCardBg={onStatsCardBg}
+      />
 
       <ProfileCustomization
         accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice}
