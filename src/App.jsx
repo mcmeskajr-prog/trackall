@@ -140,6 +140,54 @@ const supa = {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
     return data;
   },
+
+  // ── Tier Lists ──
+  async getPopularTierlists(limit = 10) {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase.from('tierlists')
+      .select('*, profiles(name, username, avatar)')
+      .gte('created_at', since)
+      .order('likes_count', { ascending: false })
+      .limit(limit);
+    return data || [];
+  },
+  async getUserTierlists(userId) {
+    const { data } = await supabase.from('tierlists')
+      .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    return data || [];
+  },
+  async createTierlist(userId, title, tiers) {
+    const { data, error } = await supabase.from('tierlists')
+      .insert({ user_id: userId, title, tiers }).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async updateTierlist(id, title, tiers) {
+    const { error } = await supabase.from('tierlists').update({ title, tiers }).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteTierlist(id) {
+    await supabase.from('tierlists').delete().eq('id', id);
+  },
+  async toggleTierlistLike(userId, tierlistId) {
+    const { data: existing } = await supabase.from('tierlist_likes')
+      .select('id').eq('user_id', userId).eq('tierlist_id', tierlistId).single();
+    if (existing) {
+      await supabase.from('tierlist_likes').delete().eq('id', existing.id);
+      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
+      await supabase.from('tierlists').update({ likes_count: Math.max(0, (tl?.likes_count || 1) - 1) }).eq('id', tierlistId);
+      return false;
+    } else {
+      await supabase.from('tierlist_likes').insert({ user_id: userId, tierlist_id: tierlistId });
+      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
+      await supabase.from('tierlists').update({ likes_count: (tl?.likes_count || 0) + 1 }).eq('id', tierlistId);
+      return true;
+    }
+  },
+  async getUserLikes(userId) {
+    const { data } = await supabase.from('tierlist_likes').select('tierlist_id').eq('user_id', userId);
+    return (data || []).map(r => r.tierlist_id);
+  },
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
