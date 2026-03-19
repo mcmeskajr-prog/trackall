@@ -1737,7 +1737,107 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [] }) {
+// ─── Profile Tab Components ───────────────────────────────────────────────────
+function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+  const filtered = completados
+    .filter(i => typeFilter === "all" || i.type === typeFilter)
+    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
+        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
+          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
+          {filtered.map(item => {
+            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+            return (
+              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                </div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
+  if (completados.length === 0) return (
+    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
+    </div>
+  );
+  const groups = {};
+  completados.forEach(item => {
+    const d = new Date(item.addedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+    groups[key].items.push({ ...item, _day: d.getDate() });
+  });
+  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+  return (
+    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {sortedGroups.map(group => (
+          <div key={group.key}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
+                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
+                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
+              </div>
+              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
+              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
+                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
+                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                    </div>
+                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
@@ -1984,9 +2084,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── TAB: PERFIL ── */}
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
+            {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
-        : { padding: "16px 16px 0" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
+        : { padding: "0 16px" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
 
@@ -2002,7 +2103,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         return (
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-              <h3 style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
               <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
             </div>
 
@@ -2167,7 +2268,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
               <span style={{ fontSize: 13 }}>🎨</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", flex: 1 }}>{useT("savedThemes")}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
               <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
                 onKeyDown={e => e.key === "Enter" && saveTheme()}
                 style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
@@ -2178,7 +2279,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 {themes.map(t => (
                   <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
-                    <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
+                    <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
                     <button onClick={() => {
                       try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
                       onSavedThemes?.save(themes.filter(x => x.name !== t.name));
@@ -2455,14 +2556,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── Legal ── */}
       <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 10 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: darkMode ? "#8b949e" : "#475569", display: "flex", alignItems: "center", gap: 10 }}>
           LEGAL
           <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
         </h3>
         <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>{useT("language")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("language")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>PT / EN</p>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -2477,7 +2578,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>{useT("privacy")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
             </div>
             <a href="https://raw.githubusercontent.com/mcmeskajr-prog/trackall/main/public/privacy.pdf" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
@@ -2487,7 +2588,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           <div style={{ height: 1, background: darkMode ? "#21262d" : "#e8e0d5" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>{useT("version")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
             </div>
           </div>
@@ -2495,45 +2596,63 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── Zona de Perigo ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
-          ZONA DE PERIGO
-          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
-        </h3>
-        <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
-            Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
-          </p>
-          {!confirmDelete ? (
-            <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              Apagar conta
-            </button>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await supabase.from("library").delete().eq("user_id", user.id);
-                    await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-                    await supabase.from("profiles").delete().eq("id", user.id);
-                    await supabase.auth.signOut();
-                    onSignOut && onSignOut();
-                  } catch (e) { console.error(e); setDeleting(false); setConfirmDelete(false); }
-                }} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                  {deleting ? useT("deleting") : "Sim, apagar tudo"}
+      {(() => {
+        const [confirmDelete, setConfirmDelete] = useState(false);
+        const [deleting, setDeleting] = useState(false);
+        const handleDeleteAccount = async () => {
+          if (!confirmDelete) { setConfirmDelete(true); return; }
+          setDeleting(true);
+          try {
+            // 1. Apagar todos os dados da biblioteca
+            await supabase.from("library").delete().eq("user_id", user.id);
+            // 2. Apagar friendships
+            await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+            // 3. Apagar perfil
+            await supabase.from("profiles").delete().eq("id", user.id);
+            // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
+            await supabase.auth.signOut();
+            onSignOut && onSignOut();
+          } catch (e) {
+            console.error(e);
+            setDeleting(false);
+            setConfirmDelete(false);
+          }
+        };
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
+              ZONA DE PERIGO
+              <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
+            </h3>
+            <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
+              <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
+                Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+              </p>
+              {!confirmDelete ? (
+                <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  Apagar conta
                 </button>
-                <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                  Cancelar
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
+                      {deleting ? useT("deleting") : "Sim, apagar tudo"}
+                    </button>
+                    <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        );
+      })()}
 
             </div>
+      </div>
+      </div>
       </div>
       </div>
       </div>
@@ -2541,61 +2660,21 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div> {/* fim tab perfil */}
 
       {/* ── TAB: COMPLETOS ── */}
-      <div style={{ display: profileTab === "completos" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-      {profileTab === "completos" && (() => {
-        const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-        const typeFilter = completosTypeFilter;
-        const setTypeFilter = setCompletosTypeFilter;
-        const sortMode = completosSortMode;
-        const setSortMode = setCompletosSortMode;
-        const filtered = completados
-          .filter(i => typeFilter === "all" || i.type === typeFilter)
-          .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
-        return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
-              <div style={{ display: "flex", gap: 6 }}>
-                {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-                  <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
-              {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
-                <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                  {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
-                </button>
-              ))}
-            </div>
-            {filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-                <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-                {filtered.map(item => {
-                  const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-                  return (
-                    <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                      <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-                        {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                        {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                      </div>
-                      <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-      </div>
+      {profileTab === "completos" && (
+        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+          <ProfileTabCompletos
+            items={items} library={library} accent={accent} darkMode={darkMode}
+            isMobileDevice={isMobileDevice} lang={lang}
+            typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
+            sortMode={completosSortMode} setSortMode={setCompletosSortMode}
+            onOpen={onOpen}
+          />
+        </div>
+      )}
 
       {/* ── TAB: TIER LISTS ── */}
-      <div style={{ display: profileTab === "tierlists" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+      {profileTab === "tierlists" && (
+        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
             <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
@@ -2616,7 +2695,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 <TierListCard
                   key={tl.id}
                   tl={tl}
-                  onOpen={tl => { /* view inline */ }}
+                  onOpen={onOpenTierlist}
                   onLike={onLikeTierlist}
                   liked={userLikes.includes(tl.id)}
                   currentUserId={tl.user_id}
@@ -2626,66 +2705,17 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* ── TAB: DIÁRIO ── */}
-      <div style={{ display: profileTab === "diario" ? "block" : "none" }}>
-      {true && (() => {
-        const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
-        if (completados.length === 0) return (
-          <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-            <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
-          </div>
-        );
-        const groups = {};
-        completados.forEach(item => {
-          const d = new Date(item.addedAt);
-          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-          if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-          groups[key].items.push({ ...item, _day: d.getDate() });
-        });
-        const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-        return (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {sortedGroups.map(group => (
-                <div key={group.key}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                    <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
-                      <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                      <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: "var(--text-primary)" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
-                    </div>
-                    <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
-                    <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-                    {[...group.items].sort((a,b) => b._day - a._day).map(item => {
-                      const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-                      return (
-                        <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                          <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                            {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                            <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
-                            {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                          </div>
-                          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--text-muted)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-      </div>
+      {profileTab === "diario" && (
+        <ProfileTabDiario
+          items={items} accent={accent} darkMode={darkMode}
+          isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen}
+        />
+      )}
 
-    </div>{/* fim conteudo */}
+        </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
@@ -6185,6 +6215,7 @@ export default function TrackAll() {
             onDeleteTierlist={handleDeleteTierlist}
             onLikeTierlist={handleTierlistLike}
             userLikes={userLikes}
+            onOpenTierlist={setViewingTierlist}
           />
           </div>
         )}
