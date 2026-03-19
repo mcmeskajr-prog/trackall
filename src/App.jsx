@@ -2104,7 +2104,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
       </div>
 
-      <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
@@ -2677,7 +2676,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
         );
       })()}
-      </div> {/* fim tab perfil */}
     </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
