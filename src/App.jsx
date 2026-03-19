@@ -1948,7 +1948,7 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -2761,11 +2761,38 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
       )}
 
+
       {/* Tab Tier Lists */}
       {profileTab === "tierlists" && (
-        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px", textAlign: "center", color: "#484f58" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
-          <p>{lang === "en" ? "Tier Lists coming soon!" : "Tier Lists em breve!"}</p>
+        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
+            <button onClick={onCreateTierlist} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
+              + Nova Tier List
+            </button>
+          </div>
+          {userTierlists.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+              <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>Cria a tua primeira tier list!</p>
+              <button onClick={onCreateTierlist} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
+                + Criar Tier List
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+              {userTierlists.map(tl => (
+                <TierListCard
+                  key={tl.id} tl={tl}
+                  onOpen={onViewTierlist}
+                  onLike={onLikeTierlist}
+                  liked={userLikes.includes(tl.id)}
+                  currentUserId={currentUserId}
+                  onDelete={onDeleteTierlist}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -4464,6 +4491,9 @@ export default function TrackAll() {
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
+  const [userTierlists, setUserTierlists] = useState([]);
+  const [userLikes, setUserLikes] = useState([]);
+  const [viewingTierlist, setViewingTierlist] = useState(null);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -4530,6 +4560,9 @@ export default function TrackAll() {
     if (view === "home" && user && !recoLoading && Object.keys(recos).length === 0) {
       loadRecos();
     }
+    if (view === "profile" && user && userTierlists.length === 0) {
+      loadUserTierlists();
+    }
   }, [view, user]);
 
   const loadRecos = async () => {
@@ -4553,6 +4586,31 @@ export default function TrackAll() {
       if (jogos?.length) setRecos(r => ({ ...r, jogos }));
     } catch {}
     setRecoLoading(false);
+  };
+
+  const loadUserTierlists = async () => {
+    if (!user) return;
+    const [tls, likes] = await Promise.all([
+      supa.getUserTierlists(user.id),
+      supa.getUserLikes(user.id),
+    ]);
+    setUserTierlists(tls);
+    setUserLikes(likes);
+  };
+
+  const handleTierlistLike = async (tierlistId) => {
+    if (!user) return;
+    const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
+    setUserLikes(prev => isLiked ? [...prev, tierlistId] : prev.filter(id => id !== tierlistId));
+    setUserTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: (tl.likes_count || 0) + (isLiked ? 1 : -1) } : tl));
+    if (viewingTierlist?.id === tierlistId) {
+      setViewingTierlist(prev => ({ ...prev, likes_count: (prev.likes_count || 0) + (isLiked ? 1 : -1) }));
+    }
+  };
+
+  const handleDeleteTierlist = async (id) => {
+    await supa.deleteTierlist(id);
+    setUserTierlists(prev => prev.filter(tl => tl.id !== id));
   };
 
   const handleAuth = async (u) => {
@@ -5963,6 +6021,13 @@ export default function TrackAll() {
             lang={lang}
             useT={useT}
             onChangeLang={changeLang}
+            userTierlists={userTierlists}
+            userLikes={userLikes}
+            currentUserId={user?.id}
+            onCreateTierlist={() => alert("Editor em breve!")}
+            onViewTierlist={setViewingTierlist}
+            onLikeTierlist={handleTierlistLike}
+            onDeleteTierlist={handleDeleteTierlist}
             onSavedThemes={{ themes: savedThemes, save: saveSavedThemes }}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
@@ -6033,6 +6098,18 @@ export default function TrackAll() {
             })() : null}
           />
           </div>
+        )}
+
+        {/* TierList Viewer */}
+        {viewingTierlist && (
+          <TierListViewer
+            tl={viewingTierlist}
+            onClose={() => setViewingTierlist(null)}
+            onLike={handleTierlistLike}
+            liked={userLikes.includes(viewingTierlist.id)}
+            currentUserId={user?.id}
+            onEdit={null}
+          />
         )}
 
         {/* PWA Install Banner — mobile only */}
