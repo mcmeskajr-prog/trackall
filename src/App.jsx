@@ -2550,6 +2550,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
       </div>
       </div>
+      </div>
+      </div>
+      </div>
+      </div>
       )} {/* fim tab perfil */}
 
       {/* ── TAB: COMPLETOS ── */}
