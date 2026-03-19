@@ -2495,57 +2495,43 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── Zona de Perigo ── */}
-      {(() => {
-        const handleDeleteAccount = async () => {
-          if (!confirmDelete) { setConfirmDelete(true); return; }
-          setDeleting(true);
-          try {
-            // 1. Apagar todos os dados da biblioteca
-            await supabase.from("library").delete().eq("user_id", user.id);
-            // 2. Apagar friendships
-            await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-            // 3. Apagar perfil
-            await supabase.from("profiles").delete().eq("id", user.id);
-            // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
-            await supabase.auth.signOut();
-            onSignOut && onSignOut();
-          } catch (e) {
-            console.error(e);
-            setDeleting(false);
-            setConfirmDelete(false);
-          }
-        };
-        return (
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
-              ZONA DE PERIGO
-              <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
-            </h3>
-            <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
-              <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
-                Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
-              </p>
-              {!confirmDelete ? (
-                <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                  Apagar conta
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
+          ZONA DE PERIGO
+          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
+        </h3>
+        <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
+          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
+            Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+          </p>
+          {!confirmDelete ? (
+            <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              Apagar conta
+            </button>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await supabase.from("library").delete().eq("user_id", user.id);
+                    await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+                    await supabase.from("profiles").delete().eq("id", user.id);
+                    await supabase.auth.signOut();
+                    onSignOut && onSignOut();
+                  } catch (e) { console.error(e); setDeleting(false); setConfirmDelete(false); }
+                }} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
+                  {deleting ? useT("deleting") : "Sim, apagar tudo"}
                 </button>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                      {deleting ? useT("deleting") : "Sim, apagar tudo"}
-                    </button>
-                    <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
+                <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cancelar
+                </button>
+              </div>
             </div>
-          </div>
-        );
-      })()}
+          )}
+        </div>
+      </div>
 
             </div>
       </div>
