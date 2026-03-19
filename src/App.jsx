@@ -2333,10 +2333,6 @@ function ProfileTabPerfil({ profile, library, favorites, accent, darkMode, isMob
           </div>
         );
       })()}
-
-            </div>
-      {diaryPanel}
-      </div>
     </div>
   );
 }
