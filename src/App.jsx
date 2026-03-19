@@ -3120,10 +3120,9 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 </button>
               )}
             </div>
+            </div>
           );
         })()}
-        </div>{/* fim layout PC */}
-
         </div>
       </div>
     );
