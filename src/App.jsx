@@ -1719,6 +1719,113 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
+// ─── Tier List Components ─────────────────────────────────────────────────────
+const TIER_LEVELS = [
+  { id: "S", color: "#ef4444" },
+  { id: "A", color: "#f97316" },
+  { id: "B", color: "#eab308" },
+  { id: "C", color: "#22c55e" },
+  { id: "D", color: "#3b82f6" },
+];
+
+function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
+  const { accent, darkMode } = useTheme();
+  const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
+  return (
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: 14, cursor: "pointer" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
+          {tl.profiles && <p style={{ fontSize: 11, color: "#484f58" }}>@{tl.profiles.username || tl.profiles.name}</p>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "3px 10px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
+            ♥ {tl.likes_count || 0}
+          </button>
+          {currentUserId === tl.user_id && onDelete && (
+            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>🗑</button>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
+        {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).slice(0, 3).map(tier => (
+          <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 5, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "white", flexShrink: 0 }}>{tier.id}</span>
+            <div style={{ display: "flex", gap: 3, overflow: "hidden" }}>
+              {(tl.tiers[tier.id] || []).slice(0, 6).map(item => {
+                const cover = item.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} style={{ width: 22, height: 32, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                  </div>
+                );
+              })}
+              {(tl.tiers[tier.id] || []).length > 6 && <span style={{ fontSize: 10, color: "#484f58", alignSelf: "center" }}>+{(tl.tiers[tier.id] || []).length - 6}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} itens</span>
+        <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
+      </div>
+    </div>
+  );
+}
+
+function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade-in" style={{ maxWidth: 600, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1, marginRight: 12 }}>{tl.title}</h2>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20 }}>✕</button>
+          </div>
+          {tl.profiles && <p style={{ fontSize: 12, color: "#484f58", marginBottom: 12 }}>por @{tl.profiles.username || tl.profiles.name}</p>}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <button onClick={() => onLike && onLike(tl.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "6px 16px", color: liked ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+              ♥ {tl.likes_count || 0} gostos
+            </button>
+            {currentUserId === tl.user_id && onEdit && (
+              <button onClick={() => { onClose(); onEdit(tl); }} style={{ background: "none", border: "1px solid #30363d", borderRadius: 20, padding: "6px 16px", color: "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+                ✏ Editar
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: "0 20px 24px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {TIER_LEVELS.map(tier => {
+            const items = tl.tiers[tier.id] || [];
+            return (
+              <div key={tier.id} style={{ display: "flex", minHeight: 56, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                <div style={{ width: 48, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{tier.id}</span>
+                </div>
+                <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 6, padding: 8, alignContent: "flex-start" }}>
+                  {items.length === 0 ? (
+                    <span style={{ fontSize: 12, color: "#484f58", alignSelf: "center" }}>Vazio</span>
+                  ) : items.map(item => {
+                    const cover = item.customCover || item.cover || item.thumbnailUrl;
+                    return (
+                      <div key={item.id} title={item.title}>
+                        <div style={{ width: 40, height: 58, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id) }}>
+                          {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, onOpen }) {
   const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
   const [typeFilter, setTypeFilter] = useState("all");
