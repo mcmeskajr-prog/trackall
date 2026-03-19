@@ -2066,48 +2066,45 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         ))}
       </div>
 
-      {profileTab !== "perfil" ? (
-        profileTab === "completos" ? (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-            <ProfileTabCompletos
-              items={items} library={library} accent={accent} darkMode={darkMode}
-              isMobileDevice={isMobileDevice} lang={lang}
-              typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
-              sortMode={completosSortMode} setSortMode={setCompletosSortMode}
-              onOpen={onOpen}
-            />
-          </div>
-        ) : profileTab === "tierlists" ? (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
-              <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
-                + {lang === "en" ? "New Tier List" : "Nova Tier List"}
-              </button>
-            </div>
-            {userTierlists.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "40px 0" }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
-                <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
-                <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
-                  + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
-                {userTierlists.map(tl => (
-                  <TierListCard key={tl.id} tl={tl} onOpen={onOpenTierlist} onLike={onLikeTierlist} liked={userLikes.includes(tl.id)} currentUserId={tl.user_id} onDelete={onDeleteTierlist} />
-                ))}
-              </div>
-            )}
+      <div style={{ display: profileTab === "completos" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+        <ProfileTabCompletos
+          items={items} library={library} accent={accent} darkMode={darkMode}
+          isMobileDevice={isMobileDevice} lang={lang}
+          typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
+          sortMode={completosSortMode} setSortMode={setCompletosSortMode}
+          onOpen={onOpen}
+        />
+      </div>
+
+      <div style={{ display: profileTab === "tierlists" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
+          <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
+            + {lang === "en" ? "New Tier List" : "Nova Tier List"}
+          </button>
+        </div>
+        {userTierlists.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+            <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
+            <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
+              + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
+            </button>
           </div>
         ) : (
-          <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
-        )
-      ) : null}
+          <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+            {userTierlists.map(tl => (
+              <TierListCard key={tl.id} tl={tl} onOpen={onOpenTierlist} onLike={onLikeTierlist} liked={userLikes.includes(tl.id)} currentUserId={tl.user_id} onDelete={onDeleteTierlist} />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {profileTab === "perfil" && (
-      <div>
+      <div style={{ display: profileTab === "diario" ? "block" : "none" }}>
+        <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
+      </div>
+
+      <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
@@ -2678,7 +2675,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {diaryPanel}
       </div>
     </div>
-      )} {/* fim tab perfil */}
+      </div> {/* fim tab perfil */}
     </div>{/* fim conteudo */}
     {cropSrc && (
       <CropModal
