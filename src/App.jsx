@@ -1738,353 +1738,37 @@ function RecentSection({ items, onOpen, showDiary = true }) {
 }
 
 // ─── Profile Tab Components ───────────────────────────────────────────────────
-function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-  const filtered = completados
-    .filter(i => typeFilter === "all" || i.type === typeFilter)
-    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
-  return (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
-        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
-          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
-          </button>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-          {filtered.map(item => {
-            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                </div>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
 
-function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
-  if (completados.length === 0) return (
-    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
-    </div>
-  );
-  const groups = {};
-  completados.forEach(item => {
-    const d = new Date(item.addedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-    groups[key].items.push({ ...item, _day: d.getDate() });
-  });
-  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-  return (
-    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {sortedGroups.map(group => (
-          <div key={group.key}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
-                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
-              </div>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
-              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
-                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-                return (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
-                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                    </div>
-                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
-  const [editing, setEditing] = useState(false);
-  const [profileTab, setProfileTab] = useState("perfil");
-  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
-  const [completosSortMode, setCompletosSortMode] = useState("date");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+// ─── Profile Tab: Perfil ──────────────────────────────────────────────────────
+function ProfileTabPerfil({ profile, library, favorites, accent, darkMode, isMobileDevice,
+  bgColor, bgImage, bgImageMobile, bgColorMobile, bgSeparateDevices, bgOverlay, bgBlur, bgParallax,
+  statsCardBg, textContrast, textContrastMobile, sidebarColor, tmdbKey, workerUrl,
+  onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg,
+  onTextContrast, onTextContrastMobile, onSidebarColor, onBgSeparateDevices, onBgColorMobile,
+  onBgImageMobile, onSavedThemes, onTmdbKey, onWorkerUrl, onSignOut, userEmail,
+  onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen,
+  lang, useT, onChangeLang, items, user }) {
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const [name, setName] = useState(profile.name || "");
-  const [bio, setBio] = useState(profile.bio || "");
-  const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
-  const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
-  const [shareCopied, setShareCopied] = useState(false);
   const [themeName, setThemeName] = useState("");
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
   const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
-  const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
-  const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
-  const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
-  const [cropSrc, setCropSrc] = useState(null);
-  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
-  const avatarRef = useRef();
-  const bannerRef = useRef();
-  const items = useMemo(() => Object.values(library), [library]);
-  const byType = useMemo(() => {
-    const r = {};
-    MEDIA_TYPES.slice(1).forEach((t) => { r[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
-    return r;
-  }, [items]);
-  const byStatus = useMemo(() => {
-    const r = {};
-    STATUS_OPTIONS.forEach((s) => { r[s.id] = items.filter((i) => i.userStatus === s.id).length; });
-    return r;
-  }, [items]);
-  const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
-  const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
-
-  const handleAvatarFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc(url);
-    setCropType("avatar");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const byType = items.reduce((acc, i) => { acc[i.type] = (acc[i.type]||0)+1; return acc; }, {});
+  const stats = {
+    completo: items.filter(i=>i.userStatus==="completo").length,
+    assistindo: items.filter(i=>i.userStatus==="assistindo").length,
+    planejado: items.filter(i=>i.userStatus==="planejado").length,
+    dropado: items.filter(i=>i.userStatus==="dropado").length,
+    pausado: items.filter(i=>i.userStatus==="pausado").length,
   };
-
-  const handleBannerFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc(url);
-    setCropType("banner");
-  };
-
-  const handleCropSave = (dataUrl) => {
-    if (cropType === "avatar") setAvatarPreview(dataUrl);
-    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
-    setCropSrc(null); setCropType(null);
-  };
-
-  const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
-    setEditing(false);
-  };
-
-  const currentBanner = editing ? bannerPreview : profile.banner;
-  const currentAvatar = editing ? avatarPreview : profile.avatar;
-
   return (
-    <>
-    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
-
-      {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile) ? 56 : 64 }}>
-        {/* Banner — taller, more impactful */}
-        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) ? (
-        <div style={{
-          height: 260, overflow: "hidden", position: "relative",
-          borderRadius: "20px 20px 0 0",
-          background: currentBanner
-            ? `url(${currentBanner}) center/cover no-repeat`
-            : darkMode ? "#0d1117" : "#f1f5f9",
-        }}>
-          {/* Multi-layer gradient overlay for impact */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-          {/* Banner fallback — hexágonos + partículas animadas */}
-          {!currentBanner && (
-            <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
-                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
-                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#hex)"/>
-                {/* Partículas flutuantes */}
-                {[
-                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
-                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
-                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
-                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
-                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
-                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
-                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
-                ].map((p, i) => (
-                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
-                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
-                  </circle>
-                ))}
-              </svg>
-              {/* Gradiente respirante */}
-              <div style={{ position: "absolute", inset: 0 }}>
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
-              </div>
-              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
-            </>
-          )}
-          {editing && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
-              <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
-              <button onClick={() => bannerRef.current?.click()} style={{
-                padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
-                background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
-              }}>🖼 Alterar Banner</button>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
-              <input
-                placeholder="ou cola URL do banner..."
-                value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
-                onChange={(e) => { setBannerUrl(e.target.value); setBannerPreview(e.target.value); }}
-                style={{ padding: "7px 12px", fontSize: 12, width: "70%", maxWidth: 300, borderRadius: 8 }}
-              />
-              {bannerUrl && (
-                <button onClick={() => { setBannerUrl(""); setBannerPreview(""); }} style={{
-                  padding: "4px 10px", borderRadius: 6, border: "1px solid #ef444466",
-                  background: "rgba(239,68,68,0.15)", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                }}>✕ Remover banner</button>
-              )}
-            </div>
-          )}
-        </div>
-        ) : <div style={{ height: 48 }} />}
-
-        {/* Avatar — overlaps banner */}
-        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
-          <div style={{ position: "relative", display: "inline-block" }}>
-            <div style={{
-              width: 92, height: 92, borderRadius: 999, overflow: "hidden",
-              background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
-              border: `3px solid ${bgColor}`,
-              boxShadow: `0 0 0 3px ${accent}, 0 0 24px ${accent}66, 0 8px 32px rgba(0,0,0,0.5)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {currentAvatar
-                ? <img src={currentAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 38 }}>👤</span>}
-            </div>
-            {editing && (
-              <>
-                <input type="file" accept="image/*" ref={avatarRef} onChange={handleAvatarFile} style={{ display: "none" }} />
-                <button onClick={() => avatarRef.current?.click()} style={{
-                  position: "absolute", bottom: 2, right: 2, width: 26, height: 26, borderRadius: 999,
-                  background: accent, border: `2px solid ${bgColor}`, cursor: "pointer", fontSize: 12,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>🖊</button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Name / bio / edit */}
-      <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
-        {editing ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
-            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
-            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{useT("hideEmail")}</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no telemóvel"}</span>
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
-              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
-            {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
-            {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
-            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
-              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
-                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
-                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-              }}>✏ Editar Perfil</button>
-              {onSignOut && (
-                <button onClick={onSignOut} title={useT("signOut")} style={{
-                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
-                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "0 0 0 0", overflowX: "auto", scrollbarWidth: "none" }}>
-        {[
-          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
-          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
-          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
-          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
-            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
-            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
-            color: profileTab === tab.id ? accent : "#484f58",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
-            display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
-            marginBottom: -1,
-          }}>
-            <span>{tab.icon}</span> {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── TAB: PERFIL ── */}
-      <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
-            {/* Stats and settings — PC: flex row com diário à direita */}
+    <div>
+      {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "0 32px 0 32px", alignItems: "flex-start" }
         : { padding: "0 16px" }
@@ -2651,13 +2335,383 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       })()}
 
             </div>
+      {diaryPanel}
       </div>
+    </div>
+  );
+}
+
+function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+  const filtered = completados
+    .filter(i => typeFilter === "all" || i.type === typeFilter)
+    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
+            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
+          ))}
+        </div>
       </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
+        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
+          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
+          </button>
+        ))}
       </div>
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
+          {filtered.map(item => {
+            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+            return (
+              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                </div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
+  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
+  if (completados.length === 0) return (
+    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
+    </div>
+  );
+  const groups = {};
+  completados.forEach(item => {
+    const d = new Date(item.addedAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+    groups[key].items.push({ ...item, _day: d.getDate() });
+  });
+  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
+  return (
+    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {sortedGroups.map(group => (
+          <div key={group.key}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
+                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
+                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
+              </div>
+              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
+              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
+                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+                return (
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
+                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
+                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
+                    </div>
+                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
+    </div>
+  );
+}
+
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onEditTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
+  const [editing, setEditing] = useState(false);
+  const [profileTab, setProfileTab] = useState("perfil");
+  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
+  const [completosSortMode, setCompletosSortMode] = useState("date");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showMihon, setShowMihon] = useState(false);
+  const [showPaperback, setShowPaperback] = useState(false);
+  const [showLetterboxd, setShowLetterboxd] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [name, setName] = useState(profile.name || "");
+  const [bio, setBio] = useState(profile.bio || "");
+  const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
+  const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [themeName, setThemeName] = useState("");
+  const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
+  const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
+  const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
+  const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
+  const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropType, setCropType] = useState(null); // "avatar" | "banner"
+  const avatarRef = useRef();
+  const bannerRef = useRef();
+  const items = useMemo(() => Object.values(library), [library]);
+  const byType = useMemo(() => {
+    const r = {};
+    MEDIA_TYPES.slice(1).forEach((t) => { r[t.id] = items.filter((i) => i.type === t.id && i.userStatus === 'completo').length; });
+    return r;
+  }, [items]);
+  const byStatus = useMemo(() => {
+    const r = {};
+    STATUS_OPTIONS.forEach((s) => { r[s.id] = items.filter((i) => i.userStatus === s.id).length; });
+    return r;
+  }, [items]);
+  const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
+  const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
+
+  const handleAvatarFile = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("avatar");
+  };
+
+  const handleBannerFile = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropType("banner");
+  };
+
+  const handleCropSave = (dataUrl) => {
+    if (cropType === "avatar") setAvatarPreview(dataUrl);
+    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
+    setCropSrc(null); setCropType(null);
+  };
+
+  const handleSave = async () => {
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
+    setEditing(false);
+  };
+
+  const currentBanner = editing ? bannerPreview : profile.banner;
+  const currentAvatar = editing ? avatarPreview : profile.avatar;
+
+  return (
+    <>
+    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
+
+      {/* ── Banner + Avatar header ── */}
+      <div style={{ position: "relative", marginBottom: isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile) ? 56 : 64 }}>
+        {/* Banner — taller, more impactful */}
+        {!(isMobileDevice && (editing ? hideBannerMobile : profile.hideBannerMobile)) ? (
+        <div style={{
+          height: 260, overflow: "hidden", position: "relative",
+          borderRadius: "20px 20px 0 0",
+          background: currentBanner
+            ? `url(${currentBanner}) center/cover no-repeat`
+            : darkMode ? "#0d1117" : "#f1f5f9",
+        }}>
+          {/* Multi-layer gradient overlay for impact */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+          {/* Banner fallback — hexágonos + partículas animadas */}
+          {!currentBanner && (
+            <>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
+                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
+                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
+                    </polygon>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#hex)"/>
+                {/* Partículas flutuantes */}
+                {[
+                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
+                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
+                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
+                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
+                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
+                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
+                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
+                ].map((p, i) => (
+                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
+                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
+                  </circle>
+                ))}
+              </svg>
+              {/* Gradiente respirante */}
+              <div style={{ position: "absolute", inset: 0 }}>
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
+              </div>
+              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
+            </>
+          )}
+          {editing && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
+              <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
+              <button onClick={() => bannerRef.current?.click()} style={{
+                padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
+                background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
+              }}>🖼 Alterar Banner</button>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
+              <input
+                placeholder="ou cola URL do banner..."
+                value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
+                onChange={(e) => { setBannerUrl(e.target.value); setBannerPreview(e.target.value); }}
+                style={{ padding: "7px 12px", fontSize: 12, width: "70%", maxWidth: 300, borderRadius: 8 }}
+              />
+              {bannerUrl && (
+                <button onClick={() => { setBannerUrl(""); setBannerPreview(""); }} style={{
+                  padding: "4px 10px", borderRadius: 6, border: "1px solid #ef444466",
+                  background: "rgba(239,68,68,0.15)", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                }}>✕ Remover banner</button>
+              )}
+            </div>
+          )}
+        </div>
+        ) : <div style={{ height: 48 }} />}
+
+        {/* Avatar — overlaps banner */}
+        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <div style={{
+              width: 92, height: 92, borderRadius: 999, overflow: "hidden",
+              background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+              border: `3px solid ${bgColor}`,
+              boxShadow: `0 0 0 3px ${accent}, 0 0 24px ${accent}66, 0 8px 32px rgba(0,0,0,0.5)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {currentAvatar
+                ? <img src={currentAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 38 }}>👤</span>}
+            </div>
+            {editing && (
+              <>
+                <input type="file" accept="image/*" ref={avatarRef} onChange={handleAvatarFile} style={{ display: "none" }} />
+                <button onClick={() => avatarRef.current?.click()} style={{
+                  position: "absolute", bottom: 2, right: 2, width: 26, height: 26, borderRadius: 999,
+                  background: accent, border: `2px solid ${bgColor}`, cursor: "pointer", fontSize: 12,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>🖊</button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Name / bio / edit */}
+      <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
+        {editing ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
+            <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{useT("hideEmail")}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no telemóvel"}</span>
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
+              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 22, fontWeight: 800, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{profile.name || "Utilizador"}</h2>
+            {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
+            {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
+              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
+                padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
+                background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
+              }}>✏ Editar Perfil</button>
+              {onSignOut && (
+                <button onClick={onSignOut} title={useT("signOut")} style={{
+                  width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",
+                  background: "transparent", color: "#484f58", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
-      </div> {/* fim tab perfil */}
+
+      {/* ── Profile Tabs ── */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "0 0 0 0", overflowX: "auto", scrollbarWidth: "none" }}>
+        {[
+          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
+          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
+          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
+          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
+            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
+            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
+            color: profileTab === tab.id ? accent : "#484f58",
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
+            display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+            marginBottom: -1,
+          }}>
+            <span>{tab.icon}</span> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: PERFIL ── */}
+      {profileTab === "perfil" && (
+        <div style={{ display: "block" }}>
+          <ProfileTabPerfil
+            profile={profile} library={library} favorites={favorites}
+            accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice}
+            bgColor={bgColor} bgImage={bgImage} bgImageMobile={bgImageMobile}
+            bgColorMobile={bgColorMobile} bgSeparateDevices={bgSeparateDevices}
+            bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax}
+            statsCardBg={statsCardBg} textContrast={textContrast}
+            textContrastMobile={textContrastMobile} sidebarColor={sidebarColor}
+            tmdbKey={tmdbKey} workerUrl={workerUrl}
+            onAccentChange={onAccentChange} onBgChange={onBgChange}
+            onBgImage={onBgImage} onBgOverlay={onBgOverlay} onBgBlur={onBgBlur}
+            onBgParallax={onBgParallax} onStatsCardBg={onStatsCardBg}
+            onTextContrast={onTextContrast} onTextContrastMobile={onTextContrastMobile}
+            onSidebarColor={onSidebarColor} onBgSeparateDevices={onBgSeparateDevices}
+            onBgColorMobile={onBgColorMobile} onBgImageMobile={onBgImageMobile}
+            onSavedThemes={onSavedThemes} onTmdbKey={onTmdbKey} onWorkerUrl={onWorkerUrl}
+            onSignOut={onSignOut} userEmail={userEmail} onToggleFavorite={onToggleFavorite}
+            onImportMihon={onImportMihon} onImportPaperback={onImportPaperback}
+            onImportLetterboxd={onImportLetterboxd} onOpen={onOpen}
+            lang={lang} useT={useT} onChangeLang={onChangeLang}
+            items={items} user={user}
+          />
+        </div>
+      )} {/* fim tab perfil */}
 
       {/* ── TAB: COMPLETOS ── */}
       {profileTab === "completos" && (
