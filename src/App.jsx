@@ -140,67 +140,6 @@ const supa = {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
     return data;
   },
-
-  // ── Tier Lists ──
-  async getPopularTierlists(limit = 10) {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase.from('tierlists')
-      .select('*, profiles(name, username, avatar)')
-      .gte('created_at', since)
-      .order('likes_count', { ascending: false })
-      .limit(limit);
-    return data || [];
-  },
-
-  async getUserTierlists(userId) {
-    const { data } = await supabase.from('tierlists')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    return data || [];
-  },
-
-  async createTierlist(userId, title, tiers) {
-    const { data, error } = await supabase.from('tierlists')
-      .insert({ user_id: userId, title, tiers })
-      .select().single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async updateTierlist(id, title, tiers) {
-    const { error } = await supabase.from('tierlists')
-      .update({ title, tiers })
-      .eq('id', id);
-    if (error) throw new Error(error.message);
-  },
-
-  async deleteTierlist(id) {
-    await supabase.from('tierlists').delete().eq('id', id);
-  },
-
-  async toggleTierlistLike(userId, tierlistId) {
-    const { data: existing } = await supabase.from('tierlist_likes')
-      .select('id').eq('user_id', userId).eq('tierlist_id', tierlistId).single();
-    if (existing) {
-      await supabase.from('tierlist_likes').delete().eq('id', existing.id);
-      await supabase.from('tierlists').update({ likes_count: supabase.rpc('decrement', { x: 1 }) }).eq('id', tierlistId);
-      // fallback manual
-      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
-      await supabase.from('tierlists').update({ likes_count: Math.max(0, (tl?.likes_count || 1) - 1) }).eq('id', tierlistId);
-      return false;
-    } else {
-      await supabase.from('tierlist_likes').insert({ user_id: userId, tierlist_id: tierlistId });
-      const { data: tl } = await supabase.from('tierlists').select('likes_count').eq('id', tierlistId).single();
-      await supabase.from('tierlists').update({ likes_count: (tl?.likes_count || 0) + 1 }).eq('id', tierlistId);
-      return true;
-    }
-  },
-
-  async getUserLikes(userId) {
-    const { data } = await supabase.from('tierlist_likes').select('tierlist_id').eq('user_id', userId);
-    return (data || []).map(r => r.tierlist_id);
-  },
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
@@ -1255,9 +1194,10 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
-                    {libItem.userStatus === "assistindo" && libItem.addedAt && (
-                      <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ {Math.floor((Date.now()-libItem.addedAt)/86400000)===0?"menos de 1 dia":Math.floor((Date.now()-libItem.addedAt)/86400000)===1?"1 dia":`${Math.floor((Date.now()-libItem.addedAt)/86400000)} dias`}</span>
-                    )}
+                    {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
+                      const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
+                      return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
+                    })()}
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     {inLib && onToggleFavorite && (
@@ -1731,388 +1671,9 @@ function RecentSection({ items, onOpen, showDiary = true }) {
   );
 }
 
-function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, typeFilter, setTypeFilter, sortMode, setSortMode, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-  const filtered = completados
-    .filter(i => typeFilter === "all" || i.type === typeFilter)
-    .sort((a,b) => sortMode === "rating" ? (b.userRating||0) - (a.userRating||0) : sortMode === "title" ? (a.title||"").localeCompare(b.title||"") : (b.addedAt||0) - (a.addedAt||0));
-  return (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <p style={{ fontSize: 13, color: "#484f58" }}>{completados.length} {lang === "en" ? "completed" : "completos"}</p>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[{id:"date",label:lang==="en"?"Date":"Data"},{id:"title",label:"A–Z"},{id:"rating",label:"★"}].map(s => (
-            <button key={s.id} onClick={() => setSortMode(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${sortMode===s.id?accent:"#30363d"}`, background: sortMode===s.id?`${accent}22`:"transparent", color: sortMode===s.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{s.label}</button>
-          ))}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
-        {[{id:"all",label:lang==="en"?"All":"Todos",icon:"⊞"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
-          <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
-          </button>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-          <p>{lang === "en" ? "No completed items yet" : "Ainda sem itens completos"}</p>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-          {filtered.map(item => {
-            const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-                  {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                  {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                </div>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#8b949e", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
-function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
-  const completados = items.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
-  if (completados.length === 0) return (
-    <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
-    </div>
-  );
-  const groups = {};
-  completados.forEach(item => {
-    const d = new Date(item.addedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-    if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-    groups[key].items.push({ ...item, _day: d.getDate() });
-  });
-  const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-  return (
-    <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-      <p style={{ fontSize: 13, color: "#484f58", marginBottom: 20 }}>{completados.length} {lang === "en" ? "entries" : "entradas"} · {sortedGroups.length} {lang === "en" ? "months" : "meses"}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {sortedGroups.map(group => (
-          <div key={group.key}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{ background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 10, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0 }}>
-                <div style={{ background: accent, padding: "3px 12px", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                <div style={{ padding: "4px 12px 6px", fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{(MONTH_PT)[group.month]}</div>
-              </div>
-              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
-              <span style={{ fontSize: 11, color: "#484f58", flexShrink: 0 }}>{group.items.length} {lang === "en" ? "items" : "itens"}</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
-              {[...group.items].sort((a,b) => b._day - a._day).map(item => {
-                const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
-                return (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                    <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
-                      {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "white", fontWeight: 800 }}>{item._day}</div>
-                      {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
-                    </div>
-                    <p style={{ fontSize: 9, fontWeight: 600, color: "#8b949e", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Profile Favorites Section ───────────────────────────────────────────────
-function ProfileFavorites({ favorites, library, accent, darkMode, isMobileDevice, lang, onOpen, onToggleFavorite }) {
-  if (favorites.length === 0) return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{lang === "en" ? "FAVORITES" : "FAVORITOS"}</h3>
-        <span style={{ fontSize: 11, color: "#484f58" }}>0</span>
-      </div>
-      <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-        <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
-      </div>
-    </div>
-  );
-  const favByType = {};
-  favorites.forEach(f => { if (!favByType[f.type]) favByType[f.type] = []; favByType[f.type].push(f); });
-  const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-        <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{lang === "en" ? "FAVORITES" : "FAVORITOS"}</h3>
-        <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
-      </div>
-      <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
-        {activeTypes.map((t, tIdx) => {
-          const tc = accentVariant(accent, tIdx);
-          const items = favByType[t.id];
-          return (
-            <div key={t.id}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{mediaLabel(t, lang)}</span>
-                <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
-                <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{items.length}</span>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
-                {items.map(item => {
-                  const coverSrc = item.customCover || item.cover;
-                  const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
-                  return (
-                    <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
-                      onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
-                      onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
-                      <div className="fav-thumb-d" style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
-                        {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>}
-                        <div className="fav-overlay no-tc" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
-                          {currentRating > 0 ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div> : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>}
-                        </div>
-                      </div>
-                      <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                        style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Profile Customization Section ──────────────────────────────────────────
-function ProfileCustomization({ accent, darkMode, isMobileDevice, lang, useT,
-  bgColor, bgImage, bgImageMobile, bgColorMobile, bgSeparateDevices, bgOverlay, bgBlur, bgParallax,
-  statsCardBg, textContrast, textContrastMobile, sidebarColor,
-  onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax,
-  onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor,
-  onBgSeparateDevices, onBgColorMobile, onBgImageMobile, onSavedThemes,
-  onTmdbKey, tmdbKey, workerUrl, onWorkerUrl,
-  themeName, setThemeName, appearSections, toggleAppear, onChangeLang }) {
-
-  const sectionBtn = (key, label) => (
-    <button onClick={() => toggleAppear(key)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color: appearSections[key] ? accent : (darkMode ? "#c9d1d9" : "#374151") }}>{label}</span>
-      <span style={{ fontSize: 12, color: "#484f58", transform: appearSections[key] ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
-    </button>
-  );
-
-  return (
-    <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("cores", useT("colorsSection"))}
-        {appearSections["cores"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
-                  <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
-                </div>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("accentColor")}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  {ACCENT_PRESETS.map((p) => (
-                    <button key={p.name} onClick={() => onAccentChange(p.color)} style={{ width: 32, height: 32, borderRadius: 999, background: p.color, border: accent === p.color ? "3px solid white" : "3px solid transparent", cursor: "pointer" }} title={p.name} />
-                  ))}
-                  <label style={{ width: 32, height: 32, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={accent} onBlur={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("texto", useT("textSection"))}
-        {appearSections["texto"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("textContrast")}</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <input type="range" min={0} max={100} value={textContrast ?? 50} onChange={e => onTextContrast(Number(e.target.value))} style={{ flex: 1 }} />
-                  <span style={{ fontSize: 12, color: "#8b949e", width: 32 }}>{textContrast ?? 50}%</span>
-                </div>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("textContrastMobile")}</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <input type="range" min={0} max={100} value={textContrastMobile ?? 50} onChange={e => onTextContrastMobile(Number(e.target.value))} style={{ flex: 1 }} />
-                  <span style={{ fontSize: 12, color: "#8b949e", width: 32 }}>{textContrastMobile ?? 50}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("fundo", useT("bgSection"))}
-        {appearSections["fundo"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgColor")}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  {["#0d1117","#0a0a0a","#1a1a2e","#0f0f23","#1e293b","#f1f5f9","#ffffff"].map(c => (
-                    <button key={c} onClick={() => { onBgChange(c); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: bgColor===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} />
-                  ))}
-                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={bgColor||"#0d1117"} onBlur={(e) => onBgChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-                </div>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgImage")}</p>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input type="text" placeholder="https://..." value={bgImage||""} onChange={e => onBgImage(e.target.value)} style={{ flex: 1, padding: "8px 10px", borderRadius: 8, background: darkMode?"#0d1117":"#f8fafc", border: `1px solid ${darkMode?"#21262d":"#e2e8f0"}`, color: darkMode?"#e6edf3":"#0d1117", fontSize: 12, fontFamily: "inherit" }} />
-                  {bgImage && <button onClick={() => onBgImage("")} style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: "#ef4444", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>✕</button>}
-                </div>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgOverlay")}</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <input type="range" min={0} max={100} value={Math.round((bgOverlay??0.6)*100)} onChange={e => onBgOverlay(e.target.value/100)} style={{ flex: 1 }} />
-                  <span style={{ fontSize: 12, color: "#8b949e", width: 32 }}>{Math.round((bgOverlay??0.6)*100)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("sidebar", useT("sidebarSection"))}
-        {appearSections["sidebar"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-              {["#0d1117","#161b22","#1e293b","#0f172a","rgba(13,17,23,0.85)","rgba(30,41,59,0.9)"].map(c => (
-                <button key={c} onClick={() => onSidebarColor(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: sidebarColor===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} />
-              ))}
-              <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue="#0d1117" onBlur={(e) => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("dispositivos", useT("devicesSection"))}
-        {appearSections["dispositivos"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 12, color: "#8b949e", flex: 1 }}>{useT("separateDevices")}</span>
-              <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
-                <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
-                <span style={{ position: "absolute", inset: 0, background: bgSeparateDevices ? accent : "#30363d", borderRadius: 22, transition: "background 0.2s" }} />
-                <span style={{ position: "absolute", top: 3, left: bgSeparateDevices ? 21 : 3, width: 16, height: 16, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-        {sectionBtn("stats", useT("statsCards"))}
-        {appearSections["stats"] && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Auto">{useT("colorAuto")}</button>
-              {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (
-                <button key={c} onClick={() => onStatsCardBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: statsCardBg===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={c} />
-              ))}
-              <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-            </div>
-          </div>
-        )}
-      </div>
-
-    </div>
-  );
-}
-
-function SavedThemesPanel({ accent, darkMode, lang, useT, themeName, setThemeName, onSavedThemes,
-  bgColor, bgColorMobile, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax, bgSeparateDevices,
-  statsCardBg, textContrast, textContrastMobile, sidebarColor,
-  onAccentChange, onBgChange, onBgImage, onBgImageMobile, onBgColorMobile,
-  onBgOverlay, onBgBlur, onBgParallax, onSidebarColor, onTextContrast, onTextContrastMobile, onStatsCardBg }) {
-  const themes = onSavedThemes?.themes || [];
-  const applyTheme = (t) => {
-    if (t.accent) onAccentChange(t.accent);
-    if (t.bgColor) onBgChange(t.bgColor);
-    if (t.bgColorMobile !== undefined) onBgColorMobile(t.bgColorMobile);
-    if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
-    if (t.textContrast !== undefined) onTextContrast(t.textContrast);
-    if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
-    if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
-    if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
-    if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
-    if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
-    try {
-      onBgImage(t.hasBgImage ? (localStorage.getItem(`trackall_theme_img_${t.name}`) || "") : "");
-      onBgImageMobile(t.hasBgImageMobile ? (localStorage.getItem(`trackall_theme_imgm_${t.name}`) || "") : "");
-    } catch {}
-  };
-  const saveTheme = () => {
-    if (!themeName.trim()) return;
-    const name = themeName.trim();
-    try {
-      if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
-      if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
-    } catch {}
-    const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
-    onSavedThemes?.save([...themes.filter(t => t.name !== name), newTheme]);
-    setThemeName("");
-  };
-  return (
-    <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
-        <span style={{ fontSize: 13 }}>🎨</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
-        <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
-          onKeyDown={e => e.key === "Enter" && saveTheme()}
-          style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
-        <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
-      </div>
-      {themes.length > 0 ? (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {themes.map(t => (
-            <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
-              <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
-              <button onClick={() => {
-                try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
-                onSavedThemes?.save(themes.filter(x => x.name !== t.name));
-              }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
-      )}
-    </div>
-  );
-}
-
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], onCreateTierlist, onDeleteTierlist, onLikeTierlist, userLikes = [], onOpenTierlist }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
-  const [completosTypeFilter, setCompletosTypeFilter] = useState("all");
-  const [completosSortMode, setCompletosSortMode] = useState("date");
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
@@ -2324,61 +1885,18 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
-        {[
-          { id: "perfil", label: lang === "en" ? "Profile" : "Perfil", icon: "◉" },
-          { id: "completos", label: lang === "en" ? "Completed" : "Completos", icon: "✓" },
-          { id: "tierlists", label: "Tier Lists", icon: "🏆" },
-          { id: "diario", label: lang === "en" ? "Diary" : "Diário", icon: "📅" },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setProfileTab(tab.id)} style={{
+      <div style={{ display: "flex", borderBottom: "1px solid #21262d", overflowX: "auto", scrollbarWidth: "none", marginBottom: 0 }}>
+        {["perfil","completos","tierlists","diario"].map(tab => (
+          <button key={tab} onClick={() => setProfileTab(tab)} style={{
             flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
-            borderBottom: profileTab === tab.id ? `2px solid ${accent}` : "2px solid transparent",
-            color: profileTab === tab.id ? accent : "#484f58",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab.id ? 700 : 500,
-            display: "flex", alignItems: "center", gap: 6, marginBottom: -1,
+            borderBottom: profileTab === tab ? `2px solid ${accent}` : "2px solid transparent",
+            color: profileTab === tab ? accent : "#484f58",
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab ? 700 : 500,
+            marginBottom: -1,
           }}>
-            <span>{tab.icon}</span> {tab.label}
+            {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : tab === "tierlists" ? "🏆 Tier Lists" : "📅 Diário"}
           </button>
         ))}
-      </div>
-
-      <div style={{ display: profileTab === "completos" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-        <ProfileTabCompletos
-          items={items} library={library} accent={accent} darkMode={darkMode}
-          isMobileDevice={isMobileDevice} lang={lang}
-          typeFilter={completosTypeFilter} setTypeFilter={setCompletosTypeFilter}
-          sortMode={completosSortMode} setSortMode={setCompletosSortMode}
-          onOpen={onOpen}
-        />
-      </div>
-
-      <div style={{ display: profileTab === "tierlists" ? "block" : "none", padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <p style={{ fontSize: 13, color: "#484f58" }}>{userTierlists.length} tier lists</p>
-          <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
-            + {lang === "en" ? "New Tier List" : "Nova Tier List"}
-          </button>
-        </div>
-        {userTierlists.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
-            <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>{lang === "en" ? "Create your first tier list!" : "Cria a tua primeira tier list!"}</p>
-            <button onClick={() => onCreateTierlist && onCreateTierlist()} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
-              + {lang === "en" ? "Create Tier List" : "Criar Tier List"}
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
-            {userTierlists.map(tl => (
-              <TierListCard key={tl.id} tl={tl} onOpen={onOpenTierlist} onLike={onLikeTierlist} liked={userLikes.includes(tl.id)} currentUserId={tl.user_id} onDelete={onDeleteTierlist} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: profileTab === "diario" ? "block" : "none" }}>
-        <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
       </div>
 
       {/* Stats and settings — PC: flex row com diário à direita */}
@@ -2389,7 +1907,80 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
-      <ProfileFavorites favorites={favorites} library={library} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} onToggleFavorite={onToggleFavorite} />
+      {(() => {
+        const favByType = {};
+        favorites.forEach(f => {
+          if (!favByType[f.type]) favByType[f.type] = [];
+          favByType[f.type].push(f);
+        });
+        const activeTypes = MEDIA_TYPES.slice(1).filter(t => favByType[t.id]?.length > 0);
+
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
+              <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("favorites").toUpperCase()}</h3>
+              <span style={{ fontSize: 11, color: "#484f58" }}>{favorites.length}</span>
+            </div>
+
+            {favorites.length === 0 ? (
+              <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+                <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
+              </div>
+            ) : (
+              <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+                {activeTypes.map((t, tIdx) => {
+                  const tc = accentVariant(accent, tIdx);
+                  return (
+                    <div key={t.id}>
+                      {/* Label categoria */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, textTransform: "uppercase", letterSpacing: "0.14em" }}>{mediaLabel(t, lang)}</span>
+                        <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${tc}70, transparent)` }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: tc, background: `${tc}18`, padding: "1px 7px", borderRadius: 20 }}>{favByType[t.id].length}</span>
+                      </div>
+                      {/* Grid adaptativo: scroll row se ≤4 itens, grid 4 col se mais */}
+                      {(() => {
+                        const count = favByType[t.id].length;
+                        // Sempre grid 4 colunas — sem scroll em nenhum dispositivo
+                        const useScroll = false;
+                        const cardW = 0; // não usado no grid
+                        return (
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
+                            {favByType[t.id].map(item => {
+                              const coverSrc = item.customCover || item.cover;
+                              const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
+                              return (
+                                <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
+                                  onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
+                                  onMouseLeave={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="0"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(0) scale(1)"; th.querySelector(".fav-overlay").style.opacity="0";} }}>
+                                  <div className="fav-thumb-d" style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", background: gradientFor(item.id), transition: "transform 0.15s", boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                                    {coverSrc
+                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
+                                    }
+                                    <div className="fav-overlay no-tc" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s" }}>
+                                      {currentRating > 0
+                                        ? <div style={{ fontSize: 22, color: "#f59e0b", fontWeight: 900 }}>★ {currentRating}</div>
+                                        : <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>sem nota</div>
+                                      }
+                                    </div>
+                                  </div>
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                    style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={isMobileDevice} />}
@@ -2452,45 +2043,251 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
 
       {/* ── Temas Guardados ── */}
-      <SavedThemesPanel
-        accent={accent} darkMode={darkMode} lang={lang} useT={useT}
-        themeName={themeName} setThemeName={setThemeName}
-        onSavedThemes={onSavedThemes}
-        bgColor={bgColor} bgColorMobile={bgColorMobile} bgImage={bgImage} bgImageMobile={bgImageMobile}
-        bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax} bgSeparateDevices={bgSeparateDevices}
-        statsCardBg={statsCardBg} textContrast={textContrast} textContrastMobile={textContrastMobile}
-        sidebarColor={sidebarColor}
-        onAccentChange={onAccentChange} onBgChange={onBgChange} onBgImage={onBgImage}
-        onBgImageMobile={onBgImageMobile} onBgColorMobile={onBgColorMobile}
-        onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
-        onSidebarColor={onSidebarColor} onTextContrast={onTextContrast}
-        onTextContrastMobile={onTextContrastMobile} onStatsCardBg={onStatsCardBg}
-      />
+      {(() => {
+        const themes = onSavedThemes?.themes || [];
+        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
+        const applyTheme = (t) => {
+          if (t.accent) onAccentChange(t.accent);
+          if (t.bgColor) onBgChange(t.bgColor);
+          if (t.bgColorMobile !== undefined) onBgColorMobile(t.bgColorMobile);
+          if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
+          if (t.textContrast !== undefined) onTextContrast(t.textContrast);
+          if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
+          if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
+          if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
+          if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
+          if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
+          // Carregar imagens guardadas separadamente
+          try {
+            if (t.hasBgImage) { const img = localStorage.getItem(`trackall_theme_img_${t.name}`); onBgImage(img || ""); }
+            else onBgImage("");
+            if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
+            else onBgImageMobile("");
+          } catch {}
+        };
+        const saveTheme = () => {
+          if (!themeName.trim()) return;
+          const name = themeName.trim();
+          // Guardar imagens separadamente (são grandes)
+          try {
+            if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
+            if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
+          } catch {}
+          // Tema sem imagens (ficam no localStorage por chave separada)
+          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
+          const updated = [...themes.filter(t => t.name !== name), newTheme];
+          onSavedThemes?.save(updated);
+          setThemeName("");
+        };
+        return (
+          <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
+              <span style={{ fontSize: 13 }}>🎨</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
+              <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
+                onKeyDown={e => e.key === "Enter" && saveTheme()}
+                style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
+              <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
+            </div>
+            {themes.length > 0 ? (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {themes.map(t => (
+                  <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
+                    <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
+                    <button onClick={() => {
+                      try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
+                      onSavedThemes?.save(themes.filter(x => x.name !== t.name));
+                    }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
+            )}
+          </div>
+        );
+      })()}
 
-      <ProfileCustomization
-        accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice}
-        lang={lang} useT={useT}
-        bgColor={bgColor} bgImage={bgImage} bgImageMobile={bgImageMobile}
-        bgColorMobile={bgColorMobile} bgSeparateDevices={bgSeparateDevices}
-        bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax}
-        statsCardBg={statsCardBg} textContrast={textContrast}
-        textContrastMobile={textContrastMobile} sidebarColor={sidebarColor}
-        onAccentChange={onAccentChange} onBgChange={onBgChange} onBgImage={onBgImage}
-        onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
-        onStatsCardBg={onStatsCardBg} onTextContrast={onTextContrast}
-        onTextContrastMobile={onTextContrastMobile} onSidebarColor={onSidebarColor}
-        onBgSeparateDevices={onBgSeparateDevices} onBgColorMobile={onBgColorMobile}
-        onBgImageMobile={onBgImageMobile} onSavedThemes={onSavedThemes}
-        onTmdbKey={onTmdbKey} tmdbKey={tmdbKey} workerUrl={workerUrl} onWorkerUrl={onWorkerUrl}
-        themeName={themeName} setThemeName={setThemeName}
-        appearSections={appearSections} toggleAppear={toggleAppear}
-        onChangeLang={onChangeLang}
-      />
+      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
+
+        {/* Sub-secção: CORES */}
+        {[
+          { key: "cores", label: useT("colorsSection"), content: (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
+                  <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("accentColor")}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  {ACCENT_PRESETS.map((p) => (
+                    <button key={p.name} onClick={() => onAccentChange(p.color)} style={{ width: 32, height: 32, borderRadius: 999, background: p.color, border: accent === p.color ? "3px solid white" : "3px solid transparent", cursor: "pointer" }} title={p.name} />
+                  ))}
+                  <label style={{ width: 32, height: 32, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={accent} onBlur={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+                </div>
+              </div>
+            </div>
+          )},
+          { key: "texto", label: useT("textSection"), content: (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{bgSeparateDevices ? "PC" : "Geral"}</p>
+                  <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{textContrast}%</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
+                  <input type="range" min={40} max={160} step={5} value={textContrast} onChange={e => onTextContrast(Number(e.target.value))} style={{ flex: 1, accentColor: accent, height: 4, cursor: "pointer" }} />
+                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
+                </div>
+                <button onClick={() => onTextContrast(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
+              </div>
+              {bgSeparateDevices && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>📱 Mobile</p>
+                    <span style={{ fontSize: 11, color: "#06b6d4", fontWeight: 700 }}>{textContrastMobile}%</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
+                    <input type="range" min={40} max={160} step={5} value={textContrastMobile} onChange={e => onTextContrastMobile(Number(e.target.value))} style={{ flex: 1, accentColor: "#06b6d4", height: 4, cursor: "pointer" }} />
+                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
+                  </div>
+                  <button onClick={() => onTextContrastMobile(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
+                </div>
+              )}
+            </div>
+          )},
+          { key: "fundo", label: useT("bgSection"), content: (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo{bgSeparateDevices ? " 🖥 PC" : ""}</p>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
+                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+                </div>
+              </div>
+              {bgSeparateDevices && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgColorMobile")}</p>
+                    {bgColorMobile && <button onClick={() => onBgColorMobile("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual PC</button>}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onBgColorMobile(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: (bgColorMobile||bgColor)===p.value ? "2px solid #06b6d4" : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
+                    <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={bgColorMobile||bgColor} onBlur={(e) => onBgColorMobile(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+                  </div>
+                </div>
+              )}
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgImage")}</p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                    <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImage ? `url(${bgImage}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
+                      {!bgImage && <><span>🖥</span><span style={{ fontSize: 9, color: "#484f58" }}>PC</span></>}
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const file = e.target.files[0]; if (!file) return; const c = await compressImage(file, 1920, 1080, 0.90); if (c) onBgImage(c); }} />
+                    </label>
+                    {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
+                  </div>
+                  {bgSeparateDevices && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                      <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
+                        {!bgImageMobile && <><span>📱</span><span style={{ fontSize: 9, color: "#484f58" }}>Mobile</span></>}
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const file = e.target.files[0]; if (!file) return; const c = await compressImage(file, 1080, 1920, 0.85); if (c) onBgImageMobile(c); }} />
+                      </label>
+                      {bgImageMobile && <button onClick={() => onBgImageMobile("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
+                    </div>
+                  )}
+                </div>
+                {(bgImage || bgImageMobile) && (
+                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("overlay")}</p>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {[{ label: "Nenhum", val: "rgba(0,0,0,0)" }, { label: useT("overlaySoft"), val: "rgba(0,0,0,0.3)" }, { label: useT("overlayMid"), val: "rgba(0,0,0,0.55)" }, { label: useT("overlayStrong"), val: "rgba(0,0,0,0.75)" }, { label: useT("overlayWhite"), val: "rgba(255,255,255,0.6)" }].map(o => (
+                          <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay===o.val?accent:"#30363d"}`, background: bgOverlay===o.val?`${accent}22`:"transparent", color: bgOverlay===o.val?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{o.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Desfoque — {bgBlur}px</p>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[0,2,4,8,12].map(v => (<button key={v} onClick={() => onBgBlur(v)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${bgBlur===v?accent:"#30363d"}`, background: bgBlur===v?`${accent}22`:"transparent", color: bgBlur===v?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{v===0?"Nenhum":`${v}px`}</button>))}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("scroll")}</p>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => onBgParallax(true)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax?accent:"#30363d"}`, background: bgParallax?`${accent}22`:"transparent", color: bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("parallax")}</button>
+                        <button onClick={() => onBgParallax(false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax?accent:"#30363d"}`, background: !bgParallax?`${accent}22`:"transparent", color: !bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("staticScroll")}</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )},
+          { key: "sidebar", label: useT("sidebarSection"), content: (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("sidebarSection")}</p>
+                {sidebarColor && <button onClick={() => onSidebarColor("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual ao fundo</button>}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <button onClick={() => onSidebarColor("")} style={{ width: 32, height: 32, borderRadius: 8, background: bgColor, border: !sidebarColor ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 9, color: "#8b949e", fontFamily: "inherit" }} title={useT("sameAsBg")}>≡</button>
+                {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onSidebarColor(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: sidebarColor===p.value?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
+                <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={sidebarColor||bgColor} onBlur={(e) => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+              </div>
+            </div>
+          )},
+          { key: "dispositivos", label: useT("devicesSection"), content: (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{useT("separateDevices")}</p>
+                <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Different color, image and contrast per device" : "Cor, imagem e contraste diferentes por dispositivo"}</p>
+              </div>
+              <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
+                <span style={{ position: "absolute", inset: 0, background: bgSeparateDevices ? accent : "#30363d", borderRadius: 22, transition: "background 0.2s" }} />
+                <span style={{ position: "absolute", top: 3, left: bgSeparateDevices ? 21 : 3, width: 16, height: 16, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
+              </label>
+              <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
+            </div>
+          )},
+          { key: "stats", label: useT("statsCards"), content: (
+            <div>
+              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Auto">{useT("colorAuto")}</button>
+                {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (<button key={c} onClick={() => onStatsCardBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: statsCardBg===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={c} />))}
+                <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+              </div>
+            </div>
+          )},
+        ].map(({ key, label, content }) => (
+          <div key={key} style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+            <button onClick={() => toggleAppear(key)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: appearSections[key] ? accent : (darkMode ? "#c9d1d9" : "#374151") }}>{label}</span>
+              <span style={{ fontSize: 12, color: "#484f58", transform: appearSections[key] ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+            </button>
+            {appearSections[key] && <div style={{ padding: "0 16px 16px" }}>{content}</div>}
+          </div>
+        ))}
+
+      </div>
 
       {/* Mihon Modal */}
       {showMihon && (
         <MihonImportModal
-          accent={accent} darkMode={darkMode}
+         
+         
           onClose={() => setShowMihon(false)}
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
         />
@@ -2499,14 +2296,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* Modais Paperback e Letterboxd */}
       {showPaperback && (
         <PaperbackImportModal
-          accent={accent} darkMode={darkMode}
+         
           onClose={() => setShowPaperback(false)}
           onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
         />
       )}
       {showLetterboxd && (
         <LetterboxdImportModal
-          accent={accent} darkMode={darkMode}
+         
           onClose={() => setShowLetterboxd(false)}
           onImport={(items) => { onImportLetterboxd && onImportLetterboxd(items); setShowLetterboxd(false); }}
         />
@@ -2614,33 +2411,62 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── Zona de Perigo ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
-          ZONA DE PERIGO
-          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
-        </h3>
-        <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
-          <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
-            Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
-          </p>
-          {!confirmDelete ? (
-            <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              Apagar conta
-            </button>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={async () => { setDeleting(true); try { await supabase.from("library").delete().eq("user_id", user.id); await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`); await supabase.from("profiles").delete().eq("id", user.id); await supabase.auth.signOut(); onSignOut && onSignOut(); } catch(e){ setDeleting(false); setConfirmDelete(false); } }} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                  {deleting ? useT("deleting") : "Sim, apagar tudo"}
+      {(() => {
+        const [confirmDelete, setConfirmDelete] = useState(false);
+        const [deleting, setDeleting] = useState(false);
+        const handleDeleteAccount = async () => {
+          if (!confirmDelete) { setConfirmDelete(true); return; }
+          setDeleting(true);
+          try {
+            // 1. Apagar todos os dados da biblioteca
+            await supabase.from("library").delete().eq("user_id", user.id);
+            // 2. Apagar friendships
+            await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+            // 3. Apagar perfil
+            await supabase.from("profiles").delete().eq("id", user.id);
+            // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
+            await supabase.auth.signOut();
+            onSignOut && onSignOut();
+          } catch (e) {
+            console.error(e);
+            setDeleting(false);
+            setConfirmDelete(false);
+          }
+        };
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
+              ZONA DE PERIGO
+              <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
+            </h3>
+            <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
+              <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
+                Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+              </p>
+              {!confirmDelete ? (
+                <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  Apagar conta
                 </button>
-                <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                  Cancelar
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
+                      {deleting ? useT("deleting") : "Sim, apagar tudo"}
+                    </button>
+                    <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        );
+      })()}
+
+            </div>
+      {diaryPanel}
       </div>
     </div>{/* fim conteudo */}
     {cropSrc && (
@@ -3131,11 +2957,12 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
                 </button>
               )}
             </div>
-            </div>
-            </div>
-          </div>
           );
         })()}
+        </div>{/* fim layout PC */}
+
+        </div>
+      </div>
     );
   }
 
@@ -3527,11 +3354,16 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
                 ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
               }
-              {((library[item.id]?.userRating > 0 ? library[item.id].userRating : item.score) > 0) && (
-                <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
-                  ★ {library[item.id]?.userRating > 0 ? library[item.id].userRating : item.score}
-                </div>
-              )}
+              {(() => {
+                const libItem = library[item.id];
+                const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
+                const color = libItem?.userRating > 0 ? "#f59e0b" : "#f59e0b";
+                return score > 0 ? (
+                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color, fontWeight: 700 }}>
+                    ★ {score}
+                  </div>
+                ) : null;
+              })()}
             </div>
             <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
           </div>
@@ -3948,235 +3780,6 @@ function LetterboxdImportModal({ onClose, onImport }) {
   );
 }
 
-// ─── Tier List Components ─────────────────────────────────────────────────────
-const TIER_LEVELS = [
-  { id: "S", label: "S", color: "#ef4444" },
-  { id: "A", label: "A", color: "#f97316" },
-  { id: "B", label: "B", color: "#eab308" },
-  { id: "C", label: "C", color: "#22c55e" },
-  { id: "D", label: "D", color: "#3b82f6" },
-];
-
-function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
-  const { accent, darkMode } = useTheme();
-  const { lang } = useLang();
-  const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
-  const preview = allItems.slice(0, 6);
-  return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: 14, cursor: "pointer", transition: "all 0.15s" }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = accent + "66"}
-      onMouseLeave={e => e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
-          {tl.profiles && <p style={{ fontSize: 11, color: "#484f58" }}>@{tl.profiles.username || tl.profiles.name}</p>}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "3px 10px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
-            ♥ {tl.likes_count || 0}
-          </button>
-          {currentUserId === tl.user_id && onDelete && (
-            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>🗑</button>
-          )}
-        </div>
-      </div>
-      {/* Preview das tiers */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
-        {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).slice(0, 3).map(tier => (
-          <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 22, height: 22, borderRadius: 5, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "white", flexShrink: 0 }}>{tier.id}</span>
-            <div style={{ display: "flex", gap: 3, overflow: "hidden" }}>
-              {(tl.tiers[tier.id] || []).slice(0, 5).map(item => {
-                const cover = item.customCover || item.cover || item.thumbnailUrl;
-                return (
-                  <div key={item.id} style={{ width: 22, height: 32, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                  </div>
-                );
-              })}
-              {(tl.tiers[tier.id] || []).length > 5 && <span style={{ fontSize: 10, color: "#484f58", alignSelf: "center" }}>+{(tl.tiers[tier.id] || []).length - 5}</span>}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} {lang === "en" ? "items" : "itens"}</span>
-        <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString(lang === "en" ? "en-US" : "pt-PT", { day: "2-digit", month: "short" })}</span>
-      </div>
-    </div>
-  );
-}
-
-function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
-  const { lang } = useLang();
-  return (
-    <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "20px 20px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", flex: 1, marginRight: 12 }}>{tl.title}</h2>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>✕</button>
-          </div>
-          {tl.profiles && <p style={{ fontSize: 12, color: "#484f58", marginBottom: 16 }}>por @{tl.profiles.username || tl.profiles.name}</p>}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-            <button onClick={() => onLike && onLike(tl.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "6px 16px", color: liked ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
-              ♥ {tl.likes_count || 0} {lang === "en" ? "likes" : "gostos"}
-            </button>
-            {currentUserId === tl.user_id && onEdit && (
-              <button onClick={() => { onClose(); onEdit(tl); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid #30363d`, borderRadius: 20, padding: "6px 16px", color: "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
-                ✏ {lang === "en" ? "Edit" : "Editar"}
-              </button>
-            )}
-          </div>
-        </div>
-        <div style={{ padding: "0 20px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {TIER_LEVELS.map(tier => {
-            const items = tl.tiers[tier.id] || [];
-            return (
-              <div key={tier.id} style={{ display: "flex", gap: 0, minHeight: 56, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                <div style={{ width: 48, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{tier.id}</span>
-                </div>
-                <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 6, padding: 8, alignContent: "flex-start" }}>
-                  {items.length === 0 ? (
-                    <span style={{ fontSize: 12, color: "#484f58", alignSelf: "center" }}>{lang === "en" ? "Empty" : "Vazio"}</span>
-                  ) : items.map(item => {
-                    const cover = item.customCover || item.cover || item.thumbnailUrl;
-                    return (
-                      <div key={item.id} style={{ position: "relative" }} title={item.title}>
-                        <div style={{ width: 40, height: 58, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id) }}>
-                          {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TierListEditor({ initialData, library, onSave, onClose }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
-  const { lang } = useLang();
-  const [title, setTitle] = useState(initialData?.title || "");
-  const [tiers, setTiers] = useState(initialData?.tiers || { S: [], A: [], B: [], C: [], D: [] });
-  const [search, setSearch] = useState("");
-  const [searchType, setSearchType] = useState("all");
-  const [dragItem, setDragItem] = useState(null);
-  const [dragFrom, setDragFrom] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  const libItems = Object.values(library);
-  const unranked = libItems.filter(i =>
-    i.userStatus === "completo" &&
-    !Object.values(tiers).flat().some(t => t.id === i.id) &&
-    (searchType === "all" || i.type === searchType) &&
-    (search === "" || i.title?.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const moveItem = (item, fromTier, toTier) => {
-    setTiers(prev => {
-      const next = { ...prev };
-      if (fromTier && next[fromTier]) next[fromTier] = next[fromTier].filter(i => i.id !== item.id);
-      if (toTier) next[toTier] = [...(next[toTier] || []), item];
-      return next;
-    });
-  };
-
-  const removeFromTier = (item, tierId) => {
-    setTiers(prev => ({ ...prev, [tierId]: prev[tierId].filter(i => i.id !== item.id) }));
-  };
-
-  const handleSave = async () => {
-    if (!title.trim()) return;
-    setSaving(true);
-    await onSave(title.trim(), tiers);
-    setSaving(false);
-  };
-
-  return (
-    <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 680, maxHeight: "92vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "20px 20px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 900 }}>{initialData ? (lang === "en" ? "Edit Tier List" : "Editar Tier List") : (lang === "en" ? "New Tier List" : "Nova Tier List")}</h2>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20 }}>✕</button>
-          </div>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder={lang === "en" ? "Tier list title..." : "Título da tier list..."} style={{ width: "100%", padding: "10px 14px", fontSize: 14, fontWeight: 700, borderRadius: 10, boxSizing: "border-box" }} />
-        </div>
-
-        {/* Tiers */}
-        <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
-          {TIER_LEVELS.map(tier => (
-            <div key={tier.id} style={{ display: "flex", gap: 0, minHeight: 52, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); if (dragItem) { moveItem(dragItem, dragFrom, tier.id); setDragItem(null); setDragFrom(null); } }}>
-              <div style={{ width: 44, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "default" }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: "white" }}>{tier.id}</span>
-              </div>
-              <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 5, padding: 6, alignContent: "flex-start", minHeight: 52 }}>
-                {(tiers[tier.id] || []).map(item => {
-                  const cover = item.customCover || item.cover || item.thumbnailUrl;
-                  return (
-                    <div key={item.id} draggable onDragStart={() => { setDragItem(item); setDragFrom(tier.id); }} style={{ position: "relative", cursor: "grab" }} title={item.title}>
-                      <div style={{ width: 34, height: 50, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id) }}>
-                        {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                      </div>
-                      <button onClick={() => removeFromTier(item, tier.id)} style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: "50%", background: "#ef4444", border: "none", color: "white", fontSize: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>✕</button>
-                    </div>
-                  );
-                })}
-                {(tiers[tier.id] || []).length === 0 && (
-                  <span style={{ fontSize: 11, color: "#30363d", alignSelf: "center", paddingLeft: 4 }}>{lang === "en" ? "Drop here" : "Arrasta aqui"}</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Unranked pool */}
-        <div style={{ padding: "0 20px 20px" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{lang === "en" ? "Your completed items" : "Os teus itens completos"}</p>
-          <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none" }}>
-            {[{ id: "all", label: lang === "en" ? "All" : "Todos" }, ...MEDIA_TYPES.slice(1)].map(t => (
-              <button key={t.id} onClick={() => setSearchType(t.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 20, border: `1px solid ${searchType === t.id ? accent : "#30363d"}`, background: searchType === t.id ? `${accent}22` : "transparent", color: searchType === t.id ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
-                {t.icon || ""} {t.labelEn ? (lang === "en" ? t.labelEn : t.label) : t.label}
-              </button>
-            ))}
-          </div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === "en" ? "Search..." : "Pesquisar..."} style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, marginBottom: 10, boxSizing: "border-box" }} />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-            {unranked.slice(0, 60).map(item => {
-              const cover = item.customCover || item.cover || item.thumbnailUrl;
-              return (
-                <div key={item.id} draggable onDragStart={() => { setDragItem(item); setDragFrom(null); }} title={item.title} style={{ cursor: "grab" }}>
-                  <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                  </div>
-                </div>
-              );
-            })}
-            {unranked.length === 0 && <p style={{ fontSize: 12, color: "#484f58" }}>{lang === "en" ? "All completed items are ranked!" : "Todos os itens completos estão na lista!"}</p>}
-          </div>
-        </div>
-
-        <div style={{ padding: "12px 20px 20px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10 }}>
-          <button onClick={handleSave} disabled={!title.trim() || saving} className="btn-accent" style={{ flex: 2, padding: "12px", fontSize: 14, opacity: !title.trim() ? 0.5 : 1 }}>
-            {saving ? "..." : (lang === "en" ? "Save Tier List" : "Guardar Tier List")}
-          </button>
-          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: darkMode ? "#21262d" : "#f1f5f9", border: "none", borderRadius: 10, color: "var(--text-primary)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function RatingOverlay({ item, library, onDone }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -4518,13 +4121,6 @@ export default function TrackAll() {
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [recoLoading, setRecoLoading] = useState(false);
-  const [popularTierlists, setPopularTierlists] = useState([]);
-  const [tierlistsLoading, setTierlistsLoading] = useState(false);
-  const [userTierlists, setUserTierlists] = useState([]);
-  const [userLikes, setUserLikes] = useState([]);
-  const [viewingTierlist, setViewingTierlist] = useState(null);
-  const [editingTierlist, setEditingTierlist] = useState(null);
-  const [showTierlistEditor, setShowTierlistEditor] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -4590,10 +4186,6 @@ export default function TrackAll() {
   useEffect(() => {
     if (view === "home" && user && !recoLoading && Object.keys(recos).length === 0) {
       loadRecos();
-      loadPopularTierlists();
-    }
-    if (view === "profile" && user && userTierlists.length === 0) {
-      loadUserTierlists();
     }
   }, [view, user]);
 
@@ -4618,54 +4210,6 @@ export default function TrackAll() {
       if (jogos?.length) setRecos(r => ({ ...r, jogos }));
     } catch {}
     setRecoLoading(false);
-  };
-
-  const loadPopularTierlists = async () => {
-    setTierlistsLoading(true);
-    try {
-      const [tls, likes] = await Promise.all([
-        supa.getPopularTierlists(10),
-        user ? supa.getUserLikes(user.id) : Promise.resolve([]),
-      ]);
-      setPopularTierlists(tls);
-      setUserLikes(likes);
-    } catch {}
-    setTierlistsLoading(false);
-  };
-
-  const loadUserTierlists = async () => {
-    if (!user) return;
-    try {
-      const tls = await supa.getUserTierlists(user.id);
-      setUserTierlists(tls);
-    } catch {}
-  };
-
-  const handleTierlistLike = async (tierlistId) => {
-    if (!user) return;
-    const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
-    setUserLikes(prev => isLiked ? [...prev, tierlistId] : prev.filter(id => id !== tierlistId));
-    setPopularTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: tl.likes_count + (isLiked ? 1 : -1) } : tl));
-    setUserTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: tl.likes_count + (isLiked ? 1 : -1) } : tl));
-  };
-
-  const handleSaveTierlist = async (title, tiers) => {
-    if (!user) return;
-    if (editingTierlist?.id) {
-      await supa.updateTierlist(editingTierlist.id, title, tiers);
-    } else {
-      await supa.createTierlist(user.id, title, tiers);
-    }
-    setShowTierlistEditor(false);
-    setEditingTierlist(null);
-    loadUserTierlists();
-    loadPopularTierlists();
-  };
-
-  const handleDeleteTierlist = async (id) => {
-    await supa.deleteTierlist(id);
-    setUserTierlists(prev => prev.filter(tl => tl.id !== id));
-    setPopularTierlists(prev => prev.filter(tl => tl.id !== id));
   };
 
   const handleAuth = async (u) => {
@@ -5780,37 +5324,6 @@ export default function TrackAll() {
             {/* Divider */}
             <div style={{ borderTop: "1px solid #21262d", margin: "0 16px 28px" }} />
 
-            {/* ── Tier Lists Populares ── */}
-            {(popularTierlists.length > 0 || tierlistsLoading) && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                    {lang === "en" ? "🏆 Popular Tier Lists" : "🏆 Tier Lists Populares"}
-                  </h3>
-                  <button onClick={() => { setView("profile"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: 0 }}>
-                    {lang === "en" ? "+ Create" : "+ Criar"}
-                  </button>
-                </div>
-                {tierlistsLoading ? (
-                  <div style={{ padding: "20px 16px", textAlign: "center", color: "#484f58", fontSize: 13 }}>⏳</div>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 10, padding: "0 16px" }}>
-                    {popularTierlists.slice(0, isMobileDevice ? 3 : 6).map(tl => (
-                      <TierListCard
-                        key={tl.id}
-                        tl={tl}
-                        onOpen={setViewingTierlist}
-                        onLike={handleTierlistLike}
-                        liked={userLikes.includes(tl.id)}
-                        currentUserId={user?.id}
-                        onDelete={handleDeleteTierlist}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -6175,36 +5688,8 @@ export default function TrackAll() {
                 </div>
               );
             })() : null}
-            userTierlists={userTierlists}
-            onCreateTierlist={() => { setEditingTierlist(null); setShowTierlistEditor(true); }}
-            onDeleteTierlist={handleDeleteTierlist}
-            onLikeTierlist={handleTierlistLike}
-            userLikes={userLikes}
-            onOpenTierlist={setViewingTierlist}
           />
           </div>
-        )}
-
-        {/* TierList Viewer */}
-        {viewingTierlist && (
-          <TierListViewer
-            tl={viewingTierlist}
-            onClose={() => setViewingTierlist(null)}
-            onLike={handleTierlistLike}
-            liked={userLikes.includes(viewingTierlist.id)}
-            currentUserId={user?.id}
-            onEdit={(tl) => { setEditingTierlist(tl); setShowTierlistEditor(true); setViewingTierlist(null); }}
-          />
-        )}
-
-        {/* TierList Editor */}
-        {showTierlistEditor && (
-          <TierListEditor
-            initialData={editingTierlist}
-            library={library}
-            onSave={handleSaveTierlist}
-            onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
-          />
         )}
 
         {/* PWA Install Banner — mobile only */}
