@@ -2007,14 +2007,17 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
       {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", borderBottom: "1px solid #21262d", overflowX: "auto", scrollbarWidth: "none", marginBottom: 0 }}>
+      <div style={{ display: "flex", borderBottom: "1px solid #21262d", scrollbarWidth: "none" }}>
         {["perfil","completos","tierlists","diario"].map(tab => (
           <button key={tab} onClick={() => setProfileTab(tab)} style={{
-            flexShrink: 0, padding: "12px 20px", background: "none", border: "none",
+            flex: 1, padding: isMobileDevice ? "10px 4px" : "12px 20px",
+            background: "none", border: "none",
             borderBottom: profileTab === tab ? `2px solid ${accent}` : "2px solid transparent",
             color: profileTab === tab ? accent : "#484f58",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: profileTab === tab ? 700 : 500,
-            marginBottom: -1,
+            cursor: "pointer", fontFamily: "inherit",
+            fontSize: isMobileDevice ? 11 : 13,
+            fontWeight: profileTab === tab ? 700 : 500,
+            marginBottom: -1, whiteSpace: "nowrap",
           }}>
             {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : tab === "tierlists" ? "🏆 Tier Lists" : "📅 Diário"}
           </button>
