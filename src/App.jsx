@@ -2742,6 +2742,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   const { lang, useT } = useLang();
   const [tab, setTab] = useState("friends"); // friends | search | requests
   const [friendships, setFriendships] = useState([]);
+  const [friendTab, setFriendTab] = useState("perfil");
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -2813,6 +2814,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
     setSelectedFriend(friendInfo);
     const [prof, lib] = await Promise.all([supa.getFriendProfile(friendId), supa.getFriendLibrary(friendId)]);
     setFriendData({ profile: prof, library: lib });
+    setFriendTab("perfil");
   };
 
   const friendshipStatus = (targetId) => {
@@ -2921,6 +2923,27 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
         {/* Layout PC: 2 colunas | Mobile: 1 coluna */}
         <div style={ !isMobileDevice ? { display: "flex", gap: 20, padding: "0 24px", alignItems: "flex-start", overflow: "hidden" } : {}}>
         <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* ── Tabs ── */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${fDark ? "#21262d" : "#e2e8f0"}`, marginBottom: 0 }}>
+          {["perfil","completos","diario"].map(tab => (
+            <button key={tab} onClick={() => setFriendTab(tab)} style={{
+              flex: 1, padding: isMobileDevice ? "10px 4px" : "12px 20px",
+              background: "none", border: "none",
+              borderBottom: friendTab === tab ? `2px solid ${fAccent}` : "2px solid transparent",
+              color: friendTab === tab ? fAccent : "#484f58",
+              cursor: "pointer", fontFamily: "inherit",
+              fontSize: isMobileDevice ? 11 : 13,
+              fontWeight: friendTab === tab ? 700 : 500,
+              marginBottom: -1, whiteSpace: "nowrap",
+            }}>
+              {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : "📅 Diário"}
+            </button>
+          ))}
+        </div>
+
+        {/* ── TAB: PERFIL ── */}
+        <div style={{ display: friendTab === "perfil" ? "block" : "none" }}>
 
         {/* Stats */}
         <div style={{ padding: isMobileDevice ? "0 16px" : 0, marginBottom: 20 }}>
@@ -3055,8 +3078,8 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
         )}
 
         </div>
-        {/* Coluna direita — diário com mês atual + ver mais */}
-        {!isMobileDevice && (() => {
+        {/* Coluna direita — diário com mês atual + ver mais (só no PC na tab perfil) */}
+        {!isMobileDevice && friendTab === "perfil" && (() => {
           const fCompletados = libItems.filter(i => i.userStatus === "completo" && i.addedAt).sort((a,b) => b.addedAt - a.addedAt);
           if (!fCompletados.length) return null;
           const now = new Date();
@@ -3106,6 +3129,25 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
           );
         })()}
         </div>{/* fim layout PC */}
+        </div> {/* fim tab perfil */}
+
+        {/* Tab Completos do amigo */}
+        {friendTab === "completos" && (
+          <ProfileTabCompletos
+            items={libItems} library={friendData.library} accent={fAccent}
+            darkMode={fDark} isMobileDevice={isMobileDevice} lang={lang}
+            onOpen={null}
+          />
+        )}
+
+        {/* Tab Diário do amigo */}
+        {friendTab === "diario" && (
+          <ProfileTabDiario
+            items={libItems} accent={fAccent}
+            darkMode={fDark} isMobileDevice={isMobileDevice} lang={lang}
+            onOpen={null}
+          />
+        )}
 
         </div>
       </div>
