@@ -1255,10 +1255,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
-                    {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
-                      const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
-                      return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
-                    })()}
+                    {libItem.userStatus === "assistindo" && libItem.addedAt && (
+                      <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ {Math.floor((Date.now()-libItem.addedAt)/86400000)===0?"menos de 1 dia":Math.floor((Date.now()-libItem.addedAt)/86400000)===1?"1 dia":`${Math.floor((Date.now()-libItem.addedAt)/86400000)} dias`}</span>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     {inLib && onToggleFavorite && (
@@ -3121,10 +3120,10 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
               )}
             </div>
             </div>
+            </div>
+          </div>
           );
         })()}
-        </div>
-      </div>
     );
   }
 
@@ -3516,16 +3515,11 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
                 ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
               }
-              {(() => {
-                const libItem = library[item.id];
-                const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
-                const color = libItem?.userRating > 0 ? "#f59e0b" : "#f59e0b";
-                return score > 0 ? (
-                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color, fontWeight: 700 }}>
-                    ★ {score}
-                  </div>
-                ) : null;
-              })()}
+              {((library[item.id]?.userRating > 0 ? library[item.id].userRating : item.score) > 0) && (
+                <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
+                  ★ {library[item.id]?.userRating > 0 ? library[item.id].userRating : item.score}
+                </div>
+              )}
             </div>
             <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
           </div>
