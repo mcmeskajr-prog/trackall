@@ -438,7 +438,9 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         id: p.id, name: p.name, character: p.character,
         image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
       }));
-      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year, cast };
+      const directorData = (c?.crew || []).find(p => p.job === "Director");
+      const director = directorData ? { id: directorData.id, name: directorData.name, image: directorData.profile_path ? `https://image.tmdb.org/t/p/w185${directorData.profile_path}` : null } : null;
+      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year, cast, director };
     }
 
     // TMDB séries — vários formatos possíveis
@@ -454,7 +456,9 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         id: p.id, name: p.name, character: p.character,
         image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
       }));
-      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast };
+      const creatorData = d.created_by?.[0];
+      const director = creatorData ? { id: creatorData.id, name: creatorData.name, image: creatorData.profile_path ? `https://image.tmdb.org/t/p/w185${creatorData.profile_path}` : null } : null;
+      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast, director };
     }
 
     // AniList — formatos: al-anime-123, al-manga-123, al-123
@@ -1201,6 +1205,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [detailExtra, setDetailExtra] = useState(null);
   const [chapterInput, setChapterInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
+  const [selectedPerson, setSelectedPerson] = useState(null); // { id, name, image } TMDB person
+  const [personData, setPersonData] = useState(null); // bio + filmografia
+  const [personLoading, setPersonLoading] = useState(false);
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   const isAniList = (item.id || "").startsWith("al-");
   const isTMDB = (item.id || "").startsWith("tmdb-");
@@ -1210,10 +1217,45 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   useEffect(() => {
     setDetailExtra(null);
     setModalTab("info");
+    setSelectedPerson(null);
+    setPersonData(null);
     if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
+
+  // Fetch perfil da pessoa quando selecionada
+  useEffect(() => {
+    if (!selectedPerson) return;
+    setPersonData(null);
+    setPersonLoading(true);
+    const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+    Promise.all([
+      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}&language=pt-PT`).then(r => r.json()),
+      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}/combined_credits&language=pt-PT`).then(r => r.json()),
+    ]).then(([person, credits]) => {
+      const filmografia = (credits.cast || [])
+        .filter(m => m.poster_path)
+        .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+        .slice(0, 20)
+        .map(m => ({
+          id: m.id, title: m.title || m.name || "",
+          cover: `https://image.tmdb.org/t/p/w185${m.poster_path}`,
+          year: (m.release_date || m.first_air_date || "").slice(0, 4),
+          character: m.character || "",
+          mediaType: m.media_type,
+        }));
+      setPersonData({
+        name: person.name || selectedPerson.name,
+        image: person.profile_path ? `https://image.tmdb.org/t/p/w342${person.profile_path}` : selectedPerson.image,
+        bio: person.biography || "",
+        birthday: person.birthday || "",
+        placeOfBirth: person.place_of_birth || "",
+        filmografia,
+      });
+      setPersonLoading(false);
+    }).catch(() => setPersonLoading(false));
+  }, [selectedPerson?.id]);
 
   const inLib = !!library[item.id];
   const libItem = library[item.id];
@@ -1227,209 +1269,288 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     <>
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
-        {/* Hero backdrop */}
-        <div style={{ height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
-          <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
-        </div>
 
-        <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
-          {/* Header: cover + title */}
-          <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(item.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-                {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = item.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
+        {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
+        {selectedPerson ? (
+          <div>
+            {/* Header pessoa */}
+            <div style={{ position: "relative", height: 120, background: `linear-gradient(135deg, ${accent}33, #0d1117)`, borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
+              <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
+            </div>
+            <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
+              <div style={{ display: "flex", gap: 16, marginTop: -50, position: "relative", zIndex: 2, marginBottom: 20 }}>
+                <div style={{ width: 80, height: 110, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: "#21262d", flexShrink: 0, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                  {(personData?.image || selectedPerson.image) && <img src={personData?.image || selectedPerson.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                </div>
+                <div style={{ paddingTop: 56 }}>
+                  <button onClick={() => { setSelectedPerson(null); setPersonData(null); }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: 0, marginBottom: 6 }}>← Voltar</button>
+                  <h2 style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>{personData?.name || selectedPerson.name}</h2>
+                  {personData?.birthday && <p style={{ fontSize: 11, color: "#6e7681", marginTop: 3 }}>🎂 {personData.birthday}{personData.placeOfBirth ? ` · ${personData.placeOfBirth}` : ""}</p>}
+                </div>
               </div>
-              {inLib && (
-                <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
+
+              {personLoading ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                  <div className="spin" style={{ fontSize: 24 }}>⟳</div>
+                </div>
+              ) : (
+                <>
+                  {personData?.bio && (
+                    <p style={{ fontSize: 13, color: "#8b949e", lineHeight: 1.7, marginBottom: 20 }}>
+                      {personData.bio.length > 500 ? personData.bio.slice(0, 500) + "…" : personData.bio}
+                    </p>
+                  )}
+                  {personData?.filmografia?.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#6e7681", marginBottom: 12, letterSpacing: "0.5px" }}>FILMOGRAFIA</p>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 10 }}>
+                        {personData.filmografia.map(m => (
+                          <div key={m.id} style={{ textAlign: "center" }}>
+                            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", background: "#21262d", marginBottom: 4 }}>
+                              <img src={m.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                            </div>
+                            <p style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title}</p>
+                            {m.year && <p style={{ fontSize: 9, color: "#6e7681" }}>{m.year}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <div style={{ flex: 1, paddingTop: 40 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                  {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ""}
-                </span>
-                {item.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{item.year}</span>}
-                {item.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {item.score}</span>}
-                {item.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{item.source}</span>}
-              </div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>{item.title}</h2>
-              {item.titleEn && item.titleEn !== item.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{item.titleEn}</p>}
-              {item.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {item.extra}</p>}
-            </div>
           </div>
-
-          {/* Tabs */}
-          {(hasCast || hasRelations) && (
-            <div style={{ display: "flex", marginTop: 20, borderBottom: "1px solid #21262d" }}>
-              {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : [])].map(tab => (
-                <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1 }}>
-                  {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : "Relações"}
-                </button>
-              ))}
+        ) : (
+          // ── Vista: Modal normal ──
+          <div>
+            {/* Hero backdrop */}
+            <div style={{ height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
+              <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
-          )}
 
-          {/* Tab: Info */}
-          {modalTab === "info" && (
-            <div>
-              <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
-                {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
-                {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
-                {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
-                {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
-                {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
-                {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
+            <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
+              {/* Header: cover + title */}
+              <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(item.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+                    {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = item.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
+                  </div>
+                  {inLib && (
+                    <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
+                  )}
+                </div>
+                <div style={{ flex: 1, paddingTop: 40 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                    <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                      {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ""}
+                    </span>
+                    {item.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{item.year}</span>}
+                    {item.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {item.score}</span>}
+                    {item.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{item.source}</span>}
+                  </div>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>{item.title}</h2>
+                  {item.titleEn && item.titleEn !== item.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{item.titleEn}</p>}
+                  {item.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {item.extra}</p>}
+                </div>
               </div>
-              {item.genres?.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-                  {item.genres.slice(0, 6).map((g) => (
-                    <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
+
+              {/* Tabs */}
+              {(hasCast || hasRelations) && (
+                <div style={{ display: "flex", marginTop: 20, borderBottom: "1px solid #21262d" }}>
+                  {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : [])].map(tab => (
+                    <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1 }}>
+                      {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : "Relações"}
+                    </button>
                   ))}
                 </div>
               )}
-              {(detailExtra?.synopsis || item.synopsis) && (
-                <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || item.synopsis || ""}</p>
-              )}
-            </div>
-          )}
 
-          {/* Tab: Cast / Personagens */}
-          {modalTab === "cast" && (
-            <div style={{ marginTop: 16 }}>
-              {!detailExtra ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
-                  <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
-                  <p style={{ fontSize: 13 }}>A carregar...</p>
+              {/* Tab: Info */}
+              {modalTab === "info" && (
+                <div>
+                  <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
+                    {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
+                    {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
+                    {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
+                    {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
+                    {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
+                    {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
+                  </div>
+                  {item.genres?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+                      {item.genres.slice(0, 6).map((g) => (
+                        <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
+                      ))}
+                    </div>
+                  )}
+                  {(detailExtra?.synopsis || item.synopsis) && (
+                    <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || item.synopsis || ""}</p>
+                  )}
                 </div>
-              ) : !detailExtra.cast?.length ? (
-                <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem informação de cast disponível.</p>
-              ) : isAniList ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {detailExtra.cast.map((c) => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d1117", borderRadius: 10, padding: "8px 10px" }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
-                        {c.image && <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</p>
-                        <p style={{ fontSize: 11, color: c.role === "MAIN" ? accent : "#6e7681" }}>{c.role === "MAIN" ? "Main" : "Supporting"}</p>
-                      </div>
-                      {c.va && (
-                        <>
-                          <div style={{ width: 1, height: 36, background: "#21262d", flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
-                            <p style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.va.name}</p>
-                            <p style={{ fontSize: 10, color: "#6e7681" }}>JP</p>
-                          </div>
+              )}
+
+              {/* Tab: Cast / Personagens */}
+              {modalTab === "cast" && (
+                <div style={{ marginTop: 16 }}>
+                  {!detailExtra ? (
+                    <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                      <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
+                      <p style={{ fontSize: 13 }}>A carregar...</p>
+                    </div>
+                  ) : !detailExtra.cast?.length && !detailExtra.director ? (
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem informação de cast disponível.</p>
+                  ) : isAniList ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {detailExtra.cast.map((c) => (
+                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d1117", borderRadius: 10, padding: "8px 10px" }}>
                           <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
-                            {c.va.image && <img src={c.va.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                            {c.image && <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                           </div>
-                        </>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</p>
+                            <p style={{ fontSize: 11, color: c.role === "MAIN" ? accent : "#6e7681" }}>{c.role === "MAIN" ? "Main" : "Supporting"}</p>
+                          </div>
+                          {c.va && (
+                            <>
+                              <div style={{ width: 1, height: 36, background: "#21262d", flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                                <p style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.va.name}</p>
+                                <p style={{ fontSize: 10, color: "#6e7681" }}>JP</p>
+                              </div>
+                              <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                                {c.va.image && <img src={c.va.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Diretor no topo */}
+                      {detailExtra.director && (
+                        <div style={{ marginBottom: 16 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>REALIZADOR</p>
+                          <div onClick={() => setSelectedPerson(detailExtra.director)} style={{ display: "flex", alignItems: "center", gap: 12, background: `${accent}11`, border: `1px solid ${accent}33`, borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
+                            <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                              {detailExtra.director.image ? <img src={detailExtra.director.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎬</div>}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 14, fontWeight: 800 }}>{detailExtra.director.name}</p>
+                              <p style={{ fontSize: 11, color: accent }}>Realizador →</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Cast grid — clicável */}
+                      {detailExtra.cast?.length > 0 && (
+                        <div>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>ELENCO</p>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
+                            {detailExtra.cast.map((c) => (
+                              <div key={c.id} onClick={() => setSelectedPerson(c)} style={{ textAlign: "center", cursor: "pointer" }}>
+                                <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
+                                  {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>👤</div>}
+                                </div>
+                                <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
+                                <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
-                  {detailExtra.cast.map((c) => (
-                    <div key={c.id} style={{ textAlign: "center" }}>
-                      <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
-                        {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>👤</div>}
-                      </div>
-                      <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
-                      <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character}</p>
-                    </div>
-                  ))}
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Tab: Relações */}
-          {modalTab === "relacoes" && (
-            <div style={{ marginTop: 16 }}>
-              {!detailExtra ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
-                  <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
-                  <p style={{ fontSize: 13 }}>A carregar...</p>
-                </div>
-              ) : !detailExtra.relations?.length ? (
-                <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem relações disponíveis.</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {detailExtra.relations.map((r, i) => (
-                    <div key={r.id + i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1117", borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ width: 42, height: 60, borderRadius: 6, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
-                        {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 11, color: accent, fontWeight: 700, marginBottom: 3 }}>{RELATION_LABELS[r.type] || r.type}</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
-                        <p style={{ fontSize: 11, color: "#6e7681", marginTop: 2 }}>{[r.format, r.status].filter(Boolean).join(" · ")}</p>
-                      </div>
+              {/* Tab: Relações */}
+              {modalTab === "relacoes" && (
+                <div style={{ marginTop: 16 }}>
+                  {!detailExtra ? (
+                    <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                      <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
+                      <p style={{ fontSize: 13 }}>A carregar...</p>
                     </div>
-                  ))}
+                  ) : !detailExtra.relations?.length ? (
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem relações disponíveis.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {detailExtra.relations.map((r, i) => (
+                        <div key={r.id + i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1117", borderRadius: 10, padding: "10px 12px" }}>
+                          <div style={{ width: 42, height: 60, borderRadius: 6, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                            {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: accent, fontWeight: 700, marginBottom: 3 }}>{RELATION_LABELS[r.type] || r.type}</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
+                            <p style={{ fontSize: 11, color: "#6e7681", marginTop: 2 }}>{[r.format, r.status].filter(Boolean).join(" · ")}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Library section */}
-          <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
-            {inLib ? (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
-                    {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
-                      const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
-                      return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
-                    })()}
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {inLib && onToggleFavorite && (
-                      <button onClick={() => onToggleFavorite(item)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
-                        {isFavorite ? "★ Favorito" : "☆ Favorito"}
-                      </button>
+              {/* Library section */}
+              <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
+                {inLib ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
+                        {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
+                          const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
+                          return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
+                        })()}
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {inLib && onToggleFavorite && (
+                          <button onClick={() => onToggleFavorite(item)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                            {isFavorite ? "★ Favorito" : "☆ Favorito"}
+                          </button>
+                        )}
+                        <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
+                      </div>
+                    </div>
+                    <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(item.id, v)} size={22} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                      {STATUS_OPTIONS.map((s) => (
+                        <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
+                          {s.emoji} {statusLabel(s, lang)}
+                        </button>
+                      ))}
+                    </div>
+                    {isChapterType && libItem.userStatus === "assistindo" && (
+                      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
+                        <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                        <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
+                      </div>
                     )}
-                    <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
-                  </div>
-                </div>
-                <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(item.id, v)} size={22} />
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                  {STATUS_OPTIONS.map((s) => (
-                    <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
-                      {s.emoji} {statusLabel(s, lang)}
-                    </button>
-                  ))}
-                </div>
-                {isChapterType && libItem.userStatus === "assistindo" && (
-                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
-                    <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
-                    <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 12, fontWeight: 600 }}>{useT("addToLibrary").toUpperCase()}</p>
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{`${useT("rating")} (${lang === "en" ? "optional" : "opcional"})`}</div>
+                      <StarRating value={addRating} onChange={setAddRating} size={24} />
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {STATUS_OPTIONS.map((s) => (
+                        <button key={s.id} onClick={() => { onAdd(item, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
+                          {s.emoji} {statusLabel(s, lang)}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
-              </>
-            ) : (
-              <>
-                <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 12, fontWeight: 600 }}>{useT("addToLibrary").toUpperCase()}</p>
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{`${useT("rating")} (${lang === "en" ? "optional" : "opcional"})`}</div>
-                  <StarRating value={addRating} onChange={setAddRating} size={24} />
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {STATUS_OPTIONS.map((s) => (
-                    <button key={s.id} onClick={() => { onAdd(item, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
-                      {s.emoji} {statusLabel(s, lang)}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
     {coverEdit && inLib && (
