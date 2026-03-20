@@ -1742,28 +1742,27 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
 
   const TierRow = ({ items, tier, bg }) => {
     if (!items.length) return null;
-    const totalW = items.length * 62; // largura real das capas
     return (
-      <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg, display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 3, padding: "3px 3px", flexShrink: 0 }}>
+      <div style={{ position: "relative", height: 84, overflow: "hidden", background: bg }}>
+        {/* Capas — só ocupam o espaço que precisam */}
+        <div style={{ display: "flex", gap: 3, padding: 3, width: "fit-content" }}>
           {items.map(item => {
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
-              <div key={item.id} style={{ width: 58, height: 84, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+              <div key={item.id} style={{ width: 56, height: 78, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
                 {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
               </div>
             );
           })}
         </div>
-        {/* Fade só quando as capas ultrapassam a largura */}
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${bg})`, pointerEvents: "none" }} />
+        {/* Fade à direita — só visível se as capas transbordam */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 50, background: `linear-gradient(90deg, transparent, ${bg})`, pointerEvents: "none" }} />
         {/* Badge */}
-        <div style={{ position: "absolute", top: 7, left: 7, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
+        <div style={{ position: "absolute", top: 6, left: 6, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
       </div>
     );
   };
 
-  // Tiers intermédias entre a melhor e a pior
   const middleTiers = tiersWithItems.slice(1, -1);
   const hasMiddle = rightItems.length > 0 && middleTiers.length > 0;
 
@@ -1773,13 +1772,13 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
       {rightItems.length > 0 && (
         <>
           {/* Separador — com pontos se há tiers intermédias */}
-          <div style={{ height: 18, background: darkMode ? "#161b22" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+          <div style={{ height: 12, background: darkMode ? "#161b22" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
             {hasMiddle ? (
               middleTiers.map(t => (
-                <div key={t.id} style={{ width: 6, height: 6, borderRadius: "50%", background: t.color, opacity: 0.7 }} />
+                <div key={t.id} style={{ width: 5, height: 5, borderRadius: "50%", background: t.color, opacity: 0.6 }} />
               ))
             ) : (
-              <div style={{ width: "60%", height: 1, background: darkMode ? "#21262d" : "#e2e8f0" }} />
+              <div style={{ width: "40%", height: 1, background: darkMode ? "#21262d" : "#e2e8f0" }} />
             )}
           </div>
           <TierRow items={rightItems} tier={worstTier} bg={darkMode ? "#08080f" : "#d4d4d4"} />
