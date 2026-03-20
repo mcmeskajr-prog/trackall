@@ -1737,19 +1737,34 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const bestItems = bestTier ? (tl.tiers[bestTier.id] || []) : [];
   const worstItems = worstTier ? (tl.tiers[worstTier.id] || []) : [];
 
-  const leftItems = bestItems.slice(0, 4);
-  const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 2) : [];
+  const leftItems = bestItems.slice(0, 5);
+  const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 5) : [];
 
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
 
-      {/* Capas */}
-      <div style={{ height: 105, display: "flex", background: darkMode ? "#0d1117" : "#e2e2e2", overflow: "hidden" }}>
-        {/* Esquerda — melhor tier, capas em flex */}
-        <div style={{ flex: 1, display: "flex", gap: 2, overflow: "hidden", position: "relative" }}>
-          {leftItems.length === 0 ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 12 }}>Vazio</div>
-          ) : leftItems.map(item => {
+      {/* Tier superior — melhor */}
+      <div style={{ position: "relative", height: rightItems.length > 0 ? 70 : 105, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e2e2", display: "flex", gap: 2 }}>
+        {leftItems.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 12 }}>Vazio</div>
+        ) : leftItems.map(item => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          return (
+            <div key={item.id} style={{ flex: 1, overflow: "hidden", background: gradientFor(item.id) }}>
+              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+            </div>
+          );
+        })}
+        {/* Fade direito */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${darkMode ? "#0d1117" : "#e2e2e2"})`, pointerEvents: "none" }} />
+        {/* Badge */}
+        <div style={{ position: "absolute", top: 5, left: 5, background: bestTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{bestTier.id}</div>
+      </div>
+
+      {/* Tier inferior — pior (só se existir) */}
+      {rightItems.length > 0 && (
+        <div style={{ position: "relative", height: 70, overflow: "hidden", background: darkMode ? "#060910" : "#d5d5d5", display: "flex", gap: 2, borderTop: `2px solid ${darkMode ? "#161b22" : "#fff"}` }}>
+          {rightItems.map(item => {
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
               <div key={item.id} style={{ flex: 1, overflow: "hidden", background: gradientFor(item.id) }}>
@@ -1757,26 +1772,12 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
               </div>
             );
           })}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent 60%, " + (darkMode ? "#0d1117" : "#e2e2e2") + ")", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white" }}>{bestTier.id}</div>
+          {/* Fade direito */}
+          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${darkMode ? "#060910" : "#d5d5d5"})`, pointerEvents: "none" }} />
+          {/* Badge */}
+          <div style={{ position: "absolute", top: 5, left: 5, background: worstTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{worstTier.id}</div>
         </div>
-
-        {/* Direita — pior tier */}
-        {rightItems.length > 0 && (
-          <div style={{ display: "flex", gap: 2, width: rightItems.length * 66, flexShrink: 0, borderLeft: `2px solid ${darkMode ? "#161b22" : "#fff"}`, position: "relative" }}>
-            {rightItems.map(item => {
-              const cover = item.customCover || item.cover || item.thumbnailUrl;
-              return (
-                <div key={item.id} style={{ width: 64, flexShrink: 0, background: gradientFor(item.id), overflow: "hidden" }}>
-                  {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                </div>
-              );
-            })}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, " + (darkMode ? "#0d1117" : "#e2e2e2") + ", transparent 40%)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white" }}>{worstTier.id}</div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Info */}
       <div style={{ padding: "8px 10px" }}>
@@ -4541,7 +4542,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55` }}>
+        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, overflow: "hidden", minWidth: 0 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
