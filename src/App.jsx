@@ -428,19 +428,33 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     // TMDB filmes — vários formatos possíveis
     if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
       const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
-      const url = `${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`;
-      const r = await fetch(url);
-      const d = await r.json();
-      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year };
+      const [detailRes, creditsRes] = await Promise.all([
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/credits&language=pt-PT`),
+      ]);
+      const d = await detailRes.json();
+      const c = creditsRes.ok ? await creditsRes.json() : null;
+      const cast = (c?.cast || []).slice(0, 20).map(p => ({
+        id: p.id, name: p.name, character: p.character,
+        image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
+      }));
+      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year, cast };
     }
 
     // TMDB séries — vários formatos possíveis
     if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
       const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
-      const url = `${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`;
-      const r = await fetch(url);
-      const d = await r.json();
-      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status };
+      const [detailRes, creditsRes] = await Promise.all([
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/credits&language=pt-PT`),
+      ]);
+      const d = await detailRes.json();
+      const c = creditsRes.ok ? await creditsRes.json() : null;
+      const cast = (c?.cast || []).slice(0, 20).map(p => ({
+        id: p.id, name: p.name, character: p.character,
+        image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
+      }));
+      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast };
     }
 
     // AniList — formatos: al-anime-123, al-manga-123, al-123
@@ -449,12 +463,46 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       if (!alId || isNaN(Number(alId))) return null;
       const r = await fetch(`${wUrl}/anilist`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format description(asHtml:false) } }` }),
+        body: JSON.stringify({ query: `{
+          Media(id:${alId}) {
+            episodes chapters volumes averageScore status duration format
+            description(asHtml:false)
+            characters(perPage:20, sort:ROLE) {
+              edges {
+                role
+                node { id name { full } image { medium } }
+                voiceActors(language:JAPANESE) { id name { full } image { medium } }
+              }
+            }
+            relations {
+              edges {
+                relationType(version:2)
+                node { id title { romaji } coverImage { medium } type format status }
+              }
+            }
+          }
+        }` }),
       });
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null };
+      const cast = (m.characters?.edges || []).map(e => ({
+        id: e.node?.id,
+        name: e.node?.name?.full || "",
+        image: e.node?.image?.medium || null,
+        role: e.role || "SUPPORTING",
+        va: e.voiceActors?.[0] ? { name: e.voiceActors[0].name?.full || "", image: e.voiceActors[0].image?.medium || null } : null,
+      }));
+      const relations = (m.relations?.edges || []).map(e => ({
+        type: e.relationType,
+        id: `al-${e.node?.id}`,
+        title: e.node?.title?.romaji || "",
+        cover: e.node?.coverImage?.medium || null,
+        format: e.node?.format || "",
+        status: e.node?.status || "",
+        mediaType: (e.node?.type || "").toLowerCase(),
+      })).filter(r => ["PREQUEL","SEQUEL","SOURCE","ALTERNATIVE","SIDE_STORY","PARENT"].includes(r.type));
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null, cast, relations };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -477,7 +525,7 @@ async function searchGoogleBooks(query, workerUrl) {
       type: "livros",
       year: String((info.publishedDate || "").slice(0, 4)),
       score: info.averageRating ? +(info.averageRating * 2).toFixed(1) : null,
-      synopsis: (info.description || "").replace(/<[^>]*>/g, "").slice(0, 400),
+      synopsis: (info.description || "").replace(/<[^>]*>/g, "").trim(),
       genres: (info.categories || []).slice(0, 4),
       extra: (info.authors || []).join(", ").slice(0, 60),
       source: "Google Books",
@@ -1147,66 +1195,59 @@ function CoverEditModal({item, onSave, onClose }) {
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
 function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
-
   const { lang, useT } = useLang();
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
   const [chapterInput, setChapterInput] = useState("");
+  const [modalTab, setModalTab] = useState("info");
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
+  const isAniList = (item.id || "").startsWith("al-");
+  const isTMDB = (item.id || "").startsWith("tmdb-");
+  const hasCast = isAniList || isTMDB;
+  const hasRelations = isAniList;
+
   useEffect(() => {
     setDetailExtra(null);
+    setModalTab("info");
     if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
+
   const inLib = !!library[item.id];
   const libItem = library[item.id];
   const isChapterType = CHAPTER_TYPES.includes(item.type);
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
   const isFavorite = favorites.some(f => f.id === item.id);
   const canAddFavorite = !isFavorite && favorites.length < 30;
+  const RELATION_LABELS = { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" };
+
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
         {/* Hero backdrop */}
-        <div style={{
-          height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)),
-          position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden",
-        }}>
+        <div style={{ height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
-          <button onClick={onClose} style={{
-            position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999,
-            background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1,
-          }}>✕</button>
+          <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
         </div>
 
         <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
+          {/* Header: cover + title */}
           <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
-            {/* Cover */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(item.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-                {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  onError={(e) => {
-                    const fb = item.coverFallback;
-                    if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; }
-                    else { e.currentTarget.style.display = "none"; }
-                  }} />}
+                {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = item.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
               </div>
               {inLib && (
-                <button onClick={() => setCoverEdit(true)} style={{
-                  position: "absolute", bottom: 4, right: 4, width: 26, height: 26,
-                  borderRadius: 999, background: `${accent}`, border: "none",
-                  cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                }} title={useT("customCover")}>🖊</button>
+                <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
               )}
             </div>
-
             <div style={{ flex: 1, paddingTop: 40 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                  {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}
+                  {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ""}
                 </span>
                 {item.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{item.year}</span>}
                 {item.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {item.score}</span>}
@@ -1218,30 +1259,120 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             </div>
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderTop: "1px solid #21262d", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
-            {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
-            {(detailExtra?.seasons) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
-            {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
-            {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
-            {(detailExtra?.runtime) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
-            {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
-          </div>
-
-          {/* Genres */}
-          {item.genres?.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-              {item.genres.slice(0, 6).map((g) => (
-                <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
+          {/* Tabs */}
+          {(hasCast || hasRelations) && (
+            <div style={{ display: "flex", marginTop: 20, borderBottom: "1px solid #21262d" }}>
+              {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : [])].map(tab => (
+                <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1 }}>
+                  {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : "Relações"}
+                </button>
               ))}
             </div>
           )}
 
-          {/* Synopsis */}
-          {(detailExtra?.synopsis || item.synopsis) && (
-            <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
-              {(() => { const s = detailExtra?.synopsis || item.synopsis || ""; return s.length > 600 ? s.slice(0, 600) + "…" : s; })()}
-            </p>
+          {/* Tab: Info */}
+          {modalTab === "info" && (
+            <div>
+              <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
+                {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
+                {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
+                {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
+                {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
+                {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
+                {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
+              </div>
+              {item.genres?.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
+                  {item.genres.slice(0, 6).map((g) => (
+                    <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
+                  ))}
+                </div>
+              )}
+              {(detailExtra?.synopsis || item.synopsis) && (
+                <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || item.synopsis || ""}</p>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Cast / Personagens */}
+          {modalTab === "cast" && (
+            <div style={{ marginTop: 16 }}>
+              {!detailExtra ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                  <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
+                  <p style={{ fontSize: 13 }}>A carregar...</p>
+                </div>
+              ) : !detailExtra.cast?.length ? (
+                <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem informação de cast disponível.</p>
+              ) : isAniList ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {detailExtra.cast.map((c) => (
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d1117", borderRadius: 10, padding: "8px 10px" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                        {c.image && <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</p>
+                        <p style={{ fontSize: 11, color: c.role === "MAIN" ? accent : "#6e7681" }}>{c.role === "MAIN" ? "Main" : "Supporting"}</p>
+                      </div>
+                      {c.va && (
+                        <>
+                          <div style={{ width: 1, height: 36, background: "#21262d", flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                            <p style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.va.name}</p>
+                            <p style={{ fontSize: 10, color: "#6e7681" }}>JP</p>
+                          </div>
+                          <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                            {c.va.image && <img src={c.va.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
+                  {detailExtra.cast.map((c) => (
+                    <div key={c.id} style={{ textAlign: "center" }}>
+                      <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
+                        {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>👤</div>}
+                      </div>
+                      <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
+                      <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab: Relações */}
+          {modalTab === "relacoes" && (
+            <div style={{ marginTop: 16 }}>
+              {!detailExtra ? (
+                <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                  <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
+                  <p style={{ fontSize: 13 }}>A carregar...</p>
+                </div>
+              ) : !detailExtra.relations?.length ? (
+                <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem relações disponíveis.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {detailExtra.relations.map((r, i) => (
+                    <div key={r.id + i} style={{ display: "flex", alignItems: "center", gap: 12, background: "#0d1117", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ width: 42, height: 60, borderRadius: 6, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
+                        {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 11, color: accent, fontWeight: 700, marginBottom: 3 }}>{RELATION_LABELS[r.type] || r.type}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
+                        <p style={{ fontSize: 11, color: "#6e7681", marginTop: 2 }}>{[r.format, r.status].filter(Boolean).join(" · ")}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Library section */}
@@ -1258,52 +1389,28 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     {inLib && onToggleFavorite && (
-                      <button onClick={() => onToggleFavorite(item)} style={{
-                        background: isFavorite ? "#f59e0b22" : "none",
-                        border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`,
-                        color: isFavorite ? "#f59e0b" : "#8b949e",
-                        cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed",
-                        fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600,
-                        opacity: !canAddFavorite && !isFavorite ? 0.4 : 1,
-                      }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                      <button onClick={() => onToggleFavorite(item)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
                         {isFavorite ? "★ Favorito" : "☆ Favorito"}
                       </button>
                     )}
                     <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
                   </div>
                 </div>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{useT("rating").toUpperCase()}</div>
-                  <StarRating value={libItem.userRating || 0} onChange={(r) => onUpdateRating(item.id, r)} size={22} />
+                <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(item.id, v)} size={22} />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                  {STATUS_OPTIONS.map((s) => (
+                    <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
+                      {s.emoji} {statusLabel(s, lang)}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{useT("status").toUpperCase()}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {STATUS_OPTIONS.map((s) => (
-                      <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{
-                        padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 12, fontWeight: 600, transition: "all 0.15s",
-                        border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`,
-                        background: libItem.userStatus === s.id ? `${s.color}25` : "transparent",
-                        color: libItem.userStatus === s.id ? s.color : "#8b949e",
-                      }}>
-                        {s.emoji} {statusLabel(s, lang)}
-                      </button>
-                    ))}
+                {isChapterType && libItem.userStatus === "assistindo" && (
+                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
+                    <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                    <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
                   </div>
-                  {isChapterType && libItem.userStatus === "assistindo" && (
-                    <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
-                      <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)}
-                        placeholder="ex: Cap. 42"
-                        onKeyDown={e => e.key === 'Enter' && onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())}
-                        style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }}
-                      />
-                      <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())}
-                        style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
-                    </div>
-                  )}
-                </div>
+                )}
               </>
             ) : (
               <>
@@ -1314,11 +1421,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {STATUS_OPTIONS.map((s) => (
-                    <button key={s.id} onClick={() => { onAdd(item, s.id, addRating); onClose(); }} style={{
-                      padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`,
-                      background: `${s.color}15`, color: s.color, cursor: "pointer",
-                      fontFamily: "inherit", fontWeight: 600, fontSize: 13,
-                    }}>
+                    <button key={s.id} onClick={() => { onAdd(item, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
                       {s.emoji} {statusLabel(s, lang)}
                     </button>
                   ))}
@@ -1339,7 +1442,6 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     </>
   );
 }
-
 // ─── Media Card ────────────────────────────────────────────────────────────────
 // ── VirtualGrid: only renders cards near the viewport ──────────────────────
 const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
