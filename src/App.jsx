@@ -1731,95 +1731,137 @@ const TIER_LEVELS = [
 function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
-  // Tier com mais itens para destaque
-  const topTier = TIER_LEVELS.reduce((best, t) => {
-    const count = (tl.tiers[t.id] || []).length;
-    return count > ((tl.tiers[best?.id] || []).length || 0) ? t : best;
-  }, TIER_LEVELS[0]);
-  const topItems = tl.tiers[topTier.id] || [];
+
+  // Encontrar melhor tier (S→D) e pior tier (D→S) com itens
+  const tiersWithItems = TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0);
+  const bestTier = tiersWithItems[0]; // primeiro com itens (S, A, B...)
+  const worstTier = tiersWithItems.length > 1 ? tiersWithItems[tiersWithItems.length - 1] : null; // último com itens
+
+  const bestItems = bestTier ? (tl.tiers[bestTier.id] || []) : [];
+  const worstItems = worstTier ? (tl.tiers[worstTier.id] || []) : [];
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 12, cursor: "pointer", display: "flex", gap: 12, alignItems: "stretch" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
 
-      {/* Coluna esquerda — tier em destaque */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: topTier.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: "white" }}>{topTier.id}</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {topItems.slice(0, 3).map(item => {
+      {/* Faixa de capas — melhor tier esq, pior tier dir, fade no meio */}
+      <div style={{ position: "relative", height: 90, overflow: "hidden", background: darkMode ? "#0d1117" : "#f1f5f9" }}>
+        {/* Capas da melhor tier — alinhadas à esquerda */}
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, display: "flex", gap: 2 }}>
+          {bestItems.slice(0, 5).map((item, i) => {
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
-              <div key={item.id} style={{ width: 32, height: 46, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+              <div key={item.id} style={{ width: 62, height: 90, flexShrink: 0, overflow: "hidden", background: gradientFor(item.id) }}>
+                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
               </div>
             );
           })}
-          {topItems.length > 3 && <span style={{ fontSize: 9, color: "#484f58", textAlign: "center" }}>+{topItems.length - 3}</span>}
         </div>
-      </div>
 
-      {/* Coluna direita — info */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-        {/* Topo: título + acções */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 6 }}>{tl.title}</p>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "2px 8px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
-                ♥ {tl.likes_count || 0}
-              </button>
-              {currentUserId === tl.user_id && onDelete && (
-                <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, padding: "2px 3px" }}>🗑</button>
-              )}
-            </div>
-          </div>
-          {tl.profiles && <p style={{ fontSize: 10, color: "#484f58", marginBottom: 8 }}>@{tl.profiles.username || tl.profiles.name}</p>}
-
-          {/* Barras das tiers com contagem */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).map(tier => {
-              const count = (tl.tiers[tier.id] || []).length;
-              const maxCount = Math.max(...TIER_LEVELS.map(t => (tl.tiers[t.id] || []).length));
-              const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        {/* Capas da pior tier — alinhadas à direita */}
+        {worstTier && (
+          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, display: "flex", gap: 2, flexDirection: "row-reverse" }}>
+            {worstItems.slice(0, 3).map((item, i) => {
+              const cover = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, color: tier.color, width: 10, flexShrink: 0 }}>{tier.id}</span>
-                  <div style={{ flex: 1, height: 5, background: darkMode ? "#21262d" : "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: tier.color, borderRadius: 99 }} />
-                  </div>
-                  <span style={{ fontSize: 9, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{count}</span>
+                <div key={item.id} style={{ width: 62, height: 90, flexShrink: 0, overflow: "hidden", background: gradientFor(item.id) }}>
+                  {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
                 </div>
               );
             })}
           </div>
-        </div>
+        )}
 
-        {/* Rodapé */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} itens</span>
-          <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
+        {/* Fade central */}
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, transparent 30%, ${darkMode ? "#161b22" : "rgba(255,255,255,0.9)"} 50%, transparent 70%)`, pointerEvents: "none" }} />
+
+        {/* Badge melhor tier */}
+        {bestTier && (
+          <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{bestTier.id}</div>
+        )}
+        {/* Badge pior tier */}
+        {worstTier && (
+          <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{worstTier.id}</div>
+        )}
+
+        {/* Overlay escuro em baixo para o texto */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 36, background: "linear-gradient(transparent, rgba(0,0,0,0.7))", pointerEvents: "none" }} />
+      </div>
+
+      {/* Info em baixo */}
+      <div style={{ padding: "8px 10px" }}>
+        <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
+        {tl.profiles && <p style={{ fontSize: 10, color: "#484f58", marginBottom: 6 }}>por @{tl.profiles.username || tl.profiles.name}</p>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} itens · {new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "2px 8px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+              ♥ {tl.likes_count || 0}
+            </button>
+            {currentUserId === tl.user_id && onDelete && (
+              <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, padding: "2px 3px" }}>🗑</button>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function TierListEditor({ initialData, library, onSave, onClose }) {
+function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdbKey }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const [title, setTitle] = useState(initialData?.title || "");
   const [tiers, setTiers] = useState(initialData?.tiers || { S: [], A: [], B: [], C: [], D: [] });
   const [search, setSearch] = useState("");
+  const [poolTab, setPoolTab] = useState("biblioteca"); // biblioteca | pesquisar
+  const [extSearch, setExtSearch] = useState("");
+  const [extResults, setExtResults] = useState([]);
+  const [extSearching, setExtSearching] = useState(false);
+  const [extType, setExtType] = useState("anime");
   const [dragItem, setDragItem] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const items = Object.values(library || {});
+  const rankedIds = new Set(Object.values(tiers).flat().map(i => i.id));
   const unranked = items.filter(i =>
     i.userStatus === "completo" &&
-    !Object.values(tiers).flat().some(t => t.id === i.id) &&
+    !rankedIds.has(i.id) &&
     (search === "" || (i.title || "").toLowerCase().includes(search.toLowerCase()))
   );
+
+  const searchExternal = async () => {
+    if (!extSearch.trim()) return;
+    setExtSearching(true);
+    setExtResults([]);
+    try {
+      let results = [];
+      if (extType === "anime" || extType === "manga") {
+        const q = `query($s:String!,$t:MediaType!){Page(perPage:12){media(search:$s,type:$t){id title{romaji}coverImage{medium}averageScore}}}`;
+        const res = await fetch(`https://${workerUrl || "trackall-proxy.mcmeskajr.workers.dev"}/anilist`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q, variables: { s: extSearch.trim(), t: extType.toUpperCase() } })
+        });
+        const data = await res.json();
+        results = (data?.data?.Page?.media || []).map(m => ({
+          id: `${extType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || "",
+          type: extType, score: m.averageScore ? m.averageScore / 10 : 0
+        }));
+      } else if (extType === "filmes" || extType === "series") {
+        const endpoint = extType === "filmes" ? "movie" : "tv";
+        const res = await fetch(`https://${workerUrl || "trackall-proxy.mcmeskajr.workers.dev"}/tmdb/search/${endpoint}?query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`, {
+          headers: tmdbKey ? { "X-TMDB-Key": tmdbKey } : {}
+        });
+        const data = await res.json();
+        results = (data?.results || []).slice(0, 12).map(m => ({
+          id: `${extType}-${m.id}`, title: m.title || m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
+          type: extType, score: m.vote_average ? m.vote_average / 2 : 0
+        }));
+      }
+      // Filtrar os que já estão rankeados
+      setExtResults(results.filter(r => !rankedIds.has(r.id)));
+    } catch (e) { console.error(e); }
+    setExtSearching(false);
+  };
 
   const addToTier = (item, tierId) => {
     setTiers(prev => {
@@ -1894,35 +1936,68 @@ function TierListEditor({ initialData, library, onSave, onClose }) {
           ))}
         </div>
 
-        {/* Pool de itens não ranqueados */}
+        {/* Pool */}
         <div style={{ padding: "0 20px 16px" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: "#484f58", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
-            Os teus completos ({unranked.length})
-          </p>
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Pesquisar..."
-            style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, marginBottom: 10, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }}
-          />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 200, overflowY: "auto" }}>
-            {unranked.slice(0, 80).map(item => {
-              const cover = item.customCover || item.cover || item.thumbnailUrl;
-              return (
-                <div key={item.id} title={item.title}
-                  draggable
-                  onDragStart={() => { setDragItem(item); setDragFrom(null); }}
-                  style={{ cursor: "grab" }}
-                >
-                  <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                  </div>
-                </div>
-              );
-            })}
-            {unranked.length === 0 && (
-              <p style={{ fontSize: 12, color: "#484f58" }}>Todos os itens completos já estão na lista!</p>
-            )}
+          {/* Tabs do pool */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+            <button onClick={() => setPoolTab("biblioteca")} style={{ flex: 1, padding: "8px", background: "none", border: "none", borderBottom: poolTab === "biblioteca" ? `2px solid ${accent}` : "2px solid transparent", color: poolTab === "biblioteca" ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, marginBottom: -1 }}>
+              📚 Biblioteca ({unranked.length})
+            </button>
+            <button onClick={() => setPoolTab("pesquisar")} style={{ flex: 1, padding: "8px", background: "none", border: "none", borderBottom: poolTab === "pesquisar" ? `2px solid ${accent}` : "2px solid transparent", color: poolTab === "pesquisar" ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, marginBottom: -1 }}>
+              🔍 Pesquisar
+            </button>
           </div>
+
+          {/* Tab biblioteca */}
+          {poolTab === "biblioteca" && (
+            <>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar..." style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, marginBottom: 10, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+                {unranked.slice(0, 80).map(item => {
+                  const cover = item.customCover || item.cover || item.thumbnailUrl;
+                  return (
+                    <div key={item.id} title={item.title} draggable onDragStart={() => { setDragItem(item); setDragFrom(null); }} style={{ cursor: "grab" }}>
+                      <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                        {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      </div>
+                    </div>
+                  );
+                })}
+                {unranked.length === 0 && <p style={{ fontSize: 12, color: "#484f58" }}>Todos os itens completos já estão na lista!</p>}
+              </div>
+            </>
+          )}
+
+          {/* Tab pesquisa externa */}
+          {poolTab === "pesquisar" && (
+            <>
+              <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+                {[{id:"anime",label:"Anime"},{id:"manga",label:"Manga"},{id:"filmes",label:"Filmes"},{id:"series",label:"Séries"}].map(t => (
+                  <button key={t.id} onClick={() => setExtType(t.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 20, border: `1px solid ${extType===t.id?accent:"#30363d"}`, background: extType===t.id?`${accent}22`:"transparent", color: extType===t.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{t.label}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                <input value={extSearch} onChange={e => setExtSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchExternal()} placeholder="Pesquisar título..." style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }} />
+                <button onClick={searchExternal} disabled={extSearching} style={{ padding: "8px 14px", borderRadius: 8, background: accent, border: "none", color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                  {extSearching ? "..." : "🔍"}
+                </button>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+                {extResults.map(item => {
+                  const alreadyIn = rankedIds.has(item.id);
+                  return (
+                    <div key={item.id} title={item.title} draggable={!alreadyIn} onDragStart={() => { if (!alreadyIn) { setDragItem(item); setDragFrom(null); } }} style={{ cursor: alreadyIn ? "default" : "grab", opacity: alreadyIn ? 0.4 : 1 }}>
+                      <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                        {item.cover && <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      </div>
+                    </div>
+                  );
+                })}
+                {!extSearching && extResults.length === 0 && extSearch && <p style={{ fontSize: 12, color: "#484f58" }}>Sem resultados.</p>}
+                {!extSearching && extResults.length === 0 && !extSearch && <p style={{ fontSize: 12, color: "#484f58" }}>Pesquisa qualquer título acima.</p>}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -1976,7 +2051,7 @@ function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
                     const cover = item.customCover || item.cover || item.thumbnailUrl;
                     return (
                       <div key={item.id} title={item.title}>
-                        <div style={{ width: 40, height: 58, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id) }}>
+                        <div style={{ width: 54, height: 78, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id) }}>
                           {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
                         </div>
                       </div>
@@ -6300,6 +6375,8 @@ export default function TrackAll() {
             library={library}
             onSave={handleSaveTierlist}
             onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
+            workerUrl={workerUrl}
+            tmdbKey={tmdbKey}
           />
         )}
 
