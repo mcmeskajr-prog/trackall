@@ -1731,44 +1731,55 @@ const TIER_LEVELS = [
 function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
-  const tiersWithItems = TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0);
+
+  // Mosaico: pega as primeiras capas de cada tier (S→D) até 7 capas
+  const mosaicItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []).slice(0, 2)).slice(0, 7);
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.95)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", transition: "border-color 0.15s", display: "flex", flexDirection: "column" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.95)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
 
-      {/* Tiers */}
-      <div style={{ padding: "12px 12px 8px", flex: 1 }}>
-        {tiersWithItems.length === 0 ? (
-          <p style={{ fontSize: 12, color: "#484f58", textAlign: "center", padding: "20px 0" }}>Vazio</p>
-        ) : TIER_LEVELS.map(tier => {
+      {/* Mosaico de capas estilo Letterboxd */}
+      <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#f0f0f0", flexShrink: 0 }}>
+        {mosaicItems.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 32 }}>🏆</span>
+          </div>
+        ) : mosaicItems.map((item, idx) => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          return (
+            <div key={item.id + idx} style={{ flex: 1, minWidth: 0, overflow: "hidden", background: gradientFor(item.id) }}>
+              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Linhas S/A/B/C/D compactas */}
+      <div style={{ padding: "8px 10px 4px" }}>
+        {TIER_LEVELS.map(tier => {
           const items = tl.tiers[tier.id] || [];
           if (items.length === 0) return null;
-          const visible = items.slice(0, 5);
-          const extra = items.length - 5;
-          const isS = tier.id === "S";
+          const visible = items.slice(0, 6);
+          const extra = items.length - 6;
           const isD = tier.id === "D";
-          const coverH = isS ? 66 : 58;
-          const coverW = isS ? 46 : 40;
           return (
-            <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, opacity: isD ? 0.65 : 1 }}>
-              {/* Label tier */}
-              <div style={{ width: 26, height: 26, borderRadius: 6, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isS ? `0 2px 8px ${tier.color}55` : "none" }}>
-                <span style={{ fontSize: isS ? 13 : 11, fontWeight: 900, color: "white", lineHeight: 1, letterSpacing: "-0.5px" }}>{tier.id}</span>
+            <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3, opacity: isD ? 0.6 : 1 }}>
+              {/* Badge tier */}
+              <div style={{ width: 18, height: 18, borderRadius: 4, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 900, color: "white", lineHeight: 1 }}>{tier.id}</span>
               </div>
-              {/* Capas */}
-              <div style={{ display: "flex", gap: 4, overflow: "hidden", flex: 1, alignItems: "center" }}>
+              {/* Capas pequenas */}
+              <div style={{ display: "flex", gap: 3, overflow: "hidden", flex: 1, alignItems: "center" }}>
                 {visible.map(item => {
                   const cover = item.customCover || item.cover || item.thumbnailUrl;
                   return (
-                    <div key={item.id} style={{ width: coverW, height: coverH, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    <div key={item.id} style={{ width: 26, height: 38, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
                       {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     </div>
                   );
                 })}
                 {extra > 0 && (
-                  <div style={{ width: 28, height: coverH, borderRadius: 4, background: darkMode ? "#21262d" : "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span style={{ fontSize: 9, color: darkMode ? "#8b949e" : "#666", fontWeight: 800, lineHeight: 1 }}>+{extra}</span>
-                  </div>
+                  <span style={{ fontSize: 9, color: "#6e7681", fontWeight: 700, flexShrink: 0, marginLeft: 1 }}>+{extra}</span>
                 )}
               </div>
             </div>
@@ -1777,13 +1788,13 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
       </div>
 
       {/* Rodapé */}
-      <div style={{ padding: "7px 12px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${darkMode ? "#21262d" : "#f0f0f0"}` }}>
+      <div style={{ padding: "6px 10px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${darkMode ? "#21262d" : "#f0f0f0"}`, marginTop: 4 }}>
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 170 }}>{tl.title}</p>
+          <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175 }}>{tl.title}</p>
           <span style={{ fontSize: 10, color: "#6e7681" }}>{allItems.length} itens · {new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
         </div>
         <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : (darkMode ? "#0d111700" : "#f8f8f8"), border: `1px solid ${liked ? accent : (darkMode ? "#30363d" : "#ddd")}`, borderRadius: 20, padding: "3px 9px", color: liked ? accent : "#6e7681", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", transition: "all 0.15s" }}>
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : (darkMode ? "#30363d" : "#ddd")}`, borderRadius: 20, padding: "3px 9px", color: liked ? accent : "#6e7681", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", transition: "all 0.15s" }}>
             ♥ {tl.likes_count || 0}
           </button>
           {currentUserId === tl.user_id && onDelete && (
