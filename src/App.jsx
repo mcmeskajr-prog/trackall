@@ -422,35 +422,39 @@ async function searchTMDB(query, type, key, workerUrl) {
 // Fetch extra details (seasons, runtime, episodes, etc.) for a specific item
 async function fetchMediaDetails(item, tmdbKey, workerUrl) {
   try {
-    if (item.id.startsWith("tmdb-filmes-")) {
-      const tmdbId = item.id.replace("tmdb-filmes-", "");
-      const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`
-        : `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
+    const id = item.id || "";
+    const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+
+    // TMDB filmes — vários formatos possíveis
+    if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
+      const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
+      const url = `${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`;
       const r = await fetch(url);
       const d = await r.json();
-      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year };
+      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year };
     }
-    if (item.id.startsWith("tmdb-series-")) {
-      const tmdbId = item.id.replace("tmdb-series-", "");
-      const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`
-        : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&language=pt-PT`;
+
+    // TMDB séries — vários formatos possíveis
+    if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
+      const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
+      const url = `${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`;
       const r = await fetch(url);
       const d = await r.json();
-      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status };
+      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status };
     }
-    if (item.id.startsWith("al-")) {
-      const alId = item.id.replace(/al-[a-z]+-/, "").replace("al-", "");
-      const aniUrl = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
-      const r = await fetch(aniUrl, {
+
+    // AniList — formatos: al-anime-123, al-manga-123, al-123
+    if (id.startsWith("al-")) {
+      const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
+      if (!alId || isNaN(Number(alId))) return null;
+      const r = await fetch(`${wUrl}/anilist`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format description(asHtml:false) } }` }),
       });
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n/g, " ").trim() : null };
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -1147,7 +1151,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   useEffect(() => {
     setDetailExtra(null);
-    if (item && tmdbKey) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+    if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
