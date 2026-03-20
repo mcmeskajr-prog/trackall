@@ -1740,24 +1740,29 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const leftItems = bestItems.slice(0, 5);
   const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 5) : [];
 
-  const TierRow = ({ items, tier, bg }) => (
-    <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg }}>
-      <div style={{ display: "flex", gap: 3, height: "100%", padding: "3px 3px" }}>
+  const TierRow = ({ items, tier, bg }) => {
+    if (!items.length) return null;
+    // Cada capa ocupa espaço igual, mas limitado a proporção 2:3 (altura 90 → max-width 60)
+    const coverW = Math.min(60, Math.floor(90 * 2/3));
+    return (
+      <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg, display: "flex" }}>
         {items.map(item => {
           const cover = item.customCover || item.cover || item.thumbnailUrl;
           return (
-            <div key={item.id} style={{ width: 60, height: 84, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+            <div key={item.id} style={{ flex: 1, maxWidth: coverW, minWidth: 0, margin: "3px 1.5px", borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
               {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
             </div>
           );
         })}
+        {/* Espaço restante invisível para o fade funcionar */}
+        <div style={{ flex: 1 }} />
+        {/* Fade da direita */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "35%", background: `linear-gradient(90deg, transparent, ${bg} 90%)`, pointerEvents: "none" }} />
+        {/* Badge */}
+        <div style={{ position: "absolute", top: 7, left: 7, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
       </div>
-      {/* Fade da esquerda (suave) para a direita (forte) */}
-      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "40%", background: `linear-gradient(90deg, transparent, ${bg} 85%)`, pointerEvents: "none" }} />
-      {/* Badge tier */}
-      <div style={{ position: "absolute", top: 7, left: 7, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
