@@ -3972,6 +3972,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
 // ─── Library Grouped List (modo lista agrupado por tipo) ─────────────────────
 function LibGroupedList({ items, library, onOpen }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
 
   const [collapsed, setCollapsed] = useState({});
   const toggle = (id) => setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
@@ -4703,7 +4704,14 @@ export default function TrackAll() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
-  const [libViewMode, setLibViewMode] = useState(() => { try { return localStorage.getItem("trackall_lib_view") || "grid"; } catch { return "grid"; } });
+  const [libViewMode, setLibViewMode] = useState(() => { 
+    try { 
+      const saved = localStorage.getItem("trackall_lib_view") || "grid";
+      // compact não existe no mobile
+      if (saved === "compact" && typeof window !== 'undefined' && window.innerWidth < 600) return "grid";
+      return saved;
+    } catch { return "grid"; } 
+  });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
   const [logQuery, setLogQuery] = useState("");
