@@ -1743,20 +1743,20 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
         ) : TIER_LEVELS.map(tier => {
           const items = tl.tiers[tier.id] || [];
           if (items.length === 0) return null;
-          const visible = items.slice(0, 4);
-          const extra = items.length - 4;
+          const visible = items.slice(0, 5);
+          const extra = items.length - 5;
           const isS = tier.id === "S";
           const isD = tier.id === "D";
-          const coverH = isS ? 50 : 44;
-          const coverW = isS ? 34 : 30;
+          const coverH = isS ? 66 : 58;
+          const coverW = isS ? 46 : 40;
           return (
-            <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, opacity: isD ? 0.65 : 1, transform: isS ? "scale(1.03)" : "none", transformOrigin: "left center" }}>
+            <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, opacity: isD ? 0.65 : 1 }}>
               {/* Label tier */}
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isS ? `0 2px 8px ${tier.color}55` : "none" }}>
-                <span style={{ fontSize: isS ? 12 : 11, fontWeight: 900, color: "white", lineHeight: 1, letterSpacing: "-0.5px" }}>{tier.id}</span>
+              <div style={{ width: 26, height: 26, borderRadius: 6, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: isS ? `0 2px 8px ${tier.color}55` : "none" }}>
+                <span style={{ fontSize: isS ? 13 : 11, fontWeight: 900, color: "white", lineHeight: 1, letterSpacing: "-0.5px" }}>{tier.id}</span>
               </div>
               {/* Capas */}
-              <div style={{ display: "flex", gap: 4, overflow: "hidden", maxWidth: 220, alignItems: "center", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 4, overflow: "hidden", flex: 1, alignItems: "center" }}>
                 {visible.map(item => {
                   const cover = item.customCover || item.cover || item.thumbnailUrl;
                   return (
@@ -1766,7 +1766,7 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
                   );
                 })}
                 {extra > 0 && (
-                  <div style={{ width: 24, height: coverH, borderRadius: 4, background: darkMode ? "#21262d" : "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 28, height: coverH, borderRadius: 4, background: darkMode ? "#21262d" : "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <span style={{ fontSize: 9, color: darkMode ? "#8b949e" : "#666", fontWeight: 800, lineHeight: 1 }}>+{extra}</span>
                   </div>
                 )}
