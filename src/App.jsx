@@ -1177,7 +1177,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           }}>✕</button>
         </div>
 
-        <div style={{ padding: "0 24px 24px" }}>
+        <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
           <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
             {/* Cover */}
             <div style={{ position: "relative", flexShrink: 0 }}>
@@ -5641,8 +5641,9 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .media-grid .card { animation: none !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
-            .modal { border-radius: 24px 24px 0 0 !important; max-height: 92vh !important; width: 100% !important; max-width: 100% !important; }
+            .modal { border-radius: 24px 24px 0 0 !important; max-height: 88vh !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
             .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
+            .modal-bottom-pad { padding-bottom: 80px !important; }
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
