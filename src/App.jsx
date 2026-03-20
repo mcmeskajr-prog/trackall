@@ -1737,19 +1737,18 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const bestItems = bestTier ? (tl.tiers[bestTier.id] || []) : [];
   const worstItems = worstTier ? (tl.tiers[worstTier.id] || []) : [];
 
-  // Capas da melhor tier (esquerda) e pior tier (direita) — separadas
   const leftItems = bestItems.slice(0, 4);
   const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 2) : [];
 
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
-      {/* Faixa de capas com separação clara */}
-      <div style={{ position: "relative", height: 105, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", display: "flex" }}>
 
-        {/* Lado esquerdo — melhor tier */}
-        <div style={{ display: "flex", gap: 2, flex: 1 }}>
+      {/* Capas */}
+      <div style={{ height: 105, display: "flex", background: darkMode ? "#0d1117" : "#e2e2e2", overflow: "hidden" }}>
+        {/* Esquerda — melhor tier, capas em flex */}
+        <div style={{ flex: 1, display: "flex", gap: 2, overflow: "hidden", position: "relative" }}>
           {leftItems.length === 0 ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 12 }}>Sem itens</div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 12 }}>Vazio</div>
           ) : leftItems.map(item => {
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
@@ -1758,37 +1757,25 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
               </div>
             );
           })}
-          {/* Fade direito no lado esquerdo */}
-          {rightItems.length > 0 && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "55%", background: "linear-gradient(90deg, transparent 70%, " + (darkMode ? "#0d1117" : "#e8e8e8") + ")", pointerEvents: "none" }} />}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent 60%, " + (darkMode ? "#0d1117" : "#e2e2e2") + ")", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white" }}>{bestTier.id}</div>
         </div>
 
-        {/* Divisor central — só quando há duas tiers */}
+        {/* Direita — pior tier */}
         {rightItems.length > 0 && (
-          <div style={{ width: 3, background: darkMode ? "#161b22" : "#fff", flexShrink: 0, zIndex: 3 }} />
-        )}
-
-        {/* Lado direito — pior tier */}
-        {rightItems.length > 0 && (
-          <div style={{ display: "flex", gap: 2, width: rightItems.length * 70 }}>
+          <div style={{ display: "flex", gap: 2, width: rightItems.length * 66, flexShrink: 0, borderLeft: `2px solid ${darkMode ? "#161b22" : "#fff"}`, position: "relative" }}>
             {rightItems.map(item => {
               const cover = item.customCover || item.cover || item.thumbnailUrl;
               return (
-                <div key={item.id} style={{ width: 68, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                <div key={item.id} style={{ width: 64, flexShrink: 0, background: gradientFor(item.id), overflow: "hidden" }}>
                   {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
                 </div>
               );
             })}
-            {/* Fade esquerdo no lado direito */}
-            <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: rightItems.length * 70 + 3, background: "linear-gradient(90deg, " + (darkMode ? "#0d1117" : "#e8e8e8") + ", transparent 30%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, " + (darkMode ? "#0d1117" : "#e2e2e2") + ", transparent 40%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white" }}>{worstTier.id}</div>
           </div>
         )}
-
-        {/* Badges tier */}
-        {bestTier && <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 4, boxShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{bestTier.id}</div>}
-        {rightItems.length > 0 && worstTier && <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 4, boxShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{worstTier.id}</div>}
-
-        {/* Overlay escuro em baixo */}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 32, background: "linear-gradient(transparent, rgba(0,0,0,0.6))", pointerEvents: "none", zIndex: 2 }} />
       </div>
 
       {/* Info */}
@@ -6015,13 +6002,7 @@ export default function TrackAll() {
           <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
-                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => {
-                  setActiveTab(t.id);
-                  if (searchQuery.trim()) {
-                    setSearchResults([]);
-                    doSearch(searchQuery, t.id);
-                  }
-                }}>
+                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
                   {t.icon} {mediaLabel(t, lang)}
                 </button>
               ))}
@@ -6070,10 +6051,21 @@ export default function TrackAll() {
             )}
             {!isSearching && searchResults.length > 0 && (
               <>
-                <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{searchResults.length} resultados para "<strong style={{ color: "#e6edf3" }}>{searchQuery}</strong>"</p>
-                <div className="media-grid">
-                  {searchResults.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
-                </div>
+                {(() => {
+                  const filtered = activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab);
+                  return (
+                    <>
+                      <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: "#e6edf3" }}>{searchQuery}</strong>"</p>
+                      {filtered.length === 0 ? (
+                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>
+                      ) : (
+                        <div className="media-grid">
+                          {filtered.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             )}
           </div>
