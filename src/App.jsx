@@ -445,12 +445,12 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const aniUrl = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
       const r = await fetch(aniUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format } }` }),
+        body: JSON.stringify({ query: `{ Media(id:${alId}) { episodes chapters volumes averageScore status duration format description(asHtml:false) } }` }),
       });
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status };
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n/g, " ").trim() : null };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -1229,9 +1229,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           )}
 
           {/* Synopsis */}
-          {item.synopsis && (
+          {(detailExtra?.synopsis || item.synopsis) && (
             <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>
-              {item.synopsis.slice(0, 500)}{item.synopsis.length > 500 ? "…" : ""}
+              {(() => { const s = detailExtra?.synopsis || item.synopsis || ""; return s.length > 600 ? s.slice(0, 600) + "…" : s; })()}
             </p>
           )}
 
@@ -5547,14 +5547,14 @@ export default function TrackAll() {
             }
             const col = `rgb(${r},${g},${b})`;
             return `
-          .tc-zone { color: ${col}; }
+          .tc-zone { color: ${col} !important; }
           .tc-zone p, .tc-zone span, .tc-zone h1, .tc-zone h2, .tc-zone h3,
-          .tc-zone h4, .tc-zone h5, .tc-zone li, .tc-zone a { color: ${col}; }
+          .tc-zone h4, .tc-zone h5, .tc-zone li, .tc-zone a { color: ${col} !important; }
           .tc-zone .no-tc, .tc-zone .no-tc *,
           .tc-zone .rating-hover, .tc-zone .rating-hover *,
           .tc-zone .fav-overlay, .tc-zone .fav-overlay *,
           .tc-zone .recent-hover-overlay, .tc-zone .recent-hover-overlay *,
-          .tc-zone .btn-accent, .tc-zone .btn-accent * { color: unset; }
+          .tc-zone .btn-accent, .tc-zone .btn-accent * { color: unset !important; }
           `;
           })()}
           ::-webkit-scrollbar { width: 5px; height: 5px; }
