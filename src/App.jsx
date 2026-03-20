@@ -1741,17 +1741,19 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 5) : [];
 
   const TierRow = ({ items, tier, bg }) => (
-    <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg, display: "flex", gap: 3, padding: "3px 0 3px 3px" }}>
-      {items.map(item => {
-        const cover = item.customCover || item.cover || item.thumbnailUrl;
-        return (
-          <div key={item.id} style={{ width: 60, height: 84, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-            {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-          </div>
-        );
-      })}
-      {/* Fade à direita */}
-      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: `linear-gradient(90deg, transparent, ${bg})`, pointerEvents: "none" }} />
+    <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg }}>
+      <div style={{ display: "flex", gap: 3, height: "100%", padding: "3px 3px" }}>
+        {items.map(item => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          return (
+            <div key={item.id} style={{ width: 60, height: 84, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+            </div>
+          );
+        })}
+      </div>
+      {/* Fade da esquerda (suave) para a direita (forte) */}
+      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "40%", background: `linear-gradient(90deg, transparent, ${bg} 85%)`, pointerEvents: "none" }} />
       {/* Badge tier */}
       <div style={{ position: "absolute", top: 7, left: 7, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
     </div>
@@ -4517,7 +4519,18 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
+  const containerRef = useRef(null);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 60); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false); setQ("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
   return (
     <>
       {!open ? (
@@ -4531,7 +4544,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+        <div ref={containerRef} style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
@@ -4542,7 +4555,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
               if (e.key === "Escape") { setOpen(false); setQ(""); }
             }}
             placeholder={useT("search") + "..."}
-            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0 }} />
+            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, minWidth: 0 }} />
           <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
         </div>
       )}
