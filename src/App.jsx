@@ -1740,20 +1740,30 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const leftItems = bestItems.slice(0, 5);
   const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 5) : [];
 
-  const TierRow = ({ items, tier, bg }) => {
+  const TierRow = ({ items, tier }) => {
     if (!items.length) return null;
+    const bg = darkMode ? "#0d1117" : "#e0e0e0";
+    // Largura real das capas + padding
+    const rowW = items.length * 59 + 8;
     return (
-      <div style={{ position: "relative", padding: "4px 4px 4px 4px", display: "inline-flex", gap: 3, minWidth: "100%" }}>
-        {items.map(item => {
-          const cover = item.customCover || item.cover || item.thumbnailUrl;
-          return (
-            <div key={item.id} style={{ width: 56, height: 80, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-            </div>
-          );
-        })}
+      <div style={{ position: "relative", height: 88, display: "flex", alignItems: "center", padding: "4px 4px" }}>
+        {/* Fundo só atrás das capas */}
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: Math.min(rowW, 400), background: bg, borderRadius: 0 }} />
+        {/* Fade no fim das capas */}
+        <div style={{ position: "absolute", left: Math.max(0, Math.min(rowW, 400) - 50), top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${darkMode ? "#161b22" : "rgba(255,255,255,0.9)"})`, pointerEvents: "none", zIndex: 1 }} />
+        {/* Capas */}
+        <div style={{ display: "flex", gap: 3, position: "relative", zIndex: 2 }}>
+          {items.map(item => {
+            const cover = item.customCover || item.cover || item.thumbnailUrl;
+            return (
+              <div key={item.id} style={{ width: 56, height: 80, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+              </div>
+            );
+          })}
+        </div>
         {/* Badge */}
-        <div style={{ position: "absolute", top: 8, left: 8, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
+        <div style={{ position: "absolute", top: 8, left: 8, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 3 }}>{tier.id}</div>
       </div>
     );
   };
@@ -1763,20 +1773,15 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
 
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
-      <TierRow items={leftItems} tier={bestTier} bg={darkMode ? "#0d1117" : "#e0e0e0"} />
+      <TierRow items={leftItems} tier={bestTier} />
       {rightItems.length > 0 && (
         <>
-          {/* Separador — com pontos se há tiers intermédias */}
-          <div style={{ height: 12, background: darkMode ? "#161b22" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
-            {hasMiddle ? (
-              middleTiers.map(t => (
-                <div key={t.id} style={{ width: 5, height: 5, borderRadius: "50%", background: t.color, opacity: 0.6 }} />
-              ))
-            ) : (
-              <div style={{ width: "40%", height: 1, background: darkMode ? "#21262d" : "#e2e8f0" }} />
-            )}
+          <div style={{ height: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
+            {hasMiddle ? middleTiers.map(t => (
+              <div key={t.id} style={{ width: 5, height: 5, borderRadius: "50%", background: t.color, opacity: 0.6 }} />
+            )) : <div style={{ width: "40%", height: 1, background: darkMode ? "#21262d" : "#e2e8f0" }} />}
           </div>
-          <TierRow items={rightItems} tier={worstTier} bg={darkMode ? "#08080f" : "#d4d4d4"} />
+          <TierRow items={rightItems} tier={worstTier} />
         </>
       )}
 
