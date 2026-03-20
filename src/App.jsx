@@ -1731,63 +1731,53 @@ const TIER_LEVELS = [
 function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
-
-  // Encontrar melhor tier (S→D) e pior tier (D→S) com itens
   const tiersWithItems = TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0);
-  const bestTier = tiersWithItems[0]; // primeiro com itens (S, A, B...)
-  const worstTier = tiersWithItems.length > 1 ? tiersWithItems[tiersWithItems.length - 1] : null; // último com itens
-
+  const bestTier = tiersWithItems[0];
+  const worstTier = tiersWithItems.length > 1 ? tiersWithItems[tiersWithItems.length - 1] : null;
   const bestItems = bestTier ? (tl.tiers[bestTier.id] || []) : [];
   const worstItems = worstTier ? (tl.tiers[worstTier.id] || []) : [];
 
+  // Juntar todas as capas num array: melhores à esq, piores à dir, preenchendo o meio
+  const allCovers = [...bestItems.slice(0, 4), ...allItems.filter(i =>
+    !bestItems.slice(0, 4).some(b => b.id === i.id) &&
+    !(worstItems.slice(0, 4).some(w => w.id === i.id))
+  ).slice(0, 2), ...worstItems.slice(0, 4)];
+
+  const hasBothSides = bestTier && worstTier;
+
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
+      {/* Faixa de capas */}
+      <div style={{ position: "relative", height: 100, overflow: "hidden", background: darkMode ? "#0d1117" : "#f1f5f9", display: "flex" }}>
+        {allCovers.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 13 }}>Tier list vazia</div>
+        ) : allCovers.map((item, i) => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          const isRight = hasBothSides && i >= allCovers.length - worstItems.slice(0,4).length;
+          return (
+            <div key={item.id} style={{ flex: 1, minWidth: 0, overflow: "hidden", position: "relative" }}>
+              {cover
+                ? <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                : <div style={{ width: "100%", height: "100%", background: gradientFor(item.id) }} />
+              }
+            </div>
+          );
+        })}
 
-      {/* Faixa de capas — melhor tier esq, pior tier dir, fade no meio */}
-      <div style={{ position: "relative", height: 90, overflow: "hidden", background: darkMode ? "#0d1117" : "#f1f5f9" }}>
-        {/* Capas da melhor tier — alinhadas à esquerda */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, display: "flex", gap: 2 }}>
-          {bestItems.slice(0, 5).map((item, i) => {
-            const cover = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} style={{ width: 62, height: 90, flexShrink: 0, overflow: "hidden", background: gradientFor(item.id) }}>
-                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Capas da pior tier — alinhadas à direita */}
-        {worstTier && (
-          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, display: "flex", gap: 2, flexDirection: "row-reverse" }}>
-            {worstItems.slice(0, 3).map((item, i) => {
-              const cover = item.customCover || item.cover || item.thumbnailUrl;
-              return (
-                <div key={item.id} style={{ width: 62, height: 90, flexShrink: 0, overflow: "hidden", background: gradientFor(item.id) }}>
-                  {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                </div>
-              );
-            })}
-          </div>
+        {/* Fade lateral só quando há duas sides — muito subtil */}
+        {hasBothSides && (
+          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, transparent 40%, ${darkMode ? "rgba(22,27,34,0.6)" : "rgba(255,255,255,0.5)"} 50%, transparent 60%)`, pointerEvents: "none" }} />
         )}
 
-        {/* Fade central */}
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, transparent 30%, ${darkMode ? "#161b22" : "rgba(255,255,255,0.9)"} 50%, transparent 70%)`, pointerEvents: "none" }} />
+        {/* Badges tier — pior só se diferente do melhor */}
+        {bestTier && <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{bestTier.id}</div>}
+        {worstTier && worstTier.id !== bestTier?.id && <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{worstTier.id}</div>}
 
-        {/* Badge melhor tier */}
-        {bestTier && (
-          <div style={{ position: "absolute", top: 6, left: 6, background: bestTier.color, borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{bestTier.id}</div>
-        )}
-        {/* Badge pior tier */}
-        {worstTier && (
-          <div style={{ position: "absolute", top: 6, right: 6, background: worstTier.color, borderRadius: 6, padding: "2px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{worstTier.id}</div>
-        )}
-
-        {/* Overlay escuro em baixo para o texto */}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 36, background: "linear-gradient(transparent, rgba(0,0,0,0.7))", pointerEvents: "none" }} />
+        {/* Overlay em baixo */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(transparent, rgba(0,0,0,0.75))", pointerEvents: "none" }} />
       </div>
 
-      {/* Info em baixo */}
+      {/* Info */}
       <div style={{ padding: "8px 10px" }}>
         <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
         {tl.profiles && <p style={{ fontSize: 10, color: "#484f58", marginBottom: 6 }}>por @{tl.profiles.username || tl.profiles.name}</p>}
@@ -1820,11 +1810,11 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
   const [dragItem, setDragItem] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [pickingTierFor, setPickingTierFor] = useState(null); // item a adicionar via clique
 
   const items = Object.values(library || {});
   const rankedIds = new Set(Object.values(tiers).flat().map(i => i.id));
   const unranked = items.filter(i =>
-    i.userStatus === "completo" &&
     !rankedIds.has(i.id) &&
     (search === "" || (i.title || "").toLowerCase().includes(search.toLowerCase()))
   );
@@ -1835,29 +1825,33 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
     setExtResults([]);
     try {
       let results = [];
+      const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
       if (extType === "anime" || extType === "manga") {
-        const q = `query($s:String!,$t:MediaType!){Page(perPage:12){media(search:$s,type:$t){id title{romaji}coverImage{medium}averageScore}}}`;
-        const res = await fetch(`https://${workerUrl || "trackall-proxy.mcmeskajr.workers.dev"}/anilist`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q, variables: { s: extSearch.trim(), t: extType.toUpperCase() } })
-        });
+        const aniType = extType === "anime" ? "ANIME" : "MANGA";
+        const q = `{ Page(perPage:15) { media(search:"${extSearch.trim().replace(/"/g,"'")}",type:${aniType}) { id title{romaji} coverImage{large} averageScore } } }`;
+        const res = await fetch(`${wUrl}/anilist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q }) });
         const data = await res.json();
         results = (data?.data?.Page?.media || []).map(m => ({
-          id: `${extType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || "",
-          type: extType, score: m.averageScore ? m.averageScore / 10 : 0
+          id: `al-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.large || "",
+          type: extType, score: m.averageScore || 0
         }));
-      } else if (extType === "filmes" || extType === "series") {
-        const endpoint = extType === "filmes" ? "movie" : "tv";
-        const res = await fetch(`https://${workerUrl || "trackall-proxy.mcmeskajr.workers.dev"}/tmdb/search/${endpoint}?query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`, {
-          headers: tmdbKey ? { "X-TMDB-Key": tmdbKey } : {}
-        });
+      } else if (extType === "filmes") {
+        const url = `${wUrl}/tmdb?endpoint=/search/movie&query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`;
+        const res = await fetch(url);
         const data = await res.json();
-        results = (data?.results || []).slice(0, 12).map(m => ({
-          id: `${extType}-${m.id}`, title: m.title || m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
-          type: extType, score: m.vote_average ? m.vote_average / 2 : 0
+        results = (data?.results || []).slice(0, 15).map(m => ({
+          id: `tmdb-movie-${m.id}`, title: m.title || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
+          type: "filmes", score: m.vote_average || 0
+        }));
+      } else if (extType === "series") {
+        const url = `${wUrl}/tmdb?endpoint=/search/tv&query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`;
+        const res = await fetch(url);
+        const data = await res.json();
+        results = (data?.results || []).slice(0, 15).map(m => ({
+          id: `tmdb-tv-${m.id}`, title: m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
+          type: "series", score: m.vote_average || 0
         }));
       }
-      // Filtrar os que já estão rankeados
       setExtResults(results.filter(r => !rankedIds.has(r.id)));
     } catch (e) { console.error(e); }
     setExtSearching(false);
