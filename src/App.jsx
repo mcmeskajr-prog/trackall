@@ -461,23 +461,28 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
   }
   return null;
 }
-async function searchOpenLibrary(query) {
-  const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=15&fields=key,title,author_name,first_publish_year,cover_i,subject,ratings_average`);
+async function searchGoogleBooks(query, workerUrl) {
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+  const res = await fetch(`${wUrl}/books?q=${encodeURIComponent(query)}`);
   if (!res.ok) return null;
   const data = await res.json();
-  if (!data.docs?.length) return null;
-  return data.docs.slice(0, 15).map((b) => ({
-    id: `ol-${b.key?.replace(/\//g, "-")}`,
-    title: b.title || "",
-    cover: b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-L.jpg` : "",
-    type: "livros",
-    year: String(b.first_publish_year || ""),
-    score: b.ratings_average ? +b.ratings_average.toFixed(1) : null,
-    synopsis: "",
-    genres: (b.subject || []).slice(0, 4),
-    extra: (b.author_name || []).join(", ").slice(0, 60),
-    source: "OpenLibrary",
-  }));
+  if (!data.items?.length) return null;
+  return data.items.map((b) => {
+    const info = b.volumeInfo || {};
+    const cover = info.imageLinks?.extraLarge || info.imageLinks?.large || info.imageLinks?.medium || info.imageLinks?.thumbnail || "";
+    return {
+      id: `gb-${b.id}`,
+      title: info.title || "",
+      cover: cover.replace("http://", "https://"),
+      type: "livros",
+      year: String((info.publishedDate || "").slice(0, 4)),
+      score: info.averageRating ? +(info.averageRating * 2).toFixed(1) : null,
+      synopsis: (info.description || "").replace(/<[^>]*>/g, "").slice(0, 400),
+      genres: (info.categories || []).slice(0, 4),
+      extra: (info.authors || []).join(", ").slice(0, 60),
+      source: "Google Books",
+    };
+  });
 }
 
 // 4. IGDB via Proxy Worker + Steam fallback
@@ -577,7 +582,7 @@ async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "lightnovels") { const r = await searchAniList(query, "manga", keys.workerUrl); results = r?.map(x => ({ ...x, type: "lightnovels" })); }
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
-    else if (mediaType === "livros") results = await searchOpenLibrary(query);
+    else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
     else if (mediaType === "jogos") {
       results = await searchIGDB(query, keys.workerUrl);
       if (!results?.length) results = await searchSteam(query);
@@ -2854,14 +2859,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       </div>
 
 
-      {/* API Status — tudo pré-configurado */}
+      {/* API Status */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "API SETTINGS" : "CONFIGURAÇÕES API"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginBottom: 12 }}>✓ Tudo configurado automaticamente</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
             { icon: "⛩", label: "Anime/Manga", sub: "AniList" },
-            { icon: "📚", label: useT("livros"), sub: "OpenLibrary" },
+            { icon: "📚", label: useT("livros"), sub: "Google Books" },
             { icon: "🎮", label: useT("jogos"), sub: "IGDB + Steam" },
             { icon: "🎬", label: "Filmes/Séries", sub: "TMDB" },
             { icon: "💬", label: useT("comics"), sub: "ComicVine" },
@@ -2873,7 +2878,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           ))}
         </div>
-        {/* TMDB Attribution — required by TMDB ToS */}
+        {/* TMDB Attribution */}
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #21262d", display: "flex", alignItems: "center", gap: 8 }}>
           <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" style={{ height: 14, opacity: 0.7 }} />
           <span style={{ fontSize: 10, color: "#484f58" }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</span>
