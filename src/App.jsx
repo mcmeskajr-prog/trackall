@@ -1731,43 +1731,75 @@ const TIER_LEVELS = [
 function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
+  // Tier com mais itens para destaque
+  const topTier = TIER_LEVELS.reduce((best, t) => {
+    const count = (tl.tiers[t.id] || []).length;
+    return count > ((tl.tiers[best?.id] || []).length || 0) ? t : best;
+  }, TIER_LEVELS[0]);
+  const topItems = tl.tiers[topTier.id] || [];
+
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: 14, cursor: "pointer" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{tl.title}</p>
-          {tl.profiles && <p style={{ fontSize: 11, color: "#484f58" }}>@{tl.profiles.username || tl.profiles.name}</p>}
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 12, cursor: "pointer", display: "flex", gap: 12, alignItems: "stretch" }}>
+
+      {/* Coluna esquerda — tier em destaque */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: topTier.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: 16, fontWeight: 900, color: "white" }}>{topTier.id}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "3px 10px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
-            ♥ {tl.likes_count || 0}
-          </button>
-          {currentUserId === tl.user_id && onDelete && (
-            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>🗑</button>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {topItems.slice(0, 3).map(item => {
+            const cover = item.customCover || item.cover || item.thumbnailUrl;
+            return (
+              <div key={item.id} style={{ width: 32, height: 46, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
+              </div>
+            );
+          })}
+          {topItems.length > 3 && <span style={{ fontSize: 9, color: "#484f58", textAlign: "center" }}>+{topItems.length - 3}</span>}
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>
-        {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).slice(0, 3).map(tier => (
-          <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 22, height: 22, borderRadius: 5, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "white", flexShrink: 0 }}>{tier.id}</span>
-            <div style={{ display: "flex", gap: 3, overflow: "hidden" }}>
-              {(tl.tiers[tier.id] || []).slice(0, 6).map(item => {
-                const cover = item.customCover || item.cover || item.thumbnailUrl;
-                return (
-                  <div key={item.id} style={{ width: 22, height: 32, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                    {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                  </div>
-                );
-              })}
-              {(tl.tiers[tier.id] || []).length > 6 && <span style={{ fontSize: 10, color: "#484f58", alignSelf: "center" }}>+{(tl.tiers[tier.id] || []).length - 6}</span>}
+
+      {/* Coluna direita — info */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        {/* Topo: título + acções */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 6 }}>{tl.title}</p>
+            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : "none", border: `1px solid ${liked ? accent : "#30363d"}`, borderRadius: 20, padding: "2px 8px", color: liked ? accent : "#484f58", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+                ♥ {tl.likes_count || 0}
+              </button>
+              {currentUserId === tl.user_id && onDelete && (
+                <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, padding: "2px 3px" }}>🗑</button>
+              )}
             </div>
           </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} itens</span>
-        <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
+          {tl.profiles && <p style={{ fontSize: 10, color: "#484f58", marginBottom: 8 }}>@{tl.profiles.username || tl.profiles.name}</p>}
+
+          {/* Barras das tiers com contagem */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {TIER_LEVELS.filter(t => (tl.tiers[t.id] || []).length > 0).map(tier => {
+              const count = (tl.tiers[tier.id] || []).length;
+              const maxCount = Math.max(...TIER_LEVELS.map(t => (tl.tiers[t.id] || []).length));
+              const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+              return (
+                <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 9, fontWeight: 900, color: tier.color, width: 10, flexShrink: 0 }}>{tier.id}</span>
+                  <div style={{ flex: 1, height: 5, background: darkMode ? "#21262d" : "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: tier.color, borderRadius: 99 }} />
+                  </div>
+                  <span style={{ fontSize: 9, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Rodapé */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+          <span style={{ fontSize: 10, color: "#484f58" }}>{allItems.length} itens</span>
+          <span style={{ fontSize: 10, color: "#484f58" }}>{new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
+        </div>
       </div>
     </div>
   );
