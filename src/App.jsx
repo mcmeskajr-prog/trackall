@@ -1140,7 +1140,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -5736,6 +5736,7 @@ export default function TrackAll() {
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
             tmdbKey={tmdbKey}
+            workerUrl={workerUrl}
           />
         )}
 
