@@ -1743,22 +1743,17 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const TierRow = ({ items, tier, bg }) => {
     if (!items.length) return null;
     return (
-      <div style={{ position: "relative", height: 84, overflow: "hidden", background: bg }}>
-        {/* Capas — só ocupam o espaço que precisam */}
-        <div style={{ display: "flex", gap: 3, padding: 3, width: "fit-content" }}>
-          {items.map(item => {
-            const cover = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} style={{ width: 56, height: 78, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
-                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-              </div>
-            );
-          })}
-        </div>
-        {/* Fade à direita — só visível se as capas transbordam */}
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 50, background: `linear-gradient(90deg, transparent, ${bg})`, pointerEvents: "none" }} />
+      <div style={{ position: "relative", padding: "4px 4px 4px 4px", display: "inline-flex", gap: 3, minWidth: "100%" }}>
+        {items.map(item => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          return (
+            <div key={item.id} style={{ width: 56, height: 80, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+            </div>
+          );
+        })}
         {/* Badge */}
-        <div style={{ position: "absolute", top: 6, left: 6, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
+        <div style={{ position: "absolute", top: 8, left: 8, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
       </div>
     );
   };
