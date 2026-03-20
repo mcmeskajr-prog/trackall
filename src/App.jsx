@@ -1732,54 +1732,70 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
 
-  // Mosaico: pega as primeiras capas de cada tier (S→D) até 7 capas
-  const mosaicItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []).slice(0, 2)).slice(0, 7);
+  // Mosaico: grupos por tier, cada grupo com até 2 capas — separados por barra colorida
+  const mosaicGroups = TIER_LEVELS.map(t => ({
+    tier: t,
+    items: (tl.tiers[t.id] || []).slice(0, 2)
+  })).filter(g => g.items.length > 0);
 
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.95)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
 
-      {/* Mosaico de capas estilo Letterboxd */}
-      <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#f0f0f0", flexShrink: 0 }}>
-        {mosaicItems.length === 0 ? (
+      {/* Mosaico com grupos separados por cor do tier */}
+      <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", flexShrink: 0 }}>
+        {mosaicGroups.length === 0 ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 32 }}>🏆</span>
           </div>
-        ) : mosaicItems.map((item, idx) => {
-          const cover = item.customCover || item.cover || item.thumbnailUrl;
-          return (
-            <div key={item.id + idx} style={{ flex: 1, minWidth: 0, overflow: "hidden", background: gradientFor(item.id) }}>
-              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+        ) : mosaicGroups.map((group, gIdx) => (
+          <div key={group.tier.id} style={{ display: "flex", flex: group.items.length, minWidth: 0, position: "relative" }}>
+            {/* Barra colorida do tier no topo */}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: group.tier.color, zIndex: 2 }} />
+            {/* Label do tier */}
+            <div style={{ position: "absolute", top: 6, left: 4, zIndex: 3, background: group.tier.color, borderRadius: 3, padding: "1px 4px" }}>
+              <span style={{ fontSize: 8, fontWeight: 900, color: "white", lineHeight: 1 }}>{group.tier.id}</span>
             </div>
-          );
-        })}
+            {/* Capas do grupo */}
+            {group.items.map((item, iIdx) => {
+              const cover = item.customCover || item.cover || item.thumbnailUrl;
+              return (
+                <div key={item.id} style={{ flex: 1, minWidth: 0, overflow: "hidden", background: gradientFor(item.id), borderLeft: (gIdx > 0 && iIdx === 0) ? `2px solid ${darkMode ? "#0d1117" : "#e0e0e0"}` : "none" }}>
+                  {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      {/* Linhas S/A/B/C/D compactas */}
+      {/* Linhas S/A/B/C/D — capas preenchem largura toda */}
       <div style={{ padding: "8px 10px 4px" }}>
         {TIER_LEVELS.map(tier => {
           const items = tl.tiers[tier.id] || [];
           if (items.length === 0) return null;
-          const visible = items.slice(0, 6);
-          const extra = items.length - 6;
+          const visible = items.slice(0, 8);
+          const extra = items.length - 8;
           const isD = tier.id === "D";
           return (
-            <div key={tier.id} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3, opacity: isD ? 0.6 : 1 }}>
+            <div key={tier.id} style={{ display: "flex", alignItems: "stretch", gap: 0, marginBottom: 3, opacity: isD ? 0.6 : 1, height: 36, overflow: "hidden", borderRadius: 4 }}>
               {/* Badge tier */}
-              <div style={{ width: 18, height: 18, borderRadius: 4, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 20, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <span style={{ fontSize: 9, fontWeight: 900, color: "white", lineHeight: 1 }}>{tier.id}</span>
               </div>
-              {/* Capas pequenas */}
-              <div style={{ display: "flex", gap: 3, overflow: "hidden", flex: 1, alignItems: "center" }}>
-                {visible.map(item => {
+              {/* Capas — flex:1 cada para preencher linha toda */}
+              <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+                {visible.map((item, idx) => {
                   const cover = item.customCover || item.cover || item.thumbnailUrl;
                   return (
-                    <div key={item.id} style={{ width: 26, height: 38, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                    <div key={item.id} style={{ flex: 1, minWidth: 0, overflow: "hidden", background: gradientFor(item.id), borderLeft: idx > 0 ? `1px solid ${darkMode ? "#0d1117" : "#e0e0e0"}` : "none" }}>
                       {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     </div>
                   );
                 })}
                 {extra > 0 && (
-                  <span style={{ fontSize: 9, color: "#6e7681", fontWeight: 700, flexShrink: 0, marginLeft: 1 }}>+{extra}</span>
+                  <div style={{ width: 24, flexShrink: 0, background: darkMode ? "#21262d" : "#e8e8e8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 8, color: "#6e7681", fontWeight: 800 }}>+{extra}</span>
+                  </div>
                 )}
               </div>
             </div>
