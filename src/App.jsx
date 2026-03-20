@@ -1740,43 +1740,31 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const leftItems = bestItems.slice(0, 5);
   const rightItems = worstTier && worstTier.id !== bestTier?.id ? worstItems.slice(0, 5) : [];
 
+  const TierRow = ({ items, tier, bg }) => (
+    <div style={{ position: "relative", height: 90, overflow: "hidden", background: bg, display: "flex", gap: 3, padding: "3px 0 3px 3px" }}>
+      {items.map(item => {
+        const cover = item.customCover || item.cover || item.thumbnailUrl;
+        return (
+          <div key={item.id} style={{ width: 60, height: 84, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+            {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+          </div>
+        );
+      })}
+      {/* Fade à direita */}
+      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: `linear-gradient(90deg, transparent, ${bg})`, pointerEvents: "none" }} />
+      {/* Badge tier */}
+      <div style={{ position: "absolute", top: 7, left: 7, background: tier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{tier.id}</div>
+    </div>
+  );
+
   return (
     <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.9)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
-
-      {/* Tier superior — melhor */}
-      <div style={{ position: "relative", height: rightItems.length > 0 ? 70 : 105, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e2e2", display: "flex", gap: 2 }}>
-        {leftItems.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 12 }}>Vazio</div>
-        ) : leftItems.map(item => {
-          const cover = item.customCover || item.cover || item.thumbnailUrl;
-          return (
-            <div key={item.id} style={{ flex: 1, overflow: "hidden", background: gradientFor(item.id) }}>
-              {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-            </div>
-          );
-        })}
-        {/* Fade direito */}
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${darkMode ? "#0d1117" : "#e2e2e2"})`, pointerEvents: "none" }} />
-        {/* Badge */}
-        <div style={{ position: "absolute", top: 5, left: 5, background: bestTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{bestTier.id}</div>
-      </div>
-
-      {/* Tier inferior — pior (só se existir) */}
+      <TierRow items={leftItems.length > 0 ? leftItems : []} tier={bestTier} bg={darkMode ? "#0d1117" : "#e0e0e0"} />
       {rightItems.length > 0 && (
-        <div style={{ position: "relative", height: 70, overflow: "hidden", background: darkMode ? "#060910" : "#d5d5d5", display: "flex", gap: 2, borderTop: `2px solid ${darkMode ? "#161b22" : "#fff"}` }}>
-          {rightItems.map(item => {
-            const cover = item.customCover || item.cover || item.thumbnailUrl;
-            return (
-              <div key={item.id} style={{ flex: 1, overflow: "hidden", background: gradientFor(item.id) }}>
-                {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-              </div>
-            );
-          })}
-          {/* Fade direito */}
-          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 60, background: `linear-gradient(90deg, transparent, ${darkMode ? "#060910" : "#d5d5d5"})`, pointerEvents: "none" }} />
-          {/* Badge */}
-          <div style={{ position: "absolute", top: 5, left: 5, background: worstTier.color, borderRadius: 5, padding: "1px 7px", fontSize: 11, fontWeight: 900, color: "white", zIndex: 2 }}>{worstTier.id}</div>
-        </div>
+        <>
+          <div style={{ height: 2, background: darkMode ? "#161b22" : "#fff" }} />
+          <TierRow items={rightItems} tier={worstTier} bg={darkMode ? "#08080f" : "#d4d4d4"} />
+        </>
       )}
 
       {/* Info */}
@@ -4542,7 +4530,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           {useT("search")}
         </button>
       ) : (
-        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, overflow: "hidden", minWidth: 0 }}>
+        <div style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
