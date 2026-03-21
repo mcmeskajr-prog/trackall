@@ -6423,7 +6423,7 @@ export default function TrackAll() {
           <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
-                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery.trim()) doSearch(searchQuery, t.id, true); }}>
+                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery.trim() && searchType !== "all" && t.id !== "all") doSearch(searchQuery, t.id, true); }}>
                   {t.icon} {mediaLabel(t, lang)}
                 </button>
               ))}
@@ -6473,14 +6473,29 @@ export default function TrackAll() {
             {!isSearching && searchResults.length > 0 && (
               <>
                 {(() => {
+                  // Se searchType é "all", filtrar por activeTab nos resultados existentes
+                  // Se searchType é específico, mostrar todos os resultados (já são do tipo certo)
                   const filtered = searchType === "all"
                     ? (activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab))
-                    : searchResults; // pesquisa específica — mostrar todos os resultados sem filtrar
+                    : searchResults;
+                  // Se filtered vazio mas searchType é "all" e activeTab específico,
+                  // significa que não há resultados desse tipo no "all" — avisar
+                  const noResultsForType = filtered.length === 0 && searchType === "all" && activeTab !== "all";
                   return (
                     <>
-                      <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: "#e6edf3" }}>{searchQuery}</strong>"</p>
+                      <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{searchQuery}</strong>"</p>
                       {filtered.length === 0 ? (
-                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>
+                        <div style={{ textAlign: "center", marginTop: 40 }}>
+                          <p style={{ color: "#484f58", fontSize: 13, marginBottom: 12 }}>
+                            {noResultsForType ? `Sem resultados em "${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}" na pesquisa atual.` : "Sem resultados para este tipo."}
+                          </p>
+                          {noResultsForType && (
+                            <button onClick={() => doSearch(searchQuery, activeTab, true)}
+                              style={{ padding: "8px 20px", borderRadius: 10, background: accent, border: "none", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+                              Pesquisar só em {mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <div className="media-grid">
                           {filtered.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
@@ -6538,7 +6553,7 @@ export default function TrackAll() {
                 const isActive = activeTab === t.id;
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
-                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id, true); }}>
+                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (view === "search" && searchQuery.trim() && searchType !== "all" && t.id !== "all") doSearch(searchQuery, t.id, true); }}>
                     {t.icon} {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
