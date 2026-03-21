@@ -6068,10 +6068,10 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: `${bgColor}ee`, backdropFilter: "blur(14px)", borderBottom: "1px solid #21262d", padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+        <nav className="top-nav-bar" style={{ background: `${activeBgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
           <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
-            <span style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", letterSpacing: "-0.5px" }}>TrackAll</span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
           </button>
 
           <div style={{ flex: 1 }}>
@@ -6170,9 +6170,9 @@ export default function TrackAll() {
                         );
                       }} style={{
                         flexShrink: 0,
-                        background: active ? accent : (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
-                        border: `1px solid ${active ? accent : (darkMode ? "#21262d" : "#e2e8f0")}`,
-                        color: active ? "white" : (darkMode ? "#e6edf3" : "#0d1117"),
+                        background: active ? accent : (activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
+                        border: `1px solid ${active ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0")}`,
+                        color: active ? "white" : (activeDarkMode ? "#e6edf3" : "#0d1117"),
                         padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
                         fontSize: 12, fontWeight: 700,
                         display: "flex", alignItems: "center", gap: 5,
