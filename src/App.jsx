@@ -5577,7 +5577,7 @@ export default function TrackAll() {
     if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
   };
 
-  const doSearch = useCallback(async (q, type) => {
+  const doSearch = useCallback(async (q, type, forceRefresh = false) => {
     if (!q.trim()) return;
     setIsSearching(true); setSearchError(""); setSearchResults([]); setView("search");
     try {
@@ -5607,6 +5607,11 @@ export default function TrackAll() {
         const seen = new Set();
         results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
       } else {
+        // Ao pesquisar por tipo específico, limpar cache para garantir resultados frescos
+        if (forceRefresh) {
+          const ck = cacheKey(q, type);
+          CACHE.delete(ck);
+        }
         results = await smartSearch(q, type, { tmdb: tmdbKey, workerUrl });
       }
       setSearchResults(results);
@@ -6416,7 +6421,7 @@ export default function TrackAll() {
           <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
-                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery.trim()) doSearch(searchQuery, t.id); }}>
+                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery.trim()) doSearch(searchQuery, t.id, true); }}>
                   {t.icon} {mediaLabel(t, lang)}
                 </button>
               ))}
@@ -6529,7 +6534,7 @@ export default function TrackAll() {
                 const isActive = activeTab === t.id;
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
-                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id); }}>
+                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id, true); }}>
                     {t.icon} {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
