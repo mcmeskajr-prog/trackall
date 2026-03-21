@@ -2360,10 +2360,10 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
               <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 12, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0, minWidth: 56 }}>
                 <div style={{ background: accent, padding: "4px 0", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                <div style={{ padding: "6px 8px 8px", fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>{MONTH_PT[group.month]}</div>
+                <div style={{ padding: "6px 8px 8px", fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#1a1a2e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
               </div>
               <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${accent}44, transparent)` }} />
-              <span style={{ fontSize: 12, color: "#484f58", fontWeight: 700, background: darkMode ? "#21262d" : "#f1f5f9", padding: "3px 10px", borderRadius: 20 }}>{group.items.length}</span>
+              <span style={{ fontSize: 12, color: darkMode ? "#484f58" : "#57606a", fontWeight: 700, background: darkMode ? "#21262d" : "#e8ecf0", padding: "3px 10px", borderRadius: 20 }}>{group.items.length}</span>
             </div>
             {/* Lista de itens */}
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -2388,12 +2388,12 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
                     </div>
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{item.title}</p>
-                      <p style={{ fontSize: 11, color: "#484f58" }}>{typeIcon(item.type)} {item.type}</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 2 }}>{item.title}</p>
+                      <p style={{ fontSize: 11, color: darkMode ? "#484f58" : "#57606a" }}>{typeIcon(item.type)} {item.type}</p>
                     </div>
                     {/* Rating */}
                     {item.userRating > 0 && (
-                      <div style={{ flexShrink: 0, background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
+                      <div style={{ flexShrink: 0, background: darkMode ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.08)", borderRadius: 8, padding: "4px 8px", fontSize: 13, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>
                     )}
                   </div>
                 );
@@ -2857,8 +2857,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               <div>
                 <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { onBgChange("#0d1117"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
-                  <button onClick={() => { onBgChange("#f1f5f9"); onBgImage(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
+                  <button onClick={() => { if (bgSeparateDevices && isMobileDevice) onBgColorMobile("#0d1117"); else onBgChange("#0d1117"); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
+                  <button onClick={() => { if (bgSeparateDevices && isMobileDevice) onBgColorMobile("#f1f5f9"); else onBgChange("#f1f5f9"); }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
                 </div>
               </div>
               <div>
