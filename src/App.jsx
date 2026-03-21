@@ -2800,8 +2800,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           try {
             if (t.hasBgImage) { const img = localStorage.getItem(`trackall_theme_img_${t.name}`); onBgImage(img || ""); }
             else onBgImage("");
-            if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
-            else onBgImageMobile("");
+            // Só restaura imagem mobile se estiver no mobile
+            if (isMobileDevice) {
+              if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
+              else onBgImageMobile("");
+            }
           } catch {}
         };
         const saveTheme = () => {
@@ -4895,7 +4898,10 @@ export default function TrackAll() {
       document.head.appendChild(link);
     }
     // Theme color meta — segue a cor de fundo do dispositivo atual
-    const activeColor = (bgSeparateDevices && bgColorMobile && window.innerWidth < 768) ? bgColorMobile : bgColor;
+    const isMobile = window.innerWidth < 768;
+    const activeColor = (bgSeparateDevices && isMobile)
+      ? (bgColorMobile || "#0d1117")  // mobile: usa cor mobile, nunca herda PC
+      : bgColor;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
       themeMeta.content = activeColor;
