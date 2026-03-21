@@ -5675,7 +5675,9 @@ export default function TrackAll() {
     : bgImage;
 
   // Active bg color: mobile can have different color when bgSeparateDevices is on
-  const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
+  const activeBgColor = (bgSeparateDevices && isMobileDevice)
+    ? (bgColorMobile || "#0d1117")  // mobile sem cor = noturno por defeito, nunca herda PC
+    : bgColor;
 
   // darkMode separado: PC usa bgColor, mobile usa bgColorMobile quando separado está ligado
   // Se bgSeparateDevices ligado e no mobile: usa bgColorMobile se tiver valor, senão mantém darkMode independente do PC
