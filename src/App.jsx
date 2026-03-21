@@ -2360,7 +2360,7 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
               <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 12, overflow: "hidden", textAlign: "center", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, flexShrink: 0, minWidth: 56 }}>
                 <div style={{ background: accent, padding: "4px 0", fontSize: 9, fontWeight: 800, color: "white", letterSpacing: 1 }}>{group.year}</div>
-                <div style={{ padding: "6px 8px 8px", fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#1a1a2e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
+                <div style={{ padding: "6px 8px 8px", fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#111827" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
               </div>
               <div style={{ flex: 1, height: 1.5, background: `linear-gradient(90deg, ${accent}44, transparent)` }} />
               <span style={{ fontSize: 12, color: darkMode ? "#484f58" : "#57606a", fontWeight: 700, background: darkMode ? "#21262d" : "#e8ecf0", padding: "3px 10px", borderRadius: 20 }}>{group.items.length}</span>
@@ -2406,7 +2406,7 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, statsCardBg, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onStatsCardBg, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -2418,6 +2418,25 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
   const [shareCopied, setShareCopied] = useState(false);
   const [themeName, setThemeName] = useState("");
+
+  // Calcula o background dos painéis com cor + opacidade
+  const computedPanelBg = (() => {
+    const base = panelBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)");
+    const op = (panelOpacity ?? 100) / 100;
+    if (op >= 1 && !panelBg) return base; // sem customização, usa default
+    if (!panelBg) return base;
+    // Converter hex para rgba com opacidade
+    try {
+      const hex = panelBg.replace("#", "");
+      if (hex.length === 6) {
+        const r = parseInt(hex.slice(0,2),16);
+        const g = parseInt(hex.slice(2,4),16);
+        const b = parseInt(hex.slice(4,6),16);
+        return `rgba(${r},${g},${b},${op})`;
+      }
+    } catch {}
+    return base;
+  })();
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
   const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
@@ -2736,20 +2755,20 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
             {STATUS_OPTIONS.map((s) => (
-              <div key={s.id} style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
+              <div key={s.id} style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
                 <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{statusLabel(s, lang)}</div>
               </div>
             ))}
-            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
+            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
               <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("avgRating")}</div>
             </div>
-            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
               <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
               <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("totalItems")}</div>
             </div>
-            <div style={{ background: statsCardBg || (darkMode ? "#161b22" : "rgba(255,255,255,0.7)"), borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
+            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
               <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{lang === "en" ? "Rated" : "Avaliados"}</div>
             </div>
@@ -2784,7 +2803,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* ── Temas Guardados ── */}
       {(() => {
         const themes = onSavedThemes?.themes || [];
-        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
+        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, panelBg, panelOpacity, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
         const applyTheme = (t) => {
           if (t.accent) onAccentChange(t.accent);
           if (t.bgColor) onBgChange(t.bgColor);
@@ -2792,7 +2811,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
           if (t.textContrast !== undefined) onTextContrast(t.textContrast);
           if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
-          if (t.statsCardBg !== undefined) onStatsCardBg(t.statsCardBg);
+          if (t.panelBg !== undefined) onPanelBg(t.panelBg);
+          if (t.panelOpacity !== undefined) onPanelOpacity(t.panelOpacity);
           if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
           if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
           if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
@@ -2816,7 +2836,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
           } catch {}
           // Tema sem imagens (ficam no localStorage por chave separada)
-          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, statsCardBg, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
+          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, panelBg, panelOpacity, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
           const updated = [...themes.filter(t => t.name !== name), newTheme];
           onSavedThemes?.save(updated);
           setThemeName("");
@@ -2851,7 +2871,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         );
       })()}
 
-      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
+      <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
 
         {/* Sub-secção: CORES */}
         {[
@@ -3023,13 +3043,33 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
             </div>
           )},
-          { key: "stats", label: useT("statsCards"), content: (
-            <div>
-              <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <button onClick={() => onStatsCardBg("")} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !statsCardBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }} title="Auto">{useT("colorAuto")}</button>
-                {["#161b22","#1e293b","#0f172a","#1c1c1e","#1a1a2e","rgba(255,255,255,0.08)","rgba(255,255,255,0.15)"].map(c => (<button key={c} onClick={() => onStatsCardBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: statsCardBg===c?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={c} />))}
-                <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue="#161b22" onBlur={(e) => onStatsCardBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+          { key: "stats", label: "⬛ Painéis", content: (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>COR DOS PAINÉIS</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <button onClick={() => { onPanelBg(""); onPanelOpacity(100); }} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !panelBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }}>Auto</button>
+                  {["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].map(c => (
+                    <button key={c} onClick={() => onPanelBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: panelBg===c ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={c} />
+                  ))}
+                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: panelBg && !["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].includes(panelBg) ? panelBg : "transparent" }}>
+                    {panelBg && !["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].includes(panelBg) ? "" : "+"}
+                    <input type="color" value={panelBg || "#161b22"} onChange={(e) => onPanelBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>OPACIDADE</p>
+                  <span style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{panelOpacity ?? 100}%</span>
+                </div>
+                <input type="range" min={0} max={100} value={panelOpacity ?? 100}
+                  onChange={e => onPanelOpacity(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: accent, cursor: "pointer" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#484f58", marginTop: 2 }}>
+                  <span>Transparente</span><span>Sólido</span>
+                </div>
               </div>
             </div>
           )},
@@ -4866,7 +4906,8 @@ export default function TrackAll() {
   const [textContrast, setTextContrast] = useState(100);
   const [textContrastMobile, setTextContrastMobile] = useState(100);
   const [savedThemes, setSavedThemes] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_themes") || "[]"); } catch { return []; } });
-  const [statsCardBg, setStatsCardBg] = useState("");
+  const [panelBg, setPanelBg] = useState("");
+  const [panelOpacity, setPanelOpacity] = useState(100);
 
   const [bgImage, setBgImage] = useState("");
   const [bgImageMobile, setBgImageMobile] = useState("");
@@ -5071,7 +5112,8 @@ export default function TrackAll() {
       if (prof) {
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
         if (prof.accent) setAccent(prof.accent);
-        if (prof.stats_card_bg) setStatsCardBg(prof.stats_card_bg);
+        if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
+        if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
         if (prof.sidebar_color !== undefined) setSidebarColor(prof.sidebar_color || "");
         if (prof.text_contrast !== undefined) setTextContrast(prof.text_contrast ?? 100);
         if (prof.text_contrast_mobile !== undefined) setTextContrastMobile(prof.text_contrast_mobile ?? 100);
@@ -5229,9 +5271,13 @@ export default function TrackAll() {
     setAccent(c);
     if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar accent:", err); }
   };
-  const saveStatsCardBg = async (c) => {
-    setStatsCardBg(c);
-    if (user) try { await supa.upsertProfile(user.id, { stats_card_bg: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar stats_card_bg:", err); }
+  const savePanelBg = async (c) => {
+    setPanelBg(c);
+    if (user) try { await supa.upsertProfile(user.id, { panel_bg: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar panel_bg:", err); }
+  };
+  const savePanelOpacity = async (v) => {
+    setPanelOpacity(v);
+    if (user) try { await supa.upsertProfile(user.id, { panel_opacity: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar panel_opacity:", err); }
   };
   const saveSidebarColor = async (c) => {
     setSidebarColor(c);
@@ -5691,6 +5737,22 @@ export default function TrackAll() {
     ? (bgColorMobile ? isColorDark(bgColorMobile) : true)  // mobile sem cor definida = noturno por defeito
     : darkMode;
 
+  // Computed panel bg para uso no CSS global (lib-sidebar)
+  const computedPanelBgCSS = (() => {
+    if (!panelBg) return activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)";
+    const op = (panelOpacity ?? 100) / 100;
+    try {
+      const hex = panelBg.replace("#", "");
+      if (hex.length === 6) {
+        const r = parseInt(hex.slice(0,2),16);
+        const g = parseInt(hex.slice(2,4),16);
+        const b = parseInt(hex.slice(4,6),16);
+        return `rgba(${r},${g},${b},${op})`;
+      }
+    } catch {}
+    return panelBg;
+  })();
+
   // Active text contrast: mobile can have different value when bgSeparateDevices is on
   const activeTextContrast = (bgSeparateDevices && isMobileDevice) ? textContrastMobile : textContrast;
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
@@ -5915,7 +5977,7 @@ export default function TrackAll() {
           .lib-sidebar { display: none; }
           .lib-mobile-controls { display: block; }
           @media (min-width: 768px) {
-            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
+            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${computedPanelBgCSS}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
             .lib-mobile-controls { display: none; }
           }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
@@ -6624,8 +6686,10 @@ export default function TrackAll() {
             onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
-            statsCardBg={statsCardBg}
-            onStatsCardBg={saveStatsCardBg}
+            panelBg={panelBg}
+            panelOpacity={panelOpacity}
+            onPanelBg={savePanelBg}
+            onPanelOpacity={savePanelOpacity}
             textContrast={textContrast}
             onTextContrast={saveTextContrast}
             textContrastMobile={textContrastMobile}
