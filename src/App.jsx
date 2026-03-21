@@ -2910,7 +2910,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                   {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
-                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={bgColor} onBlur={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: bgColor && !BG_PRESETS.find(p => p.value === bgColor) && !bgImage ? bgColor : "transparent" }}>
+                    {bgColor && !BG_PRESETS.find(p => p.value === bgColor) && !bgImage ? "" : "+"}
+                    <input type="color" value={bgColor} onChange={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                  </label>
                 </div>
               </div>
               {bgSeparateDevices && (
@@ -2920,8 +2923,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     {bgColorMobile && <button onClick={() => onBgColorMobile("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual PC</button>}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                    {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onBgColorMobile(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: (bgColorMobile||bgColor)===p.value ? "2px solid #06b6d4" : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
-                    <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={bgColorMobile||bgColor} onBlur={(e) => onBgColorMobile(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
+                    {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onBgColorMobile(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColorMobile === p.value ? "2px solid #06b6d4" : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
+                    <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: bgColorMobile && !BG_PRESETS.find(p => p.value === bgColorMobile) ? bgColorMobile : "transparent" }}>
+                      {bgColorMobile && !BG_PRESETS.find(p => p.value === bgColorMobile) ? "" : "+"}
+                      <input type="color" value={bgColorMobile || bgColor} onChange={(e) => onBgColorMobile(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+                    </label>
                   </div>
                 </div>
               )}
