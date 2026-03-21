@@ -5044,7 +5044,6 @@ export default function TrackAll() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [searchType, setSearchType] = useState("all"); // tipo da última pesquisa concluída
   const [searchHistory, setSearchHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_search_history") || "[]"); } catch { return []; } });
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -5578,15 +5577,17 @@ export default function TrackAll() {
     if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
   };
 
-  const doSearch = useCallback(async (q, type, forceRefresh = false) => {
+  const doSearch = useCallback(async (q, type) => {
     if (!q.trim()) return;
     setIsSearching(true); setSearchError(""); setSearchResults([]); setView("search");
     try {
       let results = [];
       if (type === "all") {
-        const [anime, manga, livros, filmes, series, jogos, comics] = await Promise.allSettled([
+        const [anime, manga, manhwa, lightnovels, livros, filmes, series, jogos, comics] = await Promise.allSettled([
           smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
+          smartSearch(q, "manhwa", { tmdb: tmdbKey, workerUrl }),
+          smartSearch(q, "lightnovels", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "livros", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "series", { tmdb: tmdbKey, workerUrl }),
@@ -5596,6 +5597,8 @@ export default function TrackAll() {
         const all = [
           ...(anime.status === "fulfilled" ? anime.value || [] : []),
           ...(manga.status === "fulfilled" ? manga.value || [] : []),
+          ...(manhwa.status === "fulfilled" ? manhwa.value || [] : []),
+          ...(lightnovels.status === "fulfilled" ? lightnovels.value || [] : []),
           ...(livros.status === "fulfilled" ? livros.value || [] : []),
           ...(filmes.status === "fulfilled" ? filmes.value || [] : []),
           ...(series.status === "fulfilled" ? series.value || [] : []),
@@ -5605,15 +5608,12 @@ export default function TrackAll() {
         const seen = new Set();
         results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
       } else {
-        // Ao pesquisar por tipo específico, limpar cache para garantir resultados frescos
-        if (forceRefresh) {
-          const ck = cacheKey(q, type);
-          CACHE.delete(ck);
-        }
+        // Limpar cache para garantir resultados frescos ao trocar de tipo
+        const ck = cacheKey(q, type);
+        CACHE.delete(ck);
         results = await smartSearch(q, type, { tmdb: tmdbKey, workerUrl });
       }
       setSearchResults(results);
-      setSearchType(type);
       if (!results.length) setSearchError("Nenhum resultado encontrado. Tenta outro termo ou seleciona um tipo específico.");
       // Guardar no histórico
       if (q.trim()) {
@@ -6422,7 +6422,7 @@ export default function TrackAll() {
               {MEDIA_TYPES.map((t) => (
                 <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => {
                   setActiveTab(t.id);
-                  if (searchQuery.trim()) doSearch(searchQuery, t.id, true);
+                  if (searchQuery.trim()) doSearch(searchQuery, t.id);
                 }}>
                   {t.icon} {mediaLabel(t, lang)}
                 </button>
@@ -6538,7 +6538,7 @@ export default function TrackAll() {
                 return (
                   <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => {
                       setActiveTab(t.id);
-                      if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id, true);
+                      if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id);
                     }}>
                     {t.icon} {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
