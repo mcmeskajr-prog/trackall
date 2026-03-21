@@ -5891,6 +5891,17 @@ export default function TrackAll() {
           }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+          :root {
+            --border: ${darkMode ? "#21262d" : "#e2e8f0"};
+            --border2: ${darkMode ? "#30363d" : "#d0d7de"};
+            --card-bg: ${darkMode ? "#161b22" : "rgba(255,252,247,0.95)"};
+            --card-bg2: ${darkMode ? "#0d1117" : "#f6f8fa"};
+            --text-primary: ${darkMode ? "#e6edf3" : "#1a1a2e"};
+            --text-secondary: ${darkMode ? "#8b949e" : "#57606a"};
+            --text-muted: ${darkMode ? "#484f58" : "#8c959f"};
+            --input-bg: ${darkMode ? "#0d1117" : "#ffffff"};
+            --hover-bg: ${darkMode ? "#21262d" : "#f3f4f6"};
+          }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -5922,6 +5933,31 @@ export default function TrackAll() {
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: ${activeBgImage ? "transparent" : activeBgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
           .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
+          ${!darkMode ? `
+            .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
+            .bottom-nav { background: rgba(255,255,255,0.97) !important; }
+            .top-nav-bar { background: rgba(255,255,255,0.97) !important; border-bottom: 1px solid #e2e8f0 !important; }
+            /* Corrigir texto muted/secondary no modo claro */
+            .tc-zone span[style*="color: rgb(72, 79, 88)"],
+            .tc-zone p[style*="color: rgb(72, 79, 88)"],
+            .tc-zone div[style*="color: rgb(72, 79, 88)"] { color: #57606a !important; }
+            .tc-zone span[style*="#484f58"],
+            .tc-zone p[style*="#484f58"] { color: #57606a !important; }
+            .tc-zone span[style*="#8b949e"],
+            .tc-zone p[style*="#8b949e"] { color: #57606a !important; }
+            /* Bordas invisíveis no modo claro */
+            .tc-zone [style*="border: 1px solid rgb(33, 38, 45)"] { border-color: #e2e8f0 !important; }
+            .tc-zone [style*="border: 1px solid #21262d"] { border-color: #e2e8f0 !important; }
+            .tc-zone [style*="border-top: 1px solid #21262d"] { border-top-color: #e2e8f0 !important; }
+            .tc-zone [style*="border-bottom: 1px solid #21262d"] { border-bottom-color: #e2e8f0 !important; }
+            /* Backgrounds escuros em cards/sections */
+            .tc-zone [style*="background: rgb(13, 17, 23)"],
+            .tc-zone [style*="background: #0d1117"] { background: #f6f8fa !important; }
+            .tc-zone [style*="background: rgb(22, 27, 34)"],
+            .tc-zone [style*="background: #161b22"] { background: rgba(255,255,255,0.9) !important; }
+            .tc-zone [style*="background: rgb(33, 38, 45)"],
+            .tc-zone [style*="background: #21262d"] { background: #e8ecf0 !important; }
+          ` : ""}
 
           /* ── Desktop layout ── */
           @media (min-width: 900px) {
