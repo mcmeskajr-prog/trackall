@@ -2681,7 +2681,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
 
             {favorites.length === 0 ? (
-              <div style={{ margin: "0 16px", background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+              <div style={{ margin: "0 16px", background: computedPanelBg, border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
                 <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
               </div>
             ) : (
@@ -2842,7 +2842,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           setThemeName("");
         };
         return (
-          <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: computedPanelBg, border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
               <span style={{ fontSize: 13 }}>🎨</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
@@ -3113,7 +3113,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── Import ── */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "IMPORT" : "IMPORTAR"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
-      <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
           <div style={{ flex: 1 }}>
@@ -3177,7 +3177,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           LEGAL
           <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
         </h3>
-        <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("language")}</p>
@@ -3192,7 +3192,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           </div>
         </div>
-        <div style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
@@ -3890,7 +3890,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
           : accepted.map(f => {
             const info = getFriendInfo(f);
             return (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer", transition: "all 0.15s" }}
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer", transition: "all 0.15s" }}
                 onClick={() => openFriendProfile(info.id, info)}
                 onMouseEnter={e => e.currentTarget.style.borderColor = accent + "55"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"}>
@@ -6416,7 +6416,7 @@ export default function TrackAll() {
           <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
-                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
+                <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (searchQuery.trim()) doSearch(searchQuery, t.id); }}>
                   {t.icon} {mediaLabel(t, lang)}
                 </button>
               ))}
@@ -6529,7 +6529,7 @@ export default function TrackAll() {
                 const isActive = activeTab === t.id;
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
-                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => setActiveTab(t.id)}>
+                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => { setActiveTab(t.id); if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id); }}>
                     {t.icon} {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
