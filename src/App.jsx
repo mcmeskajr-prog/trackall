@@ -348,13 +348,16 @@ function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 // ─── APIs ─────────────────────────────────────────────────────────────────────
 
 // 1. AniList — Anime, Manga, Manhwa, Light Novels (sem chave, CORS aberto)
-async function searchAniList(query, type, workerUrl) {
+async function searchAniList(query, type, workerUrl, format = null, country = null) {
   const mediaType = type === "anime" ? "ANIME" : "MANGA";
+  // Construir filtros extra
+  let extraFilters = "";
+  if (format) extraFilters += `,format_in:[${format}]`;
+  if (country) extraFilters += `,countryOfOrigin:"${country}"`;
   const body = JSON.stringify({
-    query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
+    query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
-  // Usar AniList directamente (API pública com CORS aberto) — evita rate limit no Worker
   const url = "https://graphql.anilist.co";
   const res = await fetch(url, {
     method: "POST",
@@ -630,8 +633,8 @@ async function smartSearch(query, mediaType, keys = {}) {
   try {
     if (mediaType === "anime") results = await searchAniList(query, "anime", keys.workerUrl);
     else if (mediaType === "manga") results = await searchAniList(query, "manga", keys.workerUrl);
-    else if (mediaType === "manhwa") { const r = await searchAniList(query, "manga", keys.workerUrl); results = r?.map(x => ({ ...x, type: "manhwa" })); }
-    else if (mediaType === "lightnovels") { const r = await searchAniList(query, "manga", keys.workerUrl); results = r?.map(x => ({ ...x, type: "lightnovels" })); }
+    else if (mediaType === "manhwa") { const r = await searchAniList(query, "manhwa", keys.workerUrl, null, "KR"); results = r; }
+    else if (mediaType === "lightnovels") { const r = await searchAniList(query, "lightnovels", keys.workerUrl, "NOVEL"); results = r; }
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
     else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
