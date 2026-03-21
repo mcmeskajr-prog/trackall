@@ -4674,6 +4674,7 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -4683,13 +4684,27 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
     if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
+    if (mode === "register" && !inviteCode.trim()) { setError("Precisas de um código de convite para criar conta."); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "register") {
+        // Verificar código de convite
+        const { data: codeData, error: codeError } = await supabase
+          .from("invite_codes")
+          .select("id, used_by")
+          .eq("code", inviteCode.trim().toUpperCase())
+          .single();
+        if (codeError || !codeData) { setError("Código de convite inválido."); setLoading(false); return; }
+        if (codeData.used_by) { setError("Este código de convite já foi utilizado."); setLoading(false); return; }
+        // Criar conta
         const { user: u } = await supa.signUp(email.trim(), password);
-        if (u && u.identities && u.identities.length > 0) {
+        // Marcar código como usado
+        if (u) {
+          await supabase.from("invite_codes").update({ used_by: u.id, used_at: new Date().toISOString() }).eq("id", codeData.id);
           onAuth(u);
         } else {
+          // Email verification pendente — marcar após verificação não é possível agora, mas o código fica reservado
+          await supabase.from("invite_codes").update({ used_at: new Date().toISOString() }).eq("id", codeData.id);
           setAwaitingVerification(true);
           setSuccess(`Email de confirmação enviado para ${email.trim()}.`);
         }
@@ -4745,6 +4760,13 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
                 <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>{useT("password").toUpperCase()}</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={useT("passwordPlaceholder")} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit" }} />
               </div>
+              {mode === "register" && (
+                <div>
+                  <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>CÓDIGO DE CONVITE</label>
+                  <input type="text" value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Ex: TRACKALL-XXXX" onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", letterSpacing: "1px" }} />
+                  <p style={{ fontSize: 11, color: "#484f58", marginTop: 5 }}>O TrackAll está em acesso antecipado. Precisas de um código para criar conta.</p>
+                </div>
+              )}
             </div>
             {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#ef444415", borderRadius: 8 }}>{error}</p>}
             {success && <p style={{ color: "#10b981", fontSize: 12, marginBottom: 12, padding: "8px 12px", background: "#10b98115", borderRadius: 8 }}>{success}</p>}
