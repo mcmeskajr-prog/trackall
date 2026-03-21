@@ -5920,7 +5920,7 @@ export default function TrackAll() {
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: ${activeBgImage ? "transparent" : bgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
+          .hero-gradient { background: ${activeBgImage ? "transparent" : activeBgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
           .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
 
           /* ── Desktop layout ── */
@@ -5944,7 +5944,7 @@ export default function TrackAll() {
             display: none;
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
-            background: ${sidebarColor || bgColor}f5;
+            background: ${sidebarColor || activeBgColor}f5;
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
@@ -6534,7 +6534,7 @@ export default function TrackAll() {
           )
         )}
         {view === "profile" && (
-          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : bgColor, minHeight: "100vh" }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
             profile={activeProfile}
             library={library}
