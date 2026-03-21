@@ -3890,7 +3890,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
           : accepted.map(f => {
             const info = getFriendInfo(f);
             return (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer", transition: "all 0.15s" }}
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, background: darkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, cursor: "pointer", transition: "all 0.15s" }}
                 onClick={() => openFriendProfile(info.id, info)}
                 onMouseEnter={e => e.currentTarget.style.borderColor = accent + "55"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = darkMode ? "#21262d" : "#e2e8f0"}>
@@ -5044,6 +5044,7 @@ export default function TrackAll() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [searchType, setSearchType] = useState("all"); // tipo da última pesquisa concluída
   const [searchHistory, setSearchHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_search_history") || "[]"); } catch { return []; } });
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -5615,6 +5616,7 @@ export default function TrackAll() {
         results = await smartSearch(q, type, { tmdb: tmdbKey, workerUrl });
       }
       setSearchResults(results);
+      setSearchType(type);
       if (!results.length) setSearchError("Nenhum resultado encontrado. Tenta outro termo ou seleciona um tipo específico.");
       // Guardar no histórico
       if (q.trim()) {
@@ -6471,7 +6473,9 @@ export default function TrackAll() {
             {!isSearching && searchResults.length > 0 && (
               <>
                 {(() => {
-                  const filtered = activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab);
+                  const filtered = searchType === "all"
+                    ? (activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab))
+                    : searchResults; // pesquisa específica — mostrar todos os resultados sem filtrar
                   return (
                     <>
                       <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: "#e6edf3" }}>{searchQuery}</strong>"</p>
