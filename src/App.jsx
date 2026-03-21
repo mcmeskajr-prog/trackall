@@ -3968,7 +3968,9 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
     { icon: "👥", title: useT("feature3Title"), desc: "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
     { icon: "🎨", title: useT("feature4Title"), desc: "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
     { icon: "📊", title: useT("feature5Title"), desc: "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
-    { icon: "🔍", title: useT("feature6Title"), desc: "Pesquisa em AniList, TMDB, IGDB, OpenLibrary e ComicVine ao mesmo tempo." },
+    { icon: "🔍", title: useT("feature6Title"), desc: "Pesquisa em AniList, TMDB, IGDB, Google Books e ComicVine ao mesmo tempo." },
+    { icon: "🏆", title: "Tier Lists", desc: "Cria e partilha tier lists da tua mídia favorita. Arrasta, ordena e dá like nas listas da comunidade." },
+    { icon: "🎭", title: "Personagens & Cast", desc: "Vê o elenco completo, personagens, voice actors e explora a filmografia de cada ator ou realizador." },
   ];
   const mediaTypes = ["🎌 Anime", "📖 Manga", "🎬 Filmes", "📺 Séries", "🎮 Jogos", "📚 Livros", "🇰🇷 Manhwa", "💬 Comics"];
 
@@ -4038,7 +4040,21 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
       </section>
 
       {/* Features */}
-      <section style={{ padding: "80px 20px", maxWidth: 1100, margin: "0 auto" }}>
+      <section style={{ padding: "0 20px 40px", maxWidth: 900, margin: "0 auto" }}>
+        {/* Screenshot da app */}
+        <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${accent}33`, boxShadow: `0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px #21262d`, background: "#161b22", position: "relative" }}>
+          <div style={{ background: "#161b22", padding: "10px 16px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid #21262d" }}>
+            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#ef4444", opacity: 0.7 }} />
+            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#eab308", opacity: 0.7 }} />
+            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#10b981", opacity: 0.7 }} />
+            <span style={{ fontSize: 11, color: "#484f58", marginLeft: 8 }}>trackall.app</span>
+          </div>
+          <img src="/og-image.png" alt="TrackAll app screenshot" style={{ width: "100%", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+        </div>
+      </section>
+
+      {/* Features */}
+      <section style={{ padding: "40px 20px 80px", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
           <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 12 }}>{lang === "en" ? "Everything you need" : "Tudo o que precisas"}</h2>
           <p style={{ color: "#484f58", fontSize: 16 }}>{lang === "en" ? "Made for those who take media seriously" : "Feito para quem leva a mídia a sério"}</p>
