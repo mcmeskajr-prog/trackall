@@ -2632,7 +2632,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             fontWeight: profileTab === tab ? 700 : 500,
             marginBottom: -1, whiteSpace: "nowrap",
           }}>
-            {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : tab === "tierlists" ? "🏆 Tier Lists" : "📅 Diário"}
+            {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : tab === "tierlists" ? "≡ Tier Lists" : "⊟ Diário"}
           </button>
         ))}
       </div>
@@ -3577,7 +3577,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
               fontWeight: friendTab === tab ? 700 : 500,
               marginBottom: -1, whiteSpace: "nowrap",
             }}>
-              {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : "📅 Diário"}
+              {tab === "perfil" ? "◉ Perfil" : tab === "completos" ? "✓ Completos" : "⊟ Diário"}
             </button>
           ))}
         </div>
