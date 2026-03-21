@@ -5763,7 +5763,7 @@ export default function TrackAll() {
                   </span>
                   {useT("friends")}
                 </button>
-                <SidebarSearch accent={accent} darkMode={darkMode} activeTab={activeTab} doSearch={doSearch} useT={useT} />
+                <SidebarSearch accent={accent} darkMode={activeDarkMode} activeTab={activeTab} doSearch={doSearch} useT={useT} />
               </div>
 
               {/* Botão + Log Rápido */}
@@ -6583,7 +6583,7 @@ export default function TrackAll() {
               </button>
             </div>
           ) : (
-            <FriendsView user={user} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} library={library} />
+            <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )
         )}
         {view === "profile" && (
@@ -6598,7 +6598,7 @@ export default function TrackAll() {
             bgOverlay={bgOverlay}
             bgBlur={bgBlur}
             bgParallax={bgParallax}
-            darkMode={darkMode}
+            darkMode={activeDarkMode}
             onUpdateProfile={saveProfile}
             onAccentChange={saveAccent}
             onBgChange={saveBg}
