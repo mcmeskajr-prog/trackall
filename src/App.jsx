@@ -2860,19 +2860,19 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   <button onClick={() => {
                     const hasBg = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
                     const doChange = () => {
-                      if (bgSeparateDevices && isMobileDevice) { setDarkModeMobile(true); onBgColorMobile("#0d1117"); }
-                      else { setDarkMode(true); onBgChange("#0d1117"); if (hasBg) onBgImage(""); }
+                      if (bgSeparateDevices && isMobileDevice) { onBgColorMobile("#0d1117"); }
+                      else { onBgChange("#0d1117"); if (hasBg) onBgImage(""); }
                     };
                     if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
-                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: activeDarkMode ? accent : "#21262d", color: activeDarkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
+                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
                   <button onClick={() => {
                     const hasBg = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
                     const doChange = () => {
-                      if (bgSeparateDevices && isMobileDevice) { setDarkModeMobile(false); onBgColorMobile("#f1f5f9"); }
-                      else { setDarkMode(false); onBgChange("#f1f5f9"); if (hasBg) onBgImage(""); }
+                      if (bgSeparateDevices && isMobileDevice) { onBgColorMobile("#f1f5f9"); }
+                      else { onBgChange("#f1f5f9"); if (hasBg) onBgImage(""); }
                     };
                     if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
-                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !activeDarkMode ? accent : "#21262d", color: !activeDarkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
+                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
                 </div>
               </div>
               <div>
@@ -4872,7 +4872,6 @@ export default function TrackAll() {
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-  const [darkModeMobile, setDarkModeMobile] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
@@ -5676,9 +5675,6 @@ export default function TrackAll() {
 
   // Active bg color: mobile can have different color when bgSeparateDevices is on
   const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
-
-  // darkMode ativo — quando bgSeparateDevices ligado e no mobile, usa darkModeMobile
-  const activeDarkMode = (bgSeparateDevices && isMobileDevice) ? darkModeMobile : darkMode;
 
   // Active text contrast: mobile can have different value when bgSeparateDevices is on
   const activeTextContrast = (bgSeparateDevices && isMobileDevice) ? textContrastMobile : textContrast;
