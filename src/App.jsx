@@ -2858,16 +2858,20 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => {
-                    const changeFn = (bgSeparateDevices && isMobileDevice) ? onBgColorMobile : onBgChange;
-                    if (activeBgImage) {
-                      if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) { changeFn("#0d1117"); onBgImage(""); }
-                    } else { changeFn("#0d1117"); }
+                    const hasBg = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
+                    const doChange = () => {
+                      if (bgSeparateDevices && isMobileDevice) { setDarkModeMobile(true); onBgColorMobile("#0d1117"); }
+                      else { setDarkMode(true); onBgChange("#0d1117"); if (hasBg) onBgImage(""); }
+                    };
+                    if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
                   }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: activeDarkMode ? accent : "#21262d", color: activeDarkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
                   <button onClick={() => {
-                    const changeFn = (bgSeparateDevices && isMobileDevice) ? onBgColorMobile : onBgChange;
-                    if (activeBgImage) {
-                      if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) { changeFn("#f1f5f9"); onBgImage(""); }
-                    } else { changeFn("#f1f5f9"); }
+                    const hasBg = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
+                    const doChange = () => {
+                      if (bgSeparateDevices && isMobileDevice) { setDarkModeMobile(false); onBgColorMobile("#f1f5f9"); }
+                      else { setDarkMode(false); onBgChange("#f1f5f9"); if (hasBg) onBgImage(""); }
+                    };
+                    if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
                   }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !activeDarkMode ? accent : "#21262d", color: !activeDarkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
                 </div>
               </div>
@@ -4868,6 +4872,7 @@ export default function TrackAll() {
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [darkModeMobile, setDarkModeMobile] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
@@ -5672,15 +5677,15 @@ export default function TrackAll() {
   // Active bg color: mobile can have different color when bgSeparateDevices is on
   const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
 
-  // Active dark mode: deriva da cor de fundo ativa — se mobile tem cor diferente, o tema adapta
-  const activeDarkMode = activeBgImage ? darkMode : isColorDark(activeBgColor);
+  // darkMode ativo — quando bgSeparateDevices ligado e no mobile, usa darkModeMobile
+  const activeDarkMode = (bgSeparateDevices && isMobileDevice) ? darkModeMobile : darkMode;
 
   // Active text contrast: mobile can have different value when bgSeparateDevices is on
   const activeTextContrast = (bgSeparateDevices && isMobileDevice) ? textContrastMobile : textContrast;
-  const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
+  const baseTextColor = darkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
@@ -5849,25 +5854,25 @@ export default function TrackAll() {
           })()}
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
+          ::-webkit-scrollbar-thumb { background: ${darkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${activeDarkMode ? "#161b22" : "rgba(255,252,247,0.92)"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
-          .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; }
+          .card { background: ${darkMode ? "#161b22" : "rgba(255,252,247,0.92)"}; border: 1px solid ${darkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${darkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
           .media-thumb .rating-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.52); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; border-radius: 10px; }
           .media-thumb:hover .rating-hover { opacity: 1; transform: translateY(0); }
           .media-thumb:hover img { transform: scale(1.04); transition: transform 0.25s ease; }
           .media-thumb img { transition: transform 0.25s ease; width: 100%; height: 100%; object-fit: cover; display: block; }
-          .tab-btn { background: transparent; border: none; color: ${activeDarkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
-          .tab-btn:hover { color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; background: ${activeDarkMode ? "#21262d" : "#e2e8f0"}; }
+          .tab-btn { background: transparent; border: none; color: ${darkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
+          .tab-btn:hover { color: ${darkMode ? "#e6edf3" : "#0d1117"}; background: ${darkMode ? "#21262d" : "#e2e8f0"}; }
           .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
-          input, select, textarea { background: ${activeDarkMode ? "#0d1117" : "#ffffff"}; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
-          input::placeholder { color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
+          input, select, textarea { background: ${darkMode ? "#0d1117" : "#ffffff"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
+          input::placeholder { color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-          .modal { background: ${activeDarkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
+          .modal { background: ${darkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${darkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
@@ -5882,16 +5887,16 @@ export default function TrackAll() {
             .recents-row { -webkit-overflow-scrolling: touch; }
             * { -webkit-tap-highlight-color: transparent; }
             .card-info { display: none; }
-            .card-info-title { display: block; font-size: 10px; font-weight: 700; padding: 5px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; }
+            .card-info-title { display: block; font-size: 10px; font-weight: 700; padding: 5px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
             .card-info-meta { display: none; }
           }
           @media (max-width: 480px) {
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
           }
-          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${activeDarkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
-          .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
+          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${darkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
+          .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${darkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
-          .nav-btn:hover { color: ${activeDarkMode ? "#8b949e" : "#64748b"}; }
+          .nav-btn:hover { color: ${darkMode ? "#8b949e" : "#64748b"}; }
           .nav-center-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; height: 100%; position: relative; -webkit-tap-highlight-color: transparent; }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
@@ -5899,21 +5904,21 @@ export default function TrackAll() {
           .lib-sidebar { display: none; }
           .lib-mobile-controls { display: block; }
           @media (min-width: 768px) {
-            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
+            .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${darkMode ? "#161b22" : "rgba(255,255,255,0.7)"}; border: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
             .lib-mobile-controls { display: none; }
           }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-          .shimmer { background: linear-gradient(90deg, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 25%, ${activeDarkMode ? "#30363d" : "#f1f5f9"} 50%, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+          .shimmer { background: linear-gradient(90deg, ${darkMode ? "#21262d" : "#e2e8f0"} 25%, ${darkMode ? "#30363d" : "#f1f5f9"} 50%, ${darkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           :root {
-            --border: ${activeDarkMode ? "#21262d" : "#e2e8f0"};
-            --border2: ${activeDarkMode ? "#30363d" : "#d0d7de"};
-            --card-bg: ${activeDarkMode ? "#161b22" : "rgba(255,252,247,0.95)"};
-            --card-bg2: ${activeDarkMode ? "#0d1117" : "#f6f8fa"};
-            --text-primary: ${activeDarkMode ? "#e6edf3" : "#1a1a2e"};
-            --text-secondary: ${activeDarkMode ? "#8b949e" : "#57606a"};
-            --text-muted: ${activeDarkMode ? "#484f58" : "#8c959f"};
-            --input-bg: ${activeDarkMode ? "#0d1117" : "#ffffff"};
-            --hover-bg: ${activeDarkMode ? "#21262d" : "#f3f4f6"};
+            --border: ${darkMode ? "#21262d" : "#e2e8f0"};
+            --border2: ${darkMode ? "#30363d" : "#d0d7de"};
+            --card-bg: ${darkMode ? "#161b22" : "rgba(255,252,247,0.95)"};
+            --card-bg2: ${darkMode ? "#0d1117" : "#f6f8fa"};
+            --text-primary: ${darkMode ? "#e6edf3" : "#1a1a2e"};
+            --text-secondary: ${darkMode ? "#8b949e" : "#57606a"};
+            --text-muted: ${darkMode ? "#484f58" : "#8c959f"};
+            --input-bg: ${darkMode ? "#0d1117" : "#ffffff"};
+            --hover-bg: ${darkMode ? "#21262d" : "#f3f4f6"};
           }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -5944,7 +5949,7 @@ export default function TrackAll() {
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: ${activeBgImage ? "transparent" : activeBgColor}; border-bottom: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
+          .hero-gradient { background: ${activeBgImage ? "transparent" : activeBgColor}; border-bottom: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"}; position: relative; }
           .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
           ${!darkMode ? `
             .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
@@ -5994,7 +5999,7 @@ export default function TrackAll() {
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
             background: ${sidebarColor || activeBgColor}f5;
-            border-right: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"};
+            border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
             overflow-y: auto;
@@ -6003,20 +6008,20 @@ export default function TrackAll() {
             display: flex; align-items: center; gap: 12px;
             width: 100%; padding: 11px 16px; border: none; background: none;
             cursor: pointer; font-family: Outfit, sans-serif; font-size: 14px; font-weight: 600;
-            color: ${activeDarkMode ? "#8b949e" : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
+            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
             transition: all 0.15s; text-align: left;
           }
-          .ds-nav-btn:hover { background: ${activeDarkMode ? "#161b22" : "#f1f5f9"}; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; }
+          .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
           .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
           .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
           .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 24px 6px; }
           .ds-type-item {
             display: flex; align-items: center; gap: 8px;
             padding: 6px 16px; font-size: 13px; cursor: pointer;
-            color: ${activeDarkMode ? "#8b949e" : "#64748b"}; border-radius: 8px; margin: 0 8px;
+            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 8px; margin: 0 8px;
             transition: all 0.12s;
           }
-          .ds-type-item:hover { background: ${activeDarkMode ? "#161b22" : "#f1f5f9"}; }
+          .ds-type-item:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; }
         `}</style>
 
         <Notification notif={notif} />
