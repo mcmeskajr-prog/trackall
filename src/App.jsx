@@ -4894,14 +4894,15 @@ export default function TrackAll() {
       link.href = '/manifest.json';
       document.head.appendChild(link);
     }
-    // Theme color meta — segue a cor de fundo do utilizador
+    // Theme color meta — segue a cor de fundo do dispositivo atual
+    const activeColor = (bgSeparateDevices && bgColorMobile && window.innerWidth < 768) ? bgColorMobile : bgColor;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-      themeMeta.content = bgColor;
+      themeMeta.content = activeColor;
     } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = bgColor;
+      meta.content = activeColor;
       document.head.appendChild(meta);
     }
     // Apple mobile web app
@@ -4948,7 +4949,7 @@ export default function TrackAll() {
       window.removeEventListener('beforeinstallprompt', onPrompt);
       window.removeEventListener('appinstalled', onInstalled);
     };
-  }, [bgColor]);
+  }, [bgColor, bgColorMobile, bgSeparateDevices]);
 
   // Attach mouse-wheel → horizontal scroll on all .recents-row elements
   // + keyboard arrow keys when hovering ANY horizontal scroll container
@@ -5677,7 +5678,10 @@ export default function TrackAll() {
   const activeBgColor = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? bgColorMobile : bgColor;
 
   // darkMode separado: PC usa bgColor, mobile usa bgColorMobile quando separado está ligado
-  const activeDarkMode = (bgSeparateDevices && isMobileDevice && bgColorMobile) ? isColorDark(bgColorMobile) : darkMode;
+  // Se bgSeparateDevices ligado e no mobile: usa bgColorMobile se tiver valor, senão mantém darkMode independente do PC
+  const activeDarkMode = (bgSeparateDevices && isMobileDevice)
+    ? (bgColorMobile ? isColorDark(bgColorMobile) : true)  // mobile sem cor definida = noturno por defeito
+    : darkMode;
 
   // Active text contrast: mobile can have different value when bgSeparateDevices is on
   const activeTextContrast = (bgSeparateDevices && isMobileDevice) ? textContrastMobile : textContrast;
