@@ -3046,10 +3046,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
             </div>
           )},
-          { key: "stats", label: "⬛ Painéis", content: (
+          { key: "stats", label: useT("statsCards"), content: (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>COR DOS PAINÉIS</p>
+                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <button onClick={() => { onPanelBg(""); onPanelOpacity(100); }} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !panelBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }}>Auto</button>
                   {["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].map(c => (
@@ -3063,7 +3063,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>OPACIDADE</p>
+                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("panelOpacity")}</p>
                   <span style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{panelOpacity ?? 100}%</span>
                 </div>
                 <input type="range" min={0} max={100} value={panelOpacity ?? 100}
