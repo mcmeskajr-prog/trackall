@@ -2688,7 +2688,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
               </div>
             ) : (
-              <div style={{ padding: !isMobileDevice ? "0 24px 0 24px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ padding: !isMobileDevice ? "0 32px 0 32px" : "0 0 0 16px", display: "flex", flexDirection: "column", gap: 18 }}>
                 {activeTypes.map((t, tIdx) => {
                   const tc = accentVariant(accent, tIdx);
                   return (
@@ -2706,7 +2706,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                         const useScroll = false;
                         const cardW = 0; // não usado no grid
                         return (
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: isMobileDevice ? 4 : 10 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, 1fr)" : "repeat(auto-fill, minmax(100px, 1fr))", gap: isMobileDevice ? 4 : 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
                               const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
@@ -6732,61 +6732,7 @@ export default function TrackAll() {
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
             onOpen={setSelectedItem}
-            diaryPanel={!isMobileDevice ? (() => {
-              const completados = items.filter(i => i.userStatus === "completo" && i.addedAt)
-                .sort((a,b) => b.addedAt - a.addedAt);
-              if (!completados.length) return null;
-              const groups = {};
-              completados.forEach(item => {
-                const d = new Date(item.addedAt);
-                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
-                if (!groups[key]) groups[key] = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
-                groups[key].items.push({ ...item, _day: d.getDate() });
-              });
-              const sortedGroups = Object.values(groups).sort((a,b) => b.key.localeCompare(a.key));
-              return (
-                <div style={{
-                  width: 320, flexShrink: 0,
-                  borderLeft: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  paddingLeft: 24, paddingRight: 16,
-                  marginLeft: 60,
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("diary").toUpperCase()}</h3>
-                    <span style={{ fontSize: 11, color: "#484f58" }}>{completados.length} entradas</span>
-                  </div>
-                  {sortedGroups.map(group => (
-                    <div key={group.key} style={{ display: "flex", marginBottom: 20 }}>
-                      <div style={{ flexShrink: 0, width: 52, marginRight: 10 }}>
-                        <div style={{ background: "#21262d", borderRadius: 8, overflow: "hidden", textAlign: "center", border: "1px solid #30363d" }}>
-                          <div style={{ background: "#30363d", padding: "3px 0", fontSize: 10, fontWeight: 800, color: "#e6edf3", letterSpacing: 1 }}>{group.year}</div>
-                          <div style={{ padding: "4px 0 5px", fontSize: 15, fontWeight: 900, color: "#8b949e" }}>{(lang === "en" ? MONTH_EN : MONTH_PT)[group.month]}</div>
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {[...group.items].sort((a,b) => b._day - a._day).map((item, idx, arr) => (
-                          <div key={item.id} onClick={() => setSelectedItem(item)} style={{
-                            display: "flex", alignItems: "center", gap: 7, padding: "5px 3px",
-                            borderBottom: idx < arr.length-1 ? `1px solid ${darkMode ? "#21262d" : "#e8e0d5"}` : "none",
-                            cursor: "pointer", borderRadius: 4,
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#ffffff08" : "#00000008"}
-                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#484f58", width: 14, textAlign: "right", flexShrink: 0 }}>{item._day}</span>
-                            {(item.customCover || item.cover || item.thumbnailUrl)
-                              ? <img src={item.customCover || item.cover || item.thumbnailUrl} alt="" style={{ width: 22, height: 32, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />
-                              : <div style={{ width: 22, height: 32, borderRadius: 3, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-                            }
-                            <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
-                            {item.userRating > 0 && <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>★{item.userRating}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })() : null}
+            diaryPanel={null}
           />
           </div>
         )}
