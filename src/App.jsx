@@ -1208,24 +1208,177 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [detailExtra, setDetailExtra] = useState(null);
   const [chapterInput, setChapterInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
-  const [selectedPerson, setSelectedPerson] = useState(null); // { id, name, image } TMDB person
-  const [personData, setPersonData] = useState(null); // bio + filmografia
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [personData, setPersonData] = useState(null);
   const [personLoading, setPersonLoading] = useState(false);
+  // Novos estados
+  const [omdbData, setOmdbData] = useState(null);
+  const [screenshots, setScreenshots] = useState([]);
+  const [collection, setCollection] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [dlcs, setDlcs] = useState([]);
+  const [similarGames, setSimilarGames] = useState([]);
+  const [extraLoading, setExtraLoading] = useState(false);
+
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   const isAniList = (item.id || "").startsWith("al-");
   const isTMDB = (item.id || "").startsWith("tmdb-");
+  const isIGDB = (item.id || "").startsWith("igdb-");
+  const isFilme = item.type === "filmes";
+  const isSerie = item.type === "series";
   const hasCast = isAniList || isTMDB;
   const hasRelations = isAniList;
+  const hasMedia = isTMDB || isIGDB;
+
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
   useEffect(() => {
     setDetailExtra(null);
     setModalTab("info");
     setSelectedPerson(null);
     setPersonData(null);
-    if (item) fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+    setOmdbData(null);
+    setScreenshots([]);
+    setCollection(null);
+    setRecommendations([]);
+    setDlcs([]);
+    setSimilarGames([]);
+    if (item) {
+      fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+      fetchExtraData();
+    }
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
   }, [item?.id]);
+
+  const fetchExtraData = async () => {
+    setExtraLoading(true);
+    try {
+      const id = item.id || "";
+
+      // ── TMDB filmes ──
+      if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
+        const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
+        const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
+        ]);
+        // Screenshots
+        if (imagesRes.status === "fulfilled") {
+          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+        }
+        // Recomendações
+        if (recoRes.status === "fulfilled") {
+          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+            id: `tmdb-filmes-${m.id}`, title: m.title || m.name || "",
+            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+            type: "filmes", year: (m.release_date || "").slice(0, 4),
+          })));
+        }
+        // Coleção
+        if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
+          const col = detailRes.value.belongs_to_collection;
+          const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()).catch(() => null);
+          if (colRes?.parts) {
+            setCollection({
+              name: colRes.name,
+              parts: colRes.parts.sort((a, b) => (a.release_date || "").localeCompare(b.release_date || "")).map(p => ({
+                id: `tmdb-filmes-${p.id}`, title: p.title || "",
+                cover: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
+                year: (p.release_date || "").slice(0, 4),
+              }))
+            });
+          }
+        }
+        // OMDb
+        const omdbTitle = item.title || "";
+        const omdbYear = item.year || "";
+        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(omdbTitle)}${omdbYear ? `&year=${omdbYear}` : ""}`).then(r => r.json()).catch(() => null);
+        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+      }
+
+      // ── TMDB séries ──
+      else if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
+        const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
+        const [imagesRes, recoRes] = await Promise.allSettled([
+          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
+        ]);
+        if (imagesRes.status === "fulfilled") {
+          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+        }
+        if (recoRes.status === "fulfilled") {
+          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+            id: `tmdb-series-${m.id}`, title: m.title || m.name || "",
+            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+            type: "series", year: (m.first_air_date || "").slice(0, 4),
+          })));
+        }
+        // OMDb
+        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(item.title || "")}${item.year ? `&year=${item.year}` : ""}`).then(r => r.json()).catch(() => null);
+        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+      }
+
+      // ── AniList ──
+      else if (id.startsWith("al-")) {
+        const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
+        if (alId && !isNaN(Number(alId))) {
+          const recoRes = await fetch(`${wUrl}/anilist`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
+          }).then(r => r.json()).catch(() => null);
+          if (recoRes?.data?.Media?.recommendations?.nodes) {
+            setRecommendations(
+              recoRes.data.Media.recommendations.nodes
+                .filter(n => n.rating > 0 && n.mediaRecommendation)
+                .map(n => {
+                  const m = n.mediaRecommendation;
+                  const mType = m.type === "ANIME" ? "anime" : "manga";
+                  return { id: `al-${mType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || null, type: mType };
+                })
+            );
+          }
+        }
+      }
+
+      // ── IGDB jogos ──
+      else if (id.startsWith("igdb-")) {
+        const igdbId = id.replace("igdb-", "");
+        const [ssRes, simRes, dlcRes] = await Promise.allSettled([
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 12;` }) }).then(r => r.json()),
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,similar_games.name,similar_games.cover.image_id,similar_games.id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,category; where parent_game = ${igdbId} & category = (1,2); limit 10;` }) }).then(r => r.json()),
+        ]);
+        // Screenshots
+        if (ssRes.status === "fulfilled" && Array.isArray(ssRes.value)) {
+          setScreenshots(ssRes.value.map(s => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${s.image_id}.jpg`));
+        }
+        // Jogos similares
+        if (simRes.status === "fulfilled" && simRes.value?.[0]?.similar_games) {
+          setSimilarGames(simRes.value[0].similar_games.slice(0, 12).map(g => ({
+            id: `igdb-${g.id}`, title: g.name || "",
+            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
+            type: "jogos",
+          })));
+        }
+        // DLCs e expansões
+        if (dlcRes.status === "fulfilled" && Array.isArray(dlcRes.value)) {
+          setDlcs(dlcRes.value.map(g => ({
+            id: `igdb-${g.id}`, title: g.name || "",
+            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
+            category: g.category === 1 ? "DLC" : "Expansão",
+          })));
+        }
+      }
+    } catch (err) {
+      console.error("[ExtraData] Erro:", err);
+    }
+    setExtraLoading(false);
+  };
 
   // Fetch perfil da pessoa quando selecionada
   useEffect(() => {
@@ -1359,11 +1512,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               </div>
 
               {/* Tabs */}
-              {(hasCast || hasRelations) && (
-                <div style={{ display: "flex", marginTop: 20, borderBottom: "1px solid #21262d" }}>
-                  {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : [])].map(tab => (
-                    <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1 }}>
-                      {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : "Relações"}
+              {(hasCast || hasRelations || hasMedia) && (
+                <div style={{ display: "flex", marginTop: 20, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
+                  {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : []), ...(hasMedia ? ["media"] : [])].map(tab => (
+                    <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : tab === "relacoes" ? "Relações" : "Media"}
                     </button>
                   ))}
                 </div>
@@ -1372,7 +1525,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               {/* Tab: Info */}
               {modalTab === "info" && (
                 <div>
-                  <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: "1px solid #21262d", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexWrap: "wrap" }}>
                     {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
                     {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
                     {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
@@ -1380,6 +1533,26 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
                     {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
                   </div>
+
+                  {/* OMDb ratings */}
+                  {omdbData?.Ratings?.length > 0 && (
+                    <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+                      {omdbData.Ratings.map(r => {
+                        const isRT = r.Source === "Rotten Tomatoes";
+                        const isMeta = r.Source === "Metacritic";
+                        const isIMDb = r.Source === "Internet Movie Database";
+                        const color = isRT ? "#fa320a" : isMeta ? "#ffcc33" : "#f5c518";
+                        const label = isRT ? "🍅 RT" : isMeta ? "Ⓜ Meta" : "⭐ IMDb";
+                        return (
+                          <div key={r.Source} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${color}44`, borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color }}>{r.Value}</div>
+                            <div style={{ fontSize: 10, color: "#8b949e", fontWeight: 600 }}>{label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {item.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
                       {item.genres.slice(0, 6).map((g) => (
@@ -1389,6 +1562,100 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   )}
                   {(detailExtra?.synopsis || item.synopsis) && (
                     <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || item.synopsis || ""}</p>
+                  )}
+
+                  {/* Coleção TMDB */}
+                  {collection && (
+                    <div style={{ marginTop: 20 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>📦 {collection.name}</h4>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {collection.parts.map(p => (
+                          <div key={p.id} onClick={() => {}} style={{ flexShrink: 0, width: 70, cursor: "pointer", opacity: p.id === item.id ? 1 : 0.75 }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === item.id ? `2px solid ${accent}` : "2px solid transparent" }}>
+                              {p.cover && <img src={p.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                            </div>
+                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
+                            {p.year && <p style={{ fontSize: 9, color: "#484f58" }}>{p.year}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DLCs e Expansões (jogos) */}
+                  {dlcs.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>🎮 DLCs & Expansões</h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {dlcs.map(d => (
+                          <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: darkMode ? "#161b22" : "#f1f5f9" }}>
+                            <div style={{ width: 36, height: 48, borderRadius: 6, overflow: "hidden", background: gradientFor(d.id), flexShrink: 0 }}>
+                              {d.cover && <img src={d.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</p>
+                              <span style={{ fontSize: 10, color: accent, fontWeight: 700 }}>{d.category}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recomendações */}
+                  {recommendations.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>✨ {lang === "en" ? "Recommendations" : "Recomendações"}</h4>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {recommendations.map(r => (
+                          <div key={r.id} style={{ flexShrink: 0, width: 70, cursor: "pointer" }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id) }}>
+                              {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                            </div>
+                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Jogos similares */}
+                  {similarGames.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>🎮 {lang === "en" ? "Similar Games" : "Jogos Similares"}</h4>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {similarGames.map(g => (
+                          <div key={g.id} style={{ flexShrink: 0, width: 70, cursor: "pointer" }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id) }}>
+                              {g.cover && <img src={g.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                            </div>
+                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Media (Screenshots) */}
+              {modalTab === "media" && (
+                <div style={{ marginTop: 16 }}>
+                  {extraLoading ? (
+                    <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
+                      <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
+                      <p style={{ fontSize: 13 }}>A carregar...</p>
+                    </div>
+                  ) : screenshots.length === 0 ? (
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem screenshots disponíveis.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {screenshots.map((src, i) => (
+                        <div key={i} style={{ borderRadius: 10, overflow: "hidden", background: "#161b22" }}>
+                          <img src={src} alt="" style={{ width: "100%", display: "block", borderRadius: 10 }} onError={e => e.currentTarget.parentElement.style.display="none"} />
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
