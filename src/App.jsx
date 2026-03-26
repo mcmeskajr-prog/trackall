@@ -257,16 +257,16 @@ function accentShade(hex, shiftDeg) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
-  { id: "all",         label: "Todos",        labelEn: "All",          icon: "⊞" },
+  { id: "all",         label: "Todos",        labelEn: "All",          icon: "◉" },
   { id: "anime",       label: "Anime",        labelEn: "Anime",        icon: "⛩" },
-  { id: "manga",       label: "Manga",        labelEn: "Manga",        icon: "🗒" },
-  { id: "series",      label: "Séries",       labelEn: "Series",       icon: "📺" },
-  { id: "filmes",      label: "Filmes",       labelEn: "Movies",       icon: "🎬" },
-  { id: "jogos",       label: "Jogos",        labelEn: "Games",        icon: "🎮" },
-  { id: "livros",      label: "Livros",       labelEn: "Books",        icon: "📚" },
-  { id: "manhwa",      label: "Manhwa",       labelEn: "Manhwa",       icon: "🇰🇷" },
-  { id: "lightnovels", label: "Light Novels", labelEn: "Light Novels", icon: "✍" },
-  { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "💬" },
+  { id: "manga",       label: "Manga",        labelEn: "Manga",        icon: "⊡" },
+  { id: "series",      label: "Séries",       labelEn: "Series",       icon: "▣" },
+  { id: "filmes",      label: "Filmes",       labelEn: "Movies",       icon: "⬡" },
+  { id: "jogos",       label: "Jogos",        labelEn: "Games",        icon: "⊕" },
+  { id: "livros",      label: "Livros",       labelEn: "Books",        icon: "⊟" },
+  { id: "manhwa",      label: "Manhwa",       labelEn: "Manhwa",       icon: "⊞" },
+  { id: "lightnovels", label: "Light Novels", labelEn: "Light Novels", icon: "✦" },
+  { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "⬢" },
 ];
 const mediaLabel = (m, lang) => lang === "en" ? m.labelEn : m.label;
 const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -389,7 +389,7 @@ async function searchTMDB(query, type, key, workerUrl) {
   try {
     if (workerUrl) {
       // Usar Worker — chave não exposta
-      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`;
+      const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
       const res = await fetch(url);
       if (!res.ok) return null;
       const data = await res.json();
@@ -406,7 +406,7 @@ async function searchTMDB(query, type, key, workerUrl) {
     }
     // Fallback direto (só se não houver workerUrl)
     if (!key) return null;
-    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=pt-PT&page=1`);
+    const res = await fetch(`https://api.themoviedb.org/3/search/${ep}?api_key=${key}&query=${encodeURIComponent(query)}&language=en-US&page=1`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
@@ -432,8 +432,8 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
       const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
       const [detailRes, creditsRes] = await Promise.all([
-        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=pt-PT`),
-        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/credits&language=pt-PT`),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/credits&language=en-US`),
       ]);
       const d = await detailRes.json();
       const c = creditsRes.ok ? await creditsRes.json() : null;
@@ -450,8 +450,8 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
       const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
       const [detailRes, creditsRes] = await Promise.all([
-        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=pt-PT`),
-        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/credits&language=pt-PT`),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=en-US`),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/credits&language=en-US`),
       ]);
       const d = await detailRes.json();
       const c = creditsRes.ok ? await creditsRes.json() : null;
@@ -1261,8 +1261,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
         const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
         const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
           fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
         ]);
         // Screenshots
         if (imagesRes.status === "fulfilled") {
@@ -1280,7 +1280,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
         // Coleção
         if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
           const col = detailRes.value.belongs_to_collection;
-          const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()).catch(() => null);
+          const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()).catch(() => null);
           if (colRes?.parts) {
             setCollection({
               name: colRes.name,
@@ -1304,7 +1304,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
         const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
         const [imagesRes, recoRes] = await Promise.allSettled([
           fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=${lang === "pt" ? "pt-PT" : "en-US"}`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
         ]);
         if (imagesRes.status === "fulfilled") {
           const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
@@ -1387,8 +1387,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     setPersonLoading(true);
     const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
     Promise.all([
-      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}&language=pt-PT`).then(r => r.json()),
-      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}/combined_credits&language=pt-PT`).then(r => r.json()),
+      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}&language=en-US`).then(r => r.json()),
+      fetch(`${wUrl}/tmdb?endpoint=/person/${selectedPerson.id}/combined_credits&language=en-US`).then(r => r.json()),
     ]).then(([person, credits]) => {
       const filmografia = (credits.cast || [])
         .filter(m => m.poster_path)
@@ -2329,7 +2329,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
           synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : ""
         }));
       } else if (extType === "filmes") {
-        const url = `${wUrl}/tmdb?endpoint=/search/movie&query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`;
+        const url = `${wUrl}/tmdb?endpoint=/search/movie&query=${encodeURIComponent(extSearch.trim())}&language=en-US`;
         const res = await fetch(url);
         const data = await res.json();
         results = (data?.results || []).slice(0, 15).map(m => ({
@@ -2337,7 +2337,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
           type: "filmes", score: m.vote_average || 0
         }));
       } else if (extType === "series") {
-        const url = `${wUrl}/tmdb?endpoint=/search/tv&query=${encodeURIComponent(extSearch.trim())}&language=pt-PT`;
+        const url = `${wUrl}/tmdb?endpoint=/search/tv&query=${encodeURIComponent(extSearch.trim())}&language=en-US`;
         const res = await fetch(url);
         const data = await res.json();
         results = (data?.results || []).slice(0, 15).map(m => ({
@@ -2686,6 +2686,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
+  const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
   const [shareCopied, setShareCopied] = useState(false);
   const [themeName, setThemeName] = useState("");
 
@@ -2751,7 +2752,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   };
 
   const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail });
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
     setEditing(false);
   };
 
@@ -2764,7 +2765,8 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── Banner + Avatar header ── */}
       <div style={{ position: "relative", marginBottom: 64 }}>
-        {/* Banner — taller, more impactful */}
+        {/* Banner — escondido no mobile se hideBannerMobile */}
+        {(!isMobileDevice || !profile.hideBannerMobile) && (
         <div style={{
           height: 260, overflow: "hidden", position: "relative",
           borderRadius: "20px 20px 0 0",
@@ -2836,6 +2838,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             </div>
           )}
         </div>
+        )} {/* fim hideBannerMobile */}
 
         {/* Avatar — overlaps banner */}
         <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
@@ -2874,6 +2877,10 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
               <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
               <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{useT("hideEmail")}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no mobile"}</span>
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
@@ -4460,8 +4467,8 @@ async function fetchTrendingMovies(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=pt-PT&page=${page}`
-        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/movie/week&language=en-US&page=${page}`
+        : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -4472,8 +4479,8 @@ async function fetchTrendingSeries(tmdbKey, workerUrl) {
   try {
     const pages = await Promise.all([1,2,3].map(page => {
       const url = workerUrl
-        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=pt-PT&page=${page}`
-        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=pt-PT&page=${page}`;
+        ? `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/trending/tv/week&language=en-US&page=${page}`
+        : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
     return shuffle(pages.flat()).map(m => ({ id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) }));
@@ -5380,7 +5387,7 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -5529,6 +5536,7 @@ export default function TrackAll() {
           avatar: p.avatar || "",
           banner: p.banner || "",
           hide_email: p.hideEmail || false,
+          hide_banner_mobile: p.hideBannerMobile || false,
         });
       } catch (err) {
         console.error('[TrackAll] Erro ao guardar perfil:', err);
@@ -6349,7 +6357,7 @@ export default function TrackAll() {
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
-            overflow-y: auto;
+            overflow-y: hidden;
           }
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
@@ -6361,10 +6369,10 @@ export default function TrackAll() {
           .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
           .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
           .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-          .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 16px 24px 6px; }
+          .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 24px 4px; }
           .ds-type-item {
             display: flex; align-items: center; gap: 8px;
-            padding: 6px 16px; font-size: 13px; cursor: pointer;
+            padding: 4px 16px; font-size: 12px; cursor: pointer;
             color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 8px; margin: 0 8px;
             transition: all 0.12s;
           }
