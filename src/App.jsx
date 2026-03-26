@@ -257,16 +257,16 @@ function accentShade(hex, shiftDeg) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MEDIA_TYPES = [
-  { id: "all",         label: "Todos",        labelEn: "All",          icon: "◉" },
-  { id: "anime",       label: "Anime",        labelEn: "Anime",        icon: "⛩" },
-  { id: "manga",       label: "Manga",        labelEn: "Manga",        icon: "⊡" },
-  { id: "series",      label: "Séries",       labelEn: "Series",       icon: "▣" },
-  { id: "filmes",      label: "Filmes",       labelEn: "Movies",       icon: "⬡" },
-  { id: "jogos",       label: "Jogos",        labelEn: "Games",        icon: "⊕" },
-  { id: "livros",      label: "Livros",       labelEn: "Books",        icon: "⊟" },
-  { id: "manhwa",      label: "Manhwa",       labelEn: "Manhwa",       icon: "⊞" },
-  { id: "lightnovels", label: "Light Novels", labelEn: "Light Novels", icon: "✦" },
-  { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "⬢" },
+  { id: "all",         label: "Todos",        labelEn: "All",          icon: "🎯" },
+  { id: "anime",       label: "Anime",        labelEn: "Anime",        icon: "⛩️" },
+  { id: "manga",       label: "Manga",        labelEn: "Manga",        icon: "📖" },
+  { id: "series",      label: "Séries",       labelEn: "Series",       icon: "📺" },
+  { id: "filmes",      label: "Filmes",       labelEn: "Movies",       icon: "🎬" },
+  { id: "jogos",       label: "Jogos",        labelEn: "Games",        icon: "🎮" },
+  { id: "livros",      label: "Livros",       labelEn: "Books",        icon: "📚" },
+  { id: "manhwa",      label: "Manhwa",       labelEn: "Manhwa",       icon: "🇰🇷" },
+  { id: "lightnovels", label: "Light Novels", labelEn: "Light Novels", icon: "✨" },
+  { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "💬" },
 ];
 const mediaLabel = (m, lang) => lang === "en" ? m.labelEn : m.label;
 const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -4507,6 +4507,120 @@ async function fetchTrendingGames(workerUrl) {
   } catch { return []; }
 }
 
+// ─── Personalized Recommendations ────────────────────────────────────────────
+async function fetchPersonalizedRecos(library, workerUrl) {
+  try {
+    const libItems = Object.values(library);
+    if (libItems.length < 3) return [];
+
+    // Pegar os itens com rating mais alto (≥7), máx 20
+    const topRated = libItems
+      .filter(i => i.userRating >= 7)
+      .sort((a, b) => (b.userRating || 0) - (a.userRating || 0))
+      .slice(0, 20);
+
+    // Se poucos ratings, usar completos recentes
+    const seed = topRated.length >= 3
+      ? topRated
+      : libItems.filter(i => i.userStatus === "completo").sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
+
+    if (!seed.length) return [];
+
+    // Contar tipos preferidos
+    const typeCounts = {};
+    seed.forEach(i => { typeCounts[i.type] = (typeCounts[i.type] || 0) + 1; });
+    const topTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+
+    // IDs já na biblioteca para filtrar
+    const inLib = new Set(Object.keys(library));
+
+    const results = [];
+
+    // Anime / Manga — buscar por género via AniList se tiver seed
+    const animeSeeds = seed.filter(i => i.type === "anime" && i.id.startsWith("al-"));
+    const mangaSeeds = seed.filter(i => i.type === "manga" && i.id.startsWith("al-"));
+
+    if (animeSeeds.length > 0 && topTypes.includes("anime")) {
+      try {
+        const seedId = parseInt(animeSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
+        if (seedId) {
+          const res = await fetch("https://graphql.anilist.co", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:12) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
+          });
+          const d = await res.json();
+          const recs = d?.data?.Media?.recommendations?.nodes || [];
+          recs.forEach(n => {
+            const m = n.mediaRecommendation;
+            if (!m) return;
+            const id = `al-anime-${m.id}`;
+            if (!inLib.has(id)) results.push({ id, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, _personalized: true });
+          });
+        }
+      } catch {}
+    }
+
+    if (mangaSeeds.length > 0 && topTypes.includes("manga")) {
+      try {
+        const seedId = parseInt(mangaSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
+        if (seedId) {
+          const res = await fetch("https://graphql.anilist.co", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:12) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
+          });
+          const d = await res.json();
+          const recs = d?.data?.Media?.recommendations?.nodes || [];
+          recs.forEach(n => {
+            const m = n.mediaRecommendation;
+            if (!m) return;
+            const id = `al-manga-${m.id}`;
+            if (!inLib.has(id)) results.push({ id, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, _personalized: true });
+          });
+        }
+      } catch {}
+    }
+
+    // Filmes / Séries — TMDB similar
+    const tmdbMovieSeeds = seed.filter(i => i.type === "filmes" && (i.id.startsWith("tmdb-movie-") || i.id.startsWith("tmdb-filmes-")));
+    const tmdbSeriesSeeds = seed.filter(i => i.type === "series" && (i.id.startsWith("tmdb-tv-") || i.id.startsWith("tmdb-series-")));
+
+    if (tmdbMovieSeeds.length > 0 && workerUrl) {
+      try {
+        const rawId = tmdbMovieSeeds[0].id.replace("tmdb-movie-", "").replace("tmdb-filmes-", "");
+        const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${rawId}/similar&language=en-US`;
+        const res = await fetch(url);
+        const d = await res.json();
+        (d.results || []).slice(0, 12).forEach(m => {
+          const id = `tmdb-movie-${m.id}`;
+          if (!inLib.has(id)) results.push({ id, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10), _personalized: true });
+        });
+      } catch {}
+    }
+
+    if (tmdbSeriesSeeds.length > 0 && workerUrl) {
+      try {
+        const rawId = tmdbSeriesSeeds[0].id.replace("tmdb-tv-", "").replace("tmdb-series-", "");
+        const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${rawId}/similar&language=en-US`;
+        const res = await fetch(url);
+        const d = await res.json();
+        (d.results || []).slice(0, 12).forEach(m => {
+          const id = `tmdb-tv-${m.id}`;
+          if (!inLib.has(id)) results.push({ id, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10), _personalized: true });
+        });
+      } catch {}
+    }
+
+    // Embaralhar e devolver
+    for (let i = results.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [results[i], results[j]] = [results[j], results[i]];
+    }
+    return results.filter(r => r.cover).slice(0, 20);
+  } catch { return []; }
+}
+
 // ─── Recommendation Carousel ──────────────────────────────────────────────────
 function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -4532,18 +4646,24 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {toShow.map(item => (
-          <div key={item.id} onClick={() => onOpen(item)} style={{ flexShrink: 0, width: 100, cursor: "pointer" }}>
+          <div key={item.id} className="reco-card" onClick={() => onOpen(item)} style={{ flexShrink: 0, width: 100, cursor: "pointer" }}
+            onMouseEnter={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1.05)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="1"; }}
+            onMouseLeave={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="0"; }}>
             <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
               {item.cover
-                ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
+                ? <img className="reco-img" src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s ease" }} onError={e => e.currentTarget.style.display="none"} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
               }
+              <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                </div>
+              </div>
               {(() => {
                 const libItem = library[item.id];
                 const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
-                const color = libItem?.userRating > 0 ? "#f59e0b" : "#f59e0b";
                 return score > 0 ? (
-                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color, fontWeight: 700 }}>
+                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
                     ★ {score}
                   </div>
                 ) : null;
@@ -5350,6 +5470,7 @@ export default function TrackAll() {
   const [logPendingItem, setLogPendingItem] = useState(null); // item awaiting rating after log
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
+  const [personalRecos, setPersonalRecos] = useState([]);
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -5431,7 +5552,12 @@ export default function TrackAll() {
   const loadRecos = async () => {
     setRecoLoading(true);
     setRecos({});
+    setPersonalRecos([]);
     try {
+      // Recomendações personalizadas primeiro
+      const personal = await fetchPersonalizedRecos(library, workerUrl);
+      if (personal?.length) setPersonalRecos(personal);
+
       // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
       if (anime?.length) setRecos(r => ({ ...r, anime }));
@@ -6675,7 +6801,7 @@ export default function TrackAll() {
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{useT("featured")}</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{lang === "en" ? "Em Destaque" : "Em Destaque"}</h3>
                 <button onClick={loadRecos} disabled={recoLoading} style={{
                   background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
                   cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
@@ -6685,8 +6811,9 @@ export default function TrackAll() {
                   {recoLoading ? useT("loading") : useT("refresh")}
                 </button>
               </div>
-              <RecoCarousel title={useT("animeTrending")} icon="⛩" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
-              <RecoCarousel title={useT("mangaTrending")} icon="🗒" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} _isPersonal={true} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
               <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading} />
               <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading} />
               <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
