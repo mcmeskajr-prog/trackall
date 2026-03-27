@@ -1419,7 +1419,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const coverSrc = libItem?.customCover || item.customCover || item.cover;
   const isFavorite = favorites.some(f => f.id === item.id);
   const canAddFavorite = !isFavorite && favorites.length < 30;
-  const RELATION_LABELS = { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" };
+  const RELATION_LABELS = lang === "en"
+    ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
+    : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };
 
   return (
     <>
@@ -1516,7 +1518,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                 <div style={{ display: "flex", marginTop: 20, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
                   {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : []), ...(hasMedia ? ["media"] : [])].map(tab => (
                     <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? "Personagens" : "Cast") : tab === "relacoes" ? "Relações" : "Media"}
+                      {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? (lang === "en" ? "Characters" : "Personagens") : "Cast") : tab === "relacoes" ? (lang === "en" ? "Relations" : "Relações") : "Media"}
                     </button>
                   ))}
                 </div>
@@ -1666,10 +1668,10 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {!detailExtra ? (
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
-                      <p style={{ fontSize: 13 }}>A carregar...</p>
+                      <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
                   ) : !detailExtra.cast?.length && !detailExtra.director ? (
-                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem informação de cast disponível.</p>
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No cast information available." : "Sem informação de cast disponível."}</p>
                   ) : isAniList ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {detailExtra.cast.map((c) => (
@@ -1701,14 +1703,14 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       {/* Diretor no topo */}
                       {detailExtra.director && (
                         <div style={{ marginBottom: 16 }}>
-                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>REALIZADOR</p>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "DIRECTOR" : "REALIZADOR"}</p>
                           <div onClick={() => setSelectedPerson(detailExtra.director)} style={{ display: "flex", alignItems: "center", gap: 12, background: `${accent}11`, border: `1px solid ${accent}33`, borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}>
                             <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#21262d", flexShrink: 0 }}>
                               {detailExtra.director.image ? <img src={detailExtra.director.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎬</div>}
                             </div>
                             <div style={{ flex: 1 }}>
                               <p style={{ fontSize: 14, fontWeight: 800 }}>{detailExtra.director.name}</p>
-                              <p style={{ fontSize: 11, color: accent }}>Realizador →</p>
+                              <p style={{ fontSize: 11, color: accent }}>{lang === "en" ? "Director →" : "Realizador →"}</p>
                             </div>
                           </div>
                         </div>
@@ -1716,7 +1718,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       {/* Cast grid — clicável */}
                       {detailExtra.cast?.length > 0 && (
                         <div>
-                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>ELENCO</p>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "CAST" : "ELENCO"}</p>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
                             {detailExtra.cast.map((c) => (
                               <div key={c.id} onClick={() => setSelectedPerson(c)} style={{ textAlign: "center", cursor: "pointer" }}>
@@ -1741,10 +1743,10 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {!detailExtra ? (
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
-                      <p style={{ fontSize: 13 }}>A carregar...</p>
+                      <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
                   ) : !detailExtra.relations?.length ? (
-                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem relações disponíveis.</p>
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No relations available." : "Sem relações disponíveis."}</p>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {detailExtra.relations.map((r, i) => (
@@ -4644,9 +4646,12 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
   return (
     <div style={{ padding: "0 16px 28px" }}>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", touchAction: "pan-x" }}>
         {toShow.map(item => (
-          <div key={item.id} className="reco-card" onClick={() => onOpen(item)} style={{ flexShrink: 0, width: 100, cursor: "pointer" }}
+          <div key={item.id} className="reco-card" 
+            onClick={() => onOpen(item)}
+            onTouchEnd={e => { e.preventDefault(); onOpen(item); }}
+            style={{ flexShrink: 0, width: 100, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
             onMouseEnter={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1.05)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="1"; }}
             onMouseLeave={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="0"; }}>
             <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
@@ -5549,13 +5554,23 @@ export default function TrackAll() {
     }
   }, [view, user]);
 
+  // Carregar recos personalizadas quando a library fica disponível (após login)
+  useEffect(() => {
+    if (user && Object.keys(library).length > 0 && personalRecos.length === 0 && !recoLoading) {
+      fetchPersonalizedRecos(library, workerUrl).then(personal => {
+        if (personal?.length) setPersonalRecos(personal);
+      });
+    }
+  }, [library, user]);
+
   const loadRecos = async () => {
     setRecoLoading(true);
     setRecos({});
     setPersonalRecos([]);
     try {
-      // Recomendações personalizadas primeiro
-      const personal = await fetchPersonalizedRecos(library, workerUrl);
+      // Recomendações personalizadas (usa library do momento atual via closure-safe ref)
+      const currentLib = library;
+      const personal = await fetchPersonalizedRecos(currentLib, workerUrl);
       if (personal?.length) setPersonalRecos(personal);
 
       // Carregar progressivamente — cada categoria aparece quando fica pronta
@@ -6801,7 +6816,7 @@ export default function TrackAll() {
             {/* Recommendations */}
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{lang === "en" ? "Em Destaque" : "Em Destaque"}</h3>
+                <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{lang === "en" ? "Featured" : "Em Destaque"}</h3>
                 <button onClick={loadRecos} disabled={recoLoading} style={{
                   background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
                   cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
