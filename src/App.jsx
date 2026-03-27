@@ -1203,6 +1203,7 @@ function CoverEditModal({item, onSave, onClose }) {
 function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl, onOpenItem }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
+  const modalScrollRef = useRef(null);
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
@@ -1246,6 +1247,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     if (item) {
       fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
       fetchExtraData();
+      // Scroll to top when opening new item
+      if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
     }
     const lb = library[item.id];
     setChapterInput(lb?.lastChapter || "");
@@ -1426,7 +1429,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   return (
     <>
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={(e) => e.stopPropagation()}>
+      <div ref={modalScrollRef} className="modal" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0, animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
 
         {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
         {selectedPerson ? (
@@ -1570,19 +1573,23 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {collection && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>📦 {collection.name}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
-                        {collection.parts.map(p => (
-                          <div key={p.id}
-                            onClick={() => p.id !== item.id && onOpenItem && onOpenItem(p)}
-                            onTouchEnd={e => { if (p.id !== item.id) { e.preventDefault(); onOpenItem && onOpenItem(p); } }}
-                            style={{ flexShrink: 0, width: 70, cursor: p.id !== item.id ? "pointer" : "default", opacity: p.id === item.id ? 1 : 0.75, WebkitTapHighlightColor: "transparent" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === item.id ? `2px solid ${accent}` : "2px solid transparent" }}>
-                              {p.cover && <img src={p.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {collection.parts.map(p => {
+                          let tx = 0, ty = 0;
+                          return (
+                            <div key={p.id}
+                              onClick={() => p.id !== item.id && onOpenItem && onOpenItem(p)}
+                              onTouchStart={e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }}
+                              onTouchEnd={e => { if(p.id===item.id)return; const dx=Math.abs(e.changedTouches[0].clientX-tx),dy=Math.abs(e.changedTouches[0].clientY-ty); if(dx<8&&dy<8){e.preventDefault();onOpenItem&&onOpenItem(p);} }}
+                              style={{ flexShrink: 0, width: 70, cursor: p.id !== item.id ? "pointer" : "default", opacity: p.id === item.id ? 1 : 0.75, WebkitTapHighlightColor: "transparent" }}>
+                              <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === item.id ? `2px solid ${accent}` : "2px solid transparent" }}>
+                                {p.cover && <img src={p.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                              </div>
+                              <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
+                              {p.year && <p style={{ fontSize: 9, color: "#484f58" }}>{p.year}</p>}
                             </div>
-                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
-                            {p.year && <p style={{ fontSize: 9, color: "#484f58" }}>{p.year}</p>}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1611,21 +1618,25 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {recommendations.length > 0 && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>✨ {lang === "en" ? "Recommendations" : "Recomendações"}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
-                        {recommendations.map(r => (
-                          <div key={r.id}
-                            onClick={() => onOpenItem && onOpenItem(r)}
-                            onTouchEnd={e => { e.preventDefault(); onOpenItem && onOpenItem(r); }}
-                            style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id), position: "relative" }}>
-                              {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                              {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
-                                onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {recommendations.map(r => {
+                          let tx = 0, ty = 0;
+                          return (
+                            <div key={r.id}
+                              onClick={() => onOpenItem && onOpenItem(r)}
+                              onTouchStart={e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }}
+                              onTouchEnd={e => { const dx = Math.abs(e.changedTouches[0].clientX-tx), dy = Math.abs(e.changedTouches[0].clientY-ty); if(dx<8&&dy<8){e.preventDefault();onOpenItem&&onOpenItem(r);} }}
+                              style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                              <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id), position: "relative" }}>
+                                {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                                {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
+                                  onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
+                                  onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
+                              </div>
+                              <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
                             </div>
-                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1634,21 +1645,25 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {similarGames.length > 0 && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>🎮 {lang === "en" ? "Similar Games" : "Jogos Similares"}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
-                        {similarGames.map(g => (
-                          <div key={g.id}
-                            onClick={() => onOpenItem && onOpenItem(g)}
-                            onTouchEnd={e => { e.preventDefault(); onOpenItem && onOpenItem(g); }}
-                            style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id), position: "relative" }}>
-                              {g.cover && <img src={g.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                              {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
-                                onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {similarGames.map(g => {
+                          let tx = 0, ty = 0;
+                          return (
+                            <div key={g.id}
+                              onClick={() => onOpenItem && onOpenItem(g)}
+                              onTouchStart={e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }}
+                              onTouchEnd={e => { const dx = Math.abs(e.changedTouches[0].clientX-tx), dy = Math.abs(e.changedTouches[0].clientY-ty); if(dx<8&&dy<8){e.preventDefault();onOpenItem&&onOpenItem(g);} }}
+                              style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                              <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id), position: "relative" }}>
+                                {g.cover && <img src={g.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                                {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
+                                  onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
+                                  onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
+                              </div>
+                              <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title}</p>
                             </div>
-                            <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -4661,37 +4676,45 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
   return (
     <div style={{ padding: "0 16px 28px" }}>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", touchAction: "pan-x" }}>
-        {toShow.map(item => (
-          <div key={item.id} className="reco-card" 
-            onClick={() => onOpen(item)}
-            onTouchEnd={e => { e.preventDefault(); onOpen(item); }}
-            style={{ flexShrink: 0, width: 100, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
-            onMouseEnter={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1.05)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="1"; }}
-            onMouseLeave={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="0"; }}>
-            <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
-              {item.cover
-                ? <img className="reco-img" src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s ease" }} onError={e => e.currentTarget.style.display="none"} />
-                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
-              }
-              <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-                </div>
-              </div>
-              {(() => {
-                const libItem = library[item.id];
-                const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
-                return score > 0 ? (
-                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
-                    ★ {score}
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        {toShow.map(item => {
+          let touchStartX = 0, touchStartY = 0;
+          return (
+            <div key={item.id} className="reco-card"
+              onClick={() => onOpen(item)}
+              onTouchStart={e => { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }}
+              onTouchEnd={e => {
+                const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+                const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+                if (dx < 8 && dy < 8) { e.preventDefault(); onOpen(item); }
+              }}
+              style={{ flexShrink: 0, width: 100, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
+              onMouseEnter={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1.05)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="1"; }}
+              onMouseLeave={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="0"; }}>
+              <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
+                {item.cover
+                  ? <img className="reco-img" src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s ease" }} onError={e => e.currentTarget.style.display="none"} />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                }
+                <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                   </div>
-                ) : null;
-              })()}
+                </div>
+                {(() => {
+                  const libItem = library[item.id];
+                  const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
+                  return score > 0 ? (
+                    <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700 }}>
+                      ★ {score}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+              <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
             </div>
-            <p style={{ fontSize: 11, color: "#8b949e", lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
     </div>
@@ -5491,6 +5514,7 @@ export default function TrackAll() {
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
   const [personalRecos, setPersonalRecos] = useState([]);
+  const personalRecosLoadedRef = useRef(false);
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -5569,9 +5593,10 @@ export default function TrackAll() {
     }
   }, [view, user]);
 
-  // Carregar recos personalizadas quando a library fica disponível (após login)
+  // Carregar recos personalizadas uma única vez quando a library fica disponível
   useEffect(() => {
-    if (user && Object.keys(library).length > 0 && personalRecos.length === 0 && !recoLoading) {
+    if (user && Object.keys(library).length > 0 && !personalRecosLoadedRef.current) {
+      personalRecosLoadedRef.current = true;
       fetchPersonalizedRecos(library, workerUrl).then(personal => {
         if (personal?.length) setPersonalRecos(personal);
       });
@@ -5581,12 +5606,14 @@ export default function TrackAll() {
   const loadRecos = async (manual = false) => {
     setRecoLoading(true);
     setRecos({});
-    if (manual) setPersonalRecos([]);
+    if (manual) {
+      setPersonalRecos([]);
+      personalRecosLoadedRef.current = false;
+    }
     try {
-      // Recomendações personalizadas só se manual ou se ainda não há
-      if (manual || personalRecos.length === 0) {
-        const currentLib = library;
-        const personal = await fetchPersonalizedRecos(currentLib, workerUrl);
+      if (manual || !personalRecosLoadedRef.current) {
+        personalRecosLoadedRef.current = true;
+        const personal = await fetchPersonalizedRecos(library, workerUrl);
         if (personal?.length) setPersonalRecos(personal);
       }
 
@@ -6436,6 +6463,7 @@ export default function TrackAll() {
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes modalSlideUp { from { opacity: 0; transform: translateY(32px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
           .fade-in { animation: fadeIn 0.2s ease; }
           .view-transition { animation: viewIn 0.18s ease both; }
           @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
