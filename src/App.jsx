@@ -1200,7 +1200,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl, onOpenItem }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const [coverEdit, setCoverEdit] = useState(false);
@@ -1570,9 +1570,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {collection && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>📦 {collection.name}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
                         {collection.parts.map(p => (
-                          <div key={p.id} onClick={() => {}} style={{ flexShrink: 0, width: 70, cursor: "pointer", opacity: p.id === item.id ? 1 : 0.75 }}>
+                          <div key={p.id}
+                            onClick={() => p.id !== item.id && onOpenItem && onOpenItem(p)}
+                            onTouchEnd={e => { if (p.id !== item.id) { e.preventDefault(); onOpenItem && onOpenItem(p); } }}
+                            style={{ flexShrink: 0, width: 70, cursor: p.id !== item.id ? "pointer" : "default", opacity: p.id === item.id ? 1 : 0.75, WebkitTapHighlightColor: "transparent" }}>
                             <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === item.id ? `2px solid ${accent}` : "2px solid transparent" }}>
                               {p.cover && <img src={p.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
                             </div>
@@ -1608,11 +1611,17 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {recommendations.length > 0 && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>✨ {lang === "en" ? "Recommendations" : "Recomendações"}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
                         {recommendations.map(r => (
-                          <div key={r.id} style={{ flexShrink: 0, width: 70, cursor: "pointer" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id) }}>
+                          <div key={r.id}
+                            onClick={() => onOpenItem && onOpenItem(r)}
+                            onTouchEnd={e => { e.preventDefault(); onOpenItem && onOpenItem(r); }}
+                            style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id), position: "relative" }}>
                               {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                              {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
+                                onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
+                                onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
                             </div>
                             <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
                           </div>
@@ -1625,11 +1634,17 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {similarGames.length > 0 && (
                     <div style={{ marginTop: 20 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>🎮 {lang === "en" ? "Similar Games" : "Jogos Similares"}</h4>
-                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, touchAction: "pan-x" }}>
                         {similarGames.map(g => (
-                          <div key={g.id} style={{ flexShrink: 0, width: 70, cursor: "pointer" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id) }}>
+                          <div key={g.id}
+                            onClick={() => onOpenItem && onOpenItem(g)}
+                            onTouchEnd={e => { e.preventDefault(); onOpenItem && onOpenItem(g); }}
+                            style={{ flexShrink: 0, width: 70, cursor: onOpenItem ? "pointer" : "default", WebkitTapHighlightColor: "transparent" }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id), position: "relative" }}>
                               {g.cover && <img src={g.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                              {onOpenItem && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0)", borderRadius: 8, transition: "background 0.15s" }}
+                                onMouseEnter={e => e.currentTarget.style.background="rgba(0,0,0,0.35)"}
+                                onMouseLeave={e => e.currentTarget.style.background="rgba(0,0,0,0)"} />}
                             </div>
                             <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title}</p>
                           </div>
@@ -5563,15 +5578,17 @@ export default function TrackAll() {
     }
   }, [library, user]);
 
-  const loadRecos = async () => {
+  const loadRecos = async (manual = false) => {
     setRecoLoading(true);
     setRecos({});
-    setPersonalRecos([]);
+    if (manual) setPersonalRecos([]);
     try {
-      // Recomendações personalizadas (usa library do momento atual via closure-safe ref)
-      const currentLib = library;
-      const personal = await fetchPersonalizedRecos(currentLib, workerUrl);
-      if (personal?.length) setPersonalRecos(personal);
+      // Recomendações personalizadas só se manual ou se ainda não há
+      if (manual || personalRecos.length === 0) {
+        const currentLib = library;
+        const personal = await fetchPersonalizedRecos(currentLib, workerUrl);
+        if (personal?.length) setPersonalRecos(personal);
+      }
 
       // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
@@ -6561,6 +6578,7 @@ export default function TrackAll() {
             onToggleFavorite={toggleFavorite}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
+            onOpenItem={(newItem) => setSelectedItem(newItem)}
           />
         )}
 
@@ -6817,7 +6835,7 @@ export default function TrackAll() {
             <div style={{ paddingBottom: 8 }}>
               <div style={{ padding: "0 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: `linear-gradient(90deg, ${accent}, ${accentShade(accent, 40)})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{lang === "en" ? "Featured" : "Em Destaque"}</h3>
-                <button onClick={loadRecos} disabled={recoLoading} style={{
+                <button onClick={() => loadRecos(true)} disabled={recoLoading} style={{
                   background: "none", border: "none", color: recoLoading ? "#484f58" : accent,
                   cursor: recoLoading ? "not-allowed" : "pointer", fontFamily: "inherit",
                   fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, padding: 0,
