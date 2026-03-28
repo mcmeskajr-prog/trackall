@@ -424,9 +424,14 @@ async function searchTMDB(query, type, key, workerUrl) {
 
 // Fetch extra details (seasons, runtime, episodes, etc.) for a specific item
 async function fetchMediaDetails(item, tmdbKey, workerUrl) {
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+  const fetchWithTimeout = (url, opts, ms = 8000) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
+  };
   try {
     const id = item.id || "";
-    const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
     // TMDB filmes — vários formatos possíveis
     if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
@@ -468,7 +473,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (id.startsWith("al-")) {
       const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
       if (!alId || isNaN(Number(alId))) return null;
-      const r = await fetch(`${wUrl}/anilist`, {
+      const r = await fetchWithTimeout(`${wUrl}/anilist`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: `{
           Media(id:${alId}) {
@@ -1226,6 +1231,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [dlcs, setDlcs] = useState([]);
   const [similarGames, setSimilarGames] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Reset stack when parent changes selectedItem
   useEffect(() => { setItemStack([item]); }, [item?.id]);
@@ -1256,6 +1262,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     const cached = detailCacheRef.current[ci.id];
     if (cached) {
       setDetailExtra(cached.detailExtra ?? {});
+      setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
       setCollection(cached.collection || null);
       setRecommendations(cached.recommendations || []);
@@ -1270,6 +1277,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
     // Não há cache — limpar e fazer fetch
     setDetailExtra(null);
+    setDetailLoading(true);
     setOmdbData(null);
     setScreenshots([]);
     setCollection(null);
@@ -1279,11 +1287,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     setExtraLoading(false);
 
     fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => {
-      const de = d || {};
-      setDetailExtra(de);
-      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: de };
+      setDetailExtra(d || {});
+      setDetailLoading(false);
+      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d || {} };
     }).catch(() => {
       setDetailExtra({});
+      setDetailLoading(false);
       detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: {} };
     });
 
@@ -1723,12 +1732,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               {/* Tab: Cast / Personagens */}
               {modalTab === "cast" && (
                 <div style={{ marginTop: 16 }}>
-                  {!detailExtra ? (
+                  {detailLoading ? (
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
                       <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
-                  ) : !detailExtra.cast?.length && !detailExtra.director ? (
+                  ) : !detailExtra?.cast?.length && !detailExtra?.director ? (
                     <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No cast information available." : "Sem informação de cast disponível."}</p>
                   ) : isAniList ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1798,12 +1807,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               {/* Tab: Relações */}
               {modalTab === "relacoes" && (
                 <div style={{ marginTop: 16 }}>
-                  {!detailExtra ? (
+                  {detailLoading ? (
                     <div style={{ textAlign: "center", padding: "32px 0", color: "#484f58" }}>
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
                       <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
-                  ) : !detailExtra.relations?.length ? (
+                  ) : !detailExtra?.relations?.length ? (
                     <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No relations available." : "Sem relações disponíveis."}</p>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -4571,108 +4580,104 @@ async function fetchTrendingGames(workerUrl) {
 async function fetchPersonalizedRecos(library, workerUrl) {
   try {
     const libItems = Object.values(library);
-    if (libItems.length < 3) return [];
+    if (libItems.length < 1) return [];
 
-    // Pegar os itens com rating mais alto (≥7), máx 20
-    const topRated = libItems
-      .filter(i => i.userRating >= 7)
-      .sort((a, b) => (b.userRating || 0) - (a.userRating || 0))
-      .slice(0, 20);
+    const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
-    // Se poucos ratings, usar completos recentes
-    const seed = topRated.length >= 3
-      ? topRated
-      : libItems.filter(i => i.userStatus === "completo").sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
+    // IDs já na biblioteca
+    const inLib = new Set(Object.keys(library));
+
+    // Seeds: itens com rating ≥7 primeiro, depois completos, depois qualquer coisa
+    const topRated = libItems.filter(i => i.userRating >= 7).sort((a, b) => (b.userRating || 0) - (a.userRating || 0)).slice(0, 20);
+    const completed = libItems.filter(i => i.userStatus === "completo").sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 10);
+    const seed = topRated.length >= 2 ? topRated : completed.length >= 2 ? completed : libItems.slice(0, 10);
 
     if (!seed.length) return [];
 
-    // Contar tipos preferidos
-    const typeCounts = {};
-    seed.forEach(i => { typeCounts[i.type] = (typeCounts[i.type] || 0) + 1; });
-    const topTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).map(e => e[0]);
-
-    // IDs já na biblioteca para filtrar
-    const inLib = new Set(Object.keys(library));
-
     const results = [];
 
-    // Anime / Manga — buscar por género via AniList se tiver seed
+    // Anime via AniList
     const animeSeeds = seed.filter(i => i.type === "anime" && i.id.startsWith("al-"));
-    const mangaSeeds = seed.filter(i => i.type === "manga" && i.id.startsWith("al-"));
-
-    if (animeSeeds.length > 0 && topTypes.includes("anime")) {
+    if (animeSeeds.length > 0) {
       try {
         const seedId = parseInt(animeSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
           const res = await fetch("https://graphql.anilist.co", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:12) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
           });
           const d = await res.json();
-          const recs = d?.data?.Media?.recommendations?.nodes || [];
-          recs.forEach(n => {
-            const m = n.mediaRecommendation;
-            if (!m) return;
+          (d?.data?.Media?.recommendations?.nodes || []).forEach(n => {
+            const m = n.mediaRecommendation; if (!m) return;
             const id = `al-anime-${m.id}`;
-            if (!inLib.has(id)) results.push({ id, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, _personalized: true });
+            if (!inLib.has(id) && m.coverImage?.large) results.push({ id, title: m.title.romaji, cover: m.coverImage.large, type: "anime", source: "AniList", score: m.averageScore });
           });
         }
       } catch {}
     }
 
-    if (mangaSeeds.length > 0 && topTypes.includes("manga")) {
+    // Manga via AniList
+    const mangaSeeds = seed.filter(i => (i.type === "manga" || i.type === "manhwa") && i.id.startsWith("al-"));
+    if (mangaSeeds.length > 0) {
       try {
         const seedId = parseInt(mangaSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
           const res = await fetch("https://graphql.anilist.co", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:12) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
           });
           const d = await res.json();
-          const recs = d?.data?.Media?.recommendations?.nodes || [];
-          recs.forEach(n => {
-            const m = n.mediaRecommendation;
-            if (!m) return;
+          (d?.data?.Media?.recommendations?.nodes || []).forEach(n => {
+            const m = n.mediaRecommendation; if (!m) return;
             const id = `al-manga-${m.id}`;
-            if (!inLib.has(id)) results.push({ id, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, _personalized: true });
+            if (!inLib.has(id) && m.coverImage?.large) results.push({ id, title: m.title.romaji, cover: m.coverImage.large, type: "manga", source: "AniList", score: m.averageScore });
           });
         }
       } catch {}
     }
 
-    // Filmes / Séries — TMDB similar
-    const tmdbMovieSeeds = seed.filter(i => i.type === "filmes" && (i.id.startsWith("tmdb-movie-") || i.id.startsWith("tmdb-filmes-")));
-    const tmdbSeriesSeeds = seed.filter(i => i.type === "series" && (i.id.startsWith("tmdb-tv-") || i.id.startsWith("tmdb-series-")));
-
-    if (tmdbMovieSeeds.length > 0 && workerUrl) {
+    // Filmes via TMDB
+    const filmeSeeds = seed.filter(i => i.type === "filmes" && (i.id.startsWith("tmdb-movie-") || i.id.startsWith("tmdb-filmes-")));
+    if (filmeSeeds.length > 0) {
       try {
-        const rawId = tmdbMovieSeeds[0].id.replace("tmdb-movie-", "").replace("tmdb-filmes-", "");
-        const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/movie/${rawId}/similar&language=en-US`;
-        const res = await fetch(url);
-        const d = await res.json();
-        (d.results || []).slice(0, 12).forEach(m => {
+        const rawId = filmeSeeds[0].id.replace("tmdb-movie-", "").replace("tmdb-filmes-", "");
+        const res = await fetch(`${wUrl}/tmdb?endpoint=/movie/${rawId}/recommendations&language=en-US`).then(r => r.json());
+        (res?.results || []).slice(0, 12).forEach(m => {
           const id = `tmdb-movie-${m.id}`;
-          if (!inLib.has(id)) results.push({ id, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10), _personalized: true });
+          if (!inLib.has(id) && m.poster_path) results.push({ id, title: m.title, cover: `https://image.tmdb.org/t/p/w300${m.poster_path}`, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) });
         });
       } catch {}
     }
 
-    if (tmdbSeriesSeeds.length > 0 && workerUrl) {
+    // Séries via TMDB
+    const serieSeeds = seed.filter(i => i.type === "series" && (i.id.startsWith("tmdb-tv-") || i.id.startsWith("tmdb-series-")));
+    if (serieSeeds.length > 0) {
       try {
-        const rawId = tmdbSeriesSeeds[0].id.replace("tmdb-tv-", "").replace("tmdb-series-", "");
-        const url = `${workerUrl.replace(/\/$/, "")}/tmdb?endpoint=/tv/${rawId}/similar&language=en-US`;
-        const res = await fetch(url);
-        const d = await res.json();
-        (d.results || []).slice(0, 12).forEach(m => {
+        const rawId = serieSeeds[0].id.replace("tmdb-tv-", "").replace("tmdb-series-", "");
+        const res = await fetch(`${wUrl}/tmdb?endpoint=/tv/${rawId}/recommendations&language=en-US`).then(r => r.json());
+        (res?.results || []).slice(0, 12).forEach(m => {
           const id = `tmdb-tv-${m.id}`;
-          if (!inLib.has(id)) results.push({ id, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10), _personalized: true });
+          if (!inLib.has(id) && m.poster_path) results.push({ id, title: m.name, cover: `https://image.tmdb.org/t/p/w300${m.poster_path}`, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) });
         });
       } catch {}
     }
 
-    // Embaralhar e devolver
+    // Se não há resultados de nenhuma API, usar trending de anime como fallback
+    if (results.length === 0) {
+      try {
+        const res = await fetch("https://graphql.anilist.co", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `{ Page(perPage:20) { media(type:ANIME, sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
+        });
+        const d = await res.json();
+        (d?.data?.Page?.media || []).forEach(m => {
+          const id = `al-anime-${m.id}`;
+          if (!inLib.has(id) && m.coverImage?.large) results.push({ id, title: m.title.romaji, cover: m.coverImage.large, type: "anime", source: "AniList", score: m.averageScore });
+        });
+      } catch {}
+    }
+
+    // Embaralhar
     for (let i = results.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [results[i], results[j]] = [results[j], results[i]];
@@ -5643,14 +5648,18 @@ export default function TrackAll() {
       setPersonalRecos([]);
       personalRecosLoadedRef.current = false;
       try { sessionStorage.removeItem("trackall_personal_recos"); } catch {}
+      // Re-fetch personalRecos with current library
+      if (Object.keys(library).length > 0) {
+        personalRecosLoadedRef.current = true;
+        fetchPersonalizedRecos(library, workerUrl).then(personal => {
+          if (personal?.length) {
+            setPersonalRecos(personal);
+            try { sessionStorage.setItem("trackall_personal_recos", JSON.stringify(personal)); } catch {}
+          }
+        });
+      }
     }
     try {
-      if (manual || !personalRecosLoadedRef.current) {
-        personalRecosLoadedRef.current = true;
-        const personal = await fetchPersonalizedRecos(library, workerUrl);
-        if (personal?.length) setPersonalRecos(personal);
-      }
-
       // Carregar progressivamente — cada categoria aparece quando fica pronta
       const anime = await fetchTrendingAnime(workerUrl);
       if (anime?.length) setRecos(r => ({ ...r, anime }));
