@@ -1200,15 +1200,15 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl, onOpenItem }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
-  // Stack para navegação: o item actual é sempre itemStack[itemStack.length-1]
   const [itemStack, setItemStack] = useState([item]);
   const currentItem = itemStack[itemStack.length - 1];
   const canGoBack = itemStack.length > 1;
-
+  const pushItem = (newItem) => setItemStack(prev => [...prev, newItem]);
+  const popItem = () => setItemStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
@@ -1217,6 +1217,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
   const [personLoading, setPersonLoading] = useState(false);
+  // Novos estados
   const [omdbData, setOmdbData] = useState(null);
   const [screenshots, setScreenshots] = useState([]);
   const [collection, setCollection] = useState(null);
@@ -1225,10 +1226,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [similarGames, setSimilarGames] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
 
-  // Quando item prop muda (pai muda o selectedItem), reiniciar a stack
-  useEffect(() => {
-    setItemStack([item]);
-  }, [item?.id]);
+  // Reset stack when parent changes selectedItem
+  useEffect(() => { setItemStack([item]); }, [item?.id]);
 
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
   const isAniList = (currentItem.id || "").startsWith("al-");
@@ -1242,7 +1241,6 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
-  // Carrega dados sempre que currentItem muda
   useEffect(() => {
     setDetailExtra(null);
     setModalTab("info");
@@ -1254,130 +1252,144 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     setRecommendations([]);
     setDlcs([]);
     setSimilarGames([]);
-    setExtraLoading(false);
     if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
-
-    const id = currentItem.id || "";
-    if (!id) return;
-
-    // Fetch detalhes principais
-    fetchMediaDetails(currentItem, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
-
-    // Fetch dados extra — capturar currentItem no closure
-    const fetchExtra = async (capturedItem) => {
-      const cid = capturedItem.id || "";
-      setExtraLoading(true);
-      try {
-        if (cid.startsWith("tmdb-filmes-") || cid.startsWith("tmdb-movie-")) {
-          const tmdbId = cid.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
-          const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
-            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
-            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=en-US`).then(r => r.json()),
-            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`).then(r => r.json()),
-          ]);
-          if (imagesRes.status === "fulfilled") {
-            const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
-            setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
-          }
-          if (recoRes.status === "fulfilled") {
-            setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
-              id: `tmdb-filmes-${m.id}`, title: m.title || m.name || "",
-              cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
-              type: "filmes", year: (m.release_date || "").slice(0, 4),
-            })));
-          }
-          if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
-            const col = detailRes.value.belongs_to_collection;
-            const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=en-US`).then(r => r.json()).catch(() => null);
-            if (colRes?.parts) {
-              setCollection({
-                name: colRes.name,
-                parts: colRes.parts.sort((a, b) => (a.release_date || "").localeCompare(b.release_date || "")).map(p => ({
-                  id: `tmdb-filmes-${p.id}`, title: p.title || "",
-                  cover: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
-                  year: (p.release_date || "").slice(0, 4),
-                }))
-              });
-            }
-          }
-          const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(capturedItem.title || "")}${capturedItem.year ? `&year=${capturedItem.year}` : ""}`).then(r => r.json()).catch(() => null);
-          if (omdbRes?.Response === "True") setOmdbData(omdbRes);
-        }
-        else if (cid.startsWith("tmdb-series-") || cid.startsWith("tmdb-tv-")) {
-          const tmdbId = cid.replace("tmdb-series-", "").replace("tmdb-tv-", "");
-          const [imagesRes, recoRes] = await Promise.allSettled([
-            fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
-            fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=en-US`).then(r => r.json()),
-          ]);
-          if (imagesRes.status === "fulfilled") {
-            const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
-            setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
-          }
-          if (recoRes.status === "fulfilled") {
-            setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
-              id: `tmdb-series-${m.id}`, title: m.title || m.name || "",
-              cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
-              type: "series", year: (m.first_air_date || "").slice(0, 4),
-            })));
-          }
-          const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(capturedItem.title || "")}${capturedItem.year ? `&year=${capturedItem.year}` : ""}`).then(r => r.json()).catch(() => null);
-          if (omdbRes?.Response === "True") setOmdbData(omdbRes);
-        }
-        else if (cid.startsWith("al-")) {
-          const alId = cid.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
-          if (alId && !isNaN(Number(alId))) {
-            const recoRes = await fetch(`${wUrl}/anilist`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
-            }).then(r => r.json()).catch(() => null);
-            if (recoRes?.data?.Media?.recommendations?.nodes) {
-              setRecommendations(
-                recoRes.data.Media.recommendations.nodes
-                  .filter(n => n.rating > 0 && n.mediaRecommendation)
-                  .map(n => {
-                    const m = n.mediaRecommendation;
-                    const mType = m.type === "ANIME" ? "anime" : "manga";
-                    return { id: `al-${mType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || null, type: mType };
-                  })
-              );
-            }
-          }
-        }
-        else if (cid.startsWith("igdb-")) {
-          const igdbId = cid.replace("igdb-", "");
-          const [ssRes, simRes, dlcRes] = await Promise.allSettled([
-            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 12;` }) }).then(r => r.json()),
-            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,similar_games.name,similar_games.cover.image_id,similar_games.id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
-            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,category; where parent_game = ${igdbId} & category = (1,2); limit 10;` }) }).then(r => r.json()),
-          ]);
-          if (ssRes.status === "fulfilled" && Array.isArray(ssRes.value)) {
-            setScreenshots(ssRes.value.map(s => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${s.image_id}.jpg`));
-          }
-          if (simRes.status === "fulfilled" && Array.isArray(simRes.value) && simRes.value[0]?.similar_games) {
-            setSimilarGames(simRes.value[0].similar_games.filter(g => g.cover?.image_id).map(g => ({
-              id: `igdb-${g.id}`, title: g.name,
-              cover: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg`,
-              type: "jogos",
-            })));
-          }
-          if (dlcRes.status === "fulfilled" && Array.isArray(dlcRes.value)) {
-            setDlcs(dlcRes.value.filter(g => g.cover?.image_id).map(g => ({
-              id: `igdb-${g.id}`, title: g.name,
-              cover: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg`,
-              category: g.category === 1 ? "DLC" : "Expansão",
-            })));
-          }
-        }
-      } catch {}
-      setExtraLoading(false);
-    };
-
-    fetchExtra(currentItem);
-
-    const lb = library[currentItem.id];
+    const ci = currentItem;
+    if (ci?.id) {
+      fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+      fetchExtraData(ci);
+    }
+    const lb = library[ci?.id];
     setChapterInput(lb?.lastChapter || "");
   }, [currentItem?.id]);
+
+  const fetchExtraData = async (capturedItem) => {
+    setExtraLoading(true);
+    try {
+      const id = capturedItem.id || "";
+
+      // ── TMDB filmes ──
+      if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
+        const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
+        const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
+        ]);
+        // Screenshots
+        if (imagesRes.status === "fulfilled") {
+          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+        }
+        // Recomendações
+        if (recoRes.status === "fulfilled") {
+          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+            id: `tmdb-filmes-${m.id}`, title: m.title || m.name || "",
+            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+            type: "filmes", year: (m.release_date || "").slice(0, 4),
+          })));
+        }
+        // Coleção
+        if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
+          const col = detailRes.value.belongs_to_collection;
+          const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()).catch(() => null);
+          if (colRes?.parts) {
+            setCollection({
+              name: colRes.name,
+              parts: colRes.parts.sort((a, b) => (a.release_date || "").localeCompare(b.release_date || "")).map(p => ({
+                id: `tmdb-filmes-${p.id}`, title: p.title || "",
+                cover: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
+                year: (p.release_date || "").slice(0, 4),
+              }))
+            });
+          }
+        }
+        // OMDb
+        const omdbTitle = capturedItem.title || "";
+        const omdbYear = capturedItem.year || "";
+        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(omdbTitle)}${omdbYear ? `&year=${omdbYear}` : ""}`).then(r => r.json()).catch(() => null);
+        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+      }
+
+      // ── TMDB séries ──
+      else if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
+        const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
+        const [imagesRes, recoRes] = await Promise.allSettled([
+          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
+          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
+        ]);
+        if (imagesRes.status === "fulfilled") {
+          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+        }
+        if (recoRes.status === "fulfilled") {
+          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+            id: `tmdb-series-${m.id}`, title: m.title || m.name || "",
+            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+            type: "series", year: (m.first_air_date || "").slice(0, 4),
+          })));
+        }
+        // OMDb
+        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(capturedItem.title || "")}${capturedItem.year ? `&year=${capturedItem.year}` : ""}`).then(r => r.json()).catch(() => null);
+        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+      }
+
+      // ── AniList ──
+      else if (id.startsWith("al-")) {
+        const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
+        if (alId && !isNaN(Number(alId))) {
+          const recoRes = await fetch(`${wUrl}/anilist`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
+          }).then(r => r.json()).catch(() => null);
+          if (recoRes?.data?.Media?.recommendations?.nodes) {
+            setRecommendations(
+              recoRes.data.Media.recommendations.nodes
+                .filter(n => n.rating > 0 && n.mediaRecommendation)
+                .map(n => {
+                  const m = n.mediaRecommendation;
+                  const mType = m.type === "ANIME" ? "anime" : "manga";
+                  return { id: `al-${mType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || null, type: mType };
+                })
+            );
+          }
+        }
+      }
+
+      // ── IGDB jogos ──
+      else if (id.startsWith("igdb-")) {
+        const igdbId = id.replace("igdb-", "");
+        const [ssRes, simRes, dlcRes] = await Promise.allSettled([
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 12;` }) }).then(r => r.json()),
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,similar_games.name,similar_games.cover.image_id,similar_games.id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,category; where parent_game = ${igdbId} & category = (1,2); limit 10;` }) }).then(r => r.json()),
+        ]);
+        // Screenshots
+        if (ssRes.status === "fulfilled" && Array.isArray(ssRes.value)) {
+          setScreenshots(ssRes.value.map(s => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${s.image_id}.jpg`));
+        }
+        // Jogos similares
+        if (simRes.status === "fulfilled" && simRes.value?.[0]?.similar_games) {
+          setSimilarGames(simRes.value[0].similar_games.slice(0, 12).map(g => ({
+            id: `igdb-${g.id}`, title: g.name || "",
+            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
+            type: "jogos",
+          })));
+        }
+        // DLCs e expansões
+        if (dlcRes.status === "fulfilled" && Array.isArray(dlcRes.value)) {
+          setDlcs(dlcRes.value.map(g => ({
+            id: `igdb-${g.id}`, title: g.name || "",
+            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
+            category: g.category === 1 ? "DLC" : "Expansão",
+          })));
+        }
+      }
+    } catch (err) {
+      console.error("[ExtraData] Erro:", err);
+    }
+    setExtraLoading(false);
+  };
 
   // Fetch perfil da pessoa quando selecionada
   useEffect(() => {
@@ -1417,9 +1429,6 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
   const isFavorite = favorites.some(f => f.id === currentItem.id);
-
-  const pushItem = (newItem) => setItemStack(prev => [...prev, newItem]);
-  const popItem = () => setItemStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
@@ -1435,6 +1444,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           <div>
             {/* Header pessoa */}
             <div style={{ position: "relative", height: 120, background: `linear-gradient(135deg, ${accent}33, #0d1117)`, borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
+              {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
             <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
@@ -1486,6 +1496,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
             {/* Hero backdrop */}
             <div style={{ height: 180, background: currentItem.backdrop ? `url(${currentItem.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
+              {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
 
@@ -1874,7 +1885,7 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
     <>
       <div className="media-grid">
         {visible.map((item) => (
-          <MediaCard key={currentItem.id} item={item} library={library} onOpen={onOpen} accent={accent} />
+          <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
         ))}
       </div>
       {visibleCount < items.length && (
@@ -1893,14 +1904,14 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
   const libItem = library[item.id];
   const inLib = !!libItem;
-  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || currentItem.cover || currentItem.thumbnailUrl;
+  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
   const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const handleError = (e) => {
-    if (currentItem.coverFallback && e.currentTarget.src !== currentItem.coverFallback) {
-      e.currentTarget.src = currentItem.coverFallback;
+    if (item.coverFallback && e.currentTarget.src !== item.coverFallback) {
+      e.currentTarget.src = item.coverFallback;
     } else {
       setImgError(true);
     }
@@ -1908,11 +1919,11 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 
   return (
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
-      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(currentItem.id) }}>
+      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
         {coverSrc && !imgError ? (
           <img
             src={coverSrc}
-            alt={currentItem.title}
+            alt={item.title}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={handleError}
@@ -1920,15 +1931,15 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
-            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{currentItem.title.slice(0, 40)}</span>
+            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
           </div>
         )}
         {/* Badges — status + score sem ícone de tipo */}
         <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 3 }}>
-          {!inLib && currentItem.score && (
+          {!inLib && item.score && (
             <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-              ★ {currentItem.score}
+              ★ {item.score}
             </span>
           )}
           {status && status.id !== "completo" && (
@@ -1940,7 +1951,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
         {/* Hover rating overlay — desktop rico */}
         <div className="rating-hover no-tc">
           <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{currentItem.title}</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{item.title}</p>
             {libItem?.userRating > 0 ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 8 }}>
                 <span style={{ fontSize: 16, color: "#f59e0b" }}>★</span>
@@ -3010,7 +3021,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                                       }
                                     </div>
                                   </div>
-                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(currentItem); }}
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
                               );
@@ -5548,14 +5559,16 @@ export default function TrackAll() {
       }
       if (lib) {
         setLibrary(lib);
-        // Tentar carregar do sessionStorage primeiro (sobrevive a reloads suaves)
-        try {
-          const cached = sessionStorage.getItem("trackall_personal_recos");
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.length) { setPersonalRecos(parsed); personalRecosLoadedRef.current = true; }
-          }
-        } catch {}
+        // Tentar cache do sessionStorage primeiro
+        if (!personalRecosLoadedRef.current) {
+          try {
+            const cached = sessionStorage.getItem("trackall_personal_recos");
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (parsed?.length) { setPersonalRecos(parsed); personalRecosLoadedRef.current = true; }
+            }
+          } catch {}
+        }
         // Carregar recos personalizadas logo após ter a library — só uma vez
         if (!personalRecosLoadedRef.current && Object.keys(lib).length > 0) {
           personalRecosLoadedRef.current = true;
@@ -5589,6 +5602,7 @@ export default function TrackAll() {
     if (manual) {
       setPersonalRecos([]);
       personalRecosLoadedRef.current = false;
+      try { sessionStorage.removeItem("trackall_personal_recos"); } catch {}
     }
     try {
       if (manual || !personalRecosLoadedRef.current) {
