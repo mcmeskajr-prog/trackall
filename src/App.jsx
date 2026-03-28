@@ -1204,6 +1204,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
+  const detailCacheRef = useRef({}); // cache: id -> {detailExtra, extraData}
   const [itemStack, setItemStack] = useState([item]);
   const currentItem = itemStack[itemStack.length - 1];
   const canGoBack = itemStack.length > 1;
@@ -1242,28 +1243,59 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
   useEffect(() => {
-    setDetailExtra(null);
     setModalTab("info");
     setSelectedPerson(null);
     setPersonData(null);
+
+    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
+
+    const ci = currentItem;
+    if (!ci?.id) return;
+
+    // Usar cache se disponível (evita loading ao navegar para trás)
+    const cached = detailCacheRef.current[ci.id];
+    if (cached) {
+      setDetailExtra(cached.detailExtra ?? {});
+      setScreenshots(cached.screenshots || []);
+      setCollection(cached.collection || null);
+      setRecommendations(cached.recommendations || []);
+      setDlcs(cached.dlcs || []);
+      setSimilarGames(cached.similarGames || []);
+      setOmdbData(cached.omdbData || null);
+      setExtraLoading(false);
+      const lb = library[ci.id];
+      setChapterInput(lb?.lastChapter || "");
+      return;
+    }
+
+    // Não há cache — limpar e fazer fetch
+    setDetailExtra(null);
     setOmdbData(null);
     setScreenshots([]);
     setCollection(null);
     setRecommendations([]);
     setDlcs([]);
     setSimilarGames([]);
-    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
-    const ci = currentItem;
-    if (ci?.id) {
-      fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
-      fetchExtraData(ci);
-    }
+    setExtraLoading(false);
+
+    fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => {
+      const de = d || {};
+      setDetailExtra(de);
+      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: de };
+    }).catch(() => {
+      setDetailExtra({});
+      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: {} };
+    });
+
+    fetchExtraData(ci);
     const lb = library[ci?.id];
     setChapterInput(lb?.lastChapter || "");
   }, [currentItem?.id]);
 
   const fetchExtraData = async (capturedItem) => {
     setExtraLoading(true);
+    const cid = capturedItem.id || "";
+    const cacheEntry = detailCacheRef.current[cid] || {};
     try {
       const id = capturedItem.id || "";
 
@@ -1388,6 +1420,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     } catch (err) {
       console.error("[ExtraData] Erro:", err);
     }
+    // Guardar no cache usando setState callbacks para obter valores actuais
+    setScreenshots(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), screenshots: prev }; return prev; });
+    setRecommendations(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), recommendations: prev }; return prev; });
+    setCollection(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), collection: prev }; return prev; });
+    setSimilarGames(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), similarGames: prev }; return prev; });
+    setDlcs(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), dlcs: prev }; return prev; });
+    setOmdbData(prev => { detailCacheRef.current[cid] = { ...(detailCacheRef.current[cid]||{}), omdbData: prev }; return prev; });
     setExtraLoading(false);
   };
 
@@ -4643,10 +4682,11 @@ async function fetchPersonalizedRecos(library, workerUrl) {
 }
 
 // ─── Recommendation Carousel ──────────────────────────────────────────────────
-function RecoCarousel({ title, icon, items, library, onOpen, loading }) {
+function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
-  if (loading) return (
+  // "Para Ti" nunca mostra skeleton — aparece quando tiver dados ou fica escondido
+  if (loading && !isPersonal) return (
     <div style={{ padding: "0 16px 28px" }}>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
       <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
@@ -6866,7 +6906,7 @@ export default function TrackAll() {
                   {recoLoading ? useT("loading") : useT("refresh")}
                 </button>
               </div>
-              <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} _isPersonal={true} />
+              <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} isPersonal={true} />
               <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
               <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
               <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading} />
