@@ -1204,6 +1204,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
+  // Stack para navegação: o item actual é sempre itemStack[itemStack.length-1]
+  const [itemStack, setItemStack] = useState([item]);
+  const currentItem = itemStack[itemStack.length - 1];
+  const canGoBack = itemStack.length > 1;
+
   const [coverEdit, setCoverEdit] = useState(false);
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
@@ -1212,7 +1217,6 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
   const [personLoading, setPersonLoading] = useState(false);
-  // Novos estados
   const [omdbData, setOmdbData] = useState(null);
   const [screenshots, setScreenshots] = useState([]);
   const [collection, setCollection] = useState(null);
@@ -1221,18 +1225,24 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [similarGames, setSimilarGames] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
 
+  // Quando item prop muda (pai muda o selectedItem), reiniciar a stack
+  useEffect(() => {
+    setItemStack([item]);
+  }, [item?.id]);
+
   const CHAPTER_TYPES = ["manga", "manhwa", "lightnovels", "comics"];
-  const isAniList = (item.id || "").startsWith("al-");
-  const isTMDB = (item.id || "").startsWith("tmdb-");
-  const isIGDB = (item.id || "").startsWith("igdb-");
-  const isFilme = item.type === "filmes";
-  const isSerie = item.type === "series";
+  const isAniList = (currentItem.id || "").startsWith("al-");
+  const isTMDB = (currentItem.id || "").startsWith("tmdb-");
+  const isIGDB = (currentItem.id || "").startsWith("igdb-");
+  const isFilme = currentItem.type === "filmes";
+  const isSerie = currentItem.type === "series";
   const hasCast = isAniList || isTMDB;
   const hasRelations = isAniList;
   const hasMedia = isTMDB || isIGDB;
 
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
+  // Carrega dados sempre que currentItem muda
   useEffect(() => {
     setDetailExtra(null);
     setModalTab("info");
@@ -1244,144 +1254,130 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     setRecommendations([]);
     setDlcs([]);
     setSimilarGames([]);
-    if (item) {
-      fetchMediaDetails(item, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
-      fetchExtraData();
-      // Scroll to top when opening new item
-      if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
-    }
-    const lb = library[item.id];
-    setChapterInput(lb?.lastChapter || "");
-  }, [item?.id]);
-
-  const fetchExtraData = async () => {
-    setExtraLoading(true);
-    try {
-      const id = item.id || "";
-
-      // ── TMDB filmes ──
-      if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
-        const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
-        const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
-          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
-        ]);
-        // Screenshots
-        if (imagesRes.status === "fulfilled") {
-          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
-          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
-        }
-        // Recomendações
-        if (recoRes.status === "fulfilled") {
-          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
-            id: `tmdb-filmes-${m.id}`, title: m.title || m.name || "",
-            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
-            type: "filmes", year: (m.release_date || "").slice(0, 4),
-          })));
-        }
-        // Coleção
-        if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
-          const col = detailRes.value.belongs_to_collection;
-          const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()).catch(() => null);
-          if (colRes?.parts) {
-            setCollection({
-              name: colRes.name,
-              parts: colRes.parts.sort((a, b) => (a.release_date || "").localeCompare(b.release_date || "")).map(p => ({
-                id: `tmdb-filmes-${p.id}`, title: p.title || "",
-                cover: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
-                year: (p.release_date || "").slice(0, 4),
-              }))
-            });
-          }
-        }
-        // OMDb
-        const omdbTitle = item.title || "";
-        const omdbYear = item.year || "";
-        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(omdbTitle)}${omdbYear ? `&year=${omdbYear}` : ""}`).then(r => r.json()).catch(() => null);
-        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
-      }
-
-      // ── TMDB séries ──
-      else if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
-        const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
-        const [imagesRes, recoRes] = await Promise.allSettled([
-          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
-          fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=${lang === "pt" ? "en-US" : "en-US"}`).then(r => r.json()),
-        ]);
-        if (imagesRes.status === "fulfilled") {
-          const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
-          setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
-        }
-        if (recoRes.status === "fulfilled") {
-          setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
-            id: `tmdb-series-${m.id}`, title: m.title || m.name || "",
-            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
-            type: "series", year: (m.first_air_date || "").slice(0, 4),
-          })));
-        }
-        // OMDb
-        const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(item.title || "")}${item.year ? `&year=${item.year}` : ""}`).then(r => r.json()).catch(() => null);
-        if (omdbRes?.Response === "True") setOmdbData(omdbRes);
-      }
-
-      // ── AniList ──
-      else if (id.startsWith("al-")) {
-        const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
-        if (alId && !isNaN(Number(alId))) {
-          const recoRes = await fetch(`${wUrl}/anilist`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
-          }).then(r => r.json()).catch(() => null);
-          if (recoRes?.data?.Media?.recommendations?.nodes) {
-            setRecommendations(
-              recoRes.data.Media.recommendations.nodes
-                .filter(n => n.rating > 0 && n.mediaRecommendation)
-                .map(n => {
-                  const m = n.mediaRecommendation;
-                  const mType = m.type === "ANIME" ? "anime" : "manga";
-                  return { id: `al-${mType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || null, type: mType };
-                })
-            );
-          }
-        }
-      }
-
-      // ── IGDB jogos ──
-      else if (id.startsWith("igdb-")) {
-        const igdbId = id.replace("igdb-", "");
-        const [ssRes, simRes, dlcRes] = await Promise.allSettled([
-          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 12;` }) }).then(r => r.json()),
-          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,similar_games.name,similar_games.cover.image_id,similar_games.id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
-          fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,category; where parent_game = ${igdbId} & category = (1,2); limit 10;` }) }).then(r => r.json()),
-        ]);
-        // Screenshots
-        if (ssRes.status === "fulfilled" && Array.isArray(ssRes.value)) {
-          setScreenshots(ssRes.value.map(s => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${s.image_id}.jpg`));
-        }
-        // Jogos similares
-        if (simRes.status === "fulfilled" && simRes.value?.[0]?.similar_games) {
-          setSimilarGames(simRes.value[0].similar_games.slice(0, 12).map(g => ({
-            id: `igdb-${g.id}`, title: g.name || "",
-            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
-            type: "jogos",
-          })));
-        }
-        // DLCs e expansões
-        if (dlcRes.status === "fulfilled" && Array.isArray(dlcRes.value)) {
-          setDlcs(dlcRes.value.map(g => ({
-            id: `igdb-${g.id}`, title: g.name || "",
-            cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
-            category: g.category === 1 ? "DLC" : "Expansão",
-          })));
-        }
-      }
-    } catch (err) {
-      console.error("[ExtraData] Erro:", err);
-    }
     setExtraLoading(false);
-  };
+    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
+
+    const id = currentItem.id || "";
+    if (!id) return;
+
+    // Fetch detalhes principais
+    fetchMediaDetails(currentItem, tmdbKey, workerUrl).then(d => { if (d) setDetailExtra(d); });
+
+    // Fetch dados extra — capturar currentItem no closure
+    const fetchExtra = async (capturedItem) => {
+      const cid = capturedItem.id || "";
+      setExtraLoading(true);
+      try {
+        if (cid.startsWith("tmdb-filmes-") || cid.startsWith("tmdb-movie-")) {
+          const tmdbId = cid.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
+          const [imagesRes, recoRes, detailRes] = await Promise.allSettled([
+            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/images`).then(r => r.json()),
+            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/recommendations&language=en-US`).then(r => r.json()),
+            fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`).then(r => r.json()),
+          ]);
+          if (imagesRes.status === "fulfilled") {
+            const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+            setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+          }
+          if (recoRes.status === "fulfilled") {
+            setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+              id: `tmdb-filmes-${m.id}`, title: m.title || m.name || "",
+              cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+              type: "filmes", year: (m.release_date || "").slice(0, 4),
+            })));
+          }
+          if (detailRes.status === "fulfilled" && detailRes.value?.belongs_to_collection) {
+            const col = detailRes.value.belongs_to_collection;
+            const colRes = await fetch(`${wUrl}/tmdb?endpoint=/collection/${col.id}&language=en-US`).then(r => r.json()).catch(() => null);
+            if (colRes?.parts) {
+              setCollection({
+                name: colRes.name,
+                parts: colRes.parts.sort((a, b) => (a.release_date || "").localeCompare(b.release_date || "")).map(p => ({
+                  id: `tmdb-filmes-${p.id}`, title: p.title || "",
+                  cover: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
+                  year: (p.release_date || "").slice(0, 4),
+                }))
+              });
+            }
+          }
+          const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(capturedItem.title || "")}${capturedItem.year ? `&year=${capturedItem.year}` : ""}`).then(r => r.json()).catch(() => null);
+          if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+        }
+        else if (cid.startsWith("tmdb-series-") || cid.startsWith("tmdb-tv-")) {
+          const tmdbId = cid.replace("tmdb-series-", "").replace("tmdb-tv-", "");
+          const [imagesRes, recoRes] = await Promise.allSettled([
+            fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/images`).then(r => r.json()),
+            fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/recommendations&language=en-US`).then(r => r.json()),
+          ]);
+          if (imagesRes.status === "fulfilled") {
+            const imgs = imagesRes.value?.backdrops?.slice(0, 12) || [];
+            setScreenshots(imgs.map(i => `https://image.tmdb.org/t/p/w780${i.file_path}`));
+          }
+          if (recoRes.status === "fulfilled") {
+            setRecommendations((recoRes.value?.results || []).slice(0, 12).map(m => ({
+              id: `tmdb-series-${m.id}`, title: m.title || m.name || "",
+              cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : null,
+              type: "series", year: (m.first_air_date || "").slice(0, 4),
+            })));
+          }
+          const omdbRes = await fetch(`${wUrl}/omdb?title=${encodeURIComponent(capturedItem.title || "")}${capturedItem.year ? `&year=${capturedItem.year}` : ""}`).then(r => r.json()).catch(() => null);
+          if (omdbRes?.Response === "True") setOmdbData(omdbRes);
+        }
+        else if (cid.startsWith("al-")) {
+          const alId = cid.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
+          if (alId && !isNaN(Number(alId))) {
+            const recoRes = await fetch(`${wUrl}/anilist`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
+            }).then(r => r.json()).catch(() => null);
+            if (recoRes?.data?.Media?.recommendations?.nodes) {
+              setRecommendations(
+                recoRes.data.Media.recommendations.nodes
+                  .filter(n => n.rating > 0 && n.mediaRecommendation)
+                  .map(n => {
+                    const m = n.mediaRecommendation;
+                    const mType = m.type === "ANIME" ? "anime" : "manga";
+                    return { id: `al-${mType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.medium || null, type: mType };
+                  })
+              );
+            }
+          }
+        }
+        else if (cid.startsWith("igdb-")) {
+          const igdbId = cid.replace("igdb-", "");
+          const [ssRes, simRes, dlcRes] = await Promise.allSettled([
+            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 12;` }) }).then(r => r.json()),
+            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,similar_games.name,similar_games.cover.image_id,similar_games.id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+            fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,cover.image_id,category; where parent_game = ${igdbId} & category = (1,2); limit 10;` }) }).then(r => r.json()),
+          ]);
+          if (ssRes.status === "fulfilled" && Array.isArray(ssRes.value)) {
+            setScreenshots(ssRes.value.map(s => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${s.image_id}.jpg`));
+          }
+          if (simRes.status === "fulfilled" && Array.isArray(simRes.value) && simRes.value[0]?.similar_games) {
+            setSimilarGames(simRes.value[0].similar_games.filter(g => g.cover?.image_id).map(g => ({
+              id: `igdb-${g.id}`, title: g.name,
+              cover: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg`,
+              type: "jogos",
+            })));
+          }
+          if (dlcRes.status === "fulfilled" && Array.isArray(dlcRes.value)) {
+            setDlcs(dlcRes.value.filter(g => g.cover?.image_id).map(g => ({
+              id: `igdb-${g.id}`, title: g.name,
+              cover: `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg`,
+              category: g.category === 1 ? "DLC" : "Expansão",
+            })));
+          }
+        }
+      } catch {}
+      setExtraLoading(false);
+    };
+
+    fetchExtra(currentItem);
+
+    const lb = library[currentItem.id];
+    setChapterInput(lb?.lastChapter || "");
+  }, [currentItem?.id]);
 
   // Fetch perfil da pessoa quando selecionada
   useEffect(() => {
@@ -1416,11 +1412,14 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     }).catch(() => setPersonLoading(false));
   }, [selectedPerson?.id]);
 
-  const inLib = !!library[item.id];
-  const libItem = library[item.id];
-  const isChapterType = CHAPTER_TYPES.includes(item.type);
-  const coverSrc = libItem?.customCover || item.customCover || item.cover;
-  const isFavorite = favorites.some(f => f.id === item.id);
+  const inLib = !!library[currentItem.id];
+  const libItem = library[currentItem.id];
+  const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
+  const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
+  const isFavorite = favorites.some(f => f.id === currentItem.id);
+
+  const pushItem = (newItem) => setItemStack(prev => [...prev, newItem]);
+  const popItem = () => setItemStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
@@ -1485,7 +1484,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           // ── Vista: Modal normal ──
           <div>
             {/* Hero backdrop */}
-            <div style={{ height: 180, background: item.backdrop ? `url(${item.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(item.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
+            <div style={{ height: 180, background: currentItem.backdrop ? `url(${currentItem.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
@@ -1494,8 +1493,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               {/* Header: cover + title */}
               <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(item.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-                    {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = item.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
+                  <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(currentItem.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+                    {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = currentItem.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
                   </div>
                   {inLib && (
                     <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
@@ -1504,15 +1503,15 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                 <div style={{ flex: 1, paddingTop: 40 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                     <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                      {MEDIA_TYPES.find((t) => t.id === item.type)?.icon} {MEDIA_TYPES.find((t) => t.id === item.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === item.type), lang) : ""}
+                      {MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon} {MEDIA_TYPES.find((t) => t.id === currentItem.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === currentItem.type), lang) : ""}
                     </span>
-                    {item.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{item.year}</span>}
-                    {item.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {item.score}</span>}
-                    {item.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{item.source}</span>}
+                    {currentItem.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{currentItem.year}</span>}
+                    {currentItem.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {currentItem.score}</span>}
+                    {currentItem.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{currentItem.source}</span>}
                   </div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>{item.title}</h2>
-                  {item.titleEn && item.titleEn !== item.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{item.titleEn}</p>}
-                  {item.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {item.extra}</p>}
+                  <h2 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>{currentItem.title}</h2>
+                  {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
+                  {currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
                 </div>
               </div>
 
@@ -1531,12 +1530,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
               {modalTab === "info" && (
                 <div>
                   <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexWrap: "wrap" }}>
-                    {(detailExtra?.episodes || item.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || item.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
+                    {(detailExtra?.episodes || currentItem.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || currentItem.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
                     {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
-                    {(detailExtra?.chapters || item.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || item.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
-                    {(detailExtra?.volumes || item.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || item.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
+                    {(detailExtra?.chapters || currentItem.chapters) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.chapters || currentItem.chapters}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("chapters")}</div></div>}
+                    {(detailExtra?.volumes || currentItem.volumes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.volumes || currentItem.volumes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("volumes")}</div></div>}
                     {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
-                    {(detailExtra?.status || item.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || item.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
+                    {(detailExtra?.status || currentItem.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || currentItem.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
                   </div>
 
                   {/* OMDb ratings */}
@@ -1558,15 +1557,15 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     </div>
                   )}
 
-                  {item.genres?.length > 0 && (
+                  {currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-                      {item.genres.slice(0, 6).map((g) => (
+                      {currentItem.genres.slice(0, 6).map((g) => (
                         <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
                       ))}
                     </div>
                   )}
-                  {(detailExtra?.synopsis || item.synopsis) && (
-                    <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || item.synopsis || ""}</p>
+                  {(detailExtra?.synopsis || currentItem.synopsis) && (
+                    <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || currentItem.synopsis || ""}</p>
                   )}
 
                   {/* Coleção TMDB */}
@@ -1576,9 +1575,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
                         {collection.parts.map(p => (
                           <div key={p.id}
-                            onClick={() => p.id !== item.id && onOpenItem && onOpenItem(p)}
-                            style={{ flexShrink: 0, width: 70, cursor: p.id !== item.id ? "pointer" : "default", opacity: p.id === item.id ? 1 : 0.75, WebkitTapHighlightColor: "transparent" }}>
-                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === item.id ? `2px solid ${accent}` : "2px solid transparent" }}>
+                            onClick={() => p.id !== currentItem.id && pushItem(p)}
+                            style={{ flexShrink: 0, width: 70, cursor: p.id !== currentItem.id ? "pointer" : "default", opacity: p.id === currentItem.id ? 1 : 0.75, WebkitTapHighlightColor: "transparent" }}>
+                            <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(p.id), border: p.id === currentItem.id ? `2px solid ${accent}` : "2px solid transparent" }}>
                               {p.cover && <img src={p.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display="none"} />}
                             </div>
                             <p style={{ fontSize: 9, color: "#8b949e", marginTop: 3, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
@@ -1616,7 +1615,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
                         {recommendations.map(r => (
                           <div key={r.id}
-                            onClick={() => onOpenItem && onOpenItem(r)}
+                            onClick={() => pushItem(r)}
                             style={{ flexShrink: 0, width: 70, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                             <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(r.id) }}>
                               {r.cover && <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display="none"} />}
@@ -1635,7 +1634,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
                         {similarGames.map(g => (
                           <div key={g.id}
-                            onClick={() => onOpenItem && onOpenItem(g)}
+                            onClick={() => pushItem(g)}
                             style={{ flexShrink: 0, width: 70, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                             <div style={{ width: 70, height: 100, borderRadius: 8, overflow: "hidden", background: gradientFor(g.id) }}>
                               {g.cover && <img src={g.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display="none"} />}
@@ -1793,13 +1792,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                             {isFavorite ? "★ Favorito" : "☆ Favorito"}
                           </button>
                         )}
-                        <button onClick={() => onRemove(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
+                        <button onClick={() => onRemove(currentItem.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
                       </div>
                     </div>
-                    <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(item.id, v)} size={22} />
+                    <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={22} />
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
                       {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={() => onUpdateStatus(item.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
+                        <button key={s.id} onClick={() => onUpdateStatus(currentItem.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
                           {s.emoji} {statusLabel(s, lang)}
                         </button>
                       ))}
@@ -1807,8 +1806,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     {isChapterType && libItem.userStatus === "assistindo" && (
                       <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
-                        <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
-                        <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(item.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
+                        <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                        <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
                       </div>
                     )}
                   </>
@@ -1837,7 +1836,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     {coverEdit && inLib && (
       <CoverEditModal
         item={{ ...item, customCover: libItem.customCover }}
-        onSave={(url) => { onChangeCover(item.id, url); setCoverEdit(false); }}
+        onSave={(url) => { onChangeCover(currentItem.id, url); setCoverEdit(false); }}
         onClose={() => setCoverEdit(false)}
       />
     )}
@@ -1875,7 +1874,7 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
     <>
       <div className="media-grid">
         {visible.map((item) => (
-          <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
+          <MediaCard key={currentItem.id} item={item} library={library} onOpen={onOpen} accent={accent} />
         ))}
       </div>
       {visibleCount < items.length && (
@@ -1894,14 +1893,14 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
   const libItem = library[item.id];
   const inLib = !!libItem;
-  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
+  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || currentItem.cover || currentItem.thumbnailUrl;
   const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const handleError = (e) => {
-    if (item.coverFallback && e.currentTarget.src !== item.coverFallback) {
-      e.currentTarget.src = item.coverFallback;
+    if (currentItem.coverFallback && e.currentTarget.src !== currentItem.coverFallback) {
+      e.currentTarget.src = currentItem.coverFallback;
     } else {
       setImgError(true);
     }
@@ -1909,11 +1908,11 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
 
   return (
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
-      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
+      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(currentItem.id) }}>
         {coverSrc && !imgError ? (
           <img
             src={coverSrc}
-            alt={item.title}
+            alt={currentItem.title}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={handleError}
@@ -1921,15 +1920,15 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
           />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
-            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
+            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{currentItem.title.slice(0, 40)}</span>
           </div>
         )}
         {/* Badges — status + score sem ícone de tipo */}
         <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 3 }}>
-          {!inLib && item.score && (
+          {!inLib && currentItem.score && (
             <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-              ★ {item.score}
+              ★ {currentItem.score}
             </span>
           )}
           {status && status.id !== "completo" && (
@@ -1941,7 +1940,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
         {/* Hover rating overlay — desktop rico */}
         <div className="rating-hover no-tc">
           <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{item.title}</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{currentItem.title}</p>
             {libItem?.userRating > 0 ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 8 }}>
                 <span style={{ fontSize: 16, color: "#f59e0b" }}>★</span>
@@ -5549,12 +5548,23 @@ export default function TrackAll() {
       }
       if (lib) {
         setLibrary(lib);
+        // Tentar carregar do sessionStorage primeiro (sobrevive a reloads suaves)
+        try {
+          const cached = sessionStorage.getItem("trackall_personal_recos");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.length) { setPersonalRecos(parsed); personalRecosLoadedRef.current = true; }
+          }
+        } catch {}
         // Carregar recos personalizadas logo após ter a library — só uma vez
         if (!personalRecosLoadedRef.current && Object.keys(lib).length > 0) {
           personalRecosLoadedRef.current = true;
           const workerU = prof?.worker_url || DEFAULT_WORKER_URL;
           fetchPersonalizedRecos(lib, workerU).then(personal => {
-            if (personal?.length) setPersonalRecos(personal);
+            if (personal?.length) {
+              setPersonalRecos(personal);
+              try { sessionStorage.setItem("trackall_personal_recos", JSON.stringify(personal)); } catch {}
+            }
           });
         }
       }
