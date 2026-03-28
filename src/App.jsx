@@ -1788,7 +1788,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         {inLib && onToggleFavorite && (
-                          <button onClick={() => onToggleFavorite(item)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                          <button onClick={() => onToggleFavorite(currentItem)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
                             {isFavorite ? "★ Favorito" : "☆ Favorito"}
                           </button>
                         )}
@@ -1820,7 +1820,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={() => { onAdd(item, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
+                        <button key={s.id} onClick={() => { onAdd(currentItem, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
                           {s.emoji} {statusLabel(s, lang)}
                         </button>
                       ))}
@@ -1835,7 +1835,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     </div>
     {coverEdit && inLib && (
       <CoverEditModal
-        item={{ ...item, customCover: libItem.customCover }}
+        item={{ ...currentItem, customCover: libItem?.customCover }}
         onSave={(url) => { onChangeCover(currentItem.id, url); setCoverEdit(false); }}
         onClose={() => setCoverEdit(false)}
       />
@@ -3010,7 +3010,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                                       }
                                     </div>
                                   </div>
-                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                                  <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(currentItem); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
                               );
