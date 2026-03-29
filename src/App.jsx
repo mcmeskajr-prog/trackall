@@ -1144,7 +1144,7 @@ function CoverEditModal({item, onSave, onClose }) {
 
   return (
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 440, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal fade-in" style={{ maxWidth: 440, padding: 24, paddingBottom: isMobileDevice ? 32 : 24 }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ marginBottom: 20, fontSize: 18, fontWeight: 700 }}>🖼 Alterar Capa</h3>
         <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
           {/* Preview */}
@@ -1190,7 +1190,7 @@ function CoverEditModal({item, onSave, onClose }) {
             <p style={{ fontSize: 10, color: "#484f58", marginTop: 2 }}>{lang === "en" ? "Files are compressed automatically" : "Ficheiros são comprimidos automaticamente"}</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, paddingBottom: isMobileDevice ? 16 : 0 }}>
           <button className="btn-accent" style={{ flex: 1, padding: "12px" }} onClick={() => onSave(url)} disabled={loading}>
             {loading ? useT("compressing") : useT("saveProfile")}
           </button>
