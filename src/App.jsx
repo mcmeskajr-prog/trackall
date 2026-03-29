@@ -188,6 +188,46 @@ const supa = {
     const { data } = await supabase.from('tierlist_likes').select('tierlist_id').eq('user_id', userId);
     return (data || []).map(r => r.tierlist_id);
   },
+
+  // ── Collections ──
+  async getUserCollections(userId) {
+    const { data } = await supabase.from('collections')
+      .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    return data || [];
+  },
+  async createCollection(userId, { title, description, visibility, show_numbers, items }) {
+    const { data, error } = await supabase.from('collections')
+      .insert({ user_id: userId, title, description, visibility, show_numbers, items }).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  async updateCollection(id, { title, description, visibility, show_numbers, items }) {
+    const { error } = await supabase.from('collections')
+      .update({ title, description, visibility, show_numbers, items }).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  async deleteCollection(id) {
+    await supabase.from('collections').delete().eq('id', id);
+  },
+  async toggleCollectionLike(userId, collectionId) {
+    const { data: existing } = await supabase.from('collection_likes')
+      .select('user_id').eq('user_id', userId).eq('collection_id', collectionId).single();
+    if (existing) {
+      await supabase.from('collection_likes').delete().eq('user_id', userId).eq('collection_id', collectionId);
+      const { data: cl } = await supabase.from('collections').select('likes_count').eq('id', collectionId).single();
+      await supabase.from('collections').update({ likes_count: Math.max(0, (cl?.likes_count || 1) - 1) }).eq('id', collectionId);
+      return false;
+    } else {
+      await supabase.from('collection_likes').insert({ user_id: userId, collection_id: collectionId });
+      const { data: cl } = await supabase.from('collections').select('likes_count').eq('id', collectionId).single();
+      await supabase.from('collections').update({ likes_count: (cl?.likes_count || 0) + 1 }).eq('id', collectionId);
+      return true;
+    }
+  },
+  async getUserCollectionLikes(userId) {
+    const { data } = await supabase.from('collection_likes').select('collection_id').eq('user_id', userId);
+    return (data || []).map(r => r.collection_id);
+  },
 };
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
@@ -2297,6 +2337,416 @@ const TIER_LEVELS = [
   { id: "D", color: "#3b82f6" },
 ];
 
+// ─── Collection Components ────────────────────────────────────────────────────
+
+function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete }) {
+  const { accent, darkMode } = useTheme();
+  const items = col.items || [];
+  const covers = items.slice(0, 4).map(i => i.cover).filter(Boolean);
+
+  const rotations = [-6, -2, 2, 6];
+
+  return (
+    <div onClick={() => onOpen(col)} style={{
+      background: darkMode ? "#161b22" : "#f8fafc",
+      border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+      borderRadius: 14, padding: "14px 16px", cursor: "pointer",
+      transition: "transform 0.15s, box-shadow 0.15s",
+      display: "flex", flexDirection: "column", gap: 10,
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22`; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+    >
+      {/* Strip preview */}
+      <div style={{ position: "relative", height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {covers.length === 0 ? (
+          <div style={{ width: 52, height: 72, borderRadius: 8, background: `${accent}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📋</div>
+        ) : (
+          covers.map((src, i) => (
+            <div key={i} style={{
+              position: "absolute",
+              width: 48, height: 68,
+              borderRadius: 7,
+              overflow: "hidden",
+              border: `2px solid ${darkMode ? "#0d1117" : "#fff"}`,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
+              transform: `rotate(${rotations[i]}deg) translateX(${(i - (covers.length - 1) / 2) * 22}px)`,
+              zIndex: i,
+              background: "#21262d",
+            }}>
+              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Info */}
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 14, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 3, lineHeight: 1.2 }}>{col.title}</div>
+        <div style={{ fontSize: 11, color: "#8b949e", marginBottom: col.description ? 4 : 0 }}>
+          {items.length} {items.length === 1 ? "item" : "itens"} · {col.visibility === "private" ? "🔒 Privada" : col.visibility === "friends" ? "👥 Amigos" : "🌐 Pública"}
+        </div>
+        {col.description ? <div style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{col.description}</div> : null}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }} onClick={e => e.stopPropagation()}>
+        <button onClick={() => onLike(col.id)} style={{
+          background: liked ? `${accent}22` : "transparent",
+          border: `1px solid ${liked ? accent : "#30363d"}`,
+          color: liked ? accent : "#8b949e",
+          borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
+        }}>♥ {col.likes_count || 0}</button>
+        {currentUserId === col.user_id && (
+          <button onClick={() => onDelete(col.id)} style={{
+            background: "transparent", border: "1px solid #ef444433",
+            color: "#ef4444", borderRadius: 8, padding: "4px 10px",
+            fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+          }}>🗑</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [visibility, setVisibility] = useState(initialData?.visibility || "public");
+  const [showNumbers, setShowNumbers] = useState(initialData?.show_numbers || false);
+  const [colItems, setColItems] = useState(initialData?.items || []);
+  const [saving, setSaving] = useState(false);
+
+  // Search
+  const [searchQ, setSearchQ] = useState("");
+  const [searchType, setSearchType] = useState("library"); // library | character | person | comicchar
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchTimer = useRef(null);
+
+  const searchTypeOpts = [
+    { id: "library", label: "📚 Biblioteca" },
+    { id: "character", label: "⛩️ Personagem" },
+    { id: "person", label: "🎬 Ator/Realizador" },
+    { id: "comicchar", label: "💬 Comic Char" },
+  ];
+
+  useEffect(() => {
+    if (!searchQ.trim()) { setSearchResults([]); return; }
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => doSearch(searchQ.trim()), 400);
+    return () => clearTimeout(searchTimer.current);
+  }, [searchQ, searchType]);
+
+  const doSearch = async (q) => {
+    setSearchLoading(true);
+    try {
+      if (searchType === "library") {
+        const lower = q.toLowerCase();
+        const res = (library || []).filter(i => (i.title || "").toLowerCase().includes(lower)).slice(0, 20);
+        setSearchResults(res.map(i => ({ id: i.id, title: i.title, cover: i.cover, type: i.type, itemType: "media" })));
+      } else if (searchType === "character") {
+        const query = `query($q:String){Page(perPage:12){characters(search:$q){id name{full}image{large}media{nodes{title{romaji}type}}}}}`;
+        const resp = await fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, variables: { q } }) });
+        const data = await resp.json();
+        const chars = data?.data?.Page?.characters || [];
+        setSearchResults(chars.map(c => ({
+          id: `alchar-${c.id}`, title: c.name?.full, cover: c.image?.large,
+          subtitle: c.media?.nodes?.[0]?.title?.romaji || "",
+          itemType: "character",
+        })));
+      } else if (searchType === "person") {
+        const resp = await fetch(`${wUrl}/tmdb?endpoint=/search/person&query=${encodeURIComponent(q)}&language=pt-PT`);
+        const data = await resp.json();
+        const people = data?.results || [];
+        setSearchResults(people.slice(0, 12).map(p => ({
+          id: `tmdbperson-${p.id}`, title: p.name,
+          cover: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
+          subtitle: p.known_for_department || "",
+          itemType: "person",
+        })));
+      } else if (searchType === "comicchar") {
+        const resp = await fetch(`${wUrl}/comicvine-char?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        const chars = data?.results || [];
+        setSearchResults(chars.slice(0, 12).map(c => ({
+          id: `cvchar-${c.id}`, title: c.name,
+          cover: c.image?.medium_url || null,
+          subtitle: c.publisher?.name || "",
+          itemType: "comicchar",
+        })));
+      }
+    } catch (e) { setSearchResults([]); }
+    setSearchLoading(false);
+  };
+
+  const addItem = (item) => {
+    if (colItems.find(i => i.id === item.id)) return;
+    setColItems(prev => [...prev, { ...item, note: "", order: prev.length }]);
+    setSearchQ("");
+    setSearchResults([]);
+  };
+
+  const removeItem = (id) => setColItems(prev => prev.filter(i => i.id !== id));
+
+  const moveItem = (idx, dir) => {
+    setColItems(prev => {
+      const arr = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return arr;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      return arr;
+    });
+  };
+
+  const updateNote = (id, note) => setColItems(prev => prev.map(i => i.id === id ? { ...i, note } : i));
+
+  const handleSave = async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ title: title.trim(), description: description.trim(), visibility, show_numbers: showNumbers, items: colItems });
+      onClose();
+    } catch (e) { setSaving(false); }
+  };
+
+  const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
+
+  return (
+    <div className="modal-bg" onClick={onClose} style={isMobileDevice ? { paddingBottom: 64 } : {}}>
+      <div className="modal fade-in cover-modal" style={{ maxWidth: 560, padding: 0, display: "flex", flexDirection: "column", width: "100%" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>
+            {initialData ? "✏️ Editar Coleção" : "📋 Nova Coleção"}
+          </h3>
+          <input
+            placeholder="Nome da coleção..."
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 14, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }}
+          />
+          <textarea
+            placeholder="Descrição (opcional)..."
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={2}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, fontFamily: "inherit", resize: "none", marginBottom: 10, boxSizing: "border-box" }}
+          />
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {["public", "friends", "private"].map(v => (
+              <button key={v} onClick={() => setVisibility(v)} style={{
+                padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                background: visibility === v ? accent : "transparent",
+                border: `1px solid ${visibility === v ? accent : "#30363d"}`,
+                color: visibility === v ? "#fff" : "#8b949e",
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                {v === "public" ? "🌐 Pública" : v === "friends" ? "👥 Amigos" : "🔒 Privada"}
+              </button>
+            ))}
+            <button onClick={() => setShowNumbers(v => !v)} style={{
+              padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+              background: showNumbers ? `${accent}22` : "transparent",
+              border: `1px solid ${showNumbers ? accent : "#30363d"}`,
+              color: showNumbers ? accent : "#8b949e",
+              cursor: "pointer", fontFamily: "inherit",
+            }}>
+              # Números
+            </button>
+          </div>
+        </div>
+
+        {/* Body scrollável */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+          {/* Search */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+              {searchTypeOpts.map(opt => (
+                <button key={opt.id} onClick={() => { setSearchType(opt.id); setSearchQ(""); setSearchResults([]); }} style={{
+                  flexShrink: 0, padding: "5px 11px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                  background: searchType === opt.id ? accent : "transparent",
+                  border: `1px solid ${searchType === opt.id ? accent : "#30363d"}`,
+                  color: searchType === opt.id ? "#fff" : "#8b949e",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>{opt.label}</button>
+              ))}
+            </div>
+            <input
+              placeholder={searchType === "library" ? "Pesquisar na biblioteca..." : searchType === "character" ? "Pesquisar personagem AniList..." : searchType === "person" ? "Pesquisar ator/realizador..." : "Pesquisar personagem comic..."}
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+            />
+            {/* Results */}
+            {(searchLoading || searchResults.length > 0) && (
+              <div style={{ marginTop: 6, background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, maxHeight: 200, overflowY: "auto" }}>
+                {searchLoading ? (
+                  <div style={{ padding: "12px 16px", color: "#8b949e", fontSize: 13 }}>A pesquisar...</div>
+                ) : searchResults.map(r => {
+                  const already = colItems.some(i => i.id === r.id);
+                  return (
+                    <div key={r.id} onClick={() => !already && addItem(r)} style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                      cursor: already ? "default" : "pointer", opacity: already ? 0.5 : 1,
+                      borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+                    }}
+                      onMouseEnter={e => { if (!already) e.currentTarget.style.background = darkMode ? "#21262d" : "#e2e8f0"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = ""; }}
+                    >
+                      <div style={{ width: 32, height: 44, borderRadius: 5, overflow: "hidden", flexShrink: 0, background: "#21262d" }}>
+                        {r.cover ? <img src={r.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>{itemTypeIcon[r.itemType]}</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: darkMode ? "#e6edf3" : "#0d1117", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</div>
+                        {r.subtitle && <div style={{ fontSize: 11, color: "#8b949e" }}>{r.subtitle}</div>}
+                      </div>
+                      {already ? <span style={{ fontSize: 11, color: accent }}>✓ Adicionado</span> : <span style={{ fontSize: 18, color: accent }}>+</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Items list */}
+          {colItems.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "24px 0", color: "#484f58" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+              <p style={{ fontSize: 13 }}>Pesquisa e adiciona itens à coleção</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {colItems.map((item, idx) => (
+                <div key={item.id} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: darkMode ? "#0d1117" : "#f8fafc",
+                  border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+                  borderRadius: 10, padding: "8px 10px",
+                }}>
+                  {/* Cover */}
+                  <div style={{ width: 32, height: 44, borderRadius: 5, overflow: "hidden", flexShrink: 0, background: "#21262d" }}>
+                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>{itemTypeIcon[item.itemType]}</span>}
+                  </div>
+                  {/* Info + note */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {showNumbers && <span style={{ color: accent, marginRight: 5 }}>{idx + 1}.</span>}{item.title}
+                    </div>
+                    <input
+                      placeholder="Nota pessoal (opcional)..."
+                      value={item.note || ""}
+                      onChange={e => updateNote(item.id, e.target.value)}
+                      style={{ width: "100%", padding: "3px 7px", fontSize: 11, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  {/* Controls */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+                    <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} style={{ background: "none", border: "none", color: idx === 0 ? "#30363d" : "#8b949e", cursor: idx === 0 ? "default" : "pointer", fontSize: 13, padding: "1px 4px", lineHeight: 1 }}>▲</button>
+                    <button onClick={() => moveItem(idx, 1)} disabled={idx === colItems.length - 1} style={{ background: "none", border: "none", color: idx === colItems.length - 1 ? "#30363d" : "#8b949e", cursor: idx === colItems.length - 1 ? "default" : "pointer", fontSize: 13, padding: "1px 4px", lineHeight: 1 }}>▼</button>
+                  </div>
+                  <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, padding: "0 2px", flexShrink: 0 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "12px 24px", paddingBottom: isMobileDevice ? 24 : 14, borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10, flexShrink: 0 }}>
+          <button className="btn-accent" style={{ flex: 1, padding: "12px" }} onClick={handleSave} disabled={saving || !title.trim()}>
+            {saving ? "A guardar..." : "💾 Guardar Coleção"}
+          </button>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: darkMode ? "#21262d" : "#e2e8f0", border: "none", borderRadius: 10, color: darkMode ? "#e6edf3" : "#0d1117", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 14 }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit }) {
+  const { accent, darkMode, isMobileDevice } = useTheme();
+  const items = col.items || [];
+  const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade-in" style={{ maxWidth: 600, width: "100%", padding: 0, display: "flex", flexDirection: "column", maxHeight: isMobileDevice ? "88vh" : "85vh" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.2, flex: 1, marginRight: 12 }}>{col.title}</h2>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 20, padding: 0, lineHeight: 1 }}>✕</button>
+          </div>
+          {col.description ? <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10, lineHeight: 1.5 }}>{col.description}</p> : null}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => onLike(col.id)} style={{
+              background: liked ? `${accent}22` : "transparent",
+              border: `1px solid ${liked ? accent : "#30363d"}`,
+              color: liked ? accent : "#8b949e",
+              borderRadius: 8, padding: "5px 12px", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>♥ {col.likes_count || 0}</button>
+            <span style={{ fontSize: 12, color: "#8b949e" }}>{items.length} itens</span>
+            {currentUserId === col.user_id && (
+              <button onClick={() => onEdit(col)} style={{
+                background: "transparent", border: `1px solid ${accent}`, color: accent,
+                borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", marginLeft: "auto",
+              }}>✏️ Editar</button>
+            )}
+          </div>
+        </div>
+
+        {/* Grid 4 colunas */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+          {items.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>📋</div>
+              <p>Esta coleção está vazia</p>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {items.map((item, idx) => (
+                <div key={item.id} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <div style={{
+                    aspectRatio: item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar" ? "1" : "2/3",
+                    borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                  }}>
+                    {item.cover
+                      ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
+                    }
+                    {col.show_numbers && (
+                      <div style={{
+                        position: "absolute", bottom: 5, left: 5,
+                        background: "rgba(0,0,0,0.7)", color: "#fff",
+                        borderRadius: "50%", width: 20, height: 20,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 800,
+                      }}>{idx + 1}</div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.title}</div>
+                  {item.note && <div style={{ fontSize: 9, color: "#8b949e", textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>{item.note}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
@@ -2743,7 +3193,7 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -2984,7 +3434,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
 
       {/* ── Profile Tabs ── */}
       <div style={{ display: "flex", borderBottom: "1px solid #21262d", scrollbarWidth: "none" }}>
-        {["perfil","completos","tierlists","diario"].map(tab => (
+        {["perfil","completos","tierlists","listas","diario"].map(tab => (
           <button key={tab} onClick={() => setProfileTab(tab)} style={{
             flex: 1, padding: isMobileDevice ? "10px 4px" : "12px 20px",
             background: "none", border: "none",
@@ -2995,7 +3445,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             fontWeight: profileTab === tab ? 700 : 500,
             marginBottom: -1, whiteSpace: "nowrap",
           }}>
-            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : useT("tabDiario")}
+            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? "📋 Listas" : useT("tabDiario")}
           </button>
         ))}
       </div>
@@ -3654,6 +4104,40 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   liked={userLikes.includes(tl.id)}
                   currentUserId={currentUserId}
                   onDelete={onDeleteTierlist}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab Listas */}
+      {profileTab === "listas" && (
+        <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "#484f58" }}>{(userCollections || []).length} {(userCollections || []).length === 1 ? "lista" : "listas"}</p>
+            <button onClick={onCreateCollection} className="btn-accent" style={{ padding: "8px 18px", fontSize: 13 }}>
+              + Nova Lista
+            </button>
+          </div>
+          {(userCollections || []).length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+              <p style={{ color: "#484f58", fontSize: 14, marginBottom: 20 }}>Cria a tua primeira lista!</p>
+              <button onClick={onCreateCollection} className="btn-accent" style={{ padding: "10px 24px", fontSize: 14 }}>
+                + Criar Lista
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+              {(userCollections || []).map(col => (
+                <CollectionCard
+                  key={col.id} col={col}
+                  onOpen={onViewCollection}
+                  onLike={onLikeCollection}
+                  liked={(userCollectionLikes || []).includes(col.id)}
+                  currentUserId={currentUserId}
+                  onDelete={onDeleteCollection}
                 />
               ))}
             </div>
@@ -5544,6 +6028,11 @@ export default function TrackAll() {
   const [viewingTierlist, setViewingTierlist] = useState(null);
   const [editingTierlist, setEditingTierlist] = useState(null);
   const [showTierlistEditor, setShowTierlistEditor] = useState(false);
+  const [userCollections, setUserCollections] = useState([]);
+  const [userCollectionLikes, setUserCollectionLikes] = useState([]);
+  const [viewingCollection, setViewingCollection] = useState(null);
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [showCollectionEditor, setShowCollectionEditor] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -5637,6 +6126,9 @@ export default function TrackAll() {
     if (view === "profile" && user && userTierlists.length === 0) {
       loadUserTierlists();
     }
+    if (view === "profile" && user && userCollections.length === 0) {
+      loadUserCollections();
+    }
   }, [view, user]);
 
   const loadRecos = async (manual = false) => {
@@ -5700,6 +6192,16 @@ export default function TrackAll() {
     setUserLikes(likes);
   };
 
+  const loadUserCollections = async () => {
+    if (!user) return;
+    const [cols, colLikes] = await Promise.all([
+      supa.getUserCollections(user.id),
+      supa.getUserCollectionLikes(user.id),
+    ]);
+    setUserCollections(cols);
+    setUserCollectionLikes(colLikes);
+  };
+
   const handleTierlistLike = async (tierlistId) => {
     if (!user) return;
     const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
@@ -5713,6 +6215,34 @@ export default function TrackAll() {
   const handleDeleteTierlist = async (id) => {
     await supa.deleteTierlist(id);
     setUserTierlists(prev => prev.filter(tl => tl.id !== id));
+  };
+
+  const handleSaveCollection = async (colData) => {
+    if (!user) return;
+    if (editingCollection) {
+      await supa.updateCollection(editingCollection.id, colData);
+      setUserCollections(prev => prev.map(c => c.id === editingCollection.id ? { ...c, ...colData } : c));
+      if (viewingCollection?.id === editingCollection.id) setViewingCollection(prev => ({ ...prev, ...colData }));
+    } else {
+      const created = await supa.createCollection(user.id, colData);
+      setUserCollections(prev => [created, ...prev]);
+    }
+    setShowCollectionEditor(false);
+    setEditingCollection(null);
+  };
+
+  const handleCollectionLike = async (collectionId) => {
+    if (!user) return;
+    const isLiked = await supa.toggleCollectionLike(user.id, collectionId);
+    setUserCollectionLikes(prev => isLiked ? [...prev, collectionId] : prev.filter(id => id !== collectionId));
+    setUserCollections(prev => prev.map(c => c.id === collectionId ? { ...c, likes_count: (c.likes_count || 0) + (isLiked ? 1 : -1) } : c));
+    if (viewingCollection?.id === collectionId) setViewingCollection(prev => ({ ...prev, likes_count: (prev.likes_count || 0) + (isLiked ? 1 : -1) }));
+  };
+
+  const handleDeleteCollection = async (id) => {
+    await supa.deleteCollection(id);
+    setUserCollections(prev => prev.filter(c => c.id !== id));
+    if (viewingCollection?.id === id) setViewingCollection(null);
   };
 
   const handleAuth = async (u) => {
@@ -6526,7 +7056,7 @@ export default function TrackAll() {
             .media-grid .card { animation: none !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
             .modal { border-radius: 24px 24px 0 0 !important; max-height: 88vh !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
-            .cover-modal { overflow: hidden !important; display: flex !important; flex-direction: column !important; max-height: calc(88vh - 64px) !important; margin-bottom: 64px !important; }
+            .cover-modal { overflow: hidden !important; display: flex !important; flex-direction: column !important; max-height: calc(88vh - 64px) !important; }
             .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
             .modal-bottom-pad { padding-bottom: 80px !important; }
           }
@@ -7224,6 +7754,12 @@ export default function TrackAll() {
             onViewTierlist={setViewingTierlist}
             onLikeTierlist={handleTierlistLike}
             onDeleteTierlist={handleDeleteTierlist}
+            userCollections={userCollections}
+            userCollectionLikes={userCollectionLikes}
+            onCreateCollection={() => { setEditingCollection(null); setShowCollectionEditor(true); }}
+            onViewCollection={setViewingCollection}
+            onLikeCollection={handleCollectionLike}
+            onDeleteCollection={handleDeleteCollection}
             onSavedThemes={{ themes: savedThemes, save: saveSavedThemes }}
             onTmdbKey={saveTmdbKey}
             tmdbKey={tmdbKey}
@@ -7263,6 +7799,29 @@ export default function TrackAll() {
             onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
             workerUrl={workerUrl}
             tmdbKey={tmdbKey}
+          />
+        )}
+
+        {/* Collection Viewer */}
+        {viewingCollection && (
+          <CollectionViewer
+            col={viewingCollection}
+            onClose={() => setViewingCollection(null)}
+            onLike={handleCollectionLike}
+            liked={userCollectionLikes.includes(viewingCollection.id)}
+            currentUserId={user?.id}
+            onEdit={(col) => { setViewingCollection(null); setEditingCollection(col); setShowCollectionEditor(true); }}
+          />
+        )}
+
+        {/* Collection Editor */}
+        {showCollectionEditor && (
+          <CollectionModal
+            initialData={editingCollection}
+            library={Object.values(library)}
+            onSave={handleSaveCollection}
+            onClose={() => { setShowCollectionEditor(false); setEditingCollection(null); }}
+            workerUrl={workerUrl}
           />
         )}
 
