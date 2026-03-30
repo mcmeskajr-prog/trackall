@@ -2738,7 +2738,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileDevice ? 6 : 10 }}>
             {items.map((item, idx) => {
               const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
-              const clickable = !item.itemType || item.itemType === "media" || item.itemType === "character";
+              const clickable = (item.itemType === "media") || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-"))) || (item.itemType === "character" && !!item.mediaId);
               return (
                 <div key={item.id}
                   onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
@@ -7761,15 +7761,10 @@ export default function TrackAll() {
               currentUserId={user?.id}
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
-                if (!item.itemType || item.itemType === "media") {
+                if (item.itemType === "character" && item.mediaId) {
+                  setSelectedItem({ id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
+                } else if (item.itemType === "media" || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-")))) {
                   setSelectedItem(item);
-                } else if (item.itemType === "character") {
-                  if (item.mediaId) {
-                    setSelectedItem({ id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
-                  } else {
-                    // personagem sem mediaId — abre o próprio item para ver a imagem
-                    setSelectedItem(item);
-                  }
                 }
               }}
             />
