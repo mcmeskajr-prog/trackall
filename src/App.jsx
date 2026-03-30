@@ -2428,9 +2428,9 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
   ];
 
   useEffect(() => {
-    if (!searchQ.trim()) { setSearchResults([]); return; }
+    if (!searchQ.trim() || searchQ.trim().length < 2) { setSearchResults([]); setSearchError(false); return; }
     clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => doSearch(searchQ.trim()), 400);
+    searchTimer.current = setTimeout(() => doSearch(searchQ.trim()), 600);
     return () => clearTimeout(searchTimer.current);
   }, [searchQ, searchType]);
 
@@ -2443,16 +2443,18 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
         const res = (library || []).filter(i => (i.title || "").toLowerCase().includes(lower)).slice(0, 20);
         setSearchResults(res.map(i => ({ id: i.id, title: i.title, cover: i.cover, type: i.type, itemType: "media" })));
       } else if (searchType === "character") {
-        const charQuery = `query($q:String){Page(perPage:10){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
-        const mediaQuery = `query($q:String){Page(perPage:3){media(search:$q,sort:POPULARITY_DESC){id title{romaji}type characters(perPage:10){nodes{id name{full}image{large}}}}}}`;
         const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
-        const [charResult, mediaResult] = await Promise.allSettled([
-          fetch("https://graphql.anilist.co", { method: "POST", headers: aniHeaders, body: JSON.stringify({ query: charQuery, variables: { q } }) }).then(r => r.json()),
-          fetch("https://graphql.anilist.co", { method: "POST", headers: aniHeaders, body: JSON.stringify({ query: mediaQuery, variables: { q } }) }).then(r => r.json()),
-        ]);
-        const charData = charResult.status === "fulfilled" ? charResult.value : null;
-        const mediaData = mediaResult.status === "fulfilled" ? mediaResult.value : null;
-        const directChars = (charData?.data?.Page?.characters || []).map(c => {
+        // Query combinada: personagens E média na mesma request para evitar rate limit
+        const combinedQuery = `query($q:String){
+          chars: Page(perPage:8){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}
+          media: Page(perPage:3){media(search:$q,sort:POPULARITY_DESC){id title{romaji}type characters(perPage:8){nodes{id name{full}image{large}}}}}
+        }`;
+        const resp = await fetch("https://graphql.anilist.co", {
+          method: "POST", headers: aniHeaders,
+          body: JSON.stringify({ query: combinedQuery, variables: { q } }),
+        });
+        const data = await resp.json();
+        const directChars = (data?.data?.chars?.characters || []).map(c => {
           const firstMedia = c.media?.nodes?.[0];
           return {
             id: `alchar-${c.id}`, title: c.name?.full, cover: c.image?.large,
@@ -2463,7 +2465,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
           };
         });
         const mediaChars = [];
-        for (const media of (mediaData?.data?.Page?.media || [])) {
+        for (const media of (data?.data?.media?.media || [])) {
           for (const ch of (media.characters?.nodes || [])) {
             if (!mediaChars.find(x => x.id === `alchar-${ch.id}`) && !directChars.find(x => x.id === `alchar-${ch.id}`)) {
               mediaChars.push({ id: `alchar-${ch.id}`, title: ch.name?.full, cover: ch.image?.large, subtitle: media.title?.romaji || "", mediaId: `al-${media.id}`, mediaType: media.type === "MANGA" ? "manga" : "anime", itemType: "character" });
