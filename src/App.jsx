@@ -2417,6 +2417,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
   const [searchType, setSearchType] = useState("library"); // library | character | person | comicchar
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const searchTimer = useRef(null);
 
   const searchTypeOpts = [
@@ -2435,6 +2436,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
 
   const doSearch = async (q) => {
     setSearchLoading(true);
+    setSearchError(false);
     try {
       if (searchType === "library") {
         const lower = q.toLowerCase();
@@ -2443,12 +2445,13 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
       } else if (searchType === "character") {
         const charQuery = `query($q:String){Page(perPage:10){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
         const mediaQuery = `query($q:String){Page(perPage:3){media(search:$q,sort:POPULARITY_DESC){id title{romaji}type characters(perPage:10){nodes{id name{full}image{large}}}}}}`;
-        const [charResp, mediaResp] = await Promise.all([
-          fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: charQuery, variables: { q } }) }),
-          fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: mediaQuery, variables: { q } }) }),
+        const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
+        const [charResult, mediaResult] = await Promise.allSettled([
+          fetch("https://graphql.anilist.co", { method: "POST", headers: aniHeaders, body: JSON.stringify({ query: charQuery, variables: { q } }) }).then(r => r.json()),
+          fetch("https://graphql.anilist.co", { method: "POST", headers: aniHeaders, body: JSON.stringify({ query: mediaQuery, variables: { q } }) }).then(r => r.json()),
         ]);
-        const charData = await charResp.json();
-        const mediaData = await mediaResp.json();
+        const charData = charResult.status === "fulfilled" ? charResult.value : null;
+        const mediaData = mediaResult.status === "fulfilled" ? mediaResult.value : null;
         const directChars = (charData?.data?.Page?.characters || []).map(c => {
           const firstMedia = c.media?.nodes?.[0];
           return {
@@ -2492,7 +2495,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
           itemType: "comicchar",
         })));
       }
-    } catch (e) { setSearchResults([]); }
+    } catch (e) { setSearchResults([]); setSearchError(true); }
     setSearchLoading(false);
   };
 
@@ -2516,6 +2519,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
   };
 
   const updateNote = (id, note) => setColItems(prev => prev.map(i => i.id === id ? { ...i, note } : i));
+  const updateRating = (id, rating) => setColItems(prev => prev.map(i => i.id === id ? { ...i, rating: i.rating === rating ? 0 : rating } : i));
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -2595,10 +2599,14 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
             />
             {/* Results */}
-            {(searchLoading || searchResults.length > 0) && (
+            {(searchLoading || searchResults.length > 0 || (searchQ.trim() && !searchLoading && searchError) || (searchQ.trim() && !searchLoading && !searchError && searchResults.length === 0)) && (
               <div style={{ marginTop: 6, background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, maxHeight: 200, overflowY: "auto" }}>
                 {searchLoading ? (
                   <div style={{ padding: "12px 16px", color: "#8b949e", fontSize: 13 }}>A pesquisar...</div>
+                ) : searchError ? (
+                  <div style={{ padding: "12px 16px", color: "#ef4444", fontSize: 13 }}>Erro ao pesquisar. Verifica a ligação.</div>
+                ) : searchResults.length === 0 ? (
+                  <div style={{ padding: "12px 16px", color: "#8b949e", fontSize: 13 }}>Nenhum resultado para "{searchQ}"</div>
                 ) : searchResults.map(r => {
                   const already = colItems.some(i => i.id === r.id);
                   return (
@@ -2655,6 +2663,19 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
                       onChange={e => updateNote(item.id, e.target.value)}
                       style={{ width: "100%", padding: "3px 7px", fontSize: 11, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
                     />
+                    {/* Rating 1-10 */}
+                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginTop: 2 }}>
+                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                        <button key={n} onClick={() => updateRating(item.id, n)} style={{
+                          width: 18, height: 18, borderRadius: 4, border: "none",
+                          background: (item.rating || 0) >= n ? accent : (darkMode ? "#21262d" : "#e2e8f0"),
+                          color: (item.rating || 0) >= n ? "#fff" : "#8b949e",
+                          fontSize: 9, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                          padding: 0,
+                        }}>{n}</button>
+                      ))}
+                    </div>
                   </div>
                   {/* Controls */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
