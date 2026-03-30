@@ -2343,38 +2343,37 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
   const { accent, darkMode } = useTheme();
   const items = col.items || [];
   const covers = items.slice(0, 4).map(i => i.cover).filter(Boolean);
-
-  const rotations = [-6, -2, 2, 6];
-
+  const rotations = [-9, -3, 3, 9];
+  const n = covers.length;
   return (
     <div onClick={() => onOpen(col)} style={{
       background: darkMode ? "#161b22" : "#f8fafc",
       border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-      borderRadius: 14, padding: "14px 16px", cursor: "pointer",
+      borderRadius: 14, padding: "16px 16px 14px", cursor: "pointer",
       transition: "transform 0.15s, box-shadow 0.15s",
-      display: "flex", flexDirection: "column", gap: 10,
+      display: "flex", flexDirection: "column", gap: 12,
     }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
       {/* Strip preview */}
-      <div style={{ position: "relative", height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "relative", height: 110, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {covers.length === 0 ? (
-          <div style={{ width: 52, height: 72, borderRadius: 8, background: `${accent}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📋</div>
+          <div style={{ width: 70, height: 100, borderRadius: 8, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, border: `1px dashed ${accent}44` }}>📋</div>
         ) : (
           covers.map((src, i) => (
             <div key={i} style={{
               position: "absolute",
-              width: 48, height: 68,
-              borderRadius: 7,
+              width: 64, height: 92,
+              borderRadius: 8,
               overflow: "hidden",
-              border: `2px solid ${darkMode ? "#0d1117" : "#fff"}`,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
-              transform: `rotate(${rotations[i]}deg) translateX(${(i - (covers.length - 1) / 2) * 22}px)`,
+              border: `2.5px solid ${darkMode ? "#0d1117" : "#fff"}`,
+              boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
+              transform: `rotate(${rotations[i]}deg) translateX(${(i - (n - 1) / 2) * 34}px)`,
               zIndex: i,
               background: "#21262d",
             }}>
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
             </div>
           ))
         )}
@@ -2451,15 +2450,31 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
         const res = (library || []).filter(i => (i.title || "").toLowerCase().includes(lower)).slice(0, 20);
         setSearchResults(res.map(i => ({ id: i.id, title: i.title, cover: i.cover, type: i.type, itemType: "media" })));
       } else if (searchType === "character") {
-        const query = `query($q:String){Page(perPage:12){characters(search:$q){id name{full}image{large}media{nodes{title{romaji}type}}}}}`;
-        const resp = await fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, variables: { q } }) });
-        const data = await resp.json();
-        const chars = data?.data?.Page?.characters || [];
-        setSearchResults(chars.map(c => ({
+        const charQuery = `query($q:String){Page(perPage:10){characters(search:$q){id name{full}image{large}media{nodes{title{romaji}}}}}}`;
+        const mediaQuery = `query($q:String){Page(perPage:3){media(search:$q,sort:POPULARITY_DESC){id title{romaji}characters(perPage:10){nodes{id name{full}image{large}}}}}}`;
+        const [charResp, mediaResp] = await Promise.all([
+          fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: charQuery, variables: { q } }) }),
+          fetch("https://graphql.anilist.co", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: mediaQuery, variables: { q } }) }),
+        ]);
+        const charData = await charResp.json();
+        const mediaData = await mediaResp.json();
+        const directChars = (charData?.data?.Page?.characters || []).map(c => ({
           id: `alchar-${c.id}`, title: c.name?.full, cover: c.image?.large,
           subtitle: c.media?.nodes?.[0]?.title?.romaji || "",
           itemType: "character",
-        })));
+        }));
+        const mediaChars = [];
+        for (const media of (mediaData?.data?.Page?.media || [])) {
+          for (const ch of (media.characters?.nodes || [])) {
+            if (!mediaChars.find(x => x.id === `alchar-${ch.id}`) && !directChars.find(x => x.id === `alchar-${ch.id}`)) {
+              mediaChars.push({ id: `alchar-${ch.id}`, title: ch.name?.full, cover: ch.image?.large, subtitle: media.title?.romaji || "", itemType: "character" });
+            }
+          }
+        }
+        const merged = mediaChars.length > directChars.length
+          ? [...mediaChars, ...directChars].slice(0, 16)
+          : [...directChars, ...mediaChars].slice(0, 16);
+        setSearchResults(merged);
       } else if (searchType === "person") {
         const resp = await fetch(`${wUrl}/tmdb?endpoint=/search/person&query=${encodeURIComponent(q)}&language=pt-PT`);
         const data = await resp.json();
@@ -2467,7 +2482,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
         setSearchResults(people.slice(0, 12).map(p => ({
           id: `tmdbperson-${p.id}`, title: p.name,
           cover: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
-          subtitle: p.known_for_department || "",
+          subtitle: p.known_for_department === "Acting" ? "Ator/Atriz" : p.known_for_department || "",
           itemType: "person",
         })));
       } else if (searchType === "comicchar") {
@@ -2578,7 +2593,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
               ))}
             </div>
             <input
-              placeholder={searchType === "library" ? "Pesquisar na biblioteca..." : searchType === "character" ? "Pesquisar personagem AniList..." : searchType === "person" ? "Pesquisar ator/realizador..." : "Pesquisar personagem comic..."}
+              placeholder={searchType === "library" ? "Pesquisar na biblioteca..." : searchType === "character" ? "Nome do personagem ou da série/anime..." : searchType === "person" ? "Nome do ator ou realizador..." : "Nome do personagem comic..."}
               value={searchQ}
               onChange={e => setSearchQ(e.target.value)}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
@@ -2671,7 +2686,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
   );
 }
 
-function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit }) {
+function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, onOpenMedia }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
@@ -2713,32 +2728,44 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit }
               <p>Esta coleção está vazia</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-              {items.map((item, idx) => (
-                <div key={item.id} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <div style={{
-                    aspectRatio: item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar" ? "1" : "2/3",
-                    borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                  }}>
-                    {item.cover
-                      ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
-                    }
-                    {col.show_numbers && (
-                      <div style={{
-                        position: "absolute", bottom: 5, left: 5,
-                        background: "rgba(0,0,0,0.7)", color: "#fff",
-                        borderRadius: "50%", width: 20, height: 20,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 800,
-                      }}>{idx + 1}</div>
-                    )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+              {items.map((item, idx) => {
+                const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
+                const clickable = item.itemType === "media" || item.itemType === "character";
+                return (
+                  <div key={item.id}
+                    onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
+                    style={{ display: "flex", flexDirection: "column", gap: 5, cursor: clickable ? "pointer" : "default" }}
+                  >
+                    <div style={{
+                      aspectRatio: isChar ? "1" : "2/3",
+                      borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      transition: clickable ? "transform 0.15s" : "none",
+                    }}
+                      onMouseEnter={e => { if (clickable) e.currentTarget.style.transform = "scale(1.03)"; }}
+                      onMouseLeave={e => { if (clickable) e.currentTarget.style.transform = ""; }}
+                    >
+                      {item.cover
+                        ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
+                      }
+                      {col.show_numbers && (
+                        <div style={{
+                          position: "absolute", bottom: 5, left: 5,
+                          background: "rgba(0,0,0,0.75)", color: "#fff",
+                          borderRadius: "50%", width: 20, height: 20,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, fontWeight: 800,
+                        }}>{idx + 1}</div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.title}</div>
+                    {item.subtitle && <div style={{ fontSize: 9, color: accent, textAlign: "center", fontWeight: 600, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.subtitle}</div>}
+                    {item.note && <div style={{ fontSize: 9, color: "#8b949e", textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>{item.note}</div>}
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.title}</div>
-                  {item.note && <div style={{ fontSize: 9, color: "#8b949e", textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>{item.note}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -3445,7 +3472,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             fontWeight: profileTab === tab ? 700 : 500,
             marginBottom: -1, whiteSpace: "nowrap",
           }}>
-            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? "📋 Listas" : useT("tabDiario")}
+            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? (lang === "en" ? "Lists" : "Listas") : useT("tabDiario")}
           </button>
         ))}
       </div>
@@ -7811,6 +7838,7 @@ export default function TrackAll() {
             liked={userCollectionLikes.includes(viewingCollection.id)}
             currentUserId={user?.id}
             onEdit={(col) => { setViewingCollection(null); setEditingCollection(col); setShowCollectionEditor(true); }}
+            onOpenMedia={(item) => { if (item.itemType === "media") { setSelectedItem(item); } }}
           />
         )}
 
