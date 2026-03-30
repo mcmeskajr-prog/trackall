@@ -2692,7 +2692,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
 
   return (
-    <div className="modal-bg" onClick={onClose}>
+    <div className="modal-bg" onClick={onClose} style={isMobileDevice ? { paddingBottom: 0 } : {}}>
       <div className="modal fade-in" style={{ maxWidth: 600, width: "100%", padding: 0, display: "flex", flexDirection: "column", maxHeight: isMobileDevice ? "88vh" : "85vh" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
@@ -2728,18 +2728,18 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
               <p>Esta coleção está vazia</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
               {items.map((item, idx) => {
                 const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
                 const clickable = item.itemType === "media" || item.itemType === "character";
                 return (
                   <div key={item.id}
                     onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
-                    style={{ display: "flex", flexDirection: "column", gap: 5, cursor: clickable ? "pointer" : "default" }}
+                    style={{ display: "flex", flexDirection: "column", gap: 4, cursor: clickable ? "pointer" : "default" }}
                   >
                     <div style={{
                       aspectRatio: isChar ? "1" : "2/3",
-                      borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
+                      borderRadius: 7, overflow: "hidden", background: "#21262d", position: "relative",
                       boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                       transition: clickable ? "transform 0.15s" : "none",
                     }}
@@ -2747,7 +2747,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
                       onMouseLeave={e => { if (clickable) e.currentTarget.style.transform = ""; }}
                     >
                       {item.cover
-                        ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+                        ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: isChar ? "top" : "center" }} onError={e => { e.target.style.display = "none"; }} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
                       }
                       {col.show_numbers && (
@@ -3472,7 +3472,16 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             fontWeight: profileTab === tab ? 700 : 500,
             marginBottom: -1, whiteSpace: "nowrap",
           }}>
-            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? (lang === "en" ? "Lists" : "Listas") : useT("tabDiario")}
+            {tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? (
+              <span style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "center" }}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                  <rect x="0" y="1" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+                  <rect x="0" y="5" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+                  <rect x="0" y="9" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+                </svg>
+                {lang === "en" ? "Lists" : "Listas"}
+              </span>
+            ) : useT("tabDiario")}
           </button>
         ))}
       </div>
