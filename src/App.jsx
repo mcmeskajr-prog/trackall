@@ -2373,7 +2373,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
               zIndex: i,
               background: "#21262d",
             }}>
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} onError={e => { e.target.style.display = "none"; }} />
             </div>
           ))
         )}
@@ -2690,85 +2690,95 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
   const { accent, darkMode, isMobileDevice } = useTheme();
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
+  const cols = isMobileDevice ? 3 : 5;
 
   return (
-    <div className="modal-bg" onClick={onClose} style={isMobileDevice ? { paddingBottom: 0 } : {}}>
-      <div className="modal fade-in" style={{ maxWidth: 600, width: "100%", padding: 0, display: "flex", flexDirection: "column", maxHeight: isMobileDevice ? "88vh" : "85vh" }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.2, flex: 1, marginRight: 12 }}>{col.title}</h2>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 20, padding: 0, lineHeight: 1 }}>✕</button>
-          </div>
-          {col.description ? <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 10, lineHeight: 1.5 }}>{col.description}</p> : null}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={() => onLike(col.id)} style={{
-              background: liked ? `${accent}22` : "transparent",
-              border: `1px solid ${liked ? accent : "#30363d"}`,
-              color: liked ? accent : "#8b949e",
-              borderRadius: 8, padding: "5px 12px", fontSize: 13, fontWeight: 700,
+    <div className="fade-in view-transition" style={{ minHeight: "100vh", background: "transparent" }}>
+      {/* Header */}
+      <div style={{
+        padding: isMobileDevice ? "16px 16px 12px" : "24px 32px 16px",
+        borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        {/* Back + actions row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", color: accent,
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13,
+            fontWeight: 700, padding: 0, display: "flex", alignItems: "center", gap: 4,
+          }}>← {isMobileDevice ? "" : "Voltar"}</button>
+          <h2 style={{ flex: 1, fontSize: isMobileDevice ? 18 : 22, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.2, margin: 0 }}>{col.title}</h2>
+          {currentUserId === col.user_id && (
+            <button onClick={() => onEdit(col)} style={{
+              background: "transparent", border: `1px solid ${accent}`, color: accent,
+              borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",
-            }}>♥ {col.likes_count || 0}</button>
-            <span style={{ fontSize: 12, color: "#8b949e" }}>{items.length} itens</span>
-            {currentUserId === col.user_id && (
-              <button onClick={() => onEdit(col)} style={{
-                background: "transparent", border: `1px solid ${accent}`, color: accent,
-                borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
-                cursor: "pointer", fontFamily: "inherit", marginLeft: "auto",
-              }}>✏️ Editar</button>
-            )}
-          </div>
-        </div>
-
-        {/* Grid 4 colunas */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-          {items.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "#484f58" }}>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>📋</div>
-              <p>Esta coleção está vazia</p>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-              {items.map((item, idx) => {
-                const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
-                const clickable = item.itemType === "media" || item.itemType === "character";
-                return (
-                  <div key={item.id}
-                    onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
-                    style={{ display: "flex", flexDirection: "column", gap: 4, cursor: clickable ? "pointer" : "default" }}
-                  >
-                    <div style={{
-                      aspectRatio: isChar ? "1" : "2/3",
-                      borderRadius: 7, overflow: "hidden", background: "#21262d", position: "relative",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                      transition: clickable ? "transform 0.15s" : "none",
-                    }}
-                      onMouseEnter={e => { if (clickable) e.currentTarget.style.transform = "scale(1.03)"; }}
-                      onMouseLeave={e => { if (clickable) e.currentTarget.style.transform = ""; }}
-                    >
-                      {item.cover
-                        ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: isChar ? "top" : "center" }} onError={e => { e.target.style.display = "none"; }} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
-                      }
-                      {col.show_numbers && (
-                        <div style={{
-                          position: "absolute", bottom: 5, left: 5,
-                          background: "rgba(0,0,0,0.75)", color: "#fff",
-                          borderRadius: "50%", width: 20, height: 20,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 10, fontWeight: 800,
-                        }}>{idx + 1}</div>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.title}</div>
-                    {item.subtitle && <div style={{ fontSize: 9, color: accent, textAlign: "center", fontWeight: 600, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.subtitle}</div>}
-                    {item.note && <div style={{ fontSize: 9, color: "#8b949e", textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>{item.note}</div>}
-                  </div>
-                );
-              })}
-            </div>
+            }}>✏️ Editar</button>
           )}
         </div>
+        {/* Meta row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => onLike(col.id)} style={{
+            background: liked ? `${accent}22` : "transparent",
+            border: `1px solid ${liked ? accent : "#30363d"}`,
+            color: liked ? accent : "#8b949e",
+            borderRadius: 8, padding: "5px 12px", fontSize: 13, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>♥ {col.likes_count || 0}</button>
+          <span style={{ fontSize: 12, color: "#8b949e" }}>{items.length} {items.length === 1 ? "item" : "itens"}</span>
+          <span style={{ fontSize: 11, color: "#8b949e" }}>{col.visibility === "private" ? "🔒 Privada" : col.visibility === "friends" ? "👥 Amigos" : "🌐 Pública"}</span>
+        </div>
+        {col.description ? <p style={{ fontSize: 13, color: "#8b949e", margin: 0, lineHeight: 1.5 }}>{col.description}</p> : null}
+      </div>
+
+      {/* Grid */}
+      <div style={{ padding: isMobileDevice ? "12px 10px" : "20px 32px", paddingBottom: isMobileDevice ? 90 : 32 }}>
+        {items.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+            <p style={{ fontSize: 14 }}>Esta coleção está vazia</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileDevice ? 6 : 10 }}>
+            {items.map((item, idx) => {
+              const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
+              const clickable = item.itemType === "media" || item.itemType === "character";
+              return (
+                <div key={item.id}
+                  onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
+                  style={{ display: "flex", flexDirection: "column", gap: 5, cursor: clickable ? "pointer" : "default" }}
+                >
+                  <div style={{
+                    aspectRatio: isChar ? "1" : "2/3",
+                    borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    transition: clickable ? "transform 0.15s" : "none",
+                  }}
+                    onMouseEnter={e => { if (clickable) e.currentTarget.style.transform = "scale(1.03)"; }}
+                    onMouseLeave={e => { if (clickable) e.currentTarget.style.transform = ""; }}
+                  >
+                    {item.cover
+                      ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: isChar ? "top center" : "center" }} onError={e => { e.target.style.display = "none"; }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{itemTypeIcon[item.itemType] || "🎬"}</div>
+                    }
+                    {col.show_numbers && (
+                      <div style={{
+                        position: "absolute", bottom: 5, left: 5,
+                        background: "rgba(0,0,0,0.75)", color: "#fff",
+                        borderRadius: "50%", width: 20, height: 20,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 800,
+                      }}>{idx + 1}</div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: isMobileDevice ? 10 : 11, fontWeight: 700, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.title}</div>
+                  {item.subtitle && <div style={{ fontSize: isMobileDevice ? 9 : 10, color: accent, textAlign: "center", fontWeight: 600, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.subtitle}</div>}
+                  {item.note && <div style={{ fontSize: 9, color: "#8b949e", textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>{item.note}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -7744,6 +7754,19 @@ export default function TrackAll() {
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )
         )}
+        {view === "collection" && viewingCollection && (
+          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+            <CollectionViewer
+              col={viewingCollection}
+              onClose={() => { setViewingCollection(null); setView("profile"); }}
+              onLike={handleCollectionLike}
+              liked={userCollectionLikes.includes(viewingCollection.id)}
+              currentUserId={user?.id}
+              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
+              onOpenMedia={(item) => { if (item.itemType === "media") setSelectedItem(item); }}
+            />
+          </div>
+        )}
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
@@ -7793,7 +7816,7 @@ export default function TrackAll() {
             userCollections={userCollections}
             userCollectionLikes={userCollectionLikes}
             onCreateCollection={() => { setEditingCollection(null); setShowCollectionEditor(true); }}
-            onViewCollection={setViewingCollection}
+            onViewCollection={(col) => { setViewingCollection(col); setView("collection"); }}
             onLikeCollection={handleCollectionLike}
             onDeleteCollection={handleDeleteCollection}
             onSavedThemes={{ themes: savedThemes, save: saveSavedThemes }}
@@ -7835,19 +7858,6 @@ export default function TrackAll() {
             onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
             workerUrl={workerUrl}
             tmdbKey={tmdbKey}
-          />
-        )}
-
-        {/* Collection Viewer */}
-        {viewingCollection && (
-          <CollectionViewer
-            col={viewingCollection}
-            onClose={() => setViewingCollection(null)}
-            onLike={handleCollectionLike}
-            liked={userCollectionLikes.includes(viewingCollection.id)}
-            currentUserId={user?.id}
-            onEdit={(col) => { setViewingCollection(null); setEditingCollection(col); setShowCollectionEditor(true); }}
-            onOpenMedia={(item) => { if (item.itemType === "media") { setSelectedItem(item); } }}
           />
         )}
 
