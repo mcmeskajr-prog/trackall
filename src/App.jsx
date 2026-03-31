@@ -2444,38 +2444,27 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
         setSearchResults(res.map(i => ({ id: i.id, title: i.title, cover: i.cover, type: i.type, itemType: "media" })));
       } else if (searchType === "character") {
         const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
-        // Query combinada: personagens E média na mesma request para evitar rate limit
-        const combinedQuery = `query($q:String){
-          chars: Page(perPage:8){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}
-          media: Page(perPage:3){media(search:$q,sort:POPULARITY_DESC){id title{romaji}type characters(perPage:8){nodes{id name{full}image{large}}}}}
-        }`;
+        const charQuery = `query($q:String){Page(perPage:15){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
         const resp = await fetch("https://graphql.anilist.co", {
           method: "POST", headers: aniHeaders,
-          body: JSON.stringify({ query: combinedQuery, variables: { q } }),
+          body: JSON.stringify({ query: charQuery, variables: { q } }),
         });
+        if (!resp.ok) throw new Error(`AniList ${resp.status}`);
         const data = await resp.json();
-        const directChars = (data?.data?.chars?.characters || []).map(c => {
+        if (data.errors) throw new Error(data.errors[0]?.message || "AniList error");
+        const chars = (data?.data?.Page?.characters || []).map(c => {
           const firstMedia = c.media?.nodes?.[0];
           return {
-            id: `alchar-${c.id}`, title: c.name?.full, cover: c.image?.large,
+            id: `alchar-${c.id}`,
+            title: c.name?.full,
+            cover: c.image?.large,
             subtitle: firstMedia?.title?.romaji || "",
             mediaId: firstMedia ? `al-${firstMedia.id}` : null,
             mediaType: firstMedia?.type === "MANGA" ? "manga" : "anime",
             itemType: "character",
           };
         });
-        const mediaChars = [];
-        for (const media of (data?.data?.media?.media || [])) {
-          for (const ch of (media.characters?.nodes || [])) {
-            if (!mediaChars.find(x => x.id === `alchar-${ch.id}`) && !directChars.find(x => x.id === `alchar-${ch.id}`)) {
-              mediaChars.push({ id: `alchar-${ch.id}`, title: ch.name?.full, cover: ch.image?.large, subtitle: media.title?.romaji || "", mediaId: `al-${media.id}`, mediaType: media.type === "MANGA" ? "manga" : "anime", itemType: "character" });
-            }
-          }
-        }
-        const merged = mediaChars.length > directChars.length
-          ? [...mediaChars, ...directChars].slice(0, 16)
-          : [...directChars, ...mediaChars].slice(0, 16);
-        setSearchResults(merged);
+        setSearchResults(chars);
       } else if (searchType === "person") {
         const resp = await fetch(`${wUrl}/tmdb?endpoint=/search/person&query=${encodeURIComponent(q)}&language=pt-PT`);
         const data = await resp.json();
@@ -2497,7 +2486,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
           itemType: "comicchar",
         })));
       }
-    } catch (e) { setSearchResults([]); setSearchError(true); }
+    } catch (e) { console.error("[CollectionSearch]", e); setSearchResults([]); setSearchError(true); }
     setSearchLoading(false);
   };
 
