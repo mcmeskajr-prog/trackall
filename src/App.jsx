@@ -2459,7 +2459,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
             title: c.name?.full,
             cover: c.image?.large,
             subtitle: firstMedia?.title?.romaji || "",
-            mediaId: firstMedia ? `al-${firstMedia.id}` : null,
+            mediaId: firstMedia ? `al-${firstMedia.type === "MANGA" ? "manga" : "anime"}-${firstMedia.id}` : null,
             mediaType: firstMedia?.type === "MANGA" ? "manga" : "anime",
             itemType: "character",
           };
@@ -7111,7 +7111,7 @@ export default function TrackAll() {
             .media-grid .card { animation: none !important; }
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
             .modal { border-radius: 24px 24px 0 0 !important; max-height: 88vh !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
-            .cover-modal { overflow: hidden !important; display: flex !important; flex-direction: column !important; max-height: calc(88vh - 64px) !important; }
+            .cover-modal { overflow: hidden !important; display: flex !important; flex-direction: column !important; max-height: calc(88vh - 64px) !important; margin-bottom: 64px !important; }
             .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
             .modal-bottom-pad { padding-bottom: 80px !important; }
           }
