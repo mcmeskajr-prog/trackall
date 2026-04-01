@@ -7774,9 +7774,12 @@ export default function TrackAll() {
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
                 if (item.itemType === "character" && item.mediaId) {
-                  setSelectedItem({ id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
+                  // Procurar na biblioteca para ter capa e rating
+                  const libItem = Object.values(library).find(l => l.id === item.mediaId);
+                  setSelectedItem(libItem || { id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
                 } else if (item.itemType === "media" || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-")))) {
-                  setSelectedItem(item);
+                  const libItem = Object.values(library).find(l => l.id === item.id);
+                  setSelectedItem(libItem || item);
                 }
               }}
             />
