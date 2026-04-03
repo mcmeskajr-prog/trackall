@@ -7775,10 +7775,14 @@ export default function TrackAll() {
               onOpenMedia={(item) => {
                 const findInLib = (id) => {
                   if (!id) return null;
+                  // Tenta direto
                   if (library[id]) return library[id];
-                  // Tenta variantes do id (al-123 -> al-anime-123, al-manga-123)
-                  const numId = id.replace(/^al-/, "");
-                  return library[`al-anime-${numId}`] || library[`al-manga-${numId}`] || null;
+                  // Extrai só o número do final (al-123, al-anime-123, al-manga-123 -> 123)
+                  const numMatch = id.match(/(\d+)$/);
+                  if (!numMatch) return null;
+                  const num = numMatch[1];
+                  return library[`al-anime-${num}`] || library[`al-manga-${num}`] ||
+                         library[`al-${num}`] || null;
                 };
                 if (item.itemType === "character" && item.mediaId) {
                   const libItem = findInLib(item.mediaId);
