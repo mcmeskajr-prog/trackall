@@ -1296,9 +1296,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     const ci = currentItem;
     if (!ci?.id) return;
 
-    // Usar cache se disponível (evita loading ao navegar para trás)
+    // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
     const cached = detailCacheRef.current[ci.id];
-    if (cached) {
+    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters)) {
       setDetailExtra(cached.detailExtra ?? {});
       setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
@@ -1327,11 +1327,15 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => {
       setDetailExtra(d || {});
       setDetailLoading(false);
-      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d || {} };
-    }).catch(() => {
+      // Só guarda no cache se tiver dados reais
+      if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters)) {
+        detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
+      }
+    }).catch((err) => {
+      console.error('[DetailModal] fetchMediaDetails falhou:', ci.id, err);
       setDetailExtra({});
       setDetailLoading(false);
-      detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: {} };
+      // Não guarda erro no cache para permitir retry
     });
 
     fetchExtraData(ci);
