@@ -7773,12 +7773,18 @@ export default function TrackAll() {
               currentUserId={user?.id}
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
+                const findInLib = (id) => {
+                  if (!id) return null;
+                  if (library[id]) return library[id];
+                  // Tenta variantes do id (al-123 -> al-anime-123, al-manga-123)
+                  const numId = id.replace(/^al-/, "");
+                  return library[`al-anime-${numId}`] || library[`al-manga-${numId}`] || null;
+                };
                 if (item.itemType === "character" && item.mediaId) {
-                  // Procurar na biblioteca para ter capa e rating
-                  const libItem = Object.values(library).find(l => l.id === item.mediaId);
+                  const libItem = findInLib(item.mediaId);
                   setSelectedItem(libItem || { id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
                 } else if (item.itemType === "media" || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-")))) {
-                  const libItem = Object.values(library).find(l => l.id === item.id);
+                  const libItem = findInLib(item.id);
                   setSelectedItem(libItem || item);
                 }
               }}
