@@ -2690,6 +2690,32 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
   const cols = isMobileDevice ? 3 : 5;
+  const [selectedChar, setSelectedChar] = useState(null);
+  const [charData, setCharData] = useState(null);
+  const [charLoading, setCharLoading] = useState(false);
+
+  const handleItemClick = (item) => {
+    if (item.itemType === "media" || (!item.itemType && item.id)) {
+      onOpenMedia && onOpenMedia(item);
+    } else if (item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar") {
+      setSelectedChar(item);
+      setCharData(null);
+      // Fetch AniList character data if it's an AniList character
+      const alCharId = item.id?.startsWith("alchar-") ? item.id.replace("alchar-", "") : null;
+      if (alCharId) {
+        setCharLoading(true);
+        const query = `query($id:Int){Character(id:$id){description(asHtml:false) age gender dateOfBirth{year month day} media(perPage:6,sort:POPULARITY_DESC){nodes{id title{romaji}coverImage{medium}type format}}}}`;
+        fetch("https://graphql.anilist.co", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ query, variables: { id: parseInt(alCharId) } }),
+        }).then(r => r.json()).then(d => {
+          setCharData(d?.data?.Character || null);
+          setCharLoading(false);
+        }).catch(() => setCharLoading(false));
+      }
+    }
+  };
 
   return (
     <div className="fade-in view-transition" style={{ minHeight: "100vh", background: "transparent" }}>
@@ -2741,20 +2767,20 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileDevice ? 6 : 10 }}>
             {items.map((item, idx) => {
               const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
-              const clickable = (item.itemType === "media") || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-"))) || (item.itemType === "character" && !!item.mediaId);
+              const clickable = true;
               return (
                 <div key={item.id}
-                  onClick={() => clickable && onOpenMedia && onOpenMedia(item)}
-                  style={{ display: "flex", flexDirection: "column", gap: 5, cursor: clickable ? "pointer" : "default" }}
+                  onClick={() => handleItemClick(item)}
+                  style={{ display: "flex", flexDirection: "column", gap: 5, cursor: "pointer" }}
                 >
                   <div style={{
                     aspectRatio: "2/3",
                     borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                    transition: clickable ? "transform 0.15s" : "none",
+                    transition: "transform 0.15s",
                   }}
-                    onMouseEnter={e => { if (clickable) e.currentTarget.style.transform = "scale(1.03)"; }}
-                    onMouseLeave={e => { if (clickable) e.currentTarget.style.transform = ""; }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.03)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ""; }}
                   >
                     {item.cover
                       ? <img src={item.cover} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} onError={e => { e.target.style.display = "none"; }} />
@@ -2779,6 +2805,85 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
           </div>
         )}
       </div>
+
+      {/* Modal de personagem */}
+      {selectedChar && (
+        <div className="modal-bg" onClick={() => { setSelectedChar(null); setCharData(null); }} style={{ zIndex: 200 }}>
+          <div className="modal fade-in" style={{ maxWidth: 420, width: "95%", padding: 0, overflow: "hidden", maxHeight: "88vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+            {/* Header com imagem + nome */}
+            <div style={{ display: "flex", gap: 0, position: "relative", background: "#0d1117", flexShrink: 0 }}>
+              {/* Imagem */}
+              <div style={{ width: 120, minHeight: 160, flexShrink: 0, background: "#21262d" }}>
+                {selectedChar.cover
+                  ? <img src={selectedChar.cover} alt={selectedChar.title} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+                  : <div style={{ width: "100%", height: 160, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>👤</div>
+                }
+              </div>
+              {/* Info direita */}
+              <div style={{ flex: 1, padding: "16px 16px 16px 16px", display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", lineHeight: 1.2 }}>{selectedChar.title}</div>
+                {selectedChar.subtitle && <div style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{selectedChar.subtitle}</div>}
+                {charData?.age && <div style={{ fontSize: 11, color: "#8b949e" }}>Idade: {charData.age}</div>}
+                {charData?.gender && <div style={{ fontSize: 11, color: "#8b949e" }}>Género: {charData.gender}</div>}
+                {selectedChar.note && <div style={{ fontSize: 11, color: "#8b949e", fontStyle: "italic", lineHeight: 1.4, marginTop: 4 }}>"{selectedChar.note}"</div>}
+              </div>
+              <button onClick={() => { setSelectedChar(null); setCharData(null); }} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            </div>
+
+            {/* Body scrollável */}
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {charLoading ? (
+                <div style={{ padding: "24px", textAlign: "center", color: "#8b949e", fontSize: 13 }}>
+                  <span className="spin" style={{ fontSize: 20, display: "inline-block" }}>◌</span>
+                </div>
+              ) : (
+                <>
+                  {/* Descrição */}
+                  {charData?.description && (
+                    <div style={{ padding: "14px 16px 0" }}>
+                      <p style={{ fontSize: 12, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 6, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {charData.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim()}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Obras */}
+                  {charData?.media?.nodes?.length > 0 && (
+                    <div style={{ padding: "14px 16px 20px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Aparece em</div>
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+                        {charData.media.nodes.map(m => {
+                          const mType = m.type === "MANGA" ? "manga" : "anime";
+                          const mId = `al-${mType}-${m.id}`;
+                          return (
+                            <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType }); }} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
+                              <div style={{ width: 72, height: 100, borderRadius: 7, overflow: "hidden", background: "#21262d", marginBottom: 4 }}>
+                                {m.coverImage?.medium
+                                  ? <img src={m.coverImage.medium} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎬</div>
+                                }
+                              </div>
+                              <div style={{ fontSize: 9, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{m.title?.romaji}</div>
+                              <div style={{ fontSize: 8, color: accent, textAlign: "center", fontWeight: 700, textTransform: "uppercase", marginTop: 1 }}>{m.format?.replace("_", " ")}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sem dados AniList — só para personagens não-AniList */}
+                  {!charData && !charLoading && !selectedChar.id?.startsWith("alchar-") && (
+                    <div style={{ padding: "20px 16px", color: "#8b949e", fontSize: 12, textAlign: "center" }}>
+                      {selectedChar.subtitle && <p>De: {selectedChar.subtitle}</p>}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
