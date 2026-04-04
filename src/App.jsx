@@ -2687,12 +2687,23 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
 
 function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, onOpenMedia }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
   const cols = isMobileDevice ? 3 : 5;
   const [selectedChar, setSelectedChar] = useState(null);
   const [charData, setCharData] = useState(null);
   const [charLoading, setCharLoading] = useState(false);
+
+  const cleanDesc = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/__([^_]+)__/g, "$1")           // __bold__ → bold
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) → text
+      .replace(/<[^>]*>/g, "")                  // html tags
+      .replace(/\n+/g, " ")
+      .trim();
+  };
 
   const handleItemClick = (item) => {
     if (item.itemType === "media" || (!item.itemType && item.id)) {
@@ -2823,8 +2834,8 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
               <div style={{ flex: 1, padding: "16px 16px 16px 16px", display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
                 <div style={{ fontSize: 18, fontWeight: 900, color: "#e6edf3", lineHeight: 1.2 }}>{selectedChar.title}</div>
                 {selectedChar.subtitle && <div style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{selectedChar.subtitle}</div>}
-                {charData?.age && <div style={{ fontSize: 11, color: "#8b949e" }}>Idade: {charData.age}</div>}
-                {charData?.gender && <div style={{ fontSize: 11, color: "#8b949e" }}>Género: {charData.gender}</div>}
+                {charData?.age && <div style={{ fontSize: 11, color: "#8b949e" }}>{lang === "en" ? "Age" : "Idade"}: {charData.age}</div>}
+                {charData?.gender && <div style={{ fontSize: 11, color: "#8b949e" }}>{lang === "en" ? "Gender" : "Género"}: {charData.gender}</div>}
                 {selectedChar.note && <div style={{ fontSize: 11, color: "#8b949e", fontStyle: "italic", lineHeight: 1.4, marginTop: 4 }}>"{selectedChar.note}"</div>}
               </div>
               <button onClick={() => { setSelectedChar(null); setCharData(null); }} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
@@ -2842,7 +2853,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
                   {charData?.description && (
                     <div style={{ padding: "14px 16px 0" }}>
                       <p style={{ fontSize: 12, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 6, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                        {charData.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim()}
+                        {cleanDesc(charData.description)}
                       </p>
                     </div>
                   )}
@@ -2850,13 +2861,13 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
                   {/* Obras */}
                   {charData?.media?.nodes?.length > 0 && (
                     <div style={{ padding: "14px 16px 20px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Aparece em</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{lang === "en" ? "Appears in" : "Aparece em"}</div>
                       <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
                         {charData.media.nodes.map(m => {
                           const mType = m.type === "MANGA" ? "manga" : "anime";
                           const mId = `al-${mType}-${m.id}`;
                           return (
-                            <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType }); }} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
+                            <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType, cover: m.coverImage?.medium }); }} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
                               <div style={{ width: 72, height: 100, borderRadius: 7, overflow: "hidden", background: "#21262d", marginBottom: 4 }}>
                                 {m.coverImage?.medium
                                   ? <img src={m.coverImage.medium} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -7869,20 +7880,16 @@ export default function TrackAll() {
               currentUserId={user?.id}
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
-                if (item.itemType === "character" && item.mediaId) {
-                  // Procura na biblioteca para obter capa/rating — testa todas as variantes do id
-                  const num = item.mediaId.match(/(\d+)$/)?.[1];
-                  const libItem = num
-                    ? (library[item.mediaId] || library[`al-anime-${num}`] || library[`al-manga-${num}`])
-                    : library[item.mediaId];
-                  if (libItem) {
-                    setSelectedItem(libItem);
-                  } else {
-                    // Não está na biblioteca — abre pelo mediaId, o DetailModal faz fetch
-                    setSelectedItem({ id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
-                  }
-                } else if (item.itemType === "media" || !item.itemType) {
-                  setSelectedItem(library[item.id] || item);
+                // Procura na biblioteca pelo id — testa variantes
+                const num = item.id?.match(/(\d+)$/)?.[1];
+                const libItem = library[item.id]
+                  || (num && (library[`al-anime-${num}`] || library[`al-manga-${num}`]));
+                // Se está na biblioteca, abre com todos os dados
+                if (libItem) {
+                  setSelectedItem(libItem);
+                } else {
+                  // Não está — abre com os dados que temos (id + title + cover)
+                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
                 }
               }}
             />
