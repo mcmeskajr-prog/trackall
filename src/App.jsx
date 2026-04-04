@@ -2658,19 +2658,6 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
                       onChange={e => updateNote(item.id, e.target.value)}
                       style={{ width: "100%", padding: "3px 7px", fontSize: 11, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
                     />
-                    {/* Rating 1-10 */}
-                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginTop: 2 }}>
-                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                        <button key={n} onClick={() => updateRating(item.id, n)} style={{
-                          width: 18, height: 18, borderRadius: 4, border: "none",
-                          background: (item.rating || 0) >= n ? accent : (darkMode ? "#21262d" : "#e2e8f0"),
-                          color: (item.rating || 0) >= n ? "#fff" : "#8b949e",
-                          fontSize: 9, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                          padding: 0,
-                        }}>{n}</button>
-                      ))}
-                    </div>
                   </div>
                   {/* Controls */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
@@ -7777,23 +7764,20 @@ export default function TrackAll() {
               currentUserId={user?.id}
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
-                const findInLib = (id) => {
-                  if (!id) return null;
-                  // Tenta direto
-                  if (library[id]) return library[id];
-                  // Extrai só o número do final (al-123, al-anime-123, al-manga-123 -> 123)
-                  const numMatch = id.match(/(\d+)$/);
-                  if (!numMatch) return null;
-                  const num = numMatch[1];
-                  return library[`al-anime-${num}`] || library[`al-manga-${num}`] ||
-                         library[`al-${num}`] || null;
-                };
                 if (item.itemType === "character" && item.mediaId) {
-                  const libItem = findInLib(item.mediaId);
-                  setSelectedItem(libItem || { id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
-                } else if (item.itemType === "media" || (!item.itemType && item.id && (item.id.startsWith("al-") || item.id.startsWith("tmdb-") || item.id.startsWith("igdb-")))) {
-                  const libItem = findInLib(item.id);
-                  setSelectedItem(libItem || item);
+                  // Procura na biblioteca para obter capa/rating — testa todas as variantes do id
+                  const num = item.mediaId.match(/(\d+)$/)?.[1];
+                  const libItem = num
+                    ? (library[item.mediaId] || library[`al-anime-${num}`] || library[`al-manga-${num}`])
+                    : library[item.mediaId];
+                  if (libItem) {
+                    setSelectedItem(libItem);
+                  } else {
+                    // Não está na biblioteca — abre pelo mediaId, o DetailModal faz fetch
+                    setSelectedItem({ id: item.mediaId, title: item.subtitle, type: item.mediaType || "anime" });
+                  }
+                } else if (item.itemType === "media" || !item.itemType) {
+                  setSelectedItem(library[item.id] || item);
                 }
               }}
             />
