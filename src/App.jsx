@@ -390,7 +390,6 @@ function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 // 1. AniList — Anime, Manga, Manhwa, Light Novels (sem chave, CORS aberto)
 async function searchAniList(query, type, workerUrl, format = null, country = null) {
   const mediaType = type === "anime" ? "ANIME" : "MANGA";
-  // Construir filtros extra
   let extraFilters = "";
   if (format) extraFilters += `,format_in:[${format}]`;
   if (country) extraFilters += `,countryOfOrigin:"${country}"`;
@@ -398,8 +397,8 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
     query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
-  const url = "https://graphql.anilist.co";
-  const res = await fetch(url, {
+  const aniUrl = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : "https://graphql.anilist.co";
+  const res = await fetch(aniUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body,
@@ -2360,7 +2359,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
       {/* Cover strip — row horizontal com até 6 capas */}
-      <div style={{ display: "flex", gap: 4, height: 80, overflow: "hidden", borderRadius: 8 }}>
+      <div style={{ display: "flex", gap: 3, height: 100, overflow: "hidden", borderRadius: 8 }}>
         {covers.length === 0 ? (
           <div style={{ flex: 1, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, fontSize: 32, border: `1px dashed ${accent}33` }}>📋</div>
         ) : (
@@ -2449,7 +2448,8 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
       } else if (searchType === "character") {
         const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
         const charQuery = `query($q:String){Page(perPage:15){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
-        const resp = await fetch("https://graphql.anilist.co", {
+        const aniSearchUrl = wUrl + "/anilist";
+        const resp = await fetch(aniSearchUrl, {
           method: "POST", headers: aniHeaders,
           body: JSON.stringify({ query: charQuery, variables: { q } }),
         });
@@ -2685,9 +2685,10 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
   );
 }
 
-function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, onOpenMedia }) {
+function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, onOpenMedia, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang } = useLang();
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
   const cols = isMobileDevice ? 3 : 5;
@@ -2721,7 +2722,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
       if (alCharId) {
         setCharLoading(true);
         const query = `query($id:Int){Character(id:$id){description(asHtml:false) age gender dateOfBirth{year month day} media(perPage:6,sort:POPULARITY_DESC){nodes{id title{romaji}coverImage{medium}type format}}}}`;
-        fetch("https://graphql.anilist.co", {
+        fetch(wUrl + "/anilist", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Accept": "application/json" },
           body: JSON.stringify({ query, variables: { id: parseInt(alCharId) } }),
@@ -5251,7 +5252,7 @@ async function fetchPersonalizedRecos(library, workerUrl) {
       try {
         const seedId = parseInt(animeSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
-          const res = await fetch("https://graphql.anilist.co", {
+          const res = await fetch(wUrl + "/anilist", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
           });
@@ -5271,7 +5272,7 @@ async function fetchPersonalizedRecos(library, workerUrl) {
       try {
         const seedId = parseInt(mangaSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
-          const res = await fetch("https://graphql.anilist.co", {
+          const res = await fetch(wUrl + "/anilist", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
           });
@@ -5314,7 +5315,7 @@ async function fetchPersonalizedRecos(library, workerUrl) {
     // Se não há resultados de nenhuma API, usar trending de anime como fallback
     if (results.length === 0) {
       try {
-        const res = await fetch("https://graphql.anilist.co", {
+        const res = await fetch(wUrl + "/anilist", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: `{ Page(perPage:20) { media(type:ANIME, sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
         });
@@ -6702,7 +6703,8 @@ export default function TrackAll() {
           id coverImage { large medium } title { romaji english }
         }`).join('\n');
       try {
-        const res = await fetch('https://graphql.anilist.co', {
+        const wUrlMihon = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+        const res = await fetch(wUrlMihon + '/anilist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: `query { ${queryParts} }` }),
@@ -7883,6 +7885,7 @@ export default function TrackAll() {
               onLike={handleCollectionLike}
               liked={userCollectionLikes.includes(viewingCollection.id)}
               currentUserId={user?.id}
+              workerUrl={workerUrl}
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
                 // Procura na biblioteca pelo id — testa variantes
