@@ -2698,10 +2698,15 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
   const cleanDesc = (text) => {
     if (!text) return "";
     return text
-      .replace(/__([^_]+)__/g, "$1")           // __bold__ → bold
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) → text
-      .replace(/<[^>]*>/g, "")                  // html tags
-      .replace(/\n+/g, " ")
+      .replace(/~![\s\S]*?!~/g, "")             // ~!spoiler!~ → remove
+      .replace(/__([^_]+)__/g, "$1")             // __bold__ → bold
+      .replace(/\*\*([^*]+)\*\*/g, "$1")         // **bold** → bold
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")   // [text](url) → text
+      .replace(/<br\s*\/?>/gi, " ")              // <br> → espaço
+      .replace(/<[^>]*>/g, "")                   // outras html tags
+      .replace(/\n{2,}/g, " • ")                 // parágrafos → bullet
+      .replace(/\n/g, " ")
+      .replace(/\s{2,}/g, " ")
       .trim();
   };
 
@@ -2867,15 +2872,15 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
                           const mType = m.type === "MANGA" ? "manga" : "anime";
                           const mId = `al-${mType}-${m.id}`;
                           return (
-                            <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType, cover: m.coverImage?.medium }); }} style={{ flexShrink: 0, width: 72, cursor: "pointer" }}>
-                              <div style={{ width: 72, height: 100, borderRadius: 7, overflow: "hidden", background: "#21262d", marginBottom: 4 }}>
+                            <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType, cover: m.coverImage?.medium }); }} style={{ flexShrink: 0, width: 80, cursor: "pointer" }}>
+                              <div style={{ width: 80, height: 112, borderRadius: 7, overflow: "hidden", background: "#21262d", marginBottom: 5 }}>
                                 {m.coverImage?.medium
                                   ? <img src={m.coverImage.medium} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎬</div>
                                 }
                               </div>
-                              <div style={{ fontSize: 9, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{m.title?.romaji}</div>
-                              <div style={{ fontSize: 8, color: accent, textAlign: "center", fontWeight: 700, textTransform: "uppercase", marginTop: 1 }}>{m.format?.replace("_", " ")}</div>
+                              <div style={{ fontSize: 10, color: darkMode ? "#c9d1d9" : "#374151", lineHeight: 1.3, textAlign: "center", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>{m.title?.romaji}</div>
+                              <div style={{ fontSize: 9, color: accent, textAlign: "center", fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>{m.format?.replace("_", " ")}</div>
                             </div>
                           );
                         })}
