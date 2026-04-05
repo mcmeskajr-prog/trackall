@@ -398,12 +398,10 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
     variables: { s: query, t: mediaType },
   });
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
-  let res = await fetch(direct, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body }).catch(() => null);
-  if (!res || !res.ok) {
-    if (proxy) res = await fetch(proxy, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body }).catch(() => null);
-  }
-  if (!res || !res.ok) { console.error("[AniList] Erro:", res?.status); return null; }
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
+  const tryFetch = (url) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body }).catch(() => null);
+  const res = await Promise.race([tryFetch(direct), tryFetch(proxy)]);
+  if (!res || !res.ok) { console.error("[AniList search] Erro:", res?.status); return null; }
   const data = await res.json();
   const items = data?.data?.Page?.media;
   if (!items?.length) return null;
@@ -512,10 +510,8 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     if (id.startsWith("al-")) {
       const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
       if (!alId || isNaN(Number(alId))) return null;
-      // Tenta direto primeiro, worker como fallback
-      let r = await fetchWithTimeout("https://graphql.anilist.co", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `{
+      // Race: direto vs worker — usa o mais rápido
+      const aniBody = JSON.stringify({ query: `{
           Media(id:${alId}) {
             episodes chapters volumes averageScore status duration format
             description(asHtml:false)
@@ -533,29 +529,12 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
               }
             }
           }
-        }` }),
-      });
-      if (!r.ok) {
-        r = await fetchWithTimeout(`${wUrl}/anilist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: `{
-          Media(id:${alId}) {
-            episodes chapters volumes averageScore status duration format
-            description(asHtml:false)
-            characters(perPage:20, sort:ROLE) {
-              edges {
-                role
-                node { id name { full } image { medium } }
-                voiceActors(language:JAPANESE) { id name { full } image { medium } }
-              }
-            }
-            relations {
-              edges {
-                relationType(version:2)
-                node { id title { romaji } coverImage { medium } type format status }
-              }
-            }
-          }
-        }` }) }).catch(() => ({ ok: false }));
-      }
+        }` });
+      const aniOpts = { method: "POST", headers: { "Content-Type": "application/json" }, body: aniBody };
+      const r = await Promise.race([
+        fetchWithTimeout("https://graphql.anilist.co", aniOpts, 6000),
+        fetchWithTimeout(`${wUrl}/anilist`, aniOpts, 6000),
+      ]);
       const d = await r.json();
       const m = d.data?.Media;
       if (!m) return null;
@@ -5182,43 +5161,39 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
 // ─── Recommendations ──────────────────────────────────────────────────────────
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
+async function fetchAniList(url, body) {
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
 async function fetchTrendingAnime(workerUrl) {
-  const tryFetch = async (url, body) => {
-    try {
-      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-      if (!r.ok) return [];
-      const d = await r.json();
-      return d.data?.Page?.media || [];
-    } catch { return []; }
-  };
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
   const q1 = JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
   const q2 = JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
-  // Tenta direto primeiro, usa proxy como fallback
-  let [r1, r2] = await Promise.all([tryFetch(direct, q1), tryFetch(direct, q2)]);
-  if (r1.length === 0 && proxy) [r1, r2] = await Promise.all([tryFetch(proxy, q1), tryFetch(proxy, q2)]);
-  const all = [...r1, ...r2];
+  // Race: direto e proxy em paralelo, usa o primeiro que responder
+  const [d1, d2] = await Promise.all([
+    Promise.race([fetchAniList(direct, q1), fetchAniList(proxy, q1)]),
+    Promise.race([fetchAniList(direct, q2), fetchAniList(proxy, q2)]),
+  ]);
+  const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
   return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
 }
 
 async function fetchTrendingManga(workerUrl) {
-  const tryFetch = async (url, body) => {
-    try {
-      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-      if (!r.ok) return [];
-      const d = await r.json();
-      return d.data?.Page?.media || [];
-    } catch { return []; }
-  };
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
   const q1 = JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
   const q2 = JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
-  let [r1, r2] = await Promise.all([tryFetch(direct, q1), tryFetch(direct, q2)]);
-  if (r1.length === 0 && proxy) [r1, r2] = await Promise.all([tryFetch(proxy, q1), tryFetch(proxy, q2)]);
-  const all = [...r1, ...r2];
+  const [d1, d2] = await Promise.all([
+    Promise.race([fetchAniList(direct, q1), fetchAniList(proxy, q1)]),
+    Promise.race([fetchAniList(direct, q2), fetchAniList(proxy, q2)]),
+  ]);
+  const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
   return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
 }
