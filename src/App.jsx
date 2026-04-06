@@ -2364,7 +2364,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
 
   return (
     <div onClick={() => onOpen(col)} style={{
-      background: darkMode ? "#161b22" : "#f8fafc",
+      background: darkMode ? "#0d1117" : "#f8fafc",
       border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
       borderRadius: 14, overflow: "hidden", cursor: "pointer",
       transition: "transform 0.15s, box-shadow 0.15s",
