@@ -397,12 +397,21 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
     query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
+  const opts = { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body };
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
-  const tryFetch = (url) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body }).catch(() => null);
-  const res = await Promise.race([tryFetch(direct), tryFetch(proxy)]);
-  if (!res || !res.ok) { console.error("[AniList search] Erro:", res?.status); return null; }
-  const data = await res.json();
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
+  const tryFetchJson = async (url) => {
+    try {
+      const r = await fetch(url, opts);
+      if (!r.ok) return null;
+      const d = await r.json();
+      if (d?.errors || !d?.data?.Page?.media?.length) return null;
+      return d;
+    } catch { return null; }
+  };
+  const urls = proxy ? [direct, proxy] : [direct];
+  const results = await Promise.allSettled(urls.map(url => tryFetchJson(url)));
+  const data = results.find(r => r.status === "fulfilled" && r.value)?.value;
   const items = data?.data?.Page?.media;
   if (!items?.length) return null;
   return items.map((m) => ({
@@ -5162,24 +5171,26 @@ function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, ch
 // ─── Recommendations ──────────────────────────────────────────────────────────
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-async function fetchAniList(url, body) {
-  try {
-    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
+async function fetchAniListSafe(urls, body) {
+  // Tenta todas as URLs em paralelo, retorna o primeiro resultado válido
+  const results = await Promise.allSettled(
+    urls.map(async url => {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d?.data ? d : null;
+    })
+  );
+  return results.find(r => r.status === "fulfilled" && r.value)?.value || null;
 }
 
 async function fetchTrendingAnime(workerUrl) {
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
+  const urls = proxy ? [direct, proxy] : [direct];
   const q1 = JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
   const q2 = JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:ANIME,sort:TRENDING_DESC,status_not:NOT_YET_RELEASED) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
-  // Race: direto e proxy em paralelo, usa o primeiro que responder
-  const [d1, d2] = await Promise.all([
-    Promise.race([fetchAniList(direct, q1), fetchAniList(proxy, q1)]),
-    Promise.race([fetchAniList(direct, q2), fetchAniList(proxy, q2)]),
-  ]);
+  const [d1, d2] = await Promise.all([fetchAniListSafe(urls, q1), fetchAniListSafe(urls, q2)]);
   const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
   return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
@@ -5187,13 +5198,11 @@ async function fetchTrendingAnime(workerUrl) {
 
 async function fetchTrendingManga(workerUrl) {
   const direct = "https://graphql.anilist.co";
-  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : direct;
+  const proxy = workerUrl ? workerUrl.replace(/\/$/, "") + "/anilist" : null;
+  const urls = proxy ? [direct, proxy] : [direct];
   const q1 = JSON.stringify({ query: `{ Page(page:1,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
   const q2 = JSON.stringify({ query: `{ Page(page:2,perPage:25) { media(type:MANGA,sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }` });
-  const [d1, d2] = await Promise.all([
-    Promise.race([fetchAniList(direct, q1), fetchAniList(proxy, q1)]),
-    Promise.race([fetchAniList(direct, q2), fetchAniList(proxy, q2)]),
-  ]);
+  const [d1, d2] = await Promise.all([fetchAniListSafe(urls, q1), fetchAniListSafe(urls, q2)]);
   const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
   return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
