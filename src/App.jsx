@@ -2358,10 +2358,9 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
   const items = col.items || [];
   const covers = items.slice(0, 8).map(i => i.cover).filter(Boolean);
 
-  // Altura fixa da área de capas
   const STRIP_H = 160;
-  // Cada capa tem proporção 2:3 (portrait), então largura = altura * (2/3)
-  const COVER_W = Math.round(STRIP_H * (2 / 3)); // ~107px
+  const idealW = Math.round(STRIP_H * (2 / 3)); // ~107px portrait
+  const fewCovers = covers.length <= 3;
 
   return (
     <div onClick={() => onOpen(col)} style={{
@@ -2374,7 +2373,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
-      {/* Cover strip — estilo Letterboxd: portrait fixo, scroll se necessário */}
+      {/* Cover strip — portrait ratio, scroll se muitas capas */}
       <div style={{
         display: "flex",
         gap: 3,
@@ -2382,7 +2381,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
         height: STRIP_H,
         background: darkMode ? "#0d1117" : "#d0d7de",
         boxSizing: "border-box",
-        overflowX: "auto",
+        overflowX: fewCovers ? "hidden" : "auto",
         overflowY: "hidden",
         scrollbarWidth: "none",
         flexShrink: 0,
@@ -2396,8 +2395,10 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
         ) : (
           covers.map((src, i) => (
             <div key={i} style={{
-              width: COVER_W,
-              minWidth: COVER_W,
+              flex: fewCovers ? 1 : "none",
+              width: fewCovers ? undefined : idealW,
+              minWidth: fewCovers ? 0 : idealW,
+              maxWidth: fewCovers ? idealW * 1.5 : undefined,
               height: "100%",
               borderRadius: 6,
               overflow: "hidden",
@@ -2428,7 +2429,6 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
             </div>
           ) : null}
         </div>
-
         <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={e => e.stopPropagation()}>
           <button onClick={() => onLike(col.id)} style={{
             background: liked ? `${accent}22` : "transparent",
@@ -2495,14 +2495,23 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
       } else if (searchType === "character") {
         const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
         const charQuery = `query($q:String){Page(perPage:15){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
-        const aniSearchUrl = wUrl + "/anilist";
-        const resp = await fetch(aniSearchUrl, {
-          method: "POST", headers: aniHeaders,
-          body: JSON.stringify({ query: charQuery, variables: { q } }),
-        });
-        if (!resp.ok) throw new Error(`AniList ${resp.status}`);
-        const data = await resp.json();
-        if (data.errors) throw new Error(data.errors[0]?.message || "AniList error");
+        const charBody = JSON.stringify({ query: charQuery, variables: { q } });
+        // Tenta worker e AniList direto em paralelo — usa o primeiro com dados
+        const tryFetchChar = async (url) => {
+          try {
+            const r = await fetch(url, { method: "POST", headers: aniHeaders, body: charBody });
+            if (!r.ok) return null;
+            const d = await r.json();
+            if (d.errors || !d?.data?.Page?.characters?.length) return null;
+            return d;
+          } catch { return null; }
+        };
+        const charResults = await Promise.allSettled([
+          tryFetchChar(wUrl + "/anilist"),
+          tryFetchChar("https://graphql.anilist.co"),
+        ]);
+        const data = charResults.find(r => r.status === "fulfilled" && r.value)?.value;
+        if (!data) throw new Error("Não foi possível ligar ao AniList. Tenta novamente.");
         const chars = (data?.data?.Page?.characters || []).map(c => {
           const firstMedia = c.media?.nodes?.[0];
           return {
