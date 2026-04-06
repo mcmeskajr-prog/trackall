@@ -531,12 +531,13 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           }
         }` });
       const aniOpts = { method: "POST", headers: { "Content-Type": "application/json" }, body: aniBody };
-      const r = await Promise.race([
-        fetchWithTimeout("https://graphql.anilist.co", aniOpts, 6000),
-        fetchWithTimeout(`${wUrl}/anilist`, aniOpts, 6000),
+      // Race seguro: ignora erros individuais, usa o primeiro com dados válidos
+      const aniResults = await Promise.allSettled([
+        fetchWithTimeout("https://graphql.anilist.co", aniOpts, 6000).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetchWithTimeout(`${wUrl}/anilist`, aniOpts, 6000).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
-      const d = await r.json();
-      const m = d.data?.Media;
+      const d = aniResults.find(r => r.status === "fulfilled" && r.value?.data?.Media)?.value || null;
+      const m = d?.data?.Media;
       if (!m) return null;
       const cast = (m.characters?.edges || []).map(e => ({
         id: e.node?.id,
