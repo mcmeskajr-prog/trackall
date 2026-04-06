@@ -2356,8 +2356,12 @@ const TIER_LEVELS = [
 function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode } = useTheme();
   const items = col.items || [];
-  // Mostra até 5 capas — número ímpar fica melhor visualmente
-  const covers = items.slice(0, 5).map(i => i.cover).filter(Boolean);
+  const covers = items.slice(0, 8).map(i => i.cover).filter(Boolean);
+
+  // Altura fixa da área de capas
+  const STRIP_H = 160;
+  // Cada capa tem proporção 2:3 (portrait), então largura = altura * (2/3)
+  const COVER_W = Math.round(STRIP_H * (2 / 3)); // ~107px
 
   return (
     <div onClick={() => onOpen(col)} style={{
@@ -2370,14 +2374,17 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
-      {/* Cover strip — estilo Letterboxd: capas portrait lado a lado */}
+      {/* Cover strip — estilo Letterboxd: portrait fixo, scroll se necessário */}
       <div style={{
         display: "flex",
         gap: 3,
         padding: 3,
-        height: 160,
-        background: darkMode ? "#0d1117" : "#e8ecf0",
+        height: STRIP_H,
+        background: darkMode ? "#0d1117" : "#d0d7de",
         boxSizing: "border-box",
+        overflowX: "auto",
+        overflowY: "hidden",
+        scrollbarWidth: "none",
         flexShrink: 0,
       }}>
         {covers.length === 0 ? (
@@ -2389,15 +2396,19 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
         ) : (
           covers.map((src, i) => (
             <div key={i} style={{
-              flex: 1, minWidth: 0, borderRadius: 6,
-              overflow: "hidden", background: darkMode ? "#21262d" : "#d0d7de",
+              width: COVER_W,
+              minWidth: COVER_W,
+              height: "100%",
+              borderRadius: 6,
+              overflow: "hidden",
+              background: darkMode ? "#21262d" : "#c8cfd8",
               flexShrink: 0,
             }}>
               <img
                 src={src}
                 alt=""
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
-                onError={e => { e.target.style.display = "none"; }}
+                onError={e => { e.target.parentElement.style.display = "none"; }}
               />
             </div>
           ))
@@ -2418,7 +2429,6 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
           ) : null}
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={e => e.stopPropagation()}>
           <button onClick={() => onLike(col.id)} style={{
             background: liked ? `${accent}22` : "transparent",
