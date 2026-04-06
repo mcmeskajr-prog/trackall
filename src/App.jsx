@@ -5278,11 +5278,8 @@ async function fetchPersonalizedRecos(library, workerUrl) {
       try {
         const seedId = parseInt(animeSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
-          const res = await fetch(wUrl + "/anilist", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
-          });
-          const d = await res.json();
+          const animeRecoBody = JSON.stringify({ query: `{ Media(id:${seedId},type:ANIME) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` });
+          const d = await fetchAniListSafe(["https://graphql.anilist.co", wUrl + "/anilist"], animeRecoBody);
           (d?.data?.Media?.recommendations?.nodes || []).forEach(n => {
             const m = n.mediaRecommendation; if (!m) return;
             const id = `al-anime-${m.id}`;
@@ -5298,12 +5295,9 @@ async function fetchPersonalizedRecos(library, workerUrl) {
       try {
         const seedId = parseInt(mangaSeeds[0].id.replace(/^al-[^-]+-/, "").replace(/^al-/, "")) || 0;
         if (seedId) {
-          const res = await fetch(wUrl + "/anilist", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` }),
-          });
-          const d = await res.json();
-          (d?.data?.Media?.recommendations?.nodes || []).forEach(n => {
+          const mangaRecoBody = JSON.stringify({ query: `{ Media(id:${seedId},type:MANGA) { recommendations(sort:RATING_DESC,perPage:15) { nodes { mediaRecommendation { id title{romaji} coverImage{large} averageScore } } } } }` });
+          const d2 = await fetchAniListSafe(["https://graphql.anilist.co", wUrl + "/anilist"], mangaRecoBody);
+          (d2?.data?.Media?.recommendations?.nodes || []).forEach(n => {
             const m = n.mediaRecommendation; if (!m) return;
             const id = `al-manga-${m.id}`;
             if (!inLib.has(id) && m.coverImage?.large) results.push({ id, title: m.title.romaji, cover: m.coverImage.large, type: "manga", source: "AniList", score: m.averageScore });
@@ -5341,11 +5335,8 @@ async function fetchPersonalizedRecos(library, workerUrl) {
     // Se não há resultados de nenhuma API, usar trending de anime como fallback
     if (results.length === 0) {
       try {
-        const res = await fetch(wUrl + "/anilist", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: `{ Page(perPage:20) { media(type:ANIME, sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` }),
-        });
-        const d = await res.json();
+        const fallbackBody = JSON.stringify({ query: `{ Page(perPage:20) { media(type:ANIME, sort:TRENDING_DESC) { id title{romaji} coverImage{large} averageScore } } }` });
+        const d = await fetchAniListSafe(["https://graphql.anilist.co", wUrl + "/anilist"], fallbackBody);
         (d?.data?.Page?.media || []).forEach(m => {
           const id = `al-anime-${m.id}`;
           if (!inLib.has(id) && m.coverImage?.large) results.push({ id, title: m.title.romaji, cover: m.coverImage.large, type: "anime", source: "AniList", score: m.averageScore });
