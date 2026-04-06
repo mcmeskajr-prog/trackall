@@ -2732,15 +2732,13 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
       const alCharId = item.id?.startsWith("alchar-") ? item.id.replace("alchar-", "") : null;
       if (alCharId) {
         setCharLoading(true);
-        const query = `query($id:Int){Character(id:$id){description(asHtml:false) age gender dateOfBirth{year month day} media(perPage:6,sort:POPULARITY_DESC){nodes{id title{romaji}coverImage{medium}type format}}}}`;
-        fetch(wUrl + "/anilist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({ query, variables: { id: parseInt(alCharId) } }),
-        }).then(r => r.json()).then(d => {
-          setCharData(d?.data?.Character || null);
-          setCharLoading(false);
-        }).catch(() => setCharLoading(false));
+        const charQuery = `query($id:Int){Character(id:$id){description(asHtml:false) age gender dateOfBirth{year month day} media(perPage:6,sort:POPULARITY_DESC){nodes{id title{romaji}coverImage{medium}type format}}}}`;
+        const charBody = JSON.stringify({ query: charQuery, variables: { id: parseInt(alCharId) } });
+        fetchAniListSafe(["https://graphql.anilist.co", wUrl + "/anilist"], charBody)
+          .then(d => {
+            setCharData(d?.data?.Character || null);
+            setCharLoading(false);
+          }).catch(() => setCharLoading(false));
       }
     }
   };
@@ -2904,6 +2902,18 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
                   {!charData && !charLoading && !selectedChar.id?.startsWith("alchar-") && (
                     <div style={{ padding: "20px 16px", color: "#8b949e", fontSize: 12, textAlign: "center" }}>
                       {selectedChar.subtitle && <p>De: {selectedChar.subtitle}</p>}
+                    </div>
+                  )}
+                  {/* AniList mas sem dados — retry link */}
+                  {!charData && !charLoading && selectedChar.id?.startsWith("alchar-") && (
+                    <div style={{ padding: "16px", textAlign: "center" }}>
+                      <p style={{ fontSize: 12, color: "#484f58", marginBottom: 8 }}>
+                        {lang === "en" ? "Could not load character data." : "Não foi possível carregar dados do personagem."}
+                      </p>
+                      <a href={`https://anilist.co/character/${selectedChar.id.replace("alchar-","")}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: accent, fontWeight: 700 }}>
+                        Ver no AniList →
+                      </a>
                     </div>
                   )}
                 </>
