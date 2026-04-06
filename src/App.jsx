@@ -2359,8 +2359,8 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
   const covers = items.slice(0, 8).map(i => i.cover).filter(Boolean);
 
   const STRIP_H = 160;
-  const idealW = Math.round(STRIP_H * (2 / 3)); // ~107px portrait
-  const fewCovers = covers.length <= 3;
+  // Cada capa tem proporção portrait 2:3
+  const COVER_W = Math.round(STRIP_H * (2 / 3)); // ~107px
 
   return (
     <div onClick={() => onOpen(col)} style={{
@@ -2373,18 +2373,21 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
-      {/* Cover strip — portrait ratio, scroll se muitas capas */}
+      {/* Cover strip — estilo Letterboxd: capas portrait, sem espaço vazio */}
       <div style={{
         display: "flex",
         gap: 3,
         padding: 3,
         height: STRIP_H,
-        background: darkMode ? "#0d1117" : "#d0d7de",
         boxSizing: "border-box",
-        overflowX: fewCovers ? "hidden" : "auto",
+        flexShrink: 0,
+        // O container encolhe até ao tamanho das capas — sem fundo cinzento vazio
+        width: covers.length === 0 ? "100%" : "fit-content",
+        minWidth: "100%",
+        background: "transparent",
+        overflowX: "auto",
         overflowY: "hidden",
         scrollbarWidth: "none",
-        flexShrink: 0,
       }}>
         {covers.length === 0 ? (
           <div style={{
@@ -2395,10 +2398,8 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
         ) : (
           covers.map((src, i) => (
             <div key={i} style={{
-              flex: fewCovers ? 1 : "none",
-              width: fewCovers ? undefined : idealW,
-              minWidth: fewCovers ? 0 : idealW,
-              maxWidth: fewCovers ? idealW * 1.5 : undefined,
+              width: COVER_W,
+              minWidth: COVER_W,
               height: "100%",
               borderRadius: 6,
               overflow: "hidden",
@@ -2496,7 +2497,6 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
         const aniHeaders = { "Content-Type": "application/json", "Accept": "application/json" };
         const charQuery = `query($q:String){Page(perPage:15){characters(search:$q){id name{full}image{large}media{nodes{id title{romaji}type}}}}}`;
         const charBody = JSON.stringify({ query: charQuery, variables: { q } });
-        // Tenta worker e AniList direto em paralelo — usa o primeiro com dados
         const tryFetchChar = async (url) => {
           try {
             const r = await fetch(url, { method: "POST", headers: aniHeaders, body: charBody });
