@@ -6082,6 +6082,289 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   );
 }
 
+
+// ─── HeroBanner Component ─────────────────────────────────────────────────────
+function HeroBanner({ items, library, accent, darkMode, isMobileDevice, onOpen, onAdd, onUpdateStatus, lang, useT }) {
+  const [current, setCurrent] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef(null);
+  const touchStartX = useRef(null);
+
+  const bannerItems = useMemo(() => {
+    if (!items || items.length === 0) return [];
+    return items.filter(i => i.cover || i.backdrop).slice(0, 7);
+  }, [items]);
+
+  const total = bannerItems.length;
+
+  const goTo = useCallback((idx) => {
+    if (animating || idx === current) return;
+    setAnimating(true);
+    setCurrent(idx);
+    setTimeout(() => setAnimating(false), 400);
+  }, [animating, current]);
+
+  const next = useCallback(() => goTo((current + 1) % total), [current, total, goTo]);
+  const prev = useCallback(() => goTo((current - 1 + total) % total), [current, total, goTo]);
+
+  useEffect(() => {
+    if (total <= 1 || paused) return;
+    timerRef.current = setInterval(next, 6000);
+    return () => clearInterval(timerRef.current);
+  }, [total, next, paused]);
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) diff > 0 ? next() : prev();
+    touchStartX.current = null;
+  };
+
+  if (total === 0) return null;
+
+  const item = bannerItems[current];
+  const inLib = !!library[item.id];
+  const libItem = library[item.id];
+  const typeInfo = MEDIA_TYPES.find(t => t.id === item.type);
+  const statusInfo = inLib ? STATUS_OPTIONS.find(s => s.id === libItem?.userStatus) : null;
+  const coverSrc = item.cover;
+
+  const BANNER_H = isMobileDevice ? 220 : 360;
+  const COVER_W = isMobileDevice ? 80 : 130;
+  const COVER_H = isMobileDevice ? 116 : 190;
+
+  return (
+    <div
+      style={{ position: "relative", width: "100%", height: BANNER_H, overflow: "hidden", cursor: "pointer", userSelect: "none" }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Backdrops com fade */}
+      {bannerItems.map((bi, idx) => (
+        <div key={bi.id} style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `url(${bi.backdrop || bi.cover})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: idx === current ? 1 : 0,
+          transition: "opacity 0.6s ease",
+          zIndex: 0,
+        }} />
+      ))}
+
+      {/* Overlay gradiente */}
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 1,
+        background: isMobileDevice
+          ? "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.92) 100%)"
+          : "linear-gradient(to right, rgba(0,0,0,0.93) 0%, rgba(0,0,0,0.72) 38%, rgba(0,0,0,0.12) 72%, transparent 100%)",
+      }} />
+
+      {/* Conteúdo principal */}
+      <div
+        style={{
+          position: "absolute", inset: 0, zIndex: 2,
+          display: "flex",
+          alignItems: isMobileDevice ? "flex-end" : "center",
+          padding: isMobileDevice ? "0 14px 40px" : "0 44px",
+          gap: isMobileDevice ? 12 : 22,
+        }}
+        onClick={() => onOpen(item)}
+      >
+        {/* Capa pequena */}
+        {coverSrc && (
+          <div style={{
+            width: COVER_W, height: COVER_H, flexShrink: 0,
+            borderRadius: 10, overflow: "hidden",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.75)",
+            border: "2px solid rgba(255,255,255,0.15)",
+            opacity: animating ? 0.6 : 1,
+            transition: "opacity 0.4s",
+          }}>
+            <img src={coverSrc} alt={item.title}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              onError={e => { e.currentTarget.parentElement.style.display = "none"; }} />
+          </div>
+        )}
+
+        {/* Texto + botões */}
+        <div style={{ flex: 1, minWidth: 0, maxWidth: isMobileDevice ? undefined : 430 }}>
+          {/* Badges */}
+          <div style={{ display: "flex", gap: 6, marginBottom: isMobileDevice ? 5 : 8, flexWrap: "wrap" }}>
+            {typeInfo && (
+              <span style={{
+                background: accent, color: "white",
+                fontSize: isMobileDevice ? 9 : 11, fontWeight: 800,
+                padding: isMobileDevice ? "2px 8px" : "3px 10px", borderRadius: 20,
+                letterSpacing: "0.04em",
+              }}>{typeInfo.icon} {mediaLabel(typeInfo, lang)}</span>
+            )}
+            {inLib && statusInfo ? (
+              <span style={{
+                background: `${statusInfo.color}cc`, color: "white",
+                fontSize: isMobileDevice ? 9 : 11, fontWeight: 700,
+                padding: isMobileDevice ? "2px 8px" : "3px 10px", borderRadius: 20,
+              }}>{statusInfo.emoji} {statusLabel(statusInfo, lang)}</span>
+            ) : (
+              <span style={{
+                background: "rgba(255,255,255,0.13)", color: "rgba(255,255,255,0.85)",
+                fontSize: isMobileDevice ? 9 : 11, fontWeight: 600,
+                padding: isMobileDevice ? "2px 8px" : "3px 10px", borderRadius: 20,
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}>✦ {lang === "en" ? "For You" : "Para Ti"}</span>
+            )}
+          </div>
+
+          {/* Título */}
+          <h2 style={{
+            fontSize: isMobileDevice ? 17 : 26,
+            fontWeight: 900,
+            color: "white",
+            lineHeight: 1.15,
+            marginBottom: isMobileDevice ? 4 : 8,
+            textShadow: "0 2px 14px rgba(0,0,0,0.6)",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}>{item.title}</h2>
+
+          {/* Synopsis — só desktop */}
+          {!isMobileDevice && item.synopsis && (
+            <p style={{
+              fontSize: 13, color: "rgba(255,255,255,0.72)",
+              lineHeight: 1.6, marginBottom: 14,
+              overflow: "hidden", display: "-webkit-box",
+              WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+              maxWidth: 390,
+            }}>{item.synopsis}</p>
+          )}
+
+          {/* Géneros + Score */}
+          {(item.genres?.length > 0 || item.score > 0) && (
+            <div style={{ display: "flex", gap: 5, marginBottom: isMobileDevice ? 8 : 14, flexWrap: "wrap" }}>
+              {(item.genres || []).slice(0, isMobileDevice ? 2 : 4).map(g => (
+                <span key={g} style={{
+                  background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.9)",
+                  fontSize: isMobileDevice ? 9 : 11,
+                  padding: isMobileDevice ? "2px 7px" : "3px 10px",
+                  borderRadius: 20, fontWeight: 600,
+                  border: "1px solid rgba(255,255,255,0.2)",
+                }}>{g}</span>
+              ))}
+              {item.score > 0 && (
+                <span style={{
+                  background: "rgba(251,191,36,0.2)", color: "#fbbf24",
+                  fontSize: isMobileDevice ? 9 : 11,
+                  padding: isMobileDevice ? "2px 7px" : "3px 10px",
+                  borderRadius: 20, fontWeight: 800,
+                  border: "1px solid rgba(251,191,36,0.3)",
+                }}>★ {item.score}</span>
+              )}
+            </div>
+          )}
+
+          {/* Botões CTA */}
+          <div style={{ display: "flex", gap: 8 }} onClick={e => e.stopPropagation()}>
+            {inLib ? (
+              <>
+                <button onClick={() => onOpen(item)} style={{
+                  padding: isMobileDevice ? "7px 14px" : "9px 20px",
+                  borderRadius: 10, border: "none",
+                  background: accent, color: "white",
+                  fontFamily: "inherit", fontWeight: 700,
+                  fontSize: isMobileDevice ? 11 : 13, cursor: "pointer",
+                }}>
+                  {lang === "en" ? "View Details" : "Ver Detalhes"}
+                </button>
+                <button onClick={() => {
+                  const statuses = STATUS_OPTIONS.map(s => s.id);
+                  const curIdx = statuses.indexOf(libItem?.userStatus);
+                  const nxt = statuses[(curIdx + 1) % statuses.length];
+                  onUpdateStatus(item.id, nxt);
+                }} style={{
+                  padding: isMobileDevice ? "7px 12px" : "9px 14px",
+                  borderRadius: 10, border: "1px solid rgba(255,255,255,0.3)",
+                  background: "rgba(255,255,255,0.1)", color: "white",
+                  fontFamily: "inherit", fontWeight: 600,
+                  fontSize: isMobileDevice ? 11 : 12, cursor: "pointer",
+                }}>
+                  {statusInfo?.emoji} {statusLabel(statusInfo, lang)}
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => onAdd(item, "planejado")} style={{
+                  padding: isMobileDevice ? "7px 14px" : "9px 20px",
+                  borderRadius: 10, border: "none",
+                  background: accent, color: "white",
+                  fontFamily: "inherit", fontWeight: 700,
+                  fontSize: isMobileDevice ? 11 : 13, cursor: "pointer",
+                }}>
+                  + {lang === "en" ? "Add to Library" : "Adicionar"}
+                </button>
+                <button onClick={() => onOpen(item)} style={{
+                  padding: isMobileDevice ? "7px 12px" : "9px 14px",
+                  borderRadius: 10, border: "1px solid rgba(255,255,255,0.3)",
+                  background: "rgba(255,255,255,0.1)", color: "white",
+                  fontFamily: "inherit", fontWeight: 600,
+                  fontSize: isMobileDevice ? 11 : 12, cursor: "pointer",
+                }}>
+                  {lang === "en" ? "Details" : "Detalhes"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Dots + setas */}
+      {total > 1 && (
+        <>
+          {!isMobileDevice && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); prev(); }} style={{
+                position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                zIndex: 10, width: 36, height: 36, borderRadius: "50%",
+                background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)",
+                color: "white", cursor: "pointer", fontSize: 20,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>‹</button>
+              <button onClick={(e) => { e.stopPropagation(); next(); }} style={{
+                position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                zIndex: 10, width: 36, height: 36, borderRadius: "50%",
+                background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)",
+                color: "white", cursor: "pointer", fontSize: 20,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>›</button>
+            </>
+          )}
+          <div style={{
+            position: "absolute",
+            bottom: isMobileDevice ? 10 : 14,
+            left: "50%", transform: "translateX(-50%)",
+            zIndex: 10, display: "flex", gap: 6, alignItems: "center",
+          }}>
+            {bannerItems.map((_, idx) => (
+              <button key={idx} onClick={(e) => { e.stopPropagation(); goTo(idx); }} style={{
+                width: idx === current ? (isMobileDevice ? 18 : 22) : (isMobileDevice ? 6 : 7),
+                height: isMobileDevice ? 6 : 7,
+                borderRadius: 99, border: "none", cursor: "pointer", padding: 0,
+                background: idx === current ? accent : "rgba(255,255,255,0.4)",
+                transition: "width 0.3s ease, background 0.3s ease",
+              }} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function TrackAll() {
   const [lang, setLang] = useState(() => detectLang());
   const useT = (key) => t(key, lang);
@@ -7464,90 +7747,54 @@ export default function TrackAll() {
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
-            {/* Hero — Avatar + Stats side by side */}
-            <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
-              <div style={{ maxWidth: 640, margin: "0 auto" }}>
-                {/* Avatar + Name + Stats */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-                  {/* Avatar compacto */}
-                  <div style={{
-                    width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
-                    border: `2.5px solid ${accent}`,
-                    boxShadow: `0 0 0 3px ${accent}33`,
-                    background: "#21262d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28,
-                  }}>
-                    {profile.avatar
-                      ? <img src={profile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : "👤"}
-                  </div>
-                  {/* Right: nome + stats numa linha */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-0.3px", lineHeight: 1.1, marginBottom: 2, background: `linear-gradient(90deg, ${accent}, #e6edf3)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                      {profile.name || "Utilizador"}
-                    </h2>
-                    <p style={{ fontSize: 12, color: darkMode ? "#6b7280" : "#94a3b8", marginBottom: 8, fontWeight: 500 }}>
-                      <span style={{ color: darkMode ? "#c9d1d9" : "#475569", fontWeight: 700 }}>{items.length}</span> {useT("inLibraryCount")}
-                    </p>
-                    {/* Stats compactas numa linha */}
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {[
-                        { l: lang === "en" ? "Progress" : "Curso",   v: stats.assistindo, key: "assistindo" },
-                        { l: useT("completo"),                        v: stats.completo,   key: "completo"   },
-                        { l: lang === "en" ? "Paused" : "Pausa",     v: stats.pausa,      key: "pausa"      },
-                        { l: useT("dropado"),                         v: stats.largado,    key: "largado"    },
-                        { l: lang === "en" ? "Planned" : "Planej.",   v: stats.planejado,  key: "planejado"  },
-                      ].filter(s => s.v > 0).map((s) => {
-                        const col = homeStatColors[s.key];
-                        return (
-                          <div key={s.l} style={{
-                            flex: "1 1 0", minWidth: 0,
-                            background: `${col}14`,
-                            borderLeft: `2px solid ${col}`,
-                            borderRadius: "0 6px 6px 0",
-                            padding: "4px 5px",
-                          }}>
-                            <div style={{ fontSize: 16, fontWeight: 900, color: col, lineHeight: 1 }}>{s.v}</div>
-                            <div style={{ color: "#8b949e", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", marginTop: 1 }}>{s.l}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+            {/* ── Hero Banner ── */}
+            <HeroBanner
+              items={personalRecos.length > 0 ? personalRecos : (recos.anime || [])}
+              library={library}
+              accent={accent}
+              darkMode={activeDarkMode}
+              isMobileDevice={isMobileDevice}
+              onOpen={setSelectedItem}
+              onAdd={addToLibrary}
+              onUpdateStatus={updateStatus}
+              lang={lang}
+              useT={useT}
+            />
 
-                {/* Filter tags — scroll horizontal */}
-                <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
-                  {MEDIA_TYPES.slice(1).map((t) => {
-                    const active = homeFilter.includes(t.id);
-                    return (
-                      <button key={t.id} onClick={() => {
-                        setHomeFilter(prev =>
-                          prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
-                        );
-                      }} style={{
-                        flexShrink: 0,
-                        background: active ? accent : (activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
-                        border: `1px solid ${active ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0")}`,
-                        color: active ? "white" : (activeDarkMode ? "#e6edf3" : "#0d1117"),
-                        padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 12, fontWeight: 700,
-                        display: "flex", alignItems: "center", gap: 5,
-                        WebkitTapHighlightColor: "transparent",
-                      }}>
-                        {t.icon} {mediaLabel(t, lang)}
-                      </button>
-                    );
-                  })}
-                  {homeFilter.length > 0 && (
-                    <button onClick={() => setHomeFilter([])} style={{
+            {/* Stats + filtros abaixo do banner */}
+            <div style={{ padding: "10px 16px 8px" }}>
+              {/* Filter tags — scroll horizontal */}
+              <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+                {MEDIA_TYPES.slice(1).map((t) => {
+                  const active = homeFilter.includes(t.id);
+                  return (
+                    <button key={t.id} onClick={() => {
+                      setHomeFilter(prev =>
+                        prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
+                      );
+                    }} style={{
                       flexShrink: 0,
-                      background: "transparent", border: "1px solid #ef444444",
-                      color: "#ef4444", padding: "7px 10px", borderRadius: 20,
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                      background: active ? accent : (activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
+                      border: `1px solid ${active ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0")}`,
+                      color: active ? "white" : (activeDarkMode ? "#e6edf3" : "#0d1117"),
+                      padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
+                      fontSize: 12, fontWeight: 700,
+                      display: "flex", alignItems: "center", gap: 5,
                       WebkitTapHighlightColor: "transparent",
-                    }}>✕</button>
-                  )}
-                </div>
+                    }}>
+                      {t.icon} {mediaLabel(t, lang)}
+                    </button>
+                  );
+                })}
+                {homeFilter.length > 0 && (
+                  <button onClick={() => setHomeFilter([])} style={{
+                    flexShrink: 0,
+                    background: "transparent", border: "1px solid #ef444444",
+                    color: "#ef4444", padding: "7px 10px", borderRadius: 20,
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                    WebkitTapHighlightColor: "transparent",
+                  }}>✕</button>
+                )}
               </div>
             </div>
 
