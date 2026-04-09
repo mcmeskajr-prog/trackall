@@ -6349,7 +6349,10 @@ export default function TrackAll() {
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
+  const mainSwipeAnimRef = useRef(null);
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
+  const [mainSwipeOffset, setMainSwipeOffset] = useState(0);
+  const [mainSwipeTransition, setMainSwipeTransition] = useState("transform 220ms cubic-bezier(0.22, 1, 0.36, 1)");
 
   // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
@@ -6441,6 +6444,10 @@ export default function TrackAll() {
       loadUserCollections();
     }
   }, [view, user]);
+
+  useEffect(() => () => {
+    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
+  }, []);
 
   const loadRecos = async (manual = false) => {
     const loadId = ++recoLoadIdRef.current;
@@ -6687,7 +6694,7 @@ export default function TrackAll() {
 
   const isMainSwipeBlockedTarget = (target) => {
     if (!(target instanceof HTMLElement)) return true;
-    if (target.closest('input, textarea, select, button, a, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
+    if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
     if (target.closest(".recents-row, .tabs-scroll")) return true;
     if (hasHorizontalScrollableParent(target)) return true;
     return false;
@@ -6697,10 +6704,32 @@ export default function TrackAll() {
     mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
   };
 
+  const animateMainSwipeToView = (nextView, direction) => {
+    const width = typeof window !== "undefined" ? window.innerWidth : 360;
+    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
+    setMainSwipeTransition("transform 180ms cubic-bezier(0.22, 1, 0.36, 1)");
+    setMainSwipeOffset(direction < 0 ? -width : width);
+    mainSwipeAnimRef.current = setTimeout(() => {
+      setView(nextView);
+      setMainSwipeTransition("none");
+      setMainSwipeOffset(direction < 0 ? width * 0.18 : -width * 0.18);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMainSwipeTransition("transform 240ms cubic-bezier(0.22, 1, 0.36, 1)");
+          setMainSwipeOffset(0);
+        });
+      });
+      mainSwipeAnimRef.current = null;
+    }, 180);
+  };
+
   const handleMainSwipeStart = (e) => {
     if (!canUseMainSwipe) return;
     const touch = e.touches?.[0];
     if (!touch) return;
+    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
+    setMainSwipeTransition("none");
+    setMainSwipeOffset(0);
     const target = e.target;
     mainSwipeRef.current = {
       tracking: true,
@@ -6724,27 +6753,59 @@ export default function TrackAll() {
     const dy = touch.clientY - state.startY;
     if (!state.isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
       state.isHorizontal = true;
+    }
+    if (state.isHorizontal) {
+      const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+      const atFirst = currentIndex <= 0;
+      const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
+      let nextOffset = dx;
+      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.35;
+      setMainSwipeOffset(nextOffset);
+      if (e.cancelable) e.preventDefault();
       return;
     }
     if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
+      setMainSwipeTransition("transform 180ms ease");
+      setMainSwipeOffset(0);
     }
   };
 
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current;
     resetMainSwipe();
-    if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) return;
+    if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
+      setMainSwipeTransition("transform 180ms ease");
+      setMainSwipeOffset(0);
+      return;
+    }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (currentIndex === -1) return;
-    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
-      setView(MAIN_SWIPE_VIEWS[currentIndex + 1]);
-    } else if (dx > 0 && currentIndex > 0) {
-      setView(MAIN_SWIPE_VIEWS[currentIndex - 1]);
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.15) {
+      setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
+      setMainSwipeOffset(0);
+      return;
     }
+    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+    if (currentIndex === -1) {
+      setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
+      setMainSwipeOffset(0);
+      return;
+    }
+    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], -1);
+    } else if (dx > 0 && currentIndex > 0) {
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
+    } else {
+      setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
+      setMainSwipeOffset(0);
+    }
+  };
+
+  const handleMainSwipeCancel = () => {
+    resetMainSwipe();
+    setMainSwipeTransition("transform 180ms ease");
+    setMainSwipeOffset(0);
   };
 
   const saveBgImage = async (img) => {
@@ -7659,8 +7720,13 @@ export default function TrackAll() {
           onTouchStart={handleMainSwipeStart}
           onTouchMove={handleMainSwipeMove}
           onTouchEnd={handleMainSwipeEnd}
-          onTouchCancel={resetMainSwipe}
-          style={{ touchAction: canUseMainSwipe ? "pan-y" : "auto" }}
+          onTouchCancel={handleMainSwipeCancel}
+          style={{
+            touchAction: canUseMainSwipe ? "pan-y" : "auto",
+            transform: `translate3d(${mainSwipeOffset}px, 0, 0)`,
+            transition: mainSwipeTransition,
+            willChange: canUseMainSwipe || mainSwipeOffset !== 0 ? "transform" : "auto",
+          }}
         >
 
         {/* ── HOME ── */}
