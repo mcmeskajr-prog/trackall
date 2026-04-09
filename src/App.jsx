@@ -385,6 +385,77 @@ const DB = {
 const CACHE = new Map();
 function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 
+function normalizeAniListType(type) {
+  if (!type) return "";
+  if (type === "ANIME" || type === "anime") return "anime";
+  if (type === "MANGA" || type === "manga" || type === "manhwa" || type === "lightnovels") return "manga";
+  return "";
+}
+
+function normalizeMediaId(id, type = "") {
+  if (!id) return id;
+  const num = id.match(/(\d+)$/)?.[1];
+  const aniType = normalizeAniListType(type);
+
+  if (id.startsWith("al-")) {
+    if (/^al-\d+$/.test(id) && aniType && num) return `al-${aniType}-${num}`;
+    if (/^al-(anime|manga)-\d+$/.test(id)) return id;
+    if (/^al-[A-Za-z]+-\d+$/.test(id) && num) {
+      const rawType = id.split("-")[1];
+      const normalizedType = aniType || normalizeAniListType(rawType);
+      if (normalizedType) return `al-${normalizedType}-${num}`;
+    }
+  }
+
+  if (/^tmdb-\d+$/.test(id) && num) {
+    if (type === "filmes") return `tmdb-filmes-${num}`;
+    if (type === "series") return `tmdb-series-${num}`;
+  }
+  if (id.startsWith("tmdb-movie-") && num) return `tmdb-filmes-${num}`;
+  if (id.startsWith("tmdb-tv-") && num) return `tmdb-series-${num}`;
+
+  return id;
+}
+
+function mediaIdCandidates(id, type = "") {
+  if (!id) return [];
+  const num = id.match(/(\d+)$/)?.[1];
+  const normalized = normalizeMediaId(id, type);
+  const candidates = new Set([normalized, id].filter(Boolean));
+
+  if (num) {
+    if (id.startsWith("al-") || normalized?.startsWith("al-")) {
+      candidates.add(`al-anime-${num}`);
+      candidates.add(`al-manga-${num}`);
+      candidates.add(`al-${num}`);
+    }
+    if (id.startsWith("tmdb-") || normalized?.startsWith("tmdb-")) {
+      candidates.add(`tmdb-filmes-${num}`);
+      candidates.add(`tmdb-series-${num}`);
+      candidates.add(`tmdb-movie-${num}`);
+      candidates.add(`tmdb-tv-${num}`);
+      candidates.add(`tmdb-${num}`);
+    }
+  }
+
+  return [...candidates];
+}
+
+function findLibraryEntry(library, id, type = "") {
+  if (!library || !id) return null;
+  for (const candidate of mediaIdCandidates(id, type)) {
+    if (library[candidate]) return { key: candidate, item: library[candidate] };
+  }
+  return null;
+}
+
+function normalizeMediaItem(item) {
+  if (!item?.id) return item;
+  const normalizedId = normalizeMediaId(item.id, item.type);
+  if (normalizedId === item.id) return item;
+  return { ...item, id: normalizedId };
+}
+
 // ─── APIs ─────────────────────────────────────────────────────────────────────
 
 // 1. AniList — Anime, Manga, Manhwa, Light Novels (sem chave, CORS aberto)
@@ -415,7 +486,7 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
   const items = data?.data?.Page?.media;
   if (!items?.length) return null;
   return items.map((m) => ({
-    id: `al-${type}-${m.id}`,
+    id: normalizeMediaId(`al-${type}-${m.id}`, type),
     title: m.title.english || m.title.romaji || m.title.native || "",
     titleEn: m.title.english || "",
     cover: m.coverImage?.large || m.coverImage?.medium || "",
@@ -557,7 +628,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       }));
       const relations = (m.relations?.edges || []).map(e => ({
         type: e.relationType,
-        id: `al-${e.node?.id}`,
+        id: e.node?.type === "ANIME" ? `al-anime-${e.node?.id}` : `al-manga-${e.node?.id}`,
         title: e.node?.title?.romaji || "",
         cover: e.node?.coverImage?.medium || null,
         format: e.node?.format || "",
@@ -1318,7 +1389,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       setSimilarGames(cached.similarGames || []);
       setOmdbData(cached.omdbData || null);
       setExtraLoading(false);
-      const lb = library[ci.id];
+      const lb = findLibraryEntry(library, ci.id, ci.type)?.item;
       setChapterInput(lb?.lastChapter || "");
       return;
     }
@@ -1349,7 +1420,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     });
 
     fetchExtraData(ci);
-    const lb = library[ci?.id];
+    const lb = findLibraryEntry(library, ci?.id, ci?.type)?.item;
     setChapterInput(lb?.lastChapter || "");
   }, [currentItem?.id]);
 
@@ -1430,11 +1501,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       else if (id.startsWith("al-")) {
         const alId = id.replace(/^al-[a-z]+-/, "").replace(/^al-/, "");
         if (alId && !isNaN(Number(alId))) {
-          const recoRes = await fetch(`${wUrl}/anilist`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` })
-          }).then(r => r.json()).catch(() => null);
+          const recoBody = JSON.stringify({ query: `{ Media(id:${alId}) { recommendations(perPage:12, sort:RATING_DESC) { nodes { rating mediaRecommendation { id title { romaji } coverImage { medium } type format } } } } }` });
+          const recoRes = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrl}/anilist`], recoBody).catch(() => null);
           if (recoRes?.data?.Media?.recommendations?.nodes) {
             setRecommendations(
               recoRes.data.Media.recommendations.nodes
@@ -1524,8 +1592,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     }).catch(() => setPersonLoading(false));
   }, [selectedPerson?.id]);
 
-  const inLib = !!library[currentItem.id];
-  const libItem = library[currentItem.id];
+  const matchedLib = findLibraryEntry(library, currentItem.id, currentItem.type);
+  const inLib = !!matchedLib;
+  const libItem = matchedLib?.item;
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
   const isFavorite = favorites.some(f => f.id === currentItem.id);
@@ -2002,7 +2071,7 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
 
 const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
-  const libItem = library[item.id];
+  const libItem = findLibraryEntry(library, item.id, item.type)?.item;
   const inLib = !!libItem;
   const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
   const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
@@ -3062,10 +3131,9 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
       if (extType === "anime" || extType === "manga") {
         const aniType = extType === "anime" ? "ANIME" : "MANGA";
         const q = `{ Page(perPage:15) { media(search:"${extSearch.trim().replace(/"/g,"'")}",type:${aniType}) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }`;
-        const res = await fetch(`${wUrl}/anilist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q }) });
-        const data = await res.json();
+        const data = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrl}/anilist`], JSON.stringify({ query: q }));
         results = (data?.data?.Page?.media || []).map(m => ({
-          id: `al-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.large || "",
+          id: `al-${extType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.large || "",
           type: extType, score: m.averageScore || 0,
           synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : ""
         }));
@@ -3074,7 +3142,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
         const res = await fetch(url);
         const data = await res.json();
         results = (data?.results || []).slice(0, 15).map(m => ({
-          id: `tmdb-movie-${m.id}`, title: m.title || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
+          id: `tmdb-filmes-${m.id}`, title: m.title || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
           type: "filmes", score: m.vote_average || 0
         }));
       } else if (extType === "series") {
@@ -3082,7 +3150,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
         const res = await fetch(url);
         const data = await res.json();
         results = (data?.results || []).slice(0, 15).map(m => ({
-          id: `tmdb-tv-${m.id}`, title: m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
+          id: `tmdb-series-${m.id}`, title: m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
           type: "series", score: m.vote_average || 0
         }));
       }
@@ -3734,7 +3802,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                           <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, 1fr)" : "repeat(auto-fill, minmax(100px, 1fr))", gap: isMobileDevice ? 4 : 10 }}>
                             {favByType[t.id].map(item => {
                               const coverSrc = item.customCover || item.cover;
-                              const currentRating = library[item.id]?.userRating ?? item.userRating ?? 0;
+                              const currentRating = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                               return (
                                 <div key={item.id} className="fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}
                                   onMouseEnter={e => { const rm = e.currentTarget.querySelector(".fav-rm"); if(rm) rm.style.opacity="1"; const th = e.currentTarget.querySelector(".fav-thumb-d"); if(th){th.style.transform="translateY(-3px) scale(1.02)"; th.querySelector(".fav-overlay").style.opacity="1";} }}
@@ -5248,7 +5316,7 @@ async function fetchTrendingAnime(workerUrl) {
   const [d1, d2] = await Promise.all([fetchAniListSafe(urls, q1), fetchAniListSafe(urls, q2)]);
   const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
-  return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
+  return shuffle(all).map(m => ({ id: `al-anime-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "anime", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
 }
 
 async function fetchTrendingManga(workerUrl) {
@@ -5260,7 +5328,7 @@ async function fetchTrendingManga(workerUrl) {
   const [d1, d2] = await Promise.all([fetchAniListSafe(urls, q1), fetchAniListSafe(urls, q2)]);
   const all = [...(d1?.data?.Page?.media || []), ...(d2?.data?.Page?.media || [])];
   if (!all.length) return [];
-  return shuffle(all).map(m => ({ id: `al-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
+  return shuffle(all).map(m => ({ id: `al-manga-${m.id}`, title: m.title.romaji, cover: m.coverImage?.large, type: "manga", source: "AniList", score: m.averageScore, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : "" }));
 }
 
 async function fetchTrendingMovies(tmdbKey, workerUrl) {
@@ -5271,7 +5339,7 @@ async function fetchTrendingMovies(tmdbKey, workerUrl) {
         : `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
-    return shuffle(pages.flat()).map(m => ({ id: `tmdb-movie-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) }));
+    return shuffle(pages.flat()).map(m => ({ id: `tmdb-filmes-${m.id}`, title: m.title, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) }));
   } catch { return []; }
 }
 
@@ -5283,7 +5351,7 @@ async function fetchTrendingSeries(tmdbKey, workerUrl) {
         : `https://api.themoviedb.org/3/trending/tv/week?api_key=${tmdbKey}&language=en-US&page=${page}`;
       return fetch(url).then(r => r.json()).then(d => d.results || []).catch(() => []);
     }));
-    return shuffle(pages.flat()).map(m => ({ id: `tmdb-tv-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) }));
+    return shuffle(pages.flat()).map(m => ({ id: `tmdb-series-${m.id}`, title: m.name, cover: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) }));
   } catch { return []; }
 }
 
@@ -5368,7 +5436,7 @@ async function fetchPersonalizedRecos(library, workerUrl) {
         const rawId = filmeSeeds[0].id.replace("tmdb-movie-", "").replace("tmdb-filmes-", "");
         const res = await fetch(`${wUrl}/tmdb?endpoint=/movie/${rawId}/recommendations&language=en-US`).then(r => r.json());
         (res?.results || []).slice(0, 12).forEach(m => {
-          const id = `tmdb-movie-${m.id}`;
+          const id = `tmdb-filmes-${m.id}`;
           if (!inLib.has(id) && m.poster_path) results.push({ id, title: m.title, cover: `https://image.tmdb.org/t/p/w300${m.poster_path}`, type: "filmes", source: "TMDB", score: Math.round(m.vote_average * 10) });
         });
       } catch {}
@@ -5381,7 +5449,7 @@ async function fetchPersonalizedRecos(library, workerUrl) {
         const rawId = serieSeeds[0].id.replace("tmdb-tv-", "").replace("tmdb-series-", "");
         const res = await fetch(`${wUrl}/tmdb?endpoint=/tv/${rawId}/recommendations&language=en-US`).then(r => r.json());
         (res?.results || []).slice(0, 12).forEach(m => {
-          const id = `tmdb-tv-${m.id}`;
+          const id = `tmdb-series-${m.id}`;
           if (!inLib.has(id) && m.poster_path) results.push({ id, title: m.name, cover: `https://image.tmdb.org/t/p/w300${m.poster_path}`, type: "series", source: "TMDB", score: Math.round(m.vote_average * 10) });
         });
       } catch {}
@@ -5426,7 +5494,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal
   if (!items || items.length === 0) return null;
 
   // Filter out items already in library — as user adds, new ones slide in
-  const toShow = items.filter(i => !library[i.id]);
+  const toShow = items.filter(i => !findLibraryEntry(library, i.id, i.type));
   if (toShow.length === 0) return null;
 
   return (
@@ -5450,7 +5518,7 @@ function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal
                 </div>
               </div>
               {(() => {
-                const libItem = library[item.id];
+                const libItem = findLibraryEntry(library, item.id, item.type)?.item;
                 const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
                 return score > 0 ? (
                   <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700, pointerEvents: "none" }}>
@@ -5497,7 +5565,7 @@ function LibGroupedList({ items, library, onOpen }) {
           {!collapsed[t.id] && (
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {gItems.map(item => {
-                const libItem = library[item.id];
+                const libItem = findLibraryEntry(library, item.id, item.type)?.item;
                 const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
                 const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
                 return (
@@ -6522,6 +6590,8 @@ export default function TrackAll() {
     }
   };
 
+  const getLibraryMatch = (id, type = "") => findLibraryEntry(library, id, type);
+
   const saveProfile = async (p) => {
     setProfile(p);
     if (user) {
@@ -6626,9 +6696,21 @@ export default function TrackAll() {
   };
 
   const addToLibrary = useCallback((item, status, rating = 0) => {
-    const lib = { ...library, [item.id]: { ...item, userStatus: status, userRating: rating, addedAt: Date.now() } };
+    const normalizedItem = normalizeMediaItem(item);
+    const existing = findLibraryEntry(library, normalizedItem.id, normalizedItem.type);
+    const canonicalId = normalizeMediaId(normalizedItem.id, normalizedItem.type);
+    const lib = { ...library };
+    if (existing?.key && existing.key !== canonicalId) delete lib[existing.key];
+    lib[canonicalId] = {
+      ...(existing?.item || {}),
+      ...normalizedItem,
+      id: canonicalId,
+      userStatus: status,
+      userRating: rating,
+      addedAt: Date.now(),
+    };
     saveLibrary(lib);
-    showNotif(`"${item.title.slice(0, 30)}" adicionado!`, "#10b981");
+    showNotif(`"${normalizedItem.title.slice(0, 30)}" adicionado!`, "#10b981");
     if (navigator.vibrate) navigator.vibrate(50);
   }, [library]);
 
@@ -6776,12 +6858,7 @@ export default function TrackAll() {
         }`).join('\n');
       try {
         const wUrlMihon = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
-        const res = await fetch(wUrlMihon + '/anilist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: `query { ${queryParts} }` }),
-        });
-        const data = await res.json();
+        const data = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrlMihon}/anilist`], JSON.stringify({ query: `query { ${queryParts} }` }));
         if (data?.data) {
           chunk.forEach((item, idx) => {
             const result = data.data[`m${idx}`];
@@ -6800,36 +6877,60 @@ export default function TrackAll() {
     showNotif(`Capas atualizadas ✓`, "#10b981");
   };
   const removeFromLibrary = (id) => {
-    const lib = { ...library }; delete lib[id]; saveLibrary(lib);
+    const matched = getLibraryMatch(id);
+    if (!matched) return;
+    const lib = { ...library };
+    delete lib[matched.key];
+    saveLibrary(lib);
     showNotif("Removido da biblioteca", "#ef4444");
   };
   const updateStatus = useCallback((id, status) => {
-    if (!library[id]) return;
-    const update = { ...library[id], userStatus: status };
+    const matched = findLibraryEntry(library, id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const update = { ...matched.item, id: canonicalId, userStatus: status };
     // Atualizar addedAt quando muda para completo — para o diário mostrar a data correta
     if (status === "completo") update.addedAt = Date.now();
-    saveLibrary({ ...library, [id]: update });
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = update;
+    saveLibrary(next);
     showNotif(useT("statusUpdated"), accent);
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
 
   const updateLastChapter = useCallback((id, chapter) => {
-    if (!library[id] || !chapter) return;
-    saveLibrary({ ...library, [id]: { ...library[id], lastChapter: chapter } });
+    const matched = findLibraryEntry(library, id);
+    if (!matched || !chapter) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, lastChapter: chapter };
+    saveLibrary(next);
     showNotif(`Capítulo: ${chapter} ✓`, accent);
   }, [library, accent]);
   const updateRating = (id, rating) => {
-    if (!library[id]) return;
-    saveLibrary({ ...library, [id]: { ...library[id], userRating: rating } });
+    const matched = getLibraryMatch(id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, userRating: rating };
+    saveLibrary(next);
     showNotif(rating > 0 ? `${rating} ★` : useT("ratingRemoved"), "#f59e0b");
   };
   const updateCover = async (id, url) => {
-    if (!library[id]) return;
-    saveLibrary({ ...library, [id]: { ...library[id], customCover: url } });
+    const matched = getLibraryMatch(id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, customCover: url };
+    saveLibrary(next);
     // Sincronizar cover nos favoritos se este item estiver lá
-    const inFavs = favorites.some(f => f.id === id);
+    const inFavs = favorites.some(f => f.id === id || f.id === matched.key || f.id === canonicalId);
     if (inFavs) {
-      const newFavs = favorites.map(f => f.id === id ? { ...f, customCover: url } : f);
+      const newFavs = favorites.map(f => (f.id === id || f.id === matched.key || f.id === canonicalId) ? { ...f, id: canonicalId, customCover: url } : f);
       setFavorites(newFavs);
       if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
     }
@@ -6837,14 +6938,17 @@ export default function TrackAll() {
   };
 
   const toggleFavorite = async (item) => {
-    const exists = favorites.some(f => f.id === item.id);
+    const normalizedItem = normalizeMediaItem(item);
+    const favoriteIds = new Set(mediaIdCandidates(normalizedItem.id, normalizedItem.type));
+    const exists = favorites.some(f => favoriteIds.has(f.id));
     let newFavs;
     if (exists) {
-      newFavs = favorites.filter(f => f.id !== item.id);
+      newFavs = favorites.filter(f => !favoriteIds.has(f.id));
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
       if (favorites.length >= 30) { showNotif("Máximo de 30 favoritos!", "#ef4444"); return; }
-      newFavs = [...favorites, { id: item.id, title: item.title, cover: item.cover, customCover: library[item.id]?.customCover || item.customCover || "", type: item.type }];
+      const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
+      newFavs = [...favorites, { id: normalizedItem.id, title: normalizedItem.title, cover: normalizedItem.cover, customCover: libItem?.customCover || normalizedItem.customCover || "", type: normalizedItem.type }];
       showNotif(useT("addedToFavorites"), "#f59e0b");
       if (navigator.vibrate) navigator.vibrate(50);
     }
@@ -7391,8 +7495,14 @@ export default function TrackAll() {
             library={library}
             onDone={(rating) => {
               if (rating > 0) {
-                const base = library[logPendingItem.id] || logPendingItem;
-                saveLibrary({ ...library, [logPendingItem.id]: { ...base, userStatus: "completo", userRating: rating } });
+                const normalizedPending = normalizeMediaItem(logPendingItem);
+                const matched = getLibraryMatch(normalizedPending.id, normalizedPending.type);
+                const canonicalId = normalizeMediaId(normalizedPending.id, normalizedPending.type);
+                const next = { ...library };
+                if (matched?.key && matched.key !== canonicalId) delete next[matched.key];
+                const base = matched?.item || normalizedPending;
+                next[canonicalId] = { ...base, id: canonicalId, userStatus: "completo", userRating: rating };
+                saveLibrary(next);
                 showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${rating}`, accent);
               } else {
                 showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent);
@@ -7905,7 +8015,7 @@ export default function TrackAll() {
                 ) : libViewMode === "compact" ? (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
                     {sortedLib.map(item => {
-                      const libItem = library[item.id];
+                      const libItem = findLibraryEntry(library, item.id, item.type)?.item;
                       const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
                       const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
                       return (
@@ -7961,9 +8071,7 @@ export default function TrackAll() {
               onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
               onOpenMedia={(item) => {
                 // Procura na biblioteca pelo id — testa variantes
-                const num = item.id?.match(/(\d+)$/)?.[1];
-                const libItem = library[item.id]
-                  || (num && (library[`al-anime-${num}`] || library[`al-manga-${num}`]));
+                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
                 // Se está na biblioteca, abre com todos os dados
                 if (libItem) {
                   setSelectedItem(libItem);
@@ -8119,7 +8227,7 @@ export default function TrackAll() {
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
                   {logResults.map(item => (
                     <div key={item.id} onClick={() => {
-                      if (library[item.id]) updateStatus(item.id, "completo");
+                      if (findLibraryEntry(library, item.id, item.type)) updateStatus(item.id, "completo");
                       else addToLibrary(item, "completo");
                       setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
                     }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", cursor: "pointer" }}>
