@@ -6350,6 +6350,7 @@ export default function TrackAll() {
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
+  const mainSwipeFrameRef = useRef(null);
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
   const [mainSwipeOffset, setMainSwipeOffset] = useState(0);
   const [mainSwipeTransition, setMainSwipeTransition] = useState("transform 220ms cubic-bezier(0.22, 1, 0.36, 1)");
@@ -6447,6 +6448,7 @@ export default function TrackAll() {
 
   useEffect(() => () => {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
+    if (mainSwipeFrameRef.current) cancelAnimationFrame(mainSwipeFrameRef.current);
   }, []);
 
   const loadRecos = async (manual = false) => {
@@ -6704,19 +6706,27 @@ export default function TrackAll() {
     mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
   };
 
+  const setMainSwipeOffsetSmooth = (value) => {
+    if (mainSwipeFrameRef.current) cancelAnimationFrame(mainSwipeFrameRef.current);
+    mainSwipeFrameRef.current = requestAnimationFrame(() => {
+      setMainSwipeOffset(value);
+      mainSwipeFrameRef.current = null;
+    });
+  };
+
   const animateMainSwipeToView = (nextView, direction) => {
     const width = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     setMainSwipeTransition("transform 180ms cubic-bezier(0.22, 1, 0.36, 1)");
-    setMainSwipeOffset(direction < 0 ? -width : width);
+    setMainSwipeOffsetSmooth(direction < 0 ? -width : width);
     mainSwipeAnimRef.current = setTimeout(() => {
       setView(nextView);
       setMainSwipeTransition("none");
-      setMainSwipeOffset(direction < 0 ? width * 0.18 : -width * 0.18);
+      setMainSwipeOffsetSmooth(direction < 0 ? width * 0.16 : -width * 0.16);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setMainSwipeTransition("transform 240ms cubic-bezier(0.22, 1, 0.36, 1)");
-          setMainSwipeOffset(0);
+          setMainSwipeOffsetSmooth(0);
         });
       });
       mainSwipeAnimRef.current = null;
@@ -6729,7 +6739,7 @@ export default function TrackAll() {
     if (!touch) return;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     setMainSwipeTransition("none");
-    setMainSwipeOffset(0);
+    setMainSwipeOffsetSmooth(0);
     const target = e.target;
     mainSwipeRef.current = {
       tracking: true,
@@ -6751,23 +6761,23 @@ export default function TrackAll() {
     state.lastY = touch.clientY;
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
-    if (!state.isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+    if (!state.isHorizontal && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.08) {
       state.isHorizontal = true;
     }
     if (state.isHorizontal) {
       const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
       const atFirst = currentIndex <= 0;
       const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
-      let nextOffset = dx;
-      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.35;
-      setMainSwipeOffset(nextOffset);
+      let nextOffset = dx * 0.94;
+      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.28;
+      setMainSwipeOffsetSmooth(nextOffset);
       if (e.cancelable) e.preventDefault();
       return;
     }
     if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
       setMainSwipeTransition("transform 180ms ease");
-      setMainSwipeOffset(0);
+      setMainSwipeOffsetSmooth(0);
     }
   };
 
@@ -6776,20 +6786,20 @@ export default function TrackAll() {
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
       setMainSwipeTransition("transform 180ms ease");
-      setMainSwipeOffset(0);
+      setMainSwipeOffsetSmooth(0);
       return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.15) {
+    if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.08) {
       setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
-      setMainSwipeOffset(0);
+      setMainSwipeOffsetSmooth(0);
       return;
     }
     const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
     if (currentIndex === -1) {
       setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
-      setMainSwipeOffset(0);
+      setMainSwipeOffsetSmooth(0);
       return;
     }
     if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
@@ -6798,15 +6808,29 @@ export default function TrackAll() {
       animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
     } else {
       setMainSwipeTransition("transform 200ms cubic-bezier(0.22, 1, 0.36, 1)");
-      setMainSwipeOffset(0);
+      setMainSwipeOffsetSmooth(0);
     }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
     setMainSwipeTransition("transform 180ms ease");
-    setMainSwipeOffset(0);
+    setMainSwipeOffsetSmooth(0);
   };
+
+  const mainSwipeTabs = [
+    { id: "home", icon: "⌂", label: useT("home") },
+    { id: "library", icon: "▤", label: useT("library") },
+    { id: "friends", icon: "◔", label: useT("friends") },
+    { id: "profile", icon: "◉", label: lang === "en" ? "Profile" : "Perfil" },
+  ];
+  const mainSwipeCurrentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+  const mainSwipePeekDirection = mainSwipeOffset === 0 ? 0 : (mainSwipeOffset < 0 ? -1 : 1);
+  const mainSwipePeekIndex = mainSwipeCurrentIndex + (mainSwipePeekDirection < 0 ? 1 : -1);
+  const mainSwipePeekTab = mainSwipePeekIndex >= 0 && mainSwipePeekIndex < mainSwipeTabs.length ? mainSwipeTabs[mainSwipePeekIndex] : null;
+  const mainSwipePeekProgress = typeof window !== "undefined" && window.innerWidth
+    ? Math.min(1, Math.abs(mainSwipeOffset) / (window.innerWidth * 0.55))
+    : 0;
 
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
@@ -7723,6 +7747,50 @@ export default function TrackAll() {
           onTouchCancel={handleMainSwipeCancel}
           style={{
             touchAction: canUseMainSwipe ? "pan-y" : "auto",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+
+        {canUseMainSwipe && mainSwipePeekTab && (
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 0,
+            opacity: 0.2 + (mainSwipePeekProgress * 0.65),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: mainSwipePeekDirection < 0 ? "flex-end" : "flex-start",
+            padding: "0 18px",
+            background: `linear-gradient(${mainSwipePeekDirection < 0 ? "90deg" : "270deg"}, transparent 0%, ${accent}12 100%)`,
+          }}>
+            <div style={{
+              transform: `translateX(${mainSwipePeekDirection < 0 ? Math.max(0, 34 - (mainSwipePeekProgress * 34)) : Math.min(0, -34 + (mainSwipePeekProgress * 34))}px)`,
+              transition: mainSwipeTransition,
+              background: activeDarkMode ? "rgba(22,27,34,0.72)" : "rgba(255,255,255,0.82)",
+              border: `1px solid ${accent}33`,
+              borderRadius: 18,
+              padding: "10px 14px",
+              boxShadow: `0 10px 30px ${accent}22`,
+              backdropFilter: "blur(12px)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              color: activeDarkMode ? "#e6edf3" : "#0d1117",
+              fontWeight: 800,
+              fontSize: 13,
+            }}>
+              <span style={{ fontSize: 16, color: accent }}>{mainSwipePeekTab.icon}</span>
+              <span>{mainSwipePeekTab.label}</span>
+            </div>
+          </div>
+        )}
+
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
             transform: `translate3d(${mainSwipeOffset}px, 0, 0)`,
             transition: mainSwipeTransition,
             willChange: canUseMainSwipe || mainSwipeOffset !== 0 ? "transform" : "auto",
@@ -8311,6 +8379,7 @@ export default function TrackAll() {
           </div>
         )}
 
+        </div>
         </div>
 
         {/* TierList Viewer */}
