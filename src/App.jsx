@@ -6351,6 +6351,8 @@ export default function TrackAll() {
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null);
+  const mainSwipePrevRef = useRef(null);
+  const mainSwipeNextRef = useRef(null);
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6704,24 +6706,28 @@ export default function TrackAll() {
   };
 
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
-    const el = mainSwipeContentRef.current;
-    if (!el) return;
-    el.style.transition = transition;
-    el.style.transform = `translate3d(${offset}px, 0, 0)`;
-    el.style.willChange = offset !== 0 ? "transform" : "auto";
+    const width = typeof window !== "undefined" ? window.innerWidth : 360;
+    const cur = mainSwipeContentRef.current;
+    const prev = mainSwipePrevRef.current;
+    const next = mainSwipeNextRef.current;
+    const t = transition;
+    if (cur) { cur.style.transition = t; cur.style.transform = `translate3d(${offset}px, 0, 0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
+    if (prev) { prev.style.transition = t; prev.style.transform = `translate3d(${-width + offset}px, 0, 0)`; prev.style.willChange = offset !== 0 ? "transform" : "auto"; }
+    if (next) { next.style.transition = t; next.style.transform = `translate3d(${width + offset}px, 0, 0)`; next.style.willChange = offset !== 0 ? "transform" : "auto"; }
   };
 
   const animateMainSwipeToView = (nextView, direction) => {
     const width = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applyMainSwipeStyle(direction < 0 ? -width : width, "transform 150ms cubic-bezier(0.22, 1, 0.36, 1)");
+    const easing = "transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+    applyMainSwipeStyle(direction < 0 ? -width : width, easing);
     mainSwipeAnimRef.current = setTimeout(() => {
       setView(nextView);
       requestAnimationFrame(() => {
         applyMainSwipeStyle(0, "none");
         mainSwipeAnimRef.current = null;
       });
-    }, 150);
+    }, 280);
   };
 
   const handleMainSwipeStart = (e) => {
@@ -6774,18 +6780,18 @@ export default function TrackAll() {
     const state = mainSwipeRef.current;
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      applyMainSwipeStyle(0, "transform 160ms ease");
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
     if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.02) {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
     if (currentIndex === -1) {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
@@ -6793,17 +6799,23 @@ export default function TrackAll() {
     } else if (dx > 0 && currentIndex > 0) {
       animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
     } else {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
     }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    applyMainSwipeStyle(0, "transform 160ms ease");
+    applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
   };
 
   useEffect(() => {
-    applyMainSwipeStyle(0, "none");
+    const width = typeof window !== "undefined" ? window.innerWidth : 360;
+    const cur = mainSwipeContentRef.current;
+    const prev = mainSwipePrevRef.current;
+    const next = mainSwipeNextRef.current;
+    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0, 0, 0)"; }
+    if (prev) { prev.style.transition = "none"; prev.style.transform = `translate3d(${-width}px, 0, 0)`; }
+    if (next) { next.style.transition = "none"; next.style.transform = `translate3d(${width}px, 0, 0)`; }
   }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
