@@ -4988,11 +4988,11 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   }
 
   return (
-    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px" }}>
+    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px", minHeight: "100vh" }}>
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
+      <div className="tabs-scroll" style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         {[
           { id: "feed", label: "🕐 Feed" },
           { id: "friends", label: `${lang === "en" ? "Friends" : "Amigos"} (${accepted.length})` },
@@ -7750,8 +7750,39 @@ export default function TrackAll() {
             touchAction: canUseMainSwipe ? "pan-y" : "auto",
             position: "relative",
             overflow: "hidden",
+            minHeight: canUseMainSwipe ? "calc(100vh - 64px)" : undefined,
           }}
         >
+
+        {/* Peek — painel anterior */}
+        {canUseMainSwipe && (() => {
+          const idx = MAIN_SWIPE_VIEWS.indexOf(view);
+          const prevView = idx > 0 ? MAIN_SWIPE_VIEWS[idx - 1] : null;
+          const PEEK_META = { home: { icon: "⌂", label: "Home" }, library: { icon: "▤", label: "Biblioteca" }, friends: { icon: "👥", label: "Amigos" }, profile: { icon: "◉", label: "Perfil" } };
+          if (!prevView) return null;
+          const m = PEEK_META[prevView];
+          return (
+            <div ref={mainSwipePrevRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", transform: `translate3d(-${window.innerWidth}px, 0, 0)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: activeDarkMode ? "#0d1117" : "#f5f0e8", pointerEvents: "none", userSelect: "none" }}>
+              <span style={{ fontSize: 48, opacity: 0.25 }}>{m.icon}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: activeDarkMode ? "#484f58" : "#94a3b8", opacity: 0.5 }}>{m.label}</span>
+            </div>
+          );
+        })()}
+
+        {/* Peek — painel seguinte */}
+        {canUseMainSwipe && (() => {
+          const idx = MAIN_SWIPE_VIEWS.indexOf(view);
+          const nextView = idx < MAIN_SWIPE_VIEWS.length - 1 ? MAIN_SWIPE_VIEWS[idx + 1] : null;
+          const PEEK_META = { home: { icon: "⌂", label: "Home" }, library: { icon: "▤", label: "Biblioteca" }, friends: { icon: "👥", label: "Amigos" }, profile: { icon: "◉", label: "Perfil" } };
+          if (!nextView) return null;
+          const m = PEEK_META[nextView];
+          return (
+            <div ref={mainSwipeNextRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", transform: `translate3d(${window.innerWidth}px, 0, 0)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: activeDarkMode ? "#0d1117" : "#f5f0e8", pointerEvents: "none", userSelect: "none" }}>
+              <span style={{ fontSize: 48, opacity: 0.25 }}>{m.icon}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: activeDarkMode ? "#484f58" : "#94a3b8", opacity: 0.5 }}>{m.label}</span>
+            </div>
+          );
+        })()}
 
         <div
           ref={mainSwipeContentRef}
