@@ -6348,6 +6348,8 @@ export default function TrackAll() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
+  const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
@@ -6662,6 +6664,88 @@ export default function TrackAll() {
   };
   // isMobile check — calculado uma vez, estável entre renders
   const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  const canUseMainSwipe = isMobileDevice
+    && MAIN_SWIPE_VIEWS.includes(view)
+    && !selectedItem
+    && !viewingTierlist
+    && !showTierlistEditor
+    && !showCollectionEditor
+    && !logOpen
+    && !logPendingItem;
+
+  const hasHorizontalScrollableParent = (target) => {
+    let el = target instanceof HTMLElement ? target : null;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const overflowX = style?.overflowX || "";
+      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
+      el = el.parentElement;
+    }
+    return false;
+  };
+
+  const isMainSwipeBlockedTarget = (target) => {
+    if (!(target instanceof HTMLElement)) return true;
+    if (target.closest('input, textarea, select, button, a, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
+    if (target.closest(".recents-row, .tabs-scroll")) return true;
+    if (hasHorizontalScrollableParent(target)) return true;
+    return false;
+  };
+
+  const resetMainSwipe = () => {
+    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
+  };
+
+  const handleMainSwipeStart = (e) => {
+    if (!canUseMainSwipe) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    const target = e.target;
+    mainSwipeRef.current = {
+      tracking: true,
+      blocked: isMainSwipeBlockedTarget(target),
+      isHorizontal: false,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lastX: touch.clientX,
+      lastY: touch.clientY,
+    };
+  };
+
+  const handleMainSwipeMove = (e) => {
+    const state = mainSwipeRef.current;
+    if (!state.tracking || state.blocked) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    state.lastX = touch.clientX;
+    state.lastY = touch.clientY;
+    const dx = touch.clientX - state.startX;
+    const dy = touch.clientY - state.startY;
+    if (!state.isHorizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+      state.isHorizontal = true;
+      return;
+    }
+    if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+      state.blocked = true;
+    }
+  };
+
+  const handleMainSwipeEnd = () => {
+    const state = mainSwipeRef.current;
+    resetMainSwipe();
+    if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) return;
+    const dx = state.lastX - state.startX;
+    const dy = state.lastY - state.startY;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+    if (currentIndex === -1) return;
+    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
+      setView(MAIN_SWIPE_VIEWS[currentIndex + 1]);
+    } else if (dx > 0 && currentIndex > 0) {
+      setView(MAIN_SWIPE_VIEWS[currentIndex - 1]);
+    }
+  };
 
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
@@ -7571,6 +7655,14 @@ export default function TrackAll() {
           </button>
         </nav>
 
+        <div
+          onTouchStart={handleMainSwipeStart}
+          onTouchMove={handleMainSwipeMove}
+          onTouchEnd={handleMainSwipeEnd}
+          onTouchCancel={resetMainSwipe}
+          style={{ touchAction: canUseMainSwipe ? "pan-y" : "auto" }}
+        >
+
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
@@ -8152,6 +8244,8 @@ export default function TrackAll() {
           />
           </div>
         )}
+
+        </div>
 
         {/* TierList Viewer */}
         {viewingTierlist && (
