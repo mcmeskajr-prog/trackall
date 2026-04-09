@@ -6682,22 +6682,28 @@ export default function TrackAll() {
     && !logOpen
     && !logPendingItem;
 
-  const hasHorizontalScrollableParent = (target) => {
+  const hasHorizontalScrollableParent = (target, dx = 0) => {
     let el = target instanceof HTMLElement ? target : null;
     while (el && el !== document.body) {
       const style = window.getComputedStyle(el);
       const overflowX = style?.overflowX || "";
-      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
+      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) {
+        const atStart = el.scrollLeft <= 2;
+        const atEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 2;
+        if (dx === 0) return true;
+        if (dx > 0 && !atStart) return true;
+        if (dx < 0 && !atEnd) return true;
+      }
       el = el.parentElement;
     }
     return false;
   };
 
-  const isMainSwipeBlockedTarget = (target) => {
+  const isMainSwipeBlockedTarget = (target, dx = 0) => {
     if (!(target instanceof HTMLElement)) return true;
     if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
     if (target.closest(".recents-row, .tabs-scroll")) return true;
-    if (hasHorizontalScrollableParent(target)) return true;
+    if (hasHorizontalScrollableParent(target, dx)) return true;
     return false;
   };
 
@@ -6758,7 +6764,9 @@ export default function TrackAll() {
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
     if (!state.isHorizontal && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy) * 1.02) {
-      state.isHorizontal = true;
+      // Reavaliar blocked com dx real — permite swipe em carrosséis já no limite
+      if (state.blocked) state.blocked = isMainSwipeBlockedTarget(e.target, dx);
+      state.isHorizontal = !state.blocked;
     }
     if (state.isHorizontal) {
       const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
@@ -7499,6 +7507,7 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
             .fade-in { animation: none !important; }
+            .view-transition { animation: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
