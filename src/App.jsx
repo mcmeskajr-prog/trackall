@@ -6330,6 +6330,7 @@ export default function TrackAll() {
   const [recos, setRecos] = useState({});
   const [personalRecos, setPersonalRecos] = useState([]);
   const personalRecosLoadedRef = useRef(false);
+  const recoLoadIdRef = useRef(0);
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -6440,8 +6441,13 @@ export default function TrackAll() {
   }, [view, user]);
 
   const loadRecos = async (manual = false) => {
+    const loadId = ++recoLoadIdRef.current;
     setRecoLoading(true);
     setRecos({});
+    const applyRecoChunk = (key, items) => {
+      if (recoLoadIdRef.current !== loadId) return;
+      if (items?.length) setRecos(r => ({ ...r, [key]: items }));
+    };
     if (manual) {
       setPersonalRecos([]);
       personalRecosLoadedRef.current = false;
@@ -6450,31 +6456,25 @@ export default function TrackAll() {
       if (Object.keys(library).length > 0) {
         personalRecosLoadedRef.current = true;
         fetchPersonalizedRecos(library, workerUrl).then(personal => {
+          if (recoLoadIdRef.current !== loadId) return;
           if (personal?.length) {
             setPersonalRecos(personal);
             try { sessionStorage.setItem("trackall_personal_recos", JSON.stringify(personal)); } catch {}
           }
-        });
+        }).catch(() => {});
       }
     }
     try {
       // Carregar progressivamente — cada categoria aparece quando fica pronta
-      const anime = await fetchTrendingAnime(workerUrl);
-      if (anime?.length) setRecos(r => ({ ...r, anime }));
-
-      const manga = await fetchTrendingManga(workerUrl);
-      if (manga?.length) setRecos(r => ({ ...r, manga }));
-
-      const filmes = await fetchTrendingMovies(tmdbKey, workerUrl);
-      if (filmes?.length) setRecos(r => ({ ...r, filmes }));
-
-      const series = await fetchTrendingSeries(tmdbKey, workerUrl);
-      if (series?.length) setRecos(r => ({ ...r, series }));
-
-      const jogos = await fetchTrendingGames(workerUrl);
-      if (jogos?.length) setRecos(r => ({ ...r, jogos }));
+      await Promise.allSettled([
+        fetchTrendingAnime(workerUrl).then(items => applyRecoChunk("anime", items)),
+        fetchTrendingManga(workerUrl).then(items => applyRecoChunk("manga", items)),
+        fetchTrendingMovies(tmdbKey, workerUrl).then(items => applyRecoChunk("filmes", items)),
+        fetchTrendingSeries(tmdbKey, workerUrl).then(items => applyRecoChunk("series", items)),
+        fetchTrendingGames(workerUrl).then(items => applyRecoChunk("jogos", items)),
+      ]);
     } catch {}
-    setRecoLoading(false);
+    if (recoLoadIdRef.current === loadId) setRecoLoading(false);
   };
 
   const handleSaveTierlist = async (title, tiers) => {
