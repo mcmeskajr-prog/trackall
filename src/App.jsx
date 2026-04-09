@@ -6824,14 +6824,6 @@ export default function TrackAll() {
     { id: "friends", icon: "◔", label: useT("friends") },
     { id: "profile", icon: "◉", label: lang === "en" ? "Profile" : "Perfil" },
   ];
-  const mainSwipeCurrentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-  const mainSwipePeekDirection = mainSwipeOffset === 0 ? 0 : (mainSwipeOffset < 0 ? -1 : 1);
-  const mainSwipePeekIndex = mainSwipeCurrentIndex + (mainSwipePeekDirection < 0 ? 1 : -1);
-  const mainSwipePeekTab = mainSwipePeekIndex >= 0 && mainSwipePeekIndex < mainSwipeTabs.length ? mainSwipeTabs[mainSwipePeekIndex] : null;
-  const mainSwipePeekProgress = typeof window !== "undefined" && window.innerWidth
-    ? Math.min(1, Math.abs(mainSwipeOffset) / (window.innerWidth * 0.55))
-    : 0;
-
   const saveBgImage = async (img) => {
     if (bgSeparateDevices) {
       if (isMobileDevice) {
@@ -7752,45 +7744,8 @@ export default function TrackAll() {
           }}
         >
 
-        {canUseMainSwipe && mainSwipePeekTab && (
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            zIndex: 0,
-            opacity: 0.2 + (mainSwipePeekProgress * 0.65),
-            display: "flex",
-            alignItems: "center",
-            justifyContent: mainSwipePeekDirection < 0 ? "flex-end" : "flex-start",
-            padding: "0 18px",
-            background: `linear-gradient(${mainSwipePeekDirection < 0 ? "90deg" : "270deg"}, transparent 0%, ${accent}12 100%)`,
-          }}>
-            <div style={{
-              transform: `translateX(${mainSwipePeekDirection < 0 ? Math.max(0, 34 - (mainSwipePeekProgress * 34)) : Math.min(0, -34 + (mainSwipePeekProgress * 34))}px)`,
-              transition: mainSwipeTransition,
-              background: activeDarkMode ? "rgba(22,27,34,0.72)" : "rgba(255,255,255,0.82)",
-              border: `1px solid ${accent}33`,
-              borderRadius: 18,
-              padding: "10px 14px",
-              boxShadow: `0 10px 30px ${accent}22`,
-              backdropFilter: "blur(12px)",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              color: activeDarkMode ? "#e6edf3" : "#0d1117",
-              fontWeight: 800,
-              fontSize: 13,
-            }}>
-              <span style={{ fontSize: 16, color: accent }}>{mainSwipePeekTab.icon}</span>
-              <span>{mainSwipePeekTab.label}</span>
-            </div>
-          </div>
-        )}
-
         <div
           style={{
-            position: "relative",
-            zIndex: 1,
             transform: `translate3d(${mainSwipeOffset}px, 0, 0)`,
             transition: mainSwipeTransition,
             willChange: canUseMainSwipe || mainSwipeOffset !== 0 ? "transform" : "auto",
