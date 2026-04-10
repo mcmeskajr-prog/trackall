@@ -7758,45 +7758,125 @@ export default function TrackAll() {
           }}
         >
 
-        {/* Peek — view adjacente que aparece durante o drag */}
-        {peekView && canUseMainSwipe && (
-          <div ref={mainSwipePeekRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", backfaceVisibility: "hidden", pointerEvents: "none" }}>
-            {peekView === "home" && (
-              <div style={{ padding: 0 }}>
-                <div className="hero-gradient" style={{ padding: "16px 16px 14px", minHeight: 120, display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: `linear-gradient(135deg,${accent},${accent}66)`, flexShrink: 0 }}>{activeProfile?.avatar ? <img src={activeProfile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : null}</div>
-                  <div><div style={{ fontSize: 20, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{activeProfile?.name || "TrackAll"}</div><div style={{ fontSize: 12, color: "#8b949e", marginTop: 4 }}>{Object.keys(library).length} {useT("inLibraryCount")}</div></div>
+        {/* Peek — skeleton da view adjacente, aparece durante o drag */}
+        {peekView && canUseMainSwipe && (() => {
+          const bg = activeDarkMode ? "#0d1117" : "#f5f0e8";
+          const sk = { borderRadius: 8 }; // classe shimmer aplicada inline
+          const Sk = ({ w, h, r = 8, mb = 0 }) => (
+            <div className="shimmer" style={{ width: w, height: h, borderRadius: r, marginBottom: mb, flexShrink: 0 }} />
+          );
+          return (
+            <div ref={mainSwipePeekRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", minHeight: "100vh", background: bg, backfaceVisibility: "hidden", pointerEvents: "none", overflow: "hidden" }}>
+
+              {peekView === "home" && (
+                <div>
+                  {/* Hero skeleton */}
+                  <div style={{ padding: "16px 16px 20px", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                      <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="shimmer" style={{ width: "55%", height: 18, borderRadius: 6, marginBottom: 8 }} />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          {[80,70,65].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 44, borderRadius: 10 }} />)}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Filter pills */}
+                    <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
+                      {[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}
+                    </div>
+                  </div>
+                  {/* Cards row */}
+                  <div style={{ padding: "16px 16px 8px" }}>
+                    <div className="shimmer" style={{ width: 120, height: 14, borderRadius: 6, marginBottom: 12 }} />
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[1,2,3,4].map(i => (
+                        <div key={i} style={{ flexShrink: 0, width: 90 }}>
+                          <div className="shimmer" style={{ width: 90, height: 130, borderRadius: 10, marginBottom: 6 }} />
+                          <div className="shimmer" style={{ width: "80%", height: 10, borderRadius: 4 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ padding: "16px 16px 8px" }}>
+                    <div className="shimmer" style={{ width: 100, height: 14, borderRadius: 6, marginBottom: 12 }} />
+                    <div style={{ display: "flex", gap: 10 }}>
+                      {[1,2,3,4].map(i => (
+                        <div key={i} style={{ flexShrink: 0, width: 90 }}>
+                          <div className="shimmer" style={{ width: 90, height: 130, borderRadius: 10, marginBottom: 6 }} />
+                          <div className="shimmer" style={{ width: "70%", height: 10, borderRadius: 4 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-            {peekView === "library" && (
-              <div style={{ padding: "16px 12px" }}>
-                <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 12, paddingLeft: 4, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{useT("library")}</h2>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingLeft: 4 }}>
-                  {MEDIA_TYPES.slice(1).filter(t => Object.values(library).some(i => i.type === t.id)).map(t => (
-                    <div key={t.id} style={{ padding: "6px 12px", borderRadius: 20, background: `${accent}22`, border: `1px solid ${accent}44`, fontSize: 12, fontWeight: 700, color: accent }}>{t.icon} {mediaLabel(t, lang)}</div>
+              )}
+
+              {peekView === "library" && (
+                <div style={{ padding: "16px 12px" }}>
+                  {/* Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} />
+                    <div className="shimmer" style={{ width: 80, height: 32, borderRadius: 20 }} />
+                  </div>
+                  {/* Status pills */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "hidden" }}>
+                    {[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}
+                  </div>
+                  {/* Grid de capas */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                    {Array(12).fill(0).map((_,i) => (
+                      <div key={i}>
+                        <div className="shimmer" style={{ width: "100%", aspectRatio: "2/3", borderRadius: 10, marginBottom: 4 }} />
+                        <div className="shimmer" style={{ width: "75%", height: 9, borderRadius: 4 }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {peekView === "friends" && (
+                <div style={{ padding: "16px 0 20px" }}>
+                  {/* Tabs */}
+                  <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20 }}>
+                    {[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}
+                  </div>
+                  {/* Friend cards */}
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
+                      <div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} />
+                        <div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
-            {peekView === "friends" && (
-              <div style={{ padding: "24px 16px", textAlign: "center" }}>
-                <div style={{ fontSize: 48, marginBottom: 8 }}>👥</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{useT("friends")}</div>
-              </div>
-            )}
-            {peekView === "profile" && (
-              <div style={{ height: 200, background: activeBgImage ? `url(${activeBgImage}) center/cover` : activeBgColor, position: "relative" }}>
-                {activeProfile?.banner && <img src={activeProfile.banner} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />}
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6))" }} />
-                <div style={{ position: "absolute", bottom: 16, left: 16, display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", border: `2px solid ${accent}`, background: "#21262d" }}>{activeProfile?.avatar ? <img src={activeProfile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}</div>
-                  <div style={{ color: "white", fontWeight: 800, fontSize: 16 }}>{activeProfile?.name || "Perfil"}</div>
+              )}
+
+              {peekView === "profile" && (
+                <div>
+                  {/* Banner */}
+                  <div className="shimmer" style={{ width: "100%", height: 200, borderRadius: 0 }} />
+                  {/* Avatar sobreposto */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -40 }}>
+                    <div className="shimmer" style={{ width: 80, height: 80, borderRadius: "50%", border: `3px solid ${bg}`, marginBottom: 12 }} />
+                    <div className="shimmer" style={{ width: 130, height: 18, borderRadius: 6, marginBottom: 8 }} />
+                    <div className="shimmer" style={{ width: 90, height: 12, borderRadius: 4, marginBottom: 20 }} />
+                    {/* Stats */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%", marginBottom: 16 }}>
+                      {[1,2,3].map(i => <div key={i} className="shimmer" style={{ height: 56, borderRadius: 10 }} />)}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>
+                      {[1,2,3].map(i => <div key={i} className="shimmer" style={{ height: 56, borderRadius: 10 }} />)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+            </div>
+          );
+        })()}
 
         <div
           ref={mainSwipeContentRef}
