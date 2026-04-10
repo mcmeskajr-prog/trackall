@@ -6350,9 +6350,8 @@ export default function TrackAll() {
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
-  const mainSwipeContentRef = useRef(null);
-  const mainSwipePrevRef = useRef(null);
-  const mainSwipeNextRef = useRef(null);
+  const mainSwipeContentRef = useRef(null); // compat — aponta para view atual
+  const swipeViewRefs = { home: useRef(null), library: useRef(null), friends: useRef(null), profile: useRef(null) };
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6711,28 +6710,30 @@ export default function TrackAll() {
     mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
   };
 
-  const applyMainSwipeStyle = (offset = 0, transition = "none") => {
-    const width = typeof window !== "undefined" ? window.innerWidth : 360;
-    const cur = mainSwipeContentRef.current;
-    const prev = mainSwipePrevRef.current;
-    const next = mainSwipeNextRef.current;
-    const t = transition;
-    if (cur) { cur.style.transition = t; cur.style.transform = `translate3d(${offset}px, 0, 0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    if (prev) { prev.style.transition = t; prev.style.transform = `translate3d(${-width + offset}px, 0, 0)`; prev.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    if (next) { next.style.transition = t; next.style.transform = `translate3d(${width + offset}px, 0, 0)`; next.style.willChange = offset !== 0 ? "transform" : "auto"; }
+  // Move todos os painéis de swipe em conjunto (cur + vizinhos)
+  const applySwipePanels = (offset = 0, transition = "none") => {
+    const W = typeof window !== "undefined" ? window.innerWidth : 360;
+    const curIdx = MAIN_SWIPE_VIEWS.indexOf(view);
+    MAIN_SWIPE_VIEWS.forEach((v, i) => {
+      const el = swipeViewRefs[v]?.current;
+      if (!el) return;
+      const baseX = (i - curIdx) * W;
+      el.style.transition = transition;
+      el.style.transform = `translate3d(${baseX + offset}px, 0, 0)`;
+    });
   };
 
+  // Compat — usado por código legado que referencia mainSwipeContentRef
+  const applyMainSwipeStyle = (offset = 0, transition = "none") => applySwipePanels(offset, transition);
+
   const animateMainSwipeToView = (nextView, direction) => {
-    const width = typeof window !== "undefined" ? window.innerWidth : 360;
+    const W = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     const easing = "transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)";
-    applyMainSwipeStyle(direction < 0 ? -width : width, easing);
+    applySwipePanels(direction < 0 ? -W : W, easing);
     mainSwipeAnimRef.current = setTimeout(() => {
       setView(nextView);
-      requestAnimationFrame(() => {
-        applyMainSwipeStyle(0, "none");
-        mainSwipeAnimRef.current = null;
-      });
+      mainSwipeAnimRef.current = null;
     }, 280);
   };
 
@@ -6741,7 +6742,7 @@ export default function TrackAll() {
     const touch = e.touches?.[0];
     if (!touch) return;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applyMainSwipeStyle(0, "none");
+    applySwipePanels(0, "none");
     const target = e.target;
     mainSwipeRef.current = {
       tracking: true,
@@ -6764,7 +6765,6 @@ export default function TrackAll() {
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
     if (!state.isHorizontal && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy) * 1.02) {
-      // Reavaliar blocked com dx real — permite swipe em carrosséis já no limite
       if (state.blocked) state.blocked = isMainSwipeBlockedTarget(e.target, dx);
       state.isHorizontal = !state.blocked;
     }
@@ -6774,13 +6774,13 @@ export default function TrackAll() {
       const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
       let nextOffset = dx * 0.98;
       if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.18;
-      applyMainSwipeStyle(nextOffset, "none");
+      applySwipePanels(nextOffset, "none");
       if (e.cancelable) e.preventDefault();
       return;
     }
     if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
-      applyMainSwipeStyle(0, "transform 160ms ease");
+      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
     }
   };
 
@@ -6788,18 +6788,18 @@ export default function TrackAll() {
     const state = mainSwipeRef.current;
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
     if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.02) {
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
     if (currentIndex === -1) {
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
@@ -6807,23 +6807,26 @@ export default function TrackAll() {
     } else if (dx > 0 && currentIndex > 0) {
       animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
     } else {
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
     }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+    applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
   };
 
+  // Reposicionar painéis sempre que a view ativa muda
   useEffect(() => {
-    const width = typeof window !== "undefined" ? window.innerWidth : 360;
-    const cur = mainSwipeContentRef.current;
-    const prev = mainSwipePrevRef.current;
-    const next = mainSwipeNextRef.current;
-    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0, 0, 0)"; }
-    if (prev) { prev.style.transition = "none"; prev.style.transform = `translate3d(${-width}px, 0, 0)`; }
-    if (next) { next.style.transition = "none"; next.style.transform = `translate3d(${width}px, 0, 0)`; }
+    if (!canUseMainSwipe) return;
+    const W = typeof window !== "undefined" ? window.innerWidth : 360;
+    const curIdx = MAIN_SWIPE_VIEWS.indexOf(view);
+    MAIN_SWIPE_VIEWS.forEach((v, i) => {
+      const el = swipeViewRefs[v]?.current;
+      if (!el) return;
+      el.style.transition = "none";
+      el.style.transform = `translate3d(${(i - curIdx) * W}px, 0, 0)`;
+    });
   }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
@@ -7749,52 +7752,13 @@ export default function TrackAll() {
           style={{
             touchAction: canUseMainSwipe ? "pan-y" : "auto",
             position: "relative",
-            overflow: "hidden",
-            minHeight: canUseMainSwipe ? "calc(100vh - 64px)" : undefined,
+            overflow: canUseMainSwipe ? "hidden" : "visible",
           }}
         >
 
-        {/* Peek — painel anterior */}
-        {canUseMainSwipe && (() => {
-          const idx = MAIN_SWIPE_VIEWS.indexOf(view);
-          const prevView = idx > 0 ? MAIN_SWIPE_VIEWS[idx - 1] : null;
-          const PEEK_META = { home: { icon: "⌂", label: "Home" }, library: { icon: "▤", label: "Biblioteca" }, friends: { icon: "👥", label: "Amigos" }, profile: { icon: "◉", label: "Perfil" } };
-          if (!prevView) return null;
-          const m = PEEK_META[prevView];
-          return (
-            <div ref={mainSwipePrevRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", transform: `translate3d(-${window.innerWidth}px, 0, 0)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: activeDarkMode ? "#0d1117" : "#f5f0e8", pointerEvents: "none", userSelect: "none" }}>
-              <span style={{ fontSize: 48, opacity: 0.25 }}>{m.icon}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: activeDarkMode ? "#484f58" : "#94a3b8", opacity: 0.5 }}>{m.label}</span>
-            </div>
-          );
-        })()}
-
-        {/* Peek — painel seguinte */}
-        {canUseMainSwipe && (() => {
-          const idx = MAIN_SWIPE_VIEWS.indexOf(view);
-          const nextView = idx < MAIN_SWIPE_VIEWS.length - 1 ? MAIN_SWIPE_VIEWS[idx + 1] : null;
-          const PEEK_META = { home: { icon: "⌂", label: "Home" }, library: { icon: "▤", label: "Biblioteca" }, friends: { icon: "👥", label: "Amigos" }, profile: { icon: "◉", label: "Perfil" } };
-          if (!nextView) return null;
-          const m = PEEK_META[nextView];
-          return (
-            <div ref={mainSwipeNextRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", transform: `translate3d(${window.innerWidth}px, 0, 0)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: activeDarkMode ? "#0d1117" : "#f5f0e8", pointerEvents: "none", userSelect: "none" }}>
-              <span style={{ fontSize: 48, opacity: 0.25 }}>{m.icon}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: activeDarkMode ? "#484f58" : "#94a3b8", opacity: 0.5 }}>{m.label}</span>
-            </div>
-          );
-        })()}
-
-        <div
-          ref={mainSwipeContentRef}
-          style={{
-            transform: "translate3d(0, 0, 0)",
-            willChange: canUseMainSwipe ? "transform" : "auto",
-            backfaceVisibility: "hidden",
-          }}
-        >
-
-        {/* ── HOME ── */}
-        {view === "home" && (
+        {/* Painel HOME */}
+        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: view === "home" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "home" ? "visible" : "hidden" } : {}}>
+        {(view === "home" || canUseMainSwipe) && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
@@ -8103,9 +8067,12 @@ export default function TrackAll() {
           </div>
         )}
 
-        {/* ── LIBRARY ── */}
-        {view === "library" && (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
+        </div>{/* fim painel HOME */}
+
+        {/* Painel LIBRARY */}
+        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: view === "library" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "library" ? "visible" : "hidden" } : {}}>
+        {(view === "library" || canUseMainSwipe) && (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }}>
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -8266,10 +8233,13 @@ export default function TrackAll() {
           </div>
         )}
 
-        {/* ── FRIENDS ── */}
-        {view === "friends" && (
+        </div>{/* fim painel LIBRARY */}
+
+        {/* Painel FRIENDS */}
+        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: view === "friends" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "friends" ? "visible" : "hidden" } : {}}>
+        {(view === "friends" || canUseMainSwipe) && (
           demoMode || !user ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center", minHeight: "100vh" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>👥</div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{lang === "en" ? "Friends are waiting!" : "Os teus amigos estão à espera!"}</h3>
               <p style={{ fontSize: 14, color: darkMode ? "#8b949e" : "#64748b", marginBottom: 24, maxWidth: 300, lineHeight: 1.6 }}>{lang === "en" ? "Create a free account to add friends and share your library." : "Cria uma conta gratuita para adicionar amigos e partilhar a tua biblioteca."}</p>
@@ -8281,31 +8251,11 @@ export default function TrackAll() {
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )
         )}
-        {view === "collection" && viewingCollection && (
-          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
-            <CollectionViewer
-              col={viewingCollection}
-              onClose={() => { setViewingCollection(null); setView("profile"); }}
-              onLike={handleCollectionLike}
-              liked={userCollectionLikes.includes(viewingCollection.id)}
-              currentUserId={user?.id}
-              workerUrl={workerUrl}
-              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
-              onOpenMedia={(item) => {
-                // Procura na biblioteca pelo id — testa variantes
-                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
-                // Se está na biblioteca, abre com todos os dados
-                if (libItem) {
-                  setSelectedItem(libItem);
-                } else {
-                  // Não está — abre com os dados que temos (id + title + cover)
-                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
-                }
-              }}
-            />
-          </div>
-        )}
-        {view === "profile" && (
+        </div>{/* fim painel FRIENDS */}
+
+        {/* Painel PROFILE */}
+        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: view === "profile" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "profile" ? "visible" : "hidden" } : {}}>
+        {(view === "profile" || canUseMainSwipe) && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
             profile={activeProfile}
@@ -8327,20 +8277,20 @@ export default function TrackAll() {
             onBgSeparateDevices={saveBgSeparateDevices}
             onBgImageMobile={saveMobileBgImage}
             onBgColorMobile={saveBgColorMobile}
-            isMobileDevice={isMobileDevice}
-            onBgOverlay={saveBgOverlay}
-            onBgBlur={saveBgBlur}
-            onBgParallax={saveBgParallax}
             panelBg={panelBg}
             panelOpacity={panelOpacity}
-            onPanelBg={savePanelBg}
-            onPanelOpacity={savePanelOpacity}
             textContrast={textContrast}
-            onTextContrast={saveTextContrast}
             textContrastMobile={textContrastMobile}
-            onTextContrastMobile={saveTextContrastMobile}
             sidebarColor={sidebarColor}
             onSidebarColor={saveSidebarColor}
+            onPanelBg={savePanelBg}
+            onPanelOpacity={savePanelOpacity}
+            onTextContrast={saveTextContrast}
+            onTextContrastMobile={saveTextContrastMobile}
+            onBgBlur={saveBgBlur}
+            onBgParallax={saveBgParallax}
+            onBgOverlay={saveBgOverlay}
+            isMobileDevice={isMobileDevice}
             lang={lang}
             useT={useT}
             onChangeLang={changeLang}
@@ -8374,9 +8324,33 @@ export default function TrackAll() {
           />
           </div>
         )}
+        </div>{/* fim painel PROFILE */}
 
-        </div>
-        </div>
+        {view === "collection" && viewingCollection && (
+          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+            <CollectionViewer
+              col={viewingCollection}
+              onClose={() => { setViewingCollection(null); setView("profile"); }}
+              onLike={handleCollectionLike}
+              liked={userCollectionLikes.includes(viewingCollection.id)}
+              currentUserId={user?.id}
+              workerUrl={workerUrl}
+              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
+              onOpenMedia={(item) => {
+                // Procura na biblioteca pelo id — testa variantes
+                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
+                // Se está na biblioteca, abre com todos os dados
+                if (libItem) {
+                  setSelectedItem(libItem);
+                } else {
+                  // Não está — abre com os dados que temos (id + title + cover)
+                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
+                }
+              }}
+            />
+          </div>
+        )}
+        </div>{/* fim wrapper swipe */}
 
         {/* TierList Viewer */}
         {viewingTierlist && (
