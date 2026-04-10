@@ -6349,9 +6349,8 @@ export default function TrackAll() {
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
-  const isSwipingViewRef = useRef(false);
   const mainSwipeAnimRef = useRef(null);
-  const mainSwipeContentRef = useRef(null); // compat — aponta para view atual
+  const mainSwipeContentRef = useRef(null);
   const swipeViewRefs = { home: useRef(null), library: useRef(null), friends: useRef(null), profile: useRef(null) };
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
@@ -6686,70 +6685,54 @@ export default function TrackAll() {
     let el = target instanceof HTMLElement ? target : null;
     while (el && el !== document.body) {
       const style = window.getComputedStyle(el);
-      const overflowX = style?.overflowX || "";
-      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) {
-        const atStart = el.scrollLeft <= 2;
-        const atEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 2;
+      const ox = style?.overflowX || "";
+      if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 8) {
         if (dx === 0) return true;
-        if (dx > 0 && !atStart) return true;
-        if (dx < 0 && !atEnd) return true;
+        if (dx > 0 && el.scrollLeft > 2) return true;
+        if (dx < 0 && el.scrollLeft < el.scrollWidth - el.clientWidth - 2) return true;
       }
       el = el.parentElement;
     }
     return false;
   };
 
-  const isMainSwipeBlockedTarget = (target, dx = 0) => {
+  const isHardBlocked = (target) => {
     if (!(target instanceof HTMLElement)) return true;
-    if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
+    return !!target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar');
+  };
+
+  const isSoftBlocked = (target, dx) => {
+    if (!(target instanceof HTMLElement)) return false;
     if (target.closest(".recents-row, .tabs-scroll")) return true;
-    if (hasHorizontalScrollableParent(target, dx)) return true;
-    return false;
+    return hasHorizontalScrollableParent(target, dx);
   };
 
   const resetMainSwipe = () => {
-    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
+    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null };
   };
 
-  // Controla visibility de todos os painéis directamente no DOM (sem re-render)
-  const setSwipingVisible = (visible, activeView) => {
-    isSwipingViewRef.current = visible;
-    const cur = activeView || view;
-    MAIN_SWIPE_VIEWS.forEach(v => {
-      const el = swipeViewRefs[v]?.current;
-      if (!el) return;
-      el.style.visibility = (visible || v === cur) ? "visible" : "hidden";
-    });
-  };
-
-  // Move todos os painéis de swipe em conjunto (cur + vizinhos)
+  // Move todos os painéis em conjunto — nenhum visibility, sempre presentes
   const applySwipePanels = (offset = 0, transition = "none") => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
     const curIdx = MAIN_SWIPE_VIEWS.indexOf(view);
     MAIN_SWIPE_VIEWS.forEach((v, i) => {
       const el = swipeViewRefs[v]?.current;
       if (!el) return;
-      const baseX = (i - curIdx) * W;
       el.style.transition = transition;
-      el.style.transform = `translate3d(${baseX + offset}px, 0, 0)`;
+      el.style.transform = `translate3d(${(i - curIdx) * W + offset}px, 0, 0)`;
     });
   };
 
-  // Compat — usado por código legado que referencia mainSwipeContentRef
-  const applyMainSwipeStyle = (offset = 0, transition = "none") => applySwipePanels(offset, transition);
+  // Compat legado
+  const applyMainSwipeStyle = applySwipePanels;
 
   const animateMainSwipeToView = (nextView, direction) => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    const easing = "transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)";
-    applySwipePanels(direction < 0 ? -W : W, easing);
+    applySwipePanels(direction < 0 ? -W : W, "transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
     mainSwipeAnimRef.current = setTimeout(() => {
       setView(nextView);
-      // Manter visible por 2 frames após setView para evitar flash durante re-render
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        setSwipingVisible(false);
-        mainSwipeAnimRef.current = null;
-      }));
+      mainSwipeAnimRef.current = null;
     }, 280);
   };
 
@@ -6760,11 +6743,9 @@ export default function TrackAll() {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     applySwipePanels(0, "none");
     const target = e.target;
-    // Só bloqueamos imediatamente para inputs/modais — scroll horizontal avalia-se no move com dx real
-    const hardBlocked = !!(target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar'));
     mainSwipeRef.current = {
       tracking: true,
-      blocked: hardBlocked,
+      blocked: isHardBlocked(target),
       startTarget: target,
       isHorizontal: false,
       startX: touch.clientX,
@@ -6784,11 +6765,8 @@ export default function TrackAll() {
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
     if (!state.isHorizontal && Math.abs(dx) > 4 && Math.abs(dx) > Math.abs(dy) * 0.8) {
-      // Agora que temos direção, verificar scroll horizontal com dx real
-      const softBlocked = target => target.closest(".recents-row, .tabs-scroll") || hasHorizontalScrollableParent(target, dx);
-      if (softBlocked(state.startTarget || e.target)) { state.blocked = true; return; }
+      if (isSoftBlocked(state.startTarget, dx)) { state.blocked = true; return; }
       state.isHorizontal = true;
-      setSwipingVisible(true);
     }
     if (state.isHorizontal) {
       const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
@@ -6800,7 +6778,7 @@ export default function TrackAll() {
       if (e.cancelable) e.preventDefault();
       return;
     }
-    if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+    if (!state.isHorizontal && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
       applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
     }
@@ -6809,22 +6787,18 @@ export default function TrackAll() {
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current;
     resetMainSwipe();
-    setSwipingVisible(false);
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
       applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.02) {
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) {
       applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
     }
     const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (currentIndex === -1) {
-      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
-      return;
-    }
+    if (currentIndex === -1) { applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)"); return; }
     if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
       animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], -1);
     } else if (dx > 0 && currentIndex > 0) {
@@ -6836,11 +6810,10 @@ export default function TrackAll() {
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    setSwipingVisible(false);
     applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
   };
 
-  // Reposicionar painéis sempre que a view ativa muda
+  // Reposicionar painéis sem animação quando view muda via botão/tab
   useEffect(() => {
     if (!canUseMainSwipe) return;
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
@@ -7780,9 +7753,9 @@ export default function TrackAll() {
           }}
         >
 
-        {/* Painel HOME */}
-        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: view === "home" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "home" ? "visible" : "hidden" } : {}}>
-        {(view === "home" || canUseMainSwipe) && (
+        {/* ── HOME ── */}
+        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "home" ? { display: "none" } : {})}>
+        {view === "home" && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
@@ -8090,13 +8063,13 @@ export default function TrackAll() {
             )}
           </div>
         )}
+        </div>
 
-        </div>{/* fim painel HOME */}
-
-        {/* Painel LIBRARY */}
-        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: view === "library" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "library" ? "visible" : "hidden" } : {}}>
-        {(view === "library" || canUseMainSwipe) && (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }}>
+        {/* ── LIBRARY ── */}
+        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "library" ? { display: "none" } : {})}>
+        {/* ── LIBRARY ── */}
+        {view === "library" && (
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -8256,14 +8229,14 @@ export default function TrackAll() {
             </div>
           </div>
         )}
+        </div>
 
-        </div>{/* fim painel LIBRARY */}
-
-        {/* Painel FRIENDS */}
-        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: view === "friends" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "friends" ? "visible" : "hidden" } : {}}>
-        {(view === "friends" || canUseMainSwipe) && (
+        {/* ── FRIENDS ── */}
+        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "friends" ? { display: "none" } : {})}>
+        {/* ── FRIENDS ── */}
+        {view === "friends" && (
           demoMode || !user ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center", minHeight: "100vh" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>👥</div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{lang === "en" ? "Friends are waiting!" : "Os teus amigos estão à espera!"}</h3>
               <p style={{ fontSize: 14, color: darkMode ? "#8b949e" : "#64748b", marginBottom: 24, maxWidth: 300, lineHeight: 1.6 }}>{lang === "en" ? "Create a free account to add friends and share your library." : "Cria uma conta gratuita para adicionar amigos e partilhar a tua biblioteca."}</p>
@@ -8275,11 +8248,11 @@ export default function TrackAll() {
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )
         )}
-        </div>{/* fim painel FRIENDS */}
+        </div>
 
-        {/* Painel PROFILE */}
-        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: view === "profile" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "profile" ? "visible" : "hidden" } : {}}>
-        {(view === "profile" || canUseMainSwipe) && (
+        {/* ── PROFILE ── */}
+        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "profile" && view !== "collection" ? { display: "none" } : {})}>
+        {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
             profile={activeProfile}
@@ -8301,20 +8274,20 @@ export default function TrackAll() {
             onBgSeparateDevices={saveBgSeparateDevices}
             onBgImageMobile={saveMobileBgImage}
             onBgColorMobile={saveBgColorMobile}
-            panelBg={panelBg}
-            panelOpacity={panelOpacity}
-            textContrast={textContrast}
-            textContrastMobile={textContrastMobile}
-            sidebarColor={sidebarColor}
-            onSidebarColor={saveSidebarColor}
-            onPanelBg={savePanelBg}
-            onPanelOpacity={savePanelOpacity}
-            onTextContrast={saveTextContrast}
-            onTextContrastMobile={saveTextContrastMobile}
+            isMobileDevice={isMobileDevice}
+            onBgOverlay={saveBgOverlay}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
-            onBgOverlay={saveBgOverlay}
-            isMobileDevice={isMobileDevice}
+            panelBg={panelBg}
+            panelOpacity={panelOpacity}
+            onPanelBg={savePanelBg}
+            onPanelOpacity={savePanelOpacity}
+            textContrast={textContrast}
+            onTextContrast={saveTextContrast}
+            textContrastMobile={textContrastMobile}
+            onTextContrastMobile={saveTextContrastMobile}
+            sidebarColor={sidebarColor}
+            onSidebarColor={saveSidebarColor}
             lang={lang}
             useT={useT}
             onChangeLang={changeLang}
@@ -8348,7 +8321,7 @@ export default function TrackAll() {
           />
           </div>
         )}
-        </div>{/* fim painel PROFILE */}
+        </div>
 
         {view === "collection" && viewingCollection && (
           <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
@@ -8374,7 +8347,8 @@ export default function TrackAll() {
             />
           </div>
         )}
-        </div>{/* fim wrapper swipe */}
+
+        </div>
 
         {/* TierList Viewer */}
         {viewingTierlist && (
