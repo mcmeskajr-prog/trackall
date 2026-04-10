@@ -6349,7 +6349,7 @@ export default function TrackAll() {
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
-  const [isSwipingView, setIsSwipingView] = useState(false);
+  const isSwipingViewRef = useRef(false);
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null); // compat — aponta para view atual
   const swipeViewRefs = { home: useRef(null), library: useRef(null), friends: useRef(null), profile: useRef(null) };
@@ -6711,6 +6711,17 @@ export default function TrackAll() {
     mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
   };
 
+  // Controla visibility de todos os painéis directamente no DOM (sem re-render)
+  const setSwipingVisible = (visible, activeView) => {
+    isSwipingViewRef.current = visible;
+    const cur = activeView || view;
+    MAIN_SWIPE_VIEWS.forEach(v => {
+      const el = swipeViewRefs[v]?.current;
+      if (!el) return;
+      el.style.visibility = (visible || v === cur) ? "visible" : "hidden";
+    });
+  };
+
   // Move todos os painéis de swipe em conjunto (cur + vizinhos)
   const applySwipePanels = (offset = 0, transition = "none") => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
@@ -6734,8 +6745,11 @@ export default function TrackAll() {
     applySwipePanels(direction < 0 ? -W : W, easing);
     mainSwipeAnimRef.current = setTimeout(() => {
       setView(nextView);
-      setIsSwipingView(false);
-      mainSwipeAnimRef.current = null;
+      // Manter visible por 2 frames após setView para evitar flash durante re-render
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setSwipingVisible(false);
+        mainSwipeAnimRef.current = null;
+      }));
     }, 280);
   };
 
@@ -6746,9 +6760,12 @@ export default function TrackAll() {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     applySwipePanels(0, "none");
     const target = e.target;
+    // Só bloqueamos imediatamente para inputs/modais — scroll horizontal avalia-se no move com dx real
+    const hardBlocked = !!(target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar'));
     mainSwipeRef.current = {
       tracking: true,
-      blocked: isMainSwipeBlockedTarget(target),
+      blocked: hardBlocked,
+      startTarget: target,
       isHorizontal: false,
       startX: touch.clientX,
       startY: touch.clientY,
@@ -6766,10 +6783,12 @@ export default function TrackAll() {
     state.lastY = touch.clientY;
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
-    if (!state.isHorizontal && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy) * 1.02) {
-      if (state.blocked) state.blocked = isMainSwipeBlockedTarget(e.target, dx);
-      state.isHorizontal = !state.blocked;
-      if (state.isHorizontal) setIsSwipingView(true);
+    if (!state.isHorizontal && Math.abs(dx) > 4 && Math.abs(dx) > Math.abs(dy) * 0.8) {
+      // Agora que temos direção, verificar scroll horizontal com dx real
+      const softBlocked = target => target.closest(".recents-row, .tabs-scroll") || hasHorizontalScrollableParent(target, dx);
+      if (softBlocked(state.startTarget || e.target)) { state.blocked = true; return; }
+      state.isHorizontal = true;
+      setSwipingVisible(true);
     }
     if (state.isHorizontal) {
       const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
@@ -6790,7 +6809,7 @@ export default function TrackAll() {
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current;
     resetMainSwipe();
-    setIsSwipingView(false);
+    setSwipingVisible(false);
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
       applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
       return;
@@ -6817,7 +6836,7 @@ export default function TrackAll() {
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    setIsSwipingView(false);
+    setSwipingVisible(false);
     applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
   };
 
@@ -7762,7 +7781,7 @@ export default function TrackAll() {
         >
 
         {/* Painel HOME */}
-        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: view === "home" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: (view === "home" || isSwipingView) ? "visible" : "hidden" } : {}}>
+        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: view === "home" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "home" ? "visible" : "hidden" } : {}}>
         {(view === "home" || canUseMainSwipe) && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
@@ -8075,7 +8094,7 @@ export default function TrackAll() {
         </div>{/* fim painel HOME */}
 
         {/* Painel LIBRARY */}
-        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: view === "library" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: (view === "library" || isSwipingView) ? "visible" : "hidden" } : {}}>
+        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: view === "library" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "library" ? "visible" : "hidden" } : {}}>
         {(view === "library" || canUseMainSwipe) && (
           <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }}>
 
@@ -8241,7 +8260,7 @@ export default function TrackAll() {
         </div>{/* fim painel LIBRARY */}
 
         {/* Painel FRIENDS */}
-        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: view === "friends" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: (view === "friends" || isSwipingView) ? "visible" : "hidden" } : {}}>
+        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: view === "friends" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "friends" ? "visible" : "hidden" } : {}}>
         {(view === "friends" || canUseMainSwipe) && (
           demoMode || !user ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center", minHeight: "100vh" }}>
@@ -8259,7 +8278,7 @@ export default function TrackAll() {
         </div>{/* fim painel FRIENDS */}
 
         {/* Painel PROFILE */}
-        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: view === "profile" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: (view === "profile" || isSwipingView) ? "visible" : "hidden" } : {}}>
+        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: view === "profile" ? "relative" : "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden", visibility: view === "profile" ? "visible" : "hidden" } : {}}>
         {(view === "profile" || canUseMainSwipe) && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
