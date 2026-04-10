@@ -4988,11 +4988,11 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   }
 
   return (
-    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px", minHeight: "100vh" }}>
+    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px" }}>
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
       {/* Tabs */}
-      <div className="tabs-scroll" style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         {[
           { id: "feed", label: "🕐 Feed" },
           { id: "friends", label: `${lang === "en" ? "Friends" : "Amigos"} (${accepted.length})` },
@@ -6351,7 +6351,8 @@ export default function TrackAll() {
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null);
-  const swipeViewRefs = { home: useRef(null), library: useRef(null), friends: useRef(null), profile: useRef(null) };
+  const mainSwipePeekRef = useRef(null);
+  const [peekView, setPeekView] = useState(null); // view a mostrar no peek durante drag
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6696,44 +6697,42 @@ export default function TrackAll() {
     return false;
   };
 
-  const isHardBlocked = (target) => {
+  const isMainSwipeBlockedTarget = (target, dx = 0) => {
     if (!(target instanceof HTMLElement)) return true;
-    return !!target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar');
-  };
-
-  const isSoftBlocked = (target, dx) => {
-    if (!(target instanceof HTMLElement)) return false;
+    if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
     if (target.closest(".recents-row, .tabs-scroll")) return true;
-    return hasHorizontalScrollableParent(target, dx);
+    if (hasHorizontalScrollableParent(target, dx)) return true;
+    return false;
   };
 
   const resetMainSwipe = () => {
     mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null };
   };
 
-  // Move todos os painéis em conjunto — nenhum visibility, sempre presentes
-  const applySwipePanels = (offset = 0, transition = "none") => {
+  // Move view actual + peek em conjunto
+  const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
-    const curIdx = MAIN_SWIPE_VIEWS.indexOf(view);
-    MAIN_SWIPE_VIEWS.forEach((v, i) => {
-      const el = swipeViewRefs[v]?.current;
-      if (!el) return;
-      el.style.transition = transition;
-      el.style.transform = `translate3d(${(i - curIdx) * W + offset}px, 0, 0)`;
-    });
+    const cur = mainSwipeContentRef.current;
+    const peek = mainSwipePeekRef.current;
+    const state = mainSwipeRef.current;
+    const dir = state.peekDir || 1; // 1=próxima à direita, -1=anterior à esquerda
+    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; }
+    if (peek) { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
   };
-
-  // Compat legado
-  const applyMainSwipeStyle = applySwipePanels;
 
   const animateMainSwipeToView = (nextView, direction) => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applySwipePanels(direction < 0 ? -W : W, "transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+    const easing = "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)";
+    applyMainSwipeStyle(direction * -W, easing);
     mainSwipeAnimRef.current = setTimeout(() => {
+      setPeekView(null);
       setView(nextView);
-      mainSwipeAnimRef.current = null;
-    }, 280);
+      requestAnimationFrame(() => {
+        if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
+        mainSwipeAnimRef.current = null;
+      });
+    }, 260);
   };
 
   const handleMainSwipeStart = (e) => {
@@ -6741,13 +6740,14 @@ export default function TrackAll() {
     const touch = e.touches?.[0];
     if (!touch) return;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applySwipePanels(0, "none");
-    const target = e.target;
+    if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
     mainSwipeRef.current = {
       tracking: true,
-      blocked: isHardBlocked(target),
-      startTarget: target,
+      blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')),
+      startTarget: e.target,
       isHorizontal: false,
+      peekSet: false,
+      peekDir: 1,
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
@@ -6764,23 +6764,34 @@ export default function TrackAll() {
     state.lastY = touch.clientY;
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
-    if (!state.isHorizontal && Math.abs(dx) > 4 && Math.abs(dx) > Math.abs(dy) * 0.8) {
-      if (isSoftBlocked(state.startTarget, dx)) { state.blocked = true; return; }
+    if (!state.isHorizontal && Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy) * 0.9) {
+      if (isMainSwipeBlockedTarget(state.startTarget, dx)) { state.blocked = true; return; }
       state.isHorizontal = true;
     }
     if (state.isHorizontal) {
       const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
       const atFirst = currentIndex <= 0;
       const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
+      // Determinar peek e mostrar uma vez
+      if (!state.peekSet) {
+        state.peekSet = true;
+        if (dx < 0 && !atLast) {
+          state.peekDir = 1;
+          setPeekView(MAIN_SWIPE_VIEWS[currentIndex + 1]);
+        } else if (dx > 0 && !atFirst) {
+          state.peekDir = -1;
+          setPeekView(MAIN_SWIPE_VIEWS[currentIndex - 1]);
+        }
+      }
       let nextOffset = dx * 0.98;
       if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.18;
-      applySwipePanels(nextOffset, "none");
+      applyMainSwipeStyle(nextOffset, "none");
       if (e.cancelable) e.preventDefault();
       return;
     }
     if (!state.isHorizontal && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
-      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      applyMainSwipeStyle(0, "transform 200ms ease");
     }
   };
 
@@ -6788,42 +6799,37 @@ export default function TrackAll() {
     const state = mainSwipeRef.current;
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      setPeekView(null);
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
       return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) {
-      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) {
+      setPeekView(null);
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
       return;
     }
     const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (currentIndex === -1) { applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)"); return; }
+    if (currentIndex === -1) { setPeekView(null); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], -1);
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], 1);
     } else if (dx > 0 && currentIndex > 0) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], -1);
     } else {
-      applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+      setPeekView(null);
+      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
     }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    applySwipePanels(0, "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)");
+    setPeekView(null);
+    applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
   };
 
-  // Reposicionar painéis sem animação quando view muda via botão/tab
   useEffect(() => {
-    if (!canUseMainSwipe) return;
-    const W = typeof window !== "undefined" ? window.innerWidth : 360;
-    const curIdx = MAIN_SWIPE_VIEWS.indexOf(view);
-    MAIN_SWIPE_VIEWS.forEach((v, i) => {
-      const el = swipeViewRefs[v]?.current;
-      if (!el) return;
-      el.style.transition = "none";
-      el.style.transform = `translate3d(${(i - curIdx) * W}px, 0, 0)`;
-    });
+    if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
   }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
@@ -7507,7 +7513,6 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
             .fade-in { animation: none !important; }
-            .view-transition { animation: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
@@ -7749,12 +7754,60 @@ export default function TrackAll() {
           style={{
             touchAction: canUseMainSwipe ? "pan-y" : "auto",
             position: "relative",
-            overflow: canUseMainSwipe ? "hidden" : "visible",
+            overflow: "hidden",
+          }}
+        >
+
+        {/* Peek — view adjacente que aparece durante o drag */}
+        {peekView && canUseMainSwipe && (
+          <div ref={mainSwipePeekRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", backfaceVisibility: "hidden", pointerEvents: "none" }}>
+            {peekView === "home" && (
+              <div style={{ padding: 0 }}>
+                <div className="hero-gradient" style={{ padding: "16px 16px 14px", minHeight: 120, display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: `linear-gradient(135deg,${accent},${accent}66)`, flexShrink: 0 }}>{activeProfile?.avatar ? <img src={activeProfile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : null}</div>
+                  <div><div style={{ fontSize: 20, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{activeProfile?.name || "TrackAll"}</div><div style={{ fontSize: 12, color: "#8b949e", marginTop: 4 }}>{Object.keys(library).length} {useT("inLibraryCount")}</div></div>
+                </div>
+              </div>
+            )}
+            {peekView === "library" && (
+              <div style={{ padding: "16px 12px" }}>
+                <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 12, paddingLeft: 4, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{useT("library")}</h2>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingLeft: 4 }}>
+                  {MEDIA_TYPES.slice(1).filter(t => Object.values(library).some(i => i.type === t.id)).map(t => (
+                    <div key={t.id} style={{ padding: "6px 12px", borderRadius: 20, background: `${accent}22`, border: `1px solid ${accent}44`, fontSize: 12, fontWeight: 700, color: accent }}>{t.icon} {mediaLabel(t, lang)}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {peekView === "friends" && (
+              <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>👥</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{useT("friends")}</div>
+              </div>
+            )}
+            {peekView === "profile" && (
+              <div style={{ height: 200, background: activeBgImage ? `url(${activeBgImage}) center/cover` : activeBgColor, position: "relative" }}>
+                {activeProfile?.banner && <img src={activeProfile.banner} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6))" }} />
+                <div style={{ position: "absolute", bottom: 16, left: 16, display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", border: `2px solid ${accent}`, background: "#21262d" }}>{activeProfile?.avatar ? <img src={activeProfile.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}</div>
+                  <div style={{ color: "white", fontWeight: 800, fontSize: 16 }}>{activeProfile?.name || "Perfil"}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div
+          ref={mainSwipeContentRef}
+          style={{
+            transform: "translate3d(0, 0, 0)",
+            willChange: canUseMainSwipe ? "transform" : "auto",
+            backfaceVisibility: "hidden",
           }}
         >
 
         {/* ── HOME ── */}
-        <div ref={swipeViewRefs.home} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "home" ? { display: "none" } : {})}>
         {view === "home" && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
@@ -8063,10 +8116,7 @@ export default function TrackAll() {
             )}
           </div>
         )}
-        </div>
 
-        {/* ── LIBRARY ── */}
-        <div ref={swipeViewRefs.library} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "library" ? { display: "none" } : {})}>
         {/* ── LIBRARY ── */}
         {view === "library" && (
           <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
@@ -8229,10 +8279,7 @@ export default function TrackAll() {
             </div>
           </div>
         )}
-        </div>
 
-        {/* ── FRIENDS ── */}
-        <div ref={swipeViewRefs.friends} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "friends" ? { display: "none" } : {})}>
         {/* ── FRIENDS ── */}
         {view === "friends" && (
           demoMode || !user ? (
@@ -8248,10 +8295,30 @@ export default function TrackAll() {
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )
         )}
-        </div>
-
-        {/* ── PROFILE ── */}
-        <div ref={swipeViewRefs.profile} style={canUseMainSwipe ? { position: "absolute", top: 0, left: 0, width: "100%", willChange: "transform", backfaceVisibility: "hidden" } : (view !== "profile" && view !== "collection" ? { display: "none" } : {})}>
+        {view === "collection" && viewingCollection && (
+          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+            <CollectionViewer
+              col={viewingCollection}
+              onClose={() => { setViewingCollection(null); setView("profile"); }}
+              onLike={handleCollectionLike}
+              liked={userCollectionLikes.includes(viewingCollection.id)}
+              currentUserId={user?.id}
+              workerUrl={workerUrl}
+              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
+              onOpenMedia={(item) => {
+                // Procura na biblioteca pelo id — testa variantes
+                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
+                // Se está na biblioteca, abre com todos os dados
+                if (libItem) {
+                  setSelectedItem(libItem);
+                } else {
+                  // Não está — abre com os dados que temos (id + title + cover)
+                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
+                }
+              }}
+            />
+          </div>
+        )}
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
@@ -8321,33 +8388,8 @@ export default function TrackAll() {
           />
           </div>
         )}
+
         </div>
-
-        {view === "collection" && viewingCollection && (
-          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
-            <CollectionViewer
-              col={viewingCollection}
-              onClose={() => { setViewingCollection(null); setView("profile"); }}
-              onLike={handleCollectionLike}
-              liked={userCollectionLikes.includes(viewingCollection.id)}
-              currentUserId={user?.id}
-              workerUrl={workerUrl}
-              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
-              onOpenMedia={(item) => {
-                // Procura na biblioteca pelo id — testa variantes
-                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
-                // Se está na biblioteca, abre com todos os dados
-                if (libItem) {
-                  setSelectedItem(libItem);
-                } else {
-                  // Não está — abre com os dados que temos (id + title + cover)
-                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
-                }
-              }}
-            />
-          </div>
-        )}
-
         </div>
 
         {/* TierList Viewer */}
