@@ -4988,11 +4988,11 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
   }
 
   return (
-    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px" }}>
+    <div style={{ maxWidth: isMobileDevice ? 600 : 860, margin: "0 auto", padding: isMobileDevice ? "16px 0 20px" : "24px 28px 20px", minHeight: "100vh" }}>
       {notif && <div style={{ margin: "0 16px 12px", padding: "10px 14px", background: `${accent}22`, border: `1px solid ${accent}44`, borderRadius: 10, fontSize: 13, color: accent, textAlign: "center" }}>{notif}</div>}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
+      <div className="tabs-scroll" style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         {[
           { id: "feed", label: "🕐 Feed" },
           { id: "friends", label: `${lang === "en" ? "Friends" : "Amigos"} (${accepted.length})` },
@@ -6352,7 +6352,7 @@ export default function TrackAll() {
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null);
   const mainSwipePeekRef = useRef(null);
-  const [peekView, setPeekView] = useState(null); // view a mostrar no peek durante drag
+  const mainSwipePeekDirRef = useRef(1);
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6706,30 +6706,46 @@ export default function TrackAll() {
   };
 
   const resetMainSwipe = () => {
-    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null };
+    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false };
   };
 
-  // Move view actual + peek em conjunto
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
     const cur = mainSwipeContentRef.current;
     const peek = mainSwipePeekRef.current;
-    const state = mainSwipeRef.current;
-    const dir = state.peekDir || 1; // 1=próxima à direita, -1=anterior à esquerda
-    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; }
-    if (peek) { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
+    const dir = mainSwipePeekDirRef.current;
+    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
+    if (peek && peek.style.display !== "none") { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
+  };
+
+  const hidePeek = () => {
+    const peek = mainSwipePeekRef.current;
+    if (peek) { peek.style.display = "none"; peek.style.transform = "translate3d(0,0,0)"; }
+  };
+
+  const showPeek = (targetView, dir) => {
+    const peek = mainSwipePeekRef.current;
+    if (!peek) return;
+    mainSwipePeekDirRef.current = dir;
+    const W = typeof window !== "undefined" ? window.innerWidth : 360;
+    // mostrar skeleton correcto
+    peek.querySelectorAll("[data-sk]").forEach(el => { el.style.display = el.dataset.sk === targetView ? "block" : "none"; });
+    peek.style.display = "block";
+    peek.style.transition = "none";
+    peek.style.transform = `translate3d(${dir * W}px,0,0)`;
   };
 
   const animateMainSwipeToView = (nextView, direction) => {
     const W = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    const easing = "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)";
-    applyMainSwipeStyle(direction * -W, easing);
+    const ease = "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)";
+    applyMainSwipeStyle(direction * -W, ease);
     mainSwipeAnimRef.current = setTimeout(() => {
-      setPeekView(null);
+      hidePeek();
       setView(nextView);
       requestAnimationFrame(() => {
-        if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
+        const cur = mainSwipeContentRef.current;
+        if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
         mainSwipeAnimRef.current = null;
       });
     }, 260);
@@ -6739,15 +6755,16 @@ export default function TrackAll() {
     if (!canUseMainSwipe) return;
     const touch = e.touches?.[0];
     if (!touch) return;
-    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
+    if (mainSwipeAnimRef.current) { clearTimeout(mainSwipeAnimRef.current); mainSwipeAnimRef.current = null; }
+    hidePeek();
+    const cur = mainSwipeContentRef.current;
+    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
     mainSwipeRef.current = {
       tracking: true,
       blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')),
       startTarget: e.target,
       isHorizontal: false,
-      peekSet: false,
-      peekDir: 1,
+      peekShown: false,
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
@@ -6769,23 +6786,16 @@ export default function TrackAll() {
       state.isHorizontal = true;
     }
     if (state.isHorizontal) {
-      const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-      const atFirst = currentIndex <= 0;
-      const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
-      // Determinar peek e mostrar uma vez
-      if (!state.peekSet) {
-        state.peekSet = true;
-        if (dx < 0 && !atLast) {
-          state.peekDir = 1;
-          setPeekView(MAIN_SWIPE_VIEWS[currentIndex + 1]);
-        } else if (dx > 0 && !atFirst) {
-          state.peekDir = -1;
-          setPeekView(MAIN_SWIPE_VIEWS[currentIndex - 1]);
-        }
+      const ci = MAIN_SWIPE_VIEWS.indexOf(view);
+      const atFirst = ci <= 0, atLast = ci >= MAIN_SWIPE_VIEWS.length - 1;
+      if (!state.peekShown) {
+        state.peekShown = true;
+        if (dx < 0 && !atLast) showPeek(MAIN_SWIPE_VIEWS[ci + 1], 1);
+        else if (dx > 0 && !atFirst) showPeek(MAIN_SWIPE_VIEWS[ci - 1], -1);
       }
-      let nextOffset = dx * 0.98;
-      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.18;
-      applyMainSwipeStyle(nextOffset, "none");
+      let off = dx * 0.98;
+      if ((atFirst && dx > 0) || (atLast && dx < 0)) off = dx * 0.18;
+      applyMainSwipeStyle(off, "none");
       if (e.cancelable) e.preventDefault();
       return;
     }
@@ -6799,37 +6809,30 @@ export default function TrackAll() {
     const state = mainSwipeRef.current;
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      setPeekView(null);
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
-      return;
+      hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) {
-      setPeekView(null);
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
-      return;
+      hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return;
     }
-    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (currentIndex === -1) { setPeekView(null); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
-    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], 1);
-    } else if (dx > 0 && currentIndex > 0) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], -1);
-    } else {
-      setPeekView(null);
-      applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
-    }
+    const ci = MAIN_SWIPE_VIEWS.indexOf(view);
+    if (ci === -1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
+    if (dx < 0 && ci < MAIN_SWIPE_VIEWS.length - 1) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci + 1], 1);
+    else if (dx > 0 && ci > 0) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci - 1], -1);
+    else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    setPeekView(null);
+    hidePeek();
     applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
   };
 
   useEffect(() => {
-    if (mainSwipeContentRef.current) { mainSwipeContentRef.current.style.transition = "none"; mainSwipeContentRef.current.style.transform = "translate3d(0,0,0)"; }
+    hidePeek();
+    const cur = mainSwipeContentRef.current;
+    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
   }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
@@ -7513,6 +7516,7 @@ export default function TrackAll() {
           @media (max-width: 768px) {
             .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
             .fade-in { animation: none !important; }
+            .view-transition { animation: none !important; }
             .media-thumb:hover img { transform: none !important; }
             .media-thumb .rating-hover { display: none; }
             .recents-row { -webkit-overflow-scrolling: touch; }
@@ -7758,125 +7762,36 @@ export default function TrackAll() {
           }}
         >
 
-        {/* Peek — skeleton da view adjacente, aparece durante o drag */}
-        {peekView && canUseMainSwipe && (() => {
-          const bg = activeDarkMode ? "#0d1117" : "#f5f0e8";
-          const sk = { borderRadius: 8 }; // classe shimmer aplicada inline
-          const Sk = ({ w, h, r = 8, mb = 0 }) => (
-            <div className="shimmer" style={{ width: w, height: h, borderRadius: r, marginBottom: mb, flexShrink: 0 }} />
-          );
-          return (
-            <div ref={mainSwipePeekRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", minHeight: "100vh", background: bg, backfaceVisibility: "hidden", pointerEvents: "none", overflow: "hidden" }}>
-
-              {peekView === "home" && (
-                <div>
-                  {/* Hero skeleton */}
-                  <div style={{ padding: "16px 16px 20px", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-                      <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div className="shimmer" style={{ width: "55%", height: 18, borderRadius: 6, marginBottom: 8 }} />
-                        <div style={{ display: "flex", gap: 8 }}>
-                          {[80,70,65].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 44, borderRadius: 10 }} />)}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Filter pills */}
-                    <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
-                      {[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}
-                    </div>
-                  </div>
-                  {/* Cards row */}
-                  <div style={{ padding: "16px 16px 8px" }}>
-                    <div className="shimmer" style={{ width: 120, height: 14, borderRadius: 6, marginBottom: 12 }} />
-                    <div style={{ display: "flex", gap: 10 }}>
-                      {[1,2,3,4].map(i => (
-                        <div key={i} style={{ flexShrink: 0, width: 90 }}>
-                          <div className="shimmer" style={{ width: 90, height: 130, borderRadius: 10, marginBottom: 6 }} />
-                          <div className="shimmer" style={{ width: "80%", height: 10, borderRadius: 4 }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ padding: "16px 16px 8px" }}>
-                    <div className="shimmer" style={{ width: 100, height: 14, borderRadius: 6, marginBottom: 12 }} />
-                    <div style={{ display: "flex", gap: 10 }}>
-                      {[1,2,3,4].map(i => (
-                        <div key={i} style={{ flexShrink: 0, width: 90 }}>
-                          <div className="shimmer" style={{ width: 90, height: 130, borderRadius: 10, marginBottom: 6 }} />
-                          <div className="shimmer" style={{ width: "70%", height: 10, borderRadius: 4 }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {peekView === "library" && (
-                <div style={{ padding: "16px 12px" }}>
-                  {/* Header */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} />
-                    <div className="shimmer" style={{ width: 80, height: 32, borderRadius: 20 }} />
-                  </div>
-                  {/* Status pills */}
-                  <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "hidden" }}>
-                    {[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}
-                  </div>
-                  {/* Grid de capas */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                    {Array(12).fill(0).map((_,i) => (
-                      <div key={i}>
-                        <div className="shimmer" style={{ width: "100%", aspectRatio: "2/3", borderRadius: 10, marginBottom: 4 }} />
-                        <div className="shimmer" style={{ width: "75%", height: 9, borderRadius: 4 }} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {peekView === "friends" && (
-                <div style={{ padding: "16px 0 20px" }}>
-                  {/* Tabs */}
-                  <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 20 }}>
-                    {[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}
-                  </div>
-                  {/* Friend cards */}
-                  {[1,2,3].map(i => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
-                      <div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} />
-                        <div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {peekView === "profile" && (
-                <div>
-                  {/* Banner */}
-                  <div className="shimmer" style={{ width: "100%", height: 200, borderRadius: 0 }} />
-                  {/* Avatar sobreposto */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -40 }}>
-                    <div className="shimmer" style={{ width: 80, height: 80, borderRadius: "50%", border: `3px solid ${bg}`, marginBottom: 12 }} />
-                    <div className="shimmer" style={{ width: 130, height: 18, borderRadius: 6, marginBottom: 8 }} />
-                    <div className="shimmer" style={{ width: 90, height: 12, borderRadius: 4, marginBottom: 20 }} />
-                    {/* Stats */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%", marginBottom: 16 }}>
-                      {[1,2,3].map(i => <div key={i} className="shimmer" style={{ height: 56, borderRadius: 10 }} />)}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>
-                      {[1,2,3].map(i => <div key={i} className="shimmer" style={{ height: 56, borderRadius: 10 }} />)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
+        {canUseMainSwipe && (
+          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 56, left: 0, right: 0, bottom: 64, zIndex: 5, overflow: "hidden", pointerEvents: "none", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
+            <div data-sk="home" style={{ display: "none", padding: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+                <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}><div className="shimmer" style={{ width: "50%", height: 16, borderRadius: 6, marginBottom: 8 }} /><div style={{ display: "flex", gap: 6 }}>{[80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 40, borderRadius: 10 }} />)}</div></div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}</div>
+              {[0,1].map(r => <div key={r} style={{ marginBottom: 16 }}><div className="shimmer" style={{ width: 110, height: 13, borderRadius: 6, marginBottom: 10 }} /><div style={{ display: "flex", gap: 10 }}>{[0,1,2,3].map(i => <div key={i} style={{ flexShrink: 0 }}><div className="shimmer" style={{ width: 88, height: 128, borderRadius: 10, marginBottom: 5 }} /><div className="shimmer" style={{ width: 70, height: 9, borderRadius: 4 }} /></div>)}</div></div>)}
             </div>
-          );
-        })()}
+            <div data-sk="library" style={{ display: "none", padding: "16px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} /><div className="shimmer" style={{ width: 76, height: 30, borderRadius: 20 }} /></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>{Array.from({length:12},(_,i) => <div key={i}><div className="shimmer" style={{ width: "100%", paddingBottom: "150%", borderRadius: 10, marginBottom: 4 }} /><div className="shimmer" style={{ width: "70%", height: 9, borderRadius: 4 }} /></div>)}</div>
+            </div>
+            <div data-sk="friends" style={{ display: "none", padding: "16px 0" }}>
+              <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 18 }}>{[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}</div>
+              {[0,1,2].map(i => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${ activeDarkMode ? "#21262d" : "#e2e8f0"}` }}><div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} /><div style={{ flex: 1 }}><div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} /><div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} /></div></div>)}
+            </div>
+            <div data-sk="profile" style={{ display: "none" }}>
+              <div className="shimmer" style={{ width: "100%", height: 180 }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -36, padding: "0 16px" }}>
+                <div className="shimmer" style={{ width: 76, height: 76, borderRadius: "50%", marginBottom: 10 }} />
+                <div className="shimmer" style={{ width: 130, height: 17, borderRadius: 6, marginBottom: 7 }} />
+                <div className="shimmer" style={{ width: 90, height: 11, borderRadius: 4, marginBottom: 18 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "100%", marginBottom: 10 }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div
           ref={mainSwipeContentRef}
