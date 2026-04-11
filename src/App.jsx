@@ -6351,8 +6351,6 @@ export default function TrackAll() {
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null);
-  const mainSwipePeekRef = useRef(null);
-  const mainSwipePeekDirRef = useRef(1);
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6682,89 +6680,61 @@ export default function TrackAll() {
     && !logOpen
     && !logPendingItem;
 
-  const hasHorizontalScrollableParent = (target, dx = 0) => {
+  const hasHorizontalScrollableParent = (target) => {
     let el = target instanceof HTMLElement ? target : null;
     while (el && el !== document.body) {
       const style = window.getComputedStyle(el);
-      const ox = style?.overflowX || "";
-      if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 8) {
-        if (dx === 0) return true;
-        if (dx > 0 && el.scrollLeft > 2) return true;
-        if (dx < 0 && el.scrollLeft < el.scrollWidth - el.clientWidth - 2) return true;
-      }
+      const overflowX = style?.overflowX || "";
+      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
       el = el.parentElement;
     }
     return false;
   };
 
-  const isMainSwipeBlockedTarget = (target, dx = 0) => {
+  const isMainSwipeBlockedTarget = (target) => {
     if (!(target instanceof HTMLElement)) return true;
     if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
     if (target.closest(".recents-row, .tabs-scroll")) return true;
-    if (hasHorizontalScrollableParent(target, dx)) return true;
+    if (hasHorizontalScrollableParent(target)) return true;
     return false;
   };
 
   const resetMainSwipe = () => {
-    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false };
+    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
   };
 
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
-    const W = typeof window !== "undefined" ? window.innerWidth : 360;
-    const cur = mainSwipeContentRef.current;
-    const peek = mainSwipePeekRef.current;
-    const dir = mainSwipePeekDirRef.current;
-    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    if (peek && peek.style.display !== "none") { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
-  };
-
-  const hidePeek = () => {
-    const peek = mainSwipePeekRef.current;
-    if (peek) { peek.style.display = "none"; peek.style.transform = "translate3d(0,0,0)"; }
-  };
-
-  const showPeek = (targetView, dir) => {
-    const peek = mainSwipePeekRef.current;
-    if (!peek) return;
-    mainSwipePeekDirRef.current = dir;
-    const W = typeof window !== "undefined" ? window.innerWidth : 360;
-    // mostrar skeleton correcto
-    peek.querySelectorAll("[data-sk]").forEach(el => { el.style.display = el.dataset.sk === targetView ? "block" : "none"; });
-    peek.style.display = "block";
-    peek.style.transition = "none";
-    peek.style.transform = `translate3d(${dir * W}px,0,0)`;
+    const el = mainSwipeContentRef.current;
+    if (!el) return;
+    el.style.transition = transition;
+    el.style.transform = `translate3d(${offset}px, 0, 0)`;
+    el.style.willChange = offset !== 0 ? "transform" : "auto";
   };
 
   const animateMainSwipeToView = (nextView, direction) => {
-    const W = typeof window !== "undefined" ? window.innerWidth : 360;
+    const width = typeof window !== "undefined" ? window.innerWidth : 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    const ease = "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)";
-    applyMainSwipeStyle(direction * -W, ease);
+    applyMainSwipeStyle(direction < 0 ? -width : width, "transform 150ms cubic-bezier(0.22, 1, 0.36, 1)");
     mainSwipeAnimRef.current = setTimeout(() => {
-      hidePeek();
       setView(nextView);
       requestAnimationFrame(() => {
-        const cur = mainSwipeContentRef.current;
-        if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
+        applyMainSwipeStyle(0, "none");
         mainSwipeAnimRef.current = null;
       });
-    }, 260);
+    }, 150);
   };
 
   const handleMainSwipeStart = (e) => {
     if (!canUseMainSwipe) return;
     const touch = e.touches?.[0];
     if (!touch) return;
-    if (mainSwipeAnimRef.current) { clearTimeout(mainSwipeAnimRef.current); mainSwipeAnimRef.current = null; }
-    hidePeek();
-    const cur = mainSwipeContentRef.current;
-    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
+    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
+    applyMainSwipeStyle(0, "none");
+    const target = e.target;
     mainSwipeRef.current = {
       tracking: true,
-      blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')),
-      startTarget: e.target,
+      blocked: isMainSwipeBlockedTarget(target),
       isHorizontal: false,
-      peekShown: false,
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
@@ -6781,27 +6751,22 @@ export default function TrackAll() {
     state.lastY = touch.clientY;
     const dx = touch.clientX - state.startX;
     const dy = touch.clientY - state.startY;
-    if (!state.isHorizontal && Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy) * 0.9) {
-      if (isMainSwipeBlockedTarget(state.startTarget, dx)) { state.blocked = true; return; }
+    if (!state.isHorizontal && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy) * 1.02) {
       state.isHorizontal = true;
     }
     if (state.isHorizontal) {
-      const ci = MAIN_SWIPE_VIEWS.indexOf(view);
-      const atFirst = ci <= 0, atLast = ci >= MAIN_SWIPE_VIEWS.length - 1;
-      if (!state.peekShown) {
-        state.peekShown = true;
-        if (dx < 0 && !atLast) showPeek(MAIN_SWIPE_VIEWS[ci + 1], 1);
-        else if (dx > 0 && !atFirst) showPeek(MAIN_SWIPE_VIEWS[ci - 1], -1);
-      }
-      let off = dx * 0.98;
-      if ((atFirst && dx > 0) || (atLast && dx < 0)) off = dx * 0.18;
-      applyMainSwipeStyle(off, "none");
+      const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+      const atFirst = currentIndex <= 0;
+      const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
+      let nextOffset = dx * 0.98;
+      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.18;
+      applyMainSwipeStyle(nextOffset, "none");
       if (e.cancelable) e.preventDefault();
       return;
     }
-    if (!state.isHorizontal && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+    if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
       state.blocked = true;
-      applyMainSwipeStyle(0, "transform 200ms ease");
+      applyMainSwipeStyle(0, "transform 160ms ease");
     }
   };
 
@@ -6809,30 +6774,36 @@ export default function TrackAll() {
     const state = mainSwipeRef.current;
     resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return;
+      applyMainSwipeStyle(0, "transform 160ms ease");
+      return;
     }
     const dx = state.lastX - state.startX;
     const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) {
-      hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return;
+    if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.02) {
+      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+      return;
     }
-    const ci = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (ci === -1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
-    if (dx < 0 && ci < MAIN_SWIPE_VIEWS.length - 1) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci + 1], 1);
-    else if (dx > 0 && ci > 0) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci - 1], -1);
-    else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
+    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
+    if (currentIndex === -1) {
+      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+      return;
+    }
+    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], -1);
+    } else if (dx > 0 && currentIndex > 0) {
+      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
+    } else {
+      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
+    }
   };
 
   const handleMainSwipeCancel = () => {
     resetMainSwipe();
-    hidePeek();
-    applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)");
+    applyMainSwipeStyle(0, "transform 160ms ease");
   };
 
   useEffect(() => {
-    hidePeek();
-    const cur = mainSwipeContentRef.current;
-    if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
+    applyMainSwipeStyle(0, "none");
   }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
@@ -7762,37 +7733,6 @@ export default function TrackAll() {
           }}
         >
 
-        {canUseMainSwipe && (
-          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 56, left: 0, right: 0, bottom: 64, zIndex: 5, overflow: "hidden", pointerEvents: "none", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
-            <div data-sk="home" style={{ display: "none", padding: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-                <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
-                <div style={{ flex: 1 }}><div className="shimmer" style={{ width: "50%", height: 16, borderRadius: 6, marginBottom: 8 }} /><div style={{ display: "flex", gap: 6 }}>{[80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 40, borderRadius: 10 }} />)}</div></div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              {[0,1].map(r => <div key={r} style={{ marginBottom: 16 }}><div className="shimmer" style={{ width: 110, height: 13, borderRadius: 6, marginBottom: 10 }} /><div style={{ display: "flex", gap: 10 }}>{[0,1,2,3].map(i => <div key={i} style={{ flexShrink: 0 }}><div className="shimmer" style={{ width: 88, height: 128, borderRadius: 10, marginBottom: 5 }} /><div className="shimmer" style={{ width: 70, height: 9, borderRadius: 4 }} /></div>)}</div></div>)}
-            </div>
-            <div data-sk="library" style={{ display: "none", padding: "16px 12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} /><div className="shimmer" style={{ width: 76, height: 30, borderRadius: 20 }} /></div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>{Array.from({length:12},(_,i) => <div key={i}><div className="shimmer" style={{ width: "100%", paddingBottom: "150%", borderRadius: 10, marginBottom: 4 }} /><div className="shimmer" style={{ width: "70%", height: 9, borderRadius: 4 }} /></div>)}</div>
-            </div>
-            <div data-sk="friends" style={{ display: "none", padding: "16px 0" }}>
-              <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 18 }}>{[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}</div>
-              {[0,1,2].map(i => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${ activeDarkMode ? "#21262d" : "#e2e8f0"}` }}><div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} /><div style={{ flex: 1 }}><div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} /><div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} /></div></div>)}
-            </div>
-            <div data-sk="profile" style={{ display: "none" }}>
-              <div className="shimmer" style={{ width: "100%", height: 180 }} />
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -36, padding: "0 16px" }}>
-                <div className="shimmer" style={{ width: 76, height: 76, borderRadius: "50%", marginBottom: 10 }} />
-                <div className="shimmer" style={{ width: 130, height: 17, borderRadius: 6, marginBottom: 7 }} />
-                <div className="shimmer" style={{ width: 90, height: 11, borderRadius: 4, marginBottom: 18 }} />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "100%", marginBottom: 10 }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div
           ref={mainSwipeContentRef}
           style={{
@@ -7802,6 +7742,7 @@ export default function TrackAll() {
           }}
         >
 
+        <div style={{ display: (view === "home" || view === "search") ? "block" : "none" }}>
         {/* ── HOME ── */}
         {view === "home" && (
           <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
@@ -8112,6 +8053,8 @@ export default function TrackAll() {
           </div>
         )}
 
+        </div>
+        <div style={{ display: view === "library" ? "block" : "none" }}>
         {/* ── LIBRARY ── */}
         {view === "library" && (
           <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
@@ -8275,6 +8218,8 @@ export default function TrackAll() {
           </div>
         )}
 
+        </div>
+        <div style={{ display: view === "friends" ? "block" : "none" }}>
         {/* ── FRIENDS ── */}
         {view === "friends" && (
           demoMode || !user ? (
@@ -8314,6 +8259,7 @@ export default function TrackAll() {
             />
           </div>
         )}
+        </div>
         {view === "profile" && (
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
