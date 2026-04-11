@@ -7684,42 +7684,29 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: `${activeBgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
-          <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
-            <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
-          </button>
-
-          <div style={{ flex: 1 }}>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </span>
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }}
-                placeholder="Pesquisar..."
-                style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }}
-              />
-              {searchQuery && (
-                <span
-                  onClick={() => doSearch(searchQuery, activeTab)}
-                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}
-                >⏎</span>
-              )}
+        {/* Top bar — só na home/search mostra logo+search; nas outras views desaparece */}
+        {(view === "home" || view === "search") ? (
+          <nav className="top-nav-bar" style={{ background: `${activeBgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+            <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
+              <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
+            </button>
+            <div style={{ flex: 1 }}>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                </span>
+                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }} placeholder="Pesquisar..." style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }} />
+                {searchQuery && (<span onClick={() => doSearch(searchQuery, activeTab)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}>⏎</span>)}
+              </div>
             </div>
-          </div>
-
-          {/* Avatar */}
-          <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {profile.avatar
-                ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 16 }}>👤</span>}
-            </div>
-          </button>
-        </nav>
+            <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
+              <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
+              </div>
+            </button>
+          </nav>
+        ) : null}
 
         <div
           onTouchStart={handleMainSwipeStart}
@@ -7798,7 +7785,7 @@ export default function TrackAll() {
                 </div>
 
                 {/* Filter tags — scroll horizontal */}
-                <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+                <div style={{ display: "flex", gap: 0, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                   {MEDIA_TYPES.slice(1).map((t) => {
                     const active = homeFilter.includes(t.id);
                     return (
@@ -7808,24 +7795,23 @@ export default function TrackAll() {
                         );
                       }} style={{
                         flexShrink: 0,
-                        background: active ? accent : (activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
-                        border: `1px solid ${active ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0")}`,
-                        color: active ? "white" : (activeDarkMode ? "#e6edf3" : "#0d1117"),
-                        padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 12, fontWeight: 700,
-                        display: "flex", alignItems: "center", gap: 5,
+                        background: "none", border: "none",
+                        borderBottom: active ? `2px solid ${accent}` : "2px solid transparent",
+                        color: active ? accent : (activeDarkMode ? "#8b949e" : "#64748b"),
+                        padding: "8px 12px", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: active ? 700 : 500,
                         WebkitTapHighlightColor: "transparent",
+                        transition: "color 0.15s, border-color 0.15s",
                       }}>
-                        {t.icon} {mediaLabel(t, lang)}
+                        {mediaLabel(t, lang)}
                       </button>
                     );
                   })}
                   {homeFilter.length > 0 && (
                     <button onClick={() => setHomeFilter([])} style={{
-                      flexShrink: 0,
-                      background: "transparent", border: "1px solid #ef444444",
-                      color: "#ef4444", padding: "7px 10px", borderRadius: 20,
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                      flexShrink: 0, background: "none", border: "none", borderBottom: "2px solid transparent",
+                      color: "#ef4444", padding: "8px 10px",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13,
                       WebkitTapHighlightColor: "transparent",
                     }}>✕</button>
                   )}
