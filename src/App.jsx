@@ -6351,6 +6351,8 @@ export default function TrackAll() {
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const mainSwipeAnimRef = useRef(null);
   const mainSwipeContentRef = useRef(null);
+  const mainSwipePeekRef = useRef(null);
+  const mainSwipePeekState = useRef({ dir: 1 });
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6680,131 +6682,90 @@ export default function TrackAll() {
     && !logOpen
     && !logPendingItem;
 
-  const hasHorizontalScrollableParent = (target) => {
+  const hasHorizontalScrollableParent = (target, dx = 0) => {
     let el = target instanceof HTMLElement ? target : null;
     while (el && el !== document.body) {
-      const style = window.getComputedStyle(el);
-      const overflowX = style?.overflowX || "";
-      if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) return true;
+      const ox = window.getComputedStyle(el)?.overflowX || "";
+      if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 8) {
+        if (dx === 0) return true;
+        if (dx > 0 && el.scrollLeft > 2) return true;
+        if (dx < 0 && el.scrollLeft < el.scrollWidth - el.clientWidth - 2) return true;
+      }
       el = el.parentElement;
     }
     return false;
   };
-
-  const isMainSwipeBlockedTarget = (target) => {
+  const isMainSwipeBlockedTarget = (target, dx = 0) => {
     if (!(target instanceof HTMLElement)) return true;
-    if (target.closest('input, textarea, select, [contenteditable="true"], .modal, .bottom-nav, .top-nav-bar')) return true;
-    if (target.closest(".recents-row, .tabs-scroll")) return true;
-    if (hasHorizontalScrollableParent(target)) return true;
+    if (target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')) return true;
+    if (target.closest(".recents-row,.tabs-scroll")) return true;
+    if (hasHorizontalScrollableParent(target, dx)) return true;
     return false;
   };
-
-  const resetMainSwipe = () => {
-    mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
+  const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
+  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) p.style.display = "none"; };
+  const showPeek = (targetView, dir) => {
+    const p = mainSwipePeekRef.current; if (!p) return;
+    mainSwipePeekState.current.dir = dir;
+    const W = window.innerWidth || 360;
+    p.style.cssText = `display:block;position:fixed;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none;overflow:hidden;background:${document.body.style.background || "#0d1117"};transform:translate3d(${dir * W}px,0,0);transition:none;`;
+    p.querySelectorAll("[data-sk]").forEach(el => { el.style.display = el.dataset.sk === targetView ? "block" : "none"; });
   };
-
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
-    const el = mainSwipeContentRef.current;
-    if (!el) return;
-    el.style.transition = transition;
-    el.style.transform = `translate3d(${offset}px, 0, 0)`;
-    el.style.willChange = offset !== 0 ? "transform" : "auto";
+    const W = window.innerWidth || 360;
+    const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
+    const dir = mainSwipePeekState.current.dir;
+    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
+    if (peek && peek.style.display !== "none") { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
   };
-
   const animateMainSwipeToView = (nextView, direction) => {
-    const width = typeof window !== "undefined" ? window.innerWidth : 360;
+    const W = window.innerWidth || 360;
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applyMainSwipeStyle(direction < 0 ? -width : width, "transform 150ms cubic-bezier(0.22, 1, 0.36, 1)");
+    applyMainSwipeStyle(direction * -W, "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)");
     mainSwipeAnimRef.current = setTimeout(() => {
-      setView(nextView);
-      requestAnimationFrame(() => {
-        applyMainSwipeStyle(0, "none");
-        mainSwipeAnimRef.current = null;
-      });
-    }, 150);
+      hidePeek(); setView(nextView);
+      requestAnimationFrame(() => { const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; } mainSwipeAnimRef.current = null; });
+    }, 260);
   };
-
   const handleMainSwipeStart = (e) => {
     if (!canUseMainSwipe) return;
-    const touch = e.touches?.[0];
-    if (!touch) return;
-    if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
-    applyMainSwipeStyle(0, "none");
-    const target = e.target;
-    mainSwipeRef.current = {
-      tracking: true,
-      blocked: isMainSwipeBlockedTarget(target),
-      isHorizontal: false,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      lastX: touch.clientX,
-      lastY: touch.clientY,
-    };
+    const touch = e.touches?.[0]; if (!touch) return;
+    if (mainSwipeAnimRef.current) { clearTimeout(mainSwipeAnimRef.current); mainSwipeAnimRef.current = null; }
+    hidePeek();
+    const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
+    mainSwipeRef.current = { tracking: true, blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')), startTarget: e.target, isHorizontal: false, peekShown: false, startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastY: touch.clientY };
   };
-
   const handleMainSwipeMove = (e) => {
     const state = mainSwipeRef.current;
     if (!state.tracking || state.blocked) return;
-    const touch = e.touches?.[0];
-    if (!touch) return;
-    state.lastX = touch.clientX;
-    state.lastY = touch.clientY;
-    const dx = touch.clientX - state.startX;
-    const dy = touch.clientY - state.startY;
-    if (!state.isHorizontal && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy) * 1.02) {
+    const touch = e.touches?.[0]; if (!touch) return;
+    state.lastX = touch.clientX; state.lastY = touch.clientY;
+    const dx = touch.clientX - state.startX, dy = touch.clientY - state.startY;
+    if (!state.isHorizontal && Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy) * 0.9) {
+      if (isMainSwipeBlockedTarget(state.startTarget, dx)) { state.blocked = true; return; }
       state.isHorizontal = true;
     }
     if (state.isHorizontal) {
-      const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-      const atFirst = currentIndex <= 0;
-      const atLast = currentIndex >= MAIN_SWIPE_VIEWS.length - 1;
-      let nextOffset = dx * 0.98;
-      if ((atFirst && dx > 0) || (atLast && dx < 0)) nextOffset = dx * 0.18;
-      applyMainSwipeStyle(nextOffset, "none");
-      if (e.cancelable) e.preventDefault();
-      return;
+      const ci = MAIN_SWIPE_VIEWS.indexOf(view), atFirst = ci <= 0, atLast = ci >= MAIN_SWIPE_VIEWS.length - 1;
+      if (!state.peekShown) { state.peekShown = true; if (dx < 0 && !atLast) showPeek(MAIN_SWIPE_VIEWS[ci + 1], 1); else if (dx > 0 && !atFirst) showPeek(MAIN_SWIPE_VIEWS[ci - 1], -1); }
+      let off = dx * 0.98; if ((atFirst && dx > 0) || (atLast && dx < 0)) off = dx * 0.18;
+      applyMainSwipeStyle(off, "none"); if (e.cancelable) e.preventDefault(); return;
     }
-    if (!state.isHorizontal && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
-      state.blocked = true;
-      applyMainSwipeStyle(0, "transform 160ms ease");
-    }
+    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { state.blocked = true; applyMainSwipeStyle(0, "transform 200ms ease"); }
   };
-
   const handleMainSwipeEnd = () => {
-    const state = mainSwipeRef.current;
-    resetMainSwipe();
-    if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) {
-      applyMainSwipeStyle(0, "transform 160ms ease");
-      return;
-    }
-    const dx = state.lastX - state.startX;
-    const dy = state.lastY - state.startY;
-    if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.02) {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
-      return;
-    }
-    const currentIndex = MAIN_SWIPE_VIEWS.indexOf(view);
-    if (currentIndex === -1) {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
-      return;
-    }
-    if (dx < 0 && currentIndex < MAIN_SWIPE_VIEWS.length - 1) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex + 1], -1);
-    } else if (dx > 0 && currentIndex > 0) {
-      animateMainSwipeToView(MAIN_SWIPE_VIEWS[currentIndex - 1], 1);
-    } else {
-      applyMainSwipeStyle(0, "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)");
-    }
+    const state = mainSwipeRef.current; resetMainSwipe();
+    if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
+    const dx = state.lastX - state.startX, dy = state.lastY - state.startY;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
+    const ci = MAIN_SWIPE_VIEWS.indexOf(view);
+    if (ci === -1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
+    if (dx < 0 && ci < MAIN_SWIPE_VIEWS.length - 1) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci + 1], 1);
+    else if (dx > 0 && ci > 0) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci - 1], -1);
+    else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
   };
-
-  const handleMainSwipeCancel = () => {
-    resetMainSwipe();
-    applyMainSwipeStyle(0, "transform 160ms ease");
-  };
-
-  useEffect(() => {
-    applyMainSwipeStyle(0, "none");
-  }, [view, canUseMainSwipe]);
+  const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); };
+  useEffect(() => { hidePeek(); const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; } }, [view, canUseMainSwipe]);
 
   /* const mainSwipeTabs = [
     { id: "home", icon: "⌂", label: useT("home") },
@@ -7684,29 +7645,30 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        {/* Top bar — só na home/search mostra logo+search; nas outras views desaparece */}
         {(view === "home" || view === "search") ? (
           <nav className="top-nav-bar" style={{ background: `${activeBgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
             <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
               <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
             </button>
-            <div style={{ flex: 1 }}>
-              <div style={{ position: "relative" }}>
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                </span>
-                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }} placeholder="Pesquisar..." style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }} />
-                {searchQuery && (<span onClick={() => doSearch(searchQuery, activeTab)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}>⏎</span>)}
-              </div>
-            </div>
+            <div style={{ flex: 1 }}><div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></span>
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }} placeholder="Pesquisar..." style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }} />
+              {searchQuery && (<span onClick={() => doSearch(searchQuery, activeTab)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}>⏎</span>)}
+            </div></div>
             <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
               <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
               </div>
             </button>
           </nav>
-        ) : null}
+        ) : (
+          <div style={{ height: 52, display: "flex", alignItems: "center", padding: "0 16px", position: "sticky", top: 0, zIndex: 40, background: `${activeBgColor}dd`, backdropFilter: "blur(12px)" }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>
+              {view === "library" ? (lang === "en" ? "Library" : "Biblioteca") : view === "friends" ? (lang === "en" ? "Friends" : "Amigos") : view === "profile" ? (lang === "en" ? "Profile" : "Perfil") : ""}
+            </span>
+          </div>
+        )}
 
         <div
           onTouchStart={handleMainSwipeStart}
@@ -7719,6 +7681,41 @@ export default function TrackAll() {
             overflow: "hidden",
           }}
         >
+
+        {canUseMainSwipe && (
+          <div ref={mainSwipePeekRef} style={{ display: "none" }}>
+            <div data-sk="home" style={{ display: "none", padding: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+                <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="shimmer" style={{ width: "50%", height: 16, borderRadius: 6, marginBottom: 8 }} />
+                  <div style={{ display: "flex", gap: 8 }}>{[80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 42, borderRadius: 10 }} />)}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}</div>
+              {[0,1].map(r => <div key={r} style={{ marginBottom: 16 }}><div className="shimmer" style={{ width: 110, height: 13, borderRadius: 6, marginBottom: 10 }} /><div style={{ display: "flex", gap: 10 }}>{[0,1,2,3].map(i => <div key={i} style={{ flexShrink: 0 }}><div className="shimmer" style={{ width: 88, height: 128, borderRadius: 10, marginBottom: 5 }} /><div className="shimmer" style={{ width: 70, height: 9, borderRadius: 4 }} /></div>)}</div></div>)}
+            </div>
+            <div data-sk="library" style={{ display: "none", padding: "16px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} /><div className="shimmer" style={{ width: 76, height: 30, borderRadius: 20 }} /></div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>{[0,1,2,3,4,5,6,7,8,9,10,11].map(i => <div key={i}><div className="shimmer" style={{ width: "100%", height: 130, borderRadius: 10, marginBottom: 4 }} /><div className="shimmer" style={{ width: "70%", height: 9, borderRadius: 4 }} /></div>)}</div>
+            </div>
+            <div data-sk="friends" style={{ display: "none", padding: "16px 0" }}>
+              <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 18 }}>{[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}</div>
+              {[0,1,2].map(i => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}><div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} /><div style={{ flex: 1 }}><div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} /><div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} /></div></div>)}
+            </div>
+            <div data-sk="profile" style={{ display: "none" }}>
+              <div className="shimmer" style={{ width: "100%", height: 180 }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -36 }}>
+                <div className="shimmer" style={{ width: 76, height: 76, borderRadius: "50%", marginBottom: 10 }} />
+                <div className="shimmer" style={{ width: 130, height: 17, borderRadius: 6, marginBottom: 7 }} />
+                <div className="shimmer" style={{ width: 90, height: 11, borderRadius: 4, marginBottom: 18 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%", marginBottom: 10 }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div
           ref={mainSwipeContentRef}
@@ -7784,8 +7781,8 @@ export default function TrackAll() {
                   </div>
                 </div>
 
-                {/* Filter tags — scroll horizontal */}
-                <div style={{ display: "flex", gap: 0, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                {/* Filter tags — tab style */}
+                <div style={{ display: "flex", overflowX: "auto", scrollbarWidth: "none", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
                   {MEDIA_TYPES.slice(1).map((t) => {
                     const active = homeFilter.includes(t.id);
                     return (
@@ -7794,11 +7791,11 @@ export default function TrackAll() {
                           prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
                         );
                       }} style={{
-                        flexShrink: 0,
-                        background: "none", border: "none",
+                        flexShrink: 0, background: "none", border: "none",
                         borderBottom: active ? `2px solid ${accent}` : "2px solid transparent",
+                        marginBottom: -1,
                         color: active ? accent : (activeDarkMode ? "#8b949e" : "#64748b"),
-                        padding: "8px 12px", cursor: "pointer", fontFamily: "inherit",
+                        padding: "8px 14px", cursor: "pointer", fontFamily: "inherit",
                         fontSize: 13, fontWeight: active ? 700 : 500,
                         WebkitTapHighlightColor: "transparent",
                         transition: "color 0.15s, border-color 0.15s",
@@ -7810,7 +7807,7 @@ export default function TrackAll() {
                   {homeFilter.length > 0 && (
                     <button onClick={() => setHomeFilter([])} style={{
                       flexShrink: 0, background: "none", border: "none", borderBottom: "2px solid transparent",
-                      color: "#ef4444", padding: "8px 10px",
+                      color: "#ef4444", padding: "8px 10px", marginBottom: -1,
                       cursor: "pointer", fontFamily: "inherit", fontSize: 13,
                       WebkitTapHighlightColor: "transparent",
                     }}>✕</button>
