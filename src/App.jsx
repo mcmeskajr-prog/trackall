@@ -5480,8 +5480,8 @@ async function fetchPersonalizedRecos(library, workerUrl) {
 function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
-  // "Para Ti" nunca mostra skeleton — aparece quando tiver dados ou fica escondido
-  if (loading && !isPersonal) return (
+  // Skeleton só se loading E sem dados ainda — se já há dados, mostra mesmo durante refresh
+  if (loading && !isPersonal && (!items || items.length === 0)) return (
     <div style={{ padding: "0 16px 28px" }}>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
       <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
@@ -6434,18 +6434,20 @@ export default function TrackAll() {
     }
   };
 
-  // Carrega recos uma vez quando o user fica disponível
+  // Carrega recos UMA VEZ só — recosFetchedRef garante que não repete
   useEffect(() => {
-    if (user && !recoLoading && Object.keys(recos).length === 0) {
+    if (user && !recosFetchedRef.current) {
       loadRecos();
     }
-  }, [user]);
+  }, [user?.id]);
 
-  // Carrega tierlists/collections uma vez quando o user fica disponível
+  // Carrega tierlists/collections uma vez
   useEffect(() => {
-    if (user && userTierlists.length === 0) loadUserTierlists();
-    if (user && userCollections.length === 0) loadUserCollections();
-  }, [user]);
+    if (user?.id) {
+      if (userTierlists.length === 0) loadUserTierlists();
+      if (userCollections.length === 0) loadUserCollections();
+    }
+  }, [user?.id]);
 
   useEffect(() => () => {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
