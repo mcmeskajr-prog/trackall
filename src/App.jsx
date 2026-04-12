@@ -6433,18 +6433,18 @@ export default function TrackAll() {
     }
   };
 
-  // Lazy: só carrega recos quando o utilizador vai ao Início pela 1ª vez
+  // Carrega recos uma vez quando o user fica disponível
   useEffect(() => {
-    if (view === "home" && user && !recoLoading && Object.keys(recos).length === 0) {
+    if (user && !recoLoading && Object.keys(recos).length === 0) {
       loadRecos();
     }
-    if (view === "profile" && user && userTierlists.length === 0) {
-      loadUserTierlists();
-    }
-    if (view === "profile" && user && userCollections.length === 0) {
-      loadUserCollections();
-    }
-  }, [view, user]);
+  }, [user]);
+
+  // Carrega tierlists/collections uma vez quando o user fica disponível
+  useEffect(() => {
+    if (user && userTierlists.length === 0) loadUserTierlists();
+    if (user && userCollections.length === 0) loadUserCollections();
+  }, [user]);
 
   useEffect(() => () => {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
