@@ -7739,7 +7739,7 @@ export default function TrackAll() {
           }}
         >
 
-        <div style={{ display: (view === "home" || view === "search") ? "block" : "none" }}>
+        <div style={{ display: view === "home" ? "block" : "none" }}>
         {/* ── HOME ── */}
           <div style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
@@ -7970,9 +7970,9 @@ export default function TrackAll() {
               <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
             </div>
           </div>
-
-        {view === "search" && (
-          <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
+        </div>
+        <div style={{ display: view === "search" ? "block" : "none" }}>
+          <div style={{ padding: "20px 16px" }}>
             <div className="tabs-scroll" style={{ marginBottom: 20 }}>
               {MEDIA_TYPES.map((t) => (
                 <button key={t.id} className={`tab-btn${activeTab === t.id ? " active" : ""}`} onClick={() => {
@@ -8045,8 +8045,6 @@ export default function TrackAll() {
               </>
             )}
           </div>
-        )}
-
         </div>
         <div style={{ display: view === "library" ? "block" : "none" }}>
         {/* ── LIBRARY ── */}
@@ -8225,32 +8223,8 @@ export default function TrackAll() {
           ) : (
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
           )}
-        {view === "collection" && viewingCollection && (
-          <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
-            <CollectionViewer
-              col={viewingCollection}
-              onClose={() => { setViewingCollection(null); setView("profile"); }}
-              onLike={handleCollectionLike}
-              liked={userCollectionLikes.includes(viewingCollection.id)}
-              currentUserId={user?.id}
-              workerUrl={workerUrl}
-              onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
-              onOpenMedia={(item) => {
-                // Procura na biblioteca pelo id — testa variantes
-                const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
-                // Se está na biblioteca, abre com todos os dados
-                if (libItem) {
-                  setSelectedItem(libItem);
-                } else {
-                  // Não está — abre com os dados que temos (id + title + cover)
-                  setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover });
-                }
-              }}
-            />
-          </div>
-        )}
         </div>
-        {view === "profile" && (
+        <div style={{ display: view === "profile" ? "block" : "none" }}>
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
             profile={activeProfile}
@@ -8318,7 +8292,26 @@ export default function TrackAll() {
             diaryPanel={null}
           />
           </div>
-        )}
+        </div>
+        <div style={{ display: view === "collection" ? "block" : "none" }}>
+          {viewingCollection && (
+            <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+              <CollectionViewer
+                col={viewingCollection}
+                onClose={() => { setViewingCollection(null); setView("profile"); }}
+                onLike={handleCollectionLike}
+                liked={userCollectionLikes.includes(viewingCollection.id)}
+                currentUserId={user?.id}
+                workerUrl={workerUrl}
+                onEdit={(col) => { setEditingCollection(col); setShowCollectionEditor(true); }}
+                onOpenMedia={(item) => {
+                  const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
+                  if (libItem) { setSelectedItem(libItem); } else { setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover }); }
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         </div>
         </div>
