@@ -6331,6 +6331,7 @@ export default function TrackAll() {
   const [personalRecos, setPersonalRecos] = useState([]);
   const personalRecosLoadedRef = useRef(false);
   const recoLoadIdRef = useRef(0);
+  const recosFetchedRef = useRef(false);
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -6451,8 +6452,24 @@ export default function TrackAll() {
   }, []);
 
   const loadRecos = async (manual = false) => {
+    if (!manual && recosFetchedRef.current) return; // já carregou, não repetir
+    recosFetchedRef.current = true;
     const loadId = ++recoLoadIdRef.current;
     setRecoLoading(true);
+    if (!manual) {
+      // Tentar restaurar de sessionStorage antes de fazer fetch
+      try {
+        const cached = sessionStorage.getItem("trackall_trending_recos");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Object.keys(parsed).length > 0) {
+            setRecos(parsed);
+            setRecoLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
     setRecos({});
     const applyRecoChunk = (key, items) => {
       if (recoLoadIdRef.current !== loadId) return;
@@ -6461,7 +6478,9 @@ export default function TrackAll() {
     if (manual) {
       setPersonalRecos([]);
       personalRecosLoadedRef.current = false;
+      recosFetchedRef.current = false;
       try { sessionStorage.removeItem("trackall_personal_recos"); } catch {}
+      try { sessionStorage.removeItem("trackall_trending_recos"); } catch {}
       // Re-fetch personalRecos with current library
       if (Object.keys(library).length > 0) {
         personalRecosLoadedRef.current = true;
@@ -6484,7 +6503,16 @@ export default function TrackAll() {
         fetchTrendingGames(workerUrl).then(items => applyRecoChunk("jogos", items)),
       ]);
     } catch {}
-    if (recoLoadIdRef.current === loadId) setRecoLoading(false);
+    if (recoLoadIdRef.current === loadId) {
+      setRecoLoading(false);
+      // Guardar trending em cache para restaurar sem reload
+      if (!manual) {
+        setRecos(current => {
+          try { sessionStorage.setItem("trackall_trending_recos", JSON.stringify(current)); } catch {}
+          return current;
+        });
+      }
+    }
   };
 
   const handleSaveTierlist = async (title, tiers) => {
