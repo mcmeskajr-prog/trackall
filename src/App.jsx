@@ -7741,8 +7741,7 @@ export default function TrackAll() {
 
         <div style={{ display: (view === "home" || view === "search") ? "block" : "none" }}>
         {/* ── HOME ── */}
-        {view === "home" && (
-          <div className="fade-in view-transition" style={{ paddingLeft: 0, paddingRight: 0 }}>
+          <div style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
@@ -7794,8 +7793,8 @@ export default function TrackAll() {
                   </div>
                 </div>
 
-                {/* Filter tags — scroll horizontal */}
-                <div style={{ display: "flex", gap: 7, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
+                {/* Filter tags — tab style */}
+                <div style={{ display: "flex", overflowX: "auto", scrollbarWidth: "none", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}>
                   {MEDIA_TYPES.slice(1).map((t) => {
                     const active = homeFilter.includes(t.id);
                     return (
@@ -7804,25 +7803,24 @@ export default function TrackAll() {
                           prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id]
                         );
                       }} style={{
-                        flexShrink: 0,
-                        background: active ? accent : (activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)"),
-                        border: `1px solid ${active ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0")}`,
-                        color: active ? "white" : (activeDarkMode ? "#e6edf3" : "#0d1117"),
-                        padding: "7px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 12, fontWeight: 700,
-                        display: "flex", alignItems: "center", gap: 5,
+                        flexShrink: 0, background: "none", border: "none",
+                        borderBottom: active ? `2px solid ${accent}` : "2px solid transparent",
+                        marginBottom: -1,
+                        color: active ? accent : (activeDarkMode ? "#8b949e" : "#64748b"),
+                        padding: "8px 14px", cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: active ? 700 : 500,
                         WebkitTapHighlightColor: "transparent",
                       }}>
-                        {t.icon} {mediaLabel(t, lang)}
+                        {mediaLabel(t, lang)}
                       </button>
                     );
                   })}
                   {homeFilter.length > 0 && (
                     <button onClick={() => setHomeFilter([])} style={{
-                      flexShrink: 0,
-                      background: "transparent", border: "1px solid #ef444444",
-                      color: "#ef4444", padding: "7px 10px", borderRadius: 20,
-                      cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                      flexShrink: 0, background: "none", border: "none",
+                      borderBottom: "2px solid transparent", marginBottom: -1,
+                      color: "#ef4444", padding: "8px 10px",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 13,
                       WebkitTapHighlightColor: "transparent",
                     }}>✕</button>
                   )}
@@ -7972,7 +7970,6 @@ export default function TrackAll() {
               <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
             </div>
           </div>
-        )}
 
         {view === "search" && (
           <div style={{ padding: "20px 16px" }} className="fade-in view-transition">
@@ -8053,8 +8050,7 @@ export default function TrackAll() {
         </div>
         <div style={{ display: view === "library" ? "block" : "none" }}>
         {/* ── LIBRARY ── */}
-        {view === "library" && (
-          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }} className="fade-in view-transition">
+          <div style={{ padding: isMobileDevice ? "16px 12px" : "24px 28px" }}>
 
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -8213,7 +8209,6 @@ export default function TrackAll() {
               </div>
             </div>
           </div>
-        )}
 
         </div>
         <div style={{ display: view === "friends" ? "block" : "none" }}>
