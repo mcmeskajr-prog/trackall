@@ -8218,8 +8218,7 @@ export default function TrackAll() {
         </div>
         <div style={{ display: view === "friends" ? "block" : "none" }}>
         {/* ── FRIENDS ── */}
-        {view === "friends" && (
-          demoMode || !user ? (
+          {demoMode || !user ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>👥</div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{lang === "en" ? "Friends are waiting!" : "Os teus amigos estão à espera!"}</h3>
@@ -8230,8 +8229,7 @@ export default function TrackAll() {
             </div>
           ) : (
             <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
-          )
-        )}
+          )}
         {view === "collection" && viewingCollection && (
           <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
             <CollectionViewer
