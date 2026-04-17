@@ -6742,7 +6742,7 @@ export default function TrackAll() {
     return false;
   };
   const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
-  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) p.style.display = "none"; };
+  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) { p.style.display = "none"; p.style.opacity = "1"; p.style.transition = "none"; } };
   const showPeek = (targetView, dir) => {
     const p = mainSwipePeekRef.current; if (!p) return;
     mainSwipePeekState.current.dir = dir;
@@ -6763,18 +6763,18 @@ export default function TrackAll() {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     applyMainSwipeStyle(direction * -W, "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)");
     mainSwipeAnimRef.current = setTimeout(() => {
-      // 1. Resetar transform antes do setView — conteúdo já na posição certa quando React renderiza
       const cur = mainSwipeContentRef.current;
+      const peek = mainSwipePeekRef.current;
+      // Resetar transform do conteúdo antes do setView
       if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
-      // 2. Mudar view — React re-renderiza com conteúdo na posição certa
+      // Fade out rápido do peek para cobrir o flash de React a re-renderizar
+      if (peek) { peek.style.transition = "opacity 80ms linear"; peek.style.opacity = "0"; }
       setView(nextView);
-      // 3. Esconder peek só depois do React ter pintado o novo conteúdo
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          hidePeek();
-          mainSwipeAnimRef.current = null;
-        });
-      });
+      mainSwipeAnimRef.current = setTimeout(() => {
+        // Após o fade, esconder e repor opacidade para próximo uso
+        if (peek) { peek.style.display = "none"; peek.style.opacity = "1"; peek.style.transition = "none"; }
+        mainSwipeAnimRef.current = null;
+      }, 80);
     }, 260);
   };
   const handleMainSwipeStart = (e) => {
