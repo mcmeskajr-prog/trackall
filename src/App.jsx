@@ -6742,21 +6742,14 @@ export default function TrackAll() {
     return false;
   };
   const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
-  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) p.style.display = "none"; };
-  const showPeek = (targetView, dir) => {
-    const p = mainSwipePeekRef.current; if (!p) return;
-    mainSwipePeekState.current.dir = dir;
-    const W = window.innerWidth || 360;
-    p.style.display = "block"; p.style.transition = "none";
-    p.style.transform = `translate3d(${dir * W}px,0,0)`;
-    p.querySelectorAll("[data-sk]").forEach(el => { el.style.display = el.dataset.sk === targetView ? "block" : "none"; });
-  };
+  const hidePeek = () => {}; // peek removido
+  const showPeek = () => {}; // peek removido
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = window.innerWidth || 360;
     const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
     const dir = mainSwipePeekState.current.dir;
     if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    if (peek && peek.style.display !== "none") { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
+
   };
   const animateMainSwipeToView = (nextView, direction) => {
     const W = window.innerWidth || 360;
@@ -7741,38 +7734,6 @@ export default function TrackAll() {
           }}
         >
 
-        <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
-            <div data-sk="home" style={{ display: "none", padding: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-                <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div className="shimmer" style={{ width: "50%", height: 16, borderRadius: 6, marginBottom: 8 }} />
-                  <div style={{ display: "flex", gap: 8 }}>{[80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 42, borderRadius: 10 }} />)}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              {[0,1].map(r => <div key={r} style={{ marginBottom: 16 }}><div className="shimmer" style={{ width: 110, height: 13, borderRadius: 6, marginBottom: 10 }} /><div style={{ display: "flex", gap: 10 }}>{[0,1,2,3].map(i => <div key={i} style={{ flexShrink: 0 }}><div className="shimmer" style={{ width: 88, height: 128, borderRadius: 10, marginBottom: 5 }} /><div className="shimmer" style={{ width: 70, height: 9, borderRadius: 4 }} /></div>)}</div></div>)}
-            </div>
-            <div data-sk="library" style={{ display: "none", padding: "16px 12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} /><div className="shimmer" style={{ width: 76, height: 30, borderRadius: 20 }} /></div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>{[0,1,2,3,4,5,6,7,8,9,10,11].map(i => <div key={i}><div className="shimmer" style={{ width: "100%", height: 130, borderRadius: 10, marginBottom: 4 }} /><div className="shimmer" style={{ width: "70%", height: 9, borderRadius: 4 }} /></div>)}</div>
-            </div>
-            <div data-sk="friends" style={{ display: "none", padding: "16px 0" }}>
-              <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 18 }}>{[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}</div>
-              {[0,1,2].map(i => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}><div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} /><div style={{ flex: 1 }}><div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} /><div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} /></div></div>)}
-            </div>
-            <div data-sk="profile" style={{ display: "none" }}>
-              <div className="shimmer" style={{ width: "100%", height: 180 }} />
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -36 }}>
-                <div className="shimmer" style={{ width: 76, height: 76, borderRadius: "50%", marginBottom: 10 }} />
-                <div className="shimmer" style={{ width: 130, height: 17, borderRadius: 6, marginBottom: 7 }} />
-                <div className="shimmer" style={{ width: 90, height: 11, borderRadius: 4, marginBottom: 18 }} />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%", marginBottom: 10 }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
-              </div>
-            </div>
-        </div>
 
         <div
           ref={mainSwipeContentRef}
