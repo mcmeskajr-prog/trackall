@@ -6763,8 +6763,14 @@ export default function TrackAll() {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     applyMainSwipeStyle(direction * -W, "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)");
     mainSwipeAnimRef.current = setTimeout(() => {
-      hidePeek(); setView(nextView);
-      requestAnimationFrame(() => { const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; } mainSwipeAnimRef.current = null; });
+      // 1. Esconder peek e resetar transform ANTES do setView
+      //    para que quando o React re-renderizar, o conteúdo já esteja na posição certa
+      hidePeek();
+      const cur = mainSwipeContentRef.current;
+      if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
+      // 2. Só agora mudar a view — o React re-renderiza com transform já em 0
+      setView(nextView);
+      mainSwipeAnimRef.current = null;
     }, 260);
   };
   const handleMainSwipeStart = (e) => {
