@@ -7293,9 +7293,8 @@ export default function TrackAll() {
   return (
     <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
-      <div style={{ position: "fixed", bottom: 64, right: 0, zIndex: 99999, background: "rgba(0,0,0,0.85)", color: "white", fontSize: 10, padding: "4px 6px", lineHeight: 1.6, pointerEvents: "none", borderRadius: "6px 0 0 6px" }}>
-        view:{view} | load:{String(recoLoading)} | had:{String(recosEverHadData)}<br/>
-        an:{recos.anime?.length||0} mg:{recos.manga?.length||0} fi:{recos.filmes?.length||0}
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999999, background: "red", color: "white", fontSize: 13, padding: "6px 10px", lineHeight: 1.6, pointerEvents: "none" }}>
+        view:{view} load:{String(recoLoading)} had:{String(recosEverHadData)} an:{recos.anime?.length||0} fi:{recos.filmes?.length||0}
       </div>
       <div style={{
         minHeight: "100vh",
