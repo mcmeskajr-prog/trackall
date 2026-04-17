@@ -6332,7 +6332,7 @@ export default function TrackAll() {
   const personalRecosLoadedRef = useRef(false);
   const recoLoadIdRef = useRef(0);
   const recosFetchedRef = useRef(false);
-  const recosHadDataRef = useRef(false); // true assim que recos tiveram dados — nunca mais mostra skeleton
+  const [recosEverHadData, setRecosEverHadData] = useState(false); // true assim que recos tiveram dados — nunca mais mostra skeleton
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -6470,7 +6470,7 @@ export default function TrackAll() {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && Object.keys(parsed).length > 0) {
-            recosHadDataRef.current = true;
+            setRecosEverHadData(true);
             setRecos(parsed);
             setRecoLoading(false);
             return;
@@ -6482,7 +6482,7 @@ export default function TrackAll() {
     const applyRecoChunk = (key, items) => {
       if (recoLoadIdRef.current !== loadId) return;
       if (items?.length) {
-        recosHadDataRef.current = true;
+        setRecosEverHadData(true);
         setRecos(r => ({ ...r, [key]: items }));
       }
     };
@@ -7293,6 +7293,10 @@ export default function TrackAll() {
   return (
     <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
+      <div style={{ position: "fixed", bottom: 64, right: 0, zIndex: 99999, background: "rgba(0,0,0,0.85)", color: "white", fontSize: 10, padding: "4px 6px", lineHeight: 1.6, pointerEvents: "none", borderRadius: "6px 0 0 6px" }}>
+        view:{view} | load:{String(recoLoading)} | had:{String(recosEverHadData)}<br/>
+        an:{recos.anime?.length||0} mg:{recos.manga?.length||0} fi:{recos.filmes?.length||0}
+      </div>
       <div style={{
         minHeight: "100vh",
         background: activeBgColor,
@@ -8002,11 +8006,11 @@ export default function TrackAll() {
                 </button>
               </div>
               <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} isPersonal={true} />
-              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
-              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
-              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
-              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
-              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
+              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
+              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
+              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
+              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
             </div>
           </div>
         </div>
