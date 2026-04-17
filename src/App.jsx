@@ -7293,9 +7293,7 @@ export default function TrackAll() {
   return (
     <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999999, background: "red", color: "white", fontSize: 13, padding: "6px 10px", lineHeight: 1.6, pointerEvents: "none" }}>
-        view:{view} load:{String(recoLoading)} had:{String(recosEverHadData)} an:{recos.anime?.length||0} fi:{recos.filmes?.length||0}
-      </div>
+
       <div style={{
         minHeight: "100vh",
         background: activeBgColor,
@@ -7737,8 +7735,7 @@ export default function TrackAll() {
           }}
         >
 
-        {canUseMainSwipe && (
-          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
+        <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
             <div data-sk="home" style={{ display: "none", padding: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
                 <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
@@ -7769,8 +7766,7 @@ export default function TrackAll() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
               </div>
             </div>
-          </div>
-        )}
+        </div>
 
         <div
           ref={mainSwipeContentRef}
