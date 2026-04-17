@@ -6332,6 +6332,7 @@ export default function TrackAll() {
   const personalRecosLoadedRef = useRef(false);
   const recoLoadIdRef = useRef(0);
   const recosFetchedRef = useRef(false);
+  const recosHadDataRef = useRef(false); // true assim que recos tiveram dados — nunca mais mostra skeleton
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -6461,27 +6462,29 @@ export default function TrackAll() {
     if (!manual && recosFetchedRef.current) return; // já carregou, não repetir
     recosFetchedRef.current = true;
     const loadId = ++recoLoadIdRef.current;
+    setRecoLoading(true);
     if (!manual) {
-      // Tentar restaurar de sessionStorage ANTES de qualquer setState
-      // para nunca mostrar skeleton quando há dados em cache
+      // Tentar restaurar de sessionStorage antes de fazer fetch
       try {
         const cached = sessionStorage.getItem("trackall_trending_recos");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && Object.keys(parsed).length > 0) {
+            recosHadDataRef.current = true;
             setRecos(parsed);
-            // recoLoading fica false — sem skeleton
+            setRecoLoading(false);
             return;
           }
         }
       } catch {}
     }
-    // Só chega aqui se não há cache — aí sim mostra loading
-    setRecoLoading(true);
     setRecos({});
     const applyRecoChunk = (key, items) => {
       if (recoLoadIdRef.current !== loadId) return;
-      if (items?.length) setRecos(r => ({ ...r, [key]: items }));
+      if (items?.length) {
+        recosHadDataRef.current = true;
+        setRecos(r => ({ ...r, [key]: items }));
+      }
     };
     if (manual) {
       setPersonalRecos([]);
@@ -7999,11 +8002,11 @@ export default function TrackAll() {
                 </button>
               </div>
               <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} isPersonal={true} />
-              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.anime?.length} />
-              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.manga?.length} />
-              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.filmes?.length} />
-              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.series?.length} />
-              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.jogos?.length} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
+              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
+              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
+              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
+              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosHadDataRef.current} />
             </div>
           </div>
         </div>
