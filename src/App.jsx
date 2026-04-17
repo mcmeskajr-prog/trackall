@@ -6434,20 +6434,24 @@ export default function TrackAll() {
     }
   };
 
-  // Carrega recos UMA VEZ só — recosFetchedRef garante que não repete
+  // Carrega recos UMA VEZ — ref garante que não repete mesmo com re-renders
+  const recosInitRef = useRef(false);
   useEffect(() => {
-    if (user && !recosFetchedRef.current) {
+    if (user?.id && !recosInitRef.current) {
+      recosInitRef.current = true;
       loadRecos();
     }
-  }, [user?.id]);
+  });  // sem dependências — corre a cada render mas a ref para depois da 1ª vez
 
   // Carrega tierlists/collections uma vez
+  const profileInitRef = useRef(false);
   useEffect(() => {
-    if (user?.id) {
-      if (userTierlists.length === 0) loadUserTierlists();
-      if (userCollections.length === 0) loadUserCollections();
+    if (user?.id && !profileInitRef.current) {
+      profileInitRef.current = true;
+      loadUserTierlists();
+      loadUserCollections();
     }
-  }, [user?.id]);
+  });  // sem dependências — idem
 
   useEffect(() => () => {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
@@ -6457,21 +6461,23 @@ export default function TrackAll() {
     if (!manual && recosFetchedRef.current) return; // já carregou, não repetir
     recosFetchedRef.current = true;
     const loadId = ++recoLoadIdRef.current;
-    setRecoLoading(true);
     if (!manual) {
-      // Tentar restaurar de sessionStorage antes de fazer fetch
+      // Tentar restaurar de sessionStorage ANTES de qualquer setState
+      // para nunca mostrar skeleton quando há dados em cache
       try {
         const cached = sessionStorage.getItem("trackall_trending_recos");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && Object.keys(parsed).length > 0) {
             setRecos(parsed);
-            setRecoLoading(false);
+            // recoLoading fica false — sem skeleton
             return;
           }
         }
       } catch {}
     }
+    // Só chega aqui se não há cache — aí sim mostra loading
+    setRecoLoading(true);
     setRecos({});
     const applyRecoChunk = (key, items) => {
       if (recoLoadIdRef.current !== loadId) return;
@@ -7993,11 +7999,11 @@ export default function TrackAll() {
                 </button>
               </div>
               <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} isPersonal={true} />
-              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
-              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
-              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading} />
-              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading} />
-              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.anime?.length} />
+              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.manga?.length} />
+              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.filmes?.length} />
+              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.series?.length} />
+              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recos.jogos?.length} />
             </div>
           </div>
         </div>
