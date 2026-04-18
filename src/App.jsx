@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, createContext, useContext } from "react";
+import { flushSync } from "react-dom";
 import { createClient } from '@supabase/supabase-js';
 import { t, detectLang, saveLang, STRINGS } from './translations';
 // Safety fallback for lang
@@ -6332,7 +6333,6 @@ export default function TrackAll() {
   const personalRecosLoadedRef = useRef(false);
   const recoLoadIdRef = useRef(0);
   const recosFetchedRef = useRef(false);
-  const [recosEverHadData, setRecosEverHadData] = useState(false); // true assim que recos tiveram dados — nunca mais mostra skeleton
   const [recoLoading, setRecoLoading] = useState(false);
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
@@ -6470,7 +6470,6 @@ export default function TrackAll() {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && Object.keys(parsed).length > 0) {
-            setRecosEverHadData(true);
             setRecos(parsed);
             setRecoLoading(false);
             return;
@@ -6481,10 +6480,7 @@ export default function TrackAll() {
     setRecos({});
     const applyRecoChunk = (key, items) => {
       if (recoLoadIdRef.current !== loadId) return;
-      if (items?.length) {
-        setRecosEverHadData(true);
-        setRecos(r => ({ ...r, [key]: items }));
-      }
+      if (items?.length) setRecos(r => ({ ...r, [key]: items }));
     };
     if (manual) {
       setPersonalRecos([]);
@@ -6742,7 +6738,7 @@ export default function TrackAll() {
     return false;
   };
   const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
-  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) { p.style.display = "none"; p.style.opacity = "1"; p.style.transition = "none"; } };
+  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) p.style.display = "none"; };
   const showPeek = (targetView, dir) => {
     const p = mainSwipePeekRef.current; if (!p) return;
     mainSwipePeekState.current.dir = dir;
@@ -6763,18 +6759,13 @@ export default function TrackAll() {
     if (mainSwipeAnimRef.current) clearTimeout(mainSwipeAnimRef.current);
     applyMainSwipeStyle(direction * -W, "transform 260ms cubic-bezier(0.25,0.46,0.45,0.94)");
     mainSwipeAnimRef.current = setTimeout(() => {
+      // flushSync força o React a re-renderizar a nova view de forma síncrona
+      // ANTES de escondermos o peek — assim nunca há flash de conteúdo vazio
+      flushSync(() => { setView(nextView); });
+      hidePeek();
       const cur = mainSwipeContentRef.current;
-      const peek = mainSwipePeekRef.current;
-      // Resetar transform do conteúdo antes do setView
       if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
-      // Fade out rápido do peek para cobrir o flash de React a re-renderizar
-      if (peek) { peek.style.transition = "opacity 80ms linear"; peek.style.opacity = "0"; }
-      setView(nextView);
-      mainSwipeAnimRef.current = setTimeout(() => {
-        // Após o fade, esconder e repor opacidade para próximo uso
-        if (peek) { peek.style.display = "none"; peek.style.opacity = "1"; peek.style.transition = "none"; }
-        mainSwipeAnimRef.current = null;
-      }, 80);
+      mainSwipeAnimRef.current = null;
     }, 260);
   };
   const handleMainSwipeStart = (e) => {
@@ -6815,7 +6806,7 @@ export default function TrackAll() {
     else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
   };
   const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); };
-  useEffect(() => { hidePeek(); const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; } window.scrollTo(0, 0); }, [view]);
+  useEffect(() => { window.scrollTo(0, 0); }, [view]);
 
   /* const mainSwipeTabs = [
     { id: "home", icon: "⌂", label: useT("home") },
@@ -7303,7 +7294,6 @@ export default function TrackAll() {
   return (
     <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
       <LangContext.Provider value={{ lang, useT }}>
-
       <div style={{
         minHeight: "100vh",
         background: activeBgColor,
@@ -7745,8 +7735,8 @@ export default function TrackAll() {
           }}
         >
 
-
-        <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
+        {canUseMainSwipe && (
+          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
             <div data-sk="home" style={{ display: "none", padding: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
                 <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
@@ -7777,7 +7767,8 @@ export default function TrackAll() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
               </div>
             </div>
-        </div>
+          </div>
+        )}
 
         <div
           ref={mainSwipeContentRef}
@@ -8012,11 +8003,11 @@ export default function TrackAll() {
                 </button>
               </div>
               <RecoCarousel title={lang === "en" ? "For You" : "Para Ti"} icon="✦" items={personalRecos} library={library} onOpen={setSelectedItem} loading={recoLoading} isPersonal={true} />
-              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
-              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
-              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
-              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
-              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading && !recosEverHadData} />
+              <RecoCarousel title={useT("animeTrending")} icon="⛩️" items={recos.anime} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("mangaTrending")} icon="📖" items={recos.manga} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("moviesWeek")} icon="🎬" items={recos.filmes} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("seriesWeek")} icon="📺" items={recos.series} library={library} onOpen={setSelectedItem} loading={recoLoading} />
+              <RecoCarousel title={useT("topGames")} icon="🎮" items={recos.jogos} library={library} onOpen={setSelectedItem} loading={recoLoading} />
             </div>
           </div>
         </div>
