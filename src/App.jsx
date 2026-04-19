@@ -6738,15 +6738,8 @@ export default function TrackAll() {
     return false;
   };
   const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
-  const hidePeek = () => { const p = mainSwipePeekRef.current; if (p) p.style.display = "none"; };
-  const showPeek = (targetView, dir) => {
-    const p = mainSwipePeekRef.current; if (!p) return;
-    mainSwipePeekState.current.dir = dir;
-    const W = window.innerWidth || 360;
-    p.style.display = "block"; p.style.transition = "none";
-    p.style.transform = `translate3d(${dir * W}px,0,0)`;
-    p.querySelectorAll("[data-sk]").forEach(el => { el.style.display = el.dataset.sk === targetView ? "block" : "none"; });
-  };
+  const hidePeek = () => {};
+  const showPeek = () => {};
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = window.innerWidth || 360;
     const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
