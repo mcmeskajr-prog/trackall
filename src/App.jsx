@@ -3540,6 +3540,17 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   }, [items]);
   const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
   const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
+  const hallOfFame = useMemo(() => {
+    const completed = items.filter(i => i.userStatus === "completo");
+    const sorted = [...completed].sort((a, b) => {
+      const aScore = a.userRating || 0;
+      const bScore = b.userRating || 0;
+      if (bScore !== aScore) return bScore - aScore;
+      return (b.addedAt || 0) - (a.addedAt || 0);
+    });
+    const elite = sorted.filter(i => (i.userRating || 0) >= 9);
+    return (elite.length >= 5 ? elite : sorted).slice(0, 5);
+  }, [items]);
 
   const handleAvatarFile = (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -3760,6 +3771,59 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         : { padding: "16px 16px 0" }
       }><div style={{ flex: 1, minWidth: 0 }}>
 
+
+      {/* ── Hall of Fame ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
+          <h3 style={{ fontSize: 12, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0f172a", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#fbbf24" }}>★</span>
+            <span>{lang === "en" ? "Hall of Fame" : "Hall of Fame"}</span>
+          </h3>
+          <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700 }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
+        </div>
+
+        {hallOfFame.length === 0 ? (
+          <div style={{ margin: "0 16px", background: computedPanelBg, border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
+            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Complete and rate a few titles to build your Hall of Fame." : "Completa e avalia algumas obras para começares o teu Hall of Fame."}</p>
+          </div>
+        ) : (
+          <div style={{ margin: "0 16px", borderRadius: 18, padding: isMobileDevice ? 12 : 14, border: `1px solid ${accent}22`, background: darkMode ? "rgba(22,27,34,0.92)" : "rgba(255,255,255,0.88)", boxShadow: darkMode ? "0 10px 30px rgba(0,0,0,0.24)" : "0 10px 24px rgba(15,23,42,0.08)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(5, 1fr)" : "repeat(5, minmax(0, 1fr))", gap: isMobileDevice ? 6 : 10 }}>
+              {hallOfFame.map((item, idx) => {
+                const coverSrc = item.customCover || item.cover;
+                const score = item.userRating || 0;
+                const tone = accentVariant(accent, idx);
+                return (
+                  <div
+                    key={item.id}
+                    className="fav-card-wrap"
+                    onClick={() => onOpen && onOpen(item)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 22px rgba(0,0,0,0.35)" : "0 10px 22px rgba(15,23,42,0.10)" }}>
+                      {coverSrc
+                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.78) 100%)" }} />
+                      <div style={{ position: "absolute", top: 6, right: 6, minWidth: 24, height: 24, borderRadius: 999, padding: "0 7px", background: "rgba(10,10,10,0.74)", border: "1px solid rgba(251,191,36,0.35)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>
+                        {score || "—"}
+                      </div>
+                      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: isMobileDevice ? "30px 8px 8px" : "36px 10px 10px" }}>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 700, marginBottom: 3 }}>
+                          {getMediaTypeLabel(item.type)}
+                        </div>
+                        <div style={{ fontSize: isMobileDevice ? 11 : 13, lineHeight: 1.05, color: "white", fontWeight: 900, textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
+                          {item.title}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Favoritos — Categorias com variações do accent ── */}
       {(() => {
@@ -7229,6 +7293,57 @@ export default function TrackAll() {
     planejado:  accentShade(accent, 45),
   }), [accent]);
 
+  const getMediaTypeLabel = (type) => {
+    const mediaType = MEDIA_TYPES.find(t => t.id === type);
+    return mediaType ? mediaLabel(mediaType, lang) : (type || "media");
+  };
+
+  const homeDashboard = useMemo(() => {
+    const plannedStatuses = new Set(["planejado", "planeado"]);
+    const pausedStatuses = new Set(["pausado", "pausa"]);
+    const watchTypes = new Set(["anime", "filmes", "series"]);
+    const readTypes = new Set(["manga", "livros", "comics"]);
+    const actionable = items.filter(i => i && i.userStatus !== "completo" && i.userStatus !== "largado" && i.userStatus !== "dropado");
+    const withPriority = (list, extra = () => 0) => [...list].sort((a, b) => {
+      const aScore = ((a.userRating || 0) * 20) + (a.score || 0) + extra(a);
+      const bScore = ((b.userRating || 0) * 20) + (b.score || 0) + extra(b);
+      if (bScore !== aScore) return bScore - aScore;
+      return (b.addedAt || 0) - (a.addedAt || 0);
+    });
+
+    const inProgress = withPriority(actionable.filter(i => i.userStatus === "assistindo"), () => 30);
+    const paused = withPriority(actionable.filter(i => pausedStatuses.has(i.userStatus)), () => 12);
+    const planned = withPriority(actionable.filter(i => plannedStatuses.has(i.userStatus)), () => 4);
+    const currentFocus = inProgress[0] || paused[0] || planned[0] || null;
+    const nowWatching = withPriority(inProgress.filter(i => watchTypes.has(i.type)))[0] || null;
+    const nowReading = withPriority(inProgress.filter(i => readTypes.has(i.type)))[0] || null;
+    const forgottenPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
+    const worthReturning = [...paused].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
+    const bestForToday = withPriority(actionable, (item) => {
+      if (item.userStatus === "assistindo") return 28;
+      if (pausedStatuses.has(item.userStatus)) return 14;
+      if (watchTypes.has(item.type)) return 6;
+      return 0;
+    })[0] || null;
+
+    const quickPicks = [];
+    const pushPick = (slot, item) => {
+      if (!item || quickPicks.some(p => p.item?.id === item.id)) return;
+      quickPicks.push({ slot, item });
+    };
+    pushPick("continue", inProgress[0]);
+    pushPick("today", bestForToday);
+    pushPick("forgotten", forgottenPlanned);
+    pushPick("return", worthReturning);
+
+    return {
+      currentFocus,
+      nowWatching,
+      nowReading,
+      quickPicks: quickPicks.slice(0, 3),
+    };
+  }, [items]);
+
   // Loading screen
   if (authLoading) {
     return (
@@ -7891,6 +8006,183 @@ export default function TrackAll() {
                       </div>
                     );
                   })}
+                </div>
+              );
+            })()}
+
+            {items.length > 0 && homeDashboard.currentFocus && (() => {
+              const focus = homeDashboard.currentFocus;
+              const typeObj = MEDIA_TYPES.find(t => t.id === focus.type);
+              const typeLabel = getMediaTypeLabel(focus.type);
+              const statusLabel = focus.userStatus === "assistindo"
+                ? (lang === "en" ? "In Progress" : "Em curso")
+                : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
+                  ? (lang === "en" ? "Paused" : "Pausado")
+                  : (lang === "en" ? "Planned" : "Planeado");
+              const focusReason = focus.userStatus === "assistindo"
+                ? (lang === "en" ? "You already started it, so this is your strongest immediate pick." : "Já começaste, por isso esta é a tua escolha mais forte para agora.")
+                : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
+                  ? (lang === "en" ? "This one deserves a clean return before the backlog grows again." : "Esta merece um regresso limpo antes da fila voltar a crescer.")
+                  : (lang === "en" ? "This has been waiting long enough to move from queue to action." : "Isto já esperou o suficiente para passar da fila para ação.");
+              const quickCopy = {
+                continue: {
+                  title: lang === "en" ? "Continue now" : "Continuar agora",
+                  desc: lang === "en" ? "Keep the momentum." : "Mantém o embalo.",
+                },
+                today: {
+                  title: lang === "en" ? "Best for today" : "Melhor para hoje",
+                  desc: lang === "en" ? "Strongest current pick." : "Aposta mais forte do momento.",
+                },
+                forgotten: {
+                  title: lang === "en" ? "Forgotten in queue" : "Esquecido na fila",
+                  desc: lang === "en" ? "Has been waiting for a while." : "Já está contigo há algum tempo.",
+                },
+                return: {
+                  title: lang === "en" ? "Worth returning" : "Vale regressar",
+                  desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo.",
+                },
+              };
+              const sideCards = [
+                { key: "watching", label: lang === "en" ? "Now Watching" : "A Ver Agora", item: homeDashboard.nowWatching },
+                { key: "reading", label: lang === "en" ? "Now Reading" : "A Ler Agora", item: homeDashboard.nowReading },
+              ].filter(card => card.item);
+
+              return (
+                <div style={{ padding: "14px 16px 0" }}>
+                  <div
+                    onClick={() => setSelectedItem(focus)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: 18,
+                      overflow: "hidden",
+                      border: `1px solid ${accent}2e`,
+                      background: activeDarkMode
+                        ? `linear-gradient(135deg, ${accent}1f 0%, rgba(22,27,34,0.96) 58%, rgba(13,17,23,0.98) 100%)`
+                        : `linear-gradient(135deg, ${accent}12 0%, rgba(255,255,255,0.98) 65%, rgba(248,250,252,0.98) 100%)`,
+                      boxShadow: activeDarkMode ? `0 18px 38px ${accent}18` : `0 18px 38px rgba(15,23,42,0.10)`,
+                    }}
+                  >
+                    <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
+                      <div style={{ borderRadius: 14, overflow: "hidden", minHeight: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
+                        {focus.cover
+                          ? <img src={focus.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
+                      </div>
+                      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>
+                                {lang === "en" ? "Current Focus" : "Foco Atual"}
+                              </div>
+                              <h3 style={{ fontSize: isMobileDevice ? 21 : 25, lineHeight: 1.05, fontWeight: 900, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>
+                                {focus.title}
+                              </h3>
+                            </div>
+                            {(focus.userRating > 0 || focus.score) && (
+                              <div style={{ flexShrink: 0, background: activeDarkMode ? "rgba(0,0,0,0.34)" : "rgba(255,255,255,0.78)", border: `1px solid ${accent}26`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>
+                                ★ {focus.userRating > 0 ? focus.userRating : focus.score}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>
+                              {typeLabel}
+                            </span>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: 13, lineHeight: 1.5, color: activeDarkMode ? "#cbd5e1" : "#475569", margin: 0 }}>
+                            {focusReason}
+                          </p>
+                        </div>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: accent, fontSize: 12, fontWeight: 800 }}>
+                          <span>{lang === "en" ? "Open title" : "Abrir obra"}</span>
+                          <span style={{ fontSize: 14 }}>→</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {sideCards.length > 0 && (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : `repeat(${sideCards.length}, minmax(0, 1fr))`, gap: 10, marginTop: 10 }}>
+                      {sideCards.map(({ key, label, item }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSelectedItem(item)}
+                          style={{
+                            textAlign: "left",
+                            border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
+                            background: activeDarkMode ? "rgba(22,27,34,0.92)" : "rgba(255,255,255,0.9)",
+                            borderRadius: 14,
+                            padding: 12,
+                            cursor: "pointer",
+                            display: "grid",
+                            gridTemplateColumns: "52px 1fr",
+                            gap: 10,
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <div style={{ width: 52, height: 70, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
+                            {item.cover
+                              ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</div>
+                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b" }}>{getMediaTypeLabel(item.type)}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {homeDashboard.quickPicks.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 8 }}>
+                        {lang === "en" ? "Quick picks" : "Escolhas rápidas"}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                        {homeDashboard.quickPicks.map(({ slot, item }) => (
+                          <button
+                            key={`${slot}-${item.id}`}
+                            onClick={() => setSelectedItem(item)}
+                            style={{
+                              textAlign: "left",
+                              border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
+                              background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.88)",
+                              borderRadius: 14,
+                              padding: "12px 12px 11px",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>
+                              {quickCopy[slot]?.title || (lang === "en" ? "Pick" : "Escolha")}
+                            </div>
+                            <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 5 }}>
+                              {item.title}
+                            </div>
+                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b", marginBottom: 6 }}>
+                              {quickCopy[slot]?.desc}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, color: activeDarkMode ? "#cbd5e1" : "#475569", fontWeight: 700 }}>
+                                {getMediaTypeLabel(item.type)}
+                              </span>
+                              {(item.userRating > 0 || item.score) && (
+                                <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>
+                                  ★ {item.userRating > 0 ? item.userRating : item.score}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
