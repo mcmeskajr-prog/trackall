@@ -1329,7 +1329,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, tmdbKey, workerUrl }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
@@ -1604,6 +1604,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
   const isFavorite = favorites.some(f => f.id === currentItem.id);
   const canAddFavorite = !isFavorite && favorites.length < 30;
+  const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
+  const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 5;
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
     : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };
@@ -1975,6 +1977,15 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                         {inLib && onToggleFavorite && (
                           <button onClick={() => onToggleFavorite(currentItem)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
                             {isFavorite ? "★ Favorito" : "☆ Favorito"}
+                          </button>
+                        )}
+                        {inLib && onToggleHallOfFame && (
+                          <button
+                            onClick={() => onToggleHallOfFame(currentItem)}
+                            style={{ background: isHallOfFame ? "#fbbf2422" : "none", border: `1px solid ${isHallOfFame ? "#fbbf24" : "#30363d"}`, color: isHallOfFame ? "#fbbf24" : "#8b949e", cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1 }}
+                            title={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
+                          >
+                            {isHallOfFame ? "★ Hall" : "☆ Hall"}
                           </button>
                         )}
                         <button onClick={() => onRemove(currentItem.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
@@ -3490,7 +3501,7 @@ function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpe
   );
 }
 
-function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection }) {
+function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -3544,18 +3555,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
   }, [items]);
   const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
   const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
-  const hallOfFame = useMemo(() => {
-    const completed = items.filter(i => i.userStatus === "completo");
-    const sorted = [...completed].sort((a, b) => {
-      const aScore = a.userRating || 0;
-      const bScore = b.userRating || 0;
-      if (bScore !== aScore) return bScore - aScore;
-      return (b.addedAt || 0) - (a.addedAt || 0);
-    });
-    const elite = sorted.filter(i => (i.userRating || 0) >= 9);
-    return (elite.length >= 5 ? elite : sorted).slice(0, 5);
-  }, [items]);
-
   const handleAvatarFile = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const url = URL.createObjectURL(file);
@@ -3787,15 +3786,15 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
         </div>
 
         {hallOfFame.length === 0 ? (
-          <div style={{ margin: "0 16px", background: computedPanelBg, border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
-            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Complete and rate a few titles to build your Hall of Fame." : "Completa e avalia algumas obras para começares o teu Hall of Fame."}</p>
+          <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
+            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 5 titles from the item modal." : "Escolhe até 5 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", borderRadius: 18, padding: isMobileDevice ? 12 : 14, border: `1px solid ${accent}22`, background: darkMode ? "rgba(22,27,34,0.92)" : "rgba(255,255,255,0.88)", boxShadow: darkMode ? "0 10px 30px rgba(0,0,0,0.24)" : "0 10px 24px rgba(15,23,42,0.08)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(5, 1fr)" : "repeat(5, minmax(0, 1fr))", gap: isMobileDevice ? 6 : 10 }}>
+          <div style={{ margin: "0 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(5, 1fr)" : "repeat(5, minmax(0, 92px))", gap: isMobileDevice ? 6 : 8, justifyContent: isMobileDevice ? "stretch" : "start" }}>
               {hallOfFame.map((item, idx) => {
                 const coverSrc = item.customCover || item.cover;
-                const score = item.userRating || 0;
+                const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                 const tone = accentVariant(accent, idx);
                 return (
                   <div
@@ -3804,19 +3803,25 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     onClick={() => onOpen && onOpen(item)}
                     style={{ cursor: "pointer" }}
                   >
-                    <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 22px rgba(0,0,0,0.35)" : "0 10px 22px rgba(15,23,42,0.10)" }}>
+                    <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
                       {coverSrc
                         ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.78) 100%)" }} />
-                      <div style={{ position: "absolute", top: 6, right: 6, minWidth: 24, height: 24, borderRadius: 999, padding: "0 7px", background: "rgba(10,10,10,0.74)", border: "1px solid rgba(251,191,36,0.35)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900 }}>
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.80) 100%)" }} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
+                        style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, padding: 0 }}
+                      >
+                        ×
+                      </button>
+                      <div style={{ position: "absolute", top: 6, right: 6, minWidth: 22, height: 22, borderRadius: 999, padding: "0 6px", background: "rgba(10,10,10,0.72)", border: "1px solid rgba(251,191,36,0.30)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
                         {score || "—"}
                       </div>
-                      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: isMobileDevice ? "30px 8px 8px" : "36px 10px 10px" }}>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 700, marginBottom: 3 }}>
+                      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: isMobileDevice ? "24px 7px 7px" : "28px 8px 8px" }}>
+                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.72)", fontWeight: 700, marginBottom: 2 }}>
                           {getMediaTypeLabel(item.type, lang)}
                         </div>
-                        <div style={{ fontSize: isMobileDevice ? 11 : 13, lineHeight: 1.05, color: "white", fontWeight: 900, textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
+                        <div style={{ fontSize: isMobileDevice ? 10 : 11, lineHeight: 1.05, color: "white", fontWeight: 900, textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
                           {item.title}
                         </div>
                       </div>
@@ -3825,6 +3830,9 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                 );
               })}
             </div>
+            <p style={{ fontSize: 11, color: darkMode ? "#6b7280" : "#94a3b8", marginTop: 8 }}>
+              {lang === "en" ? "Choose and remove titles from each item modal." : "Escolhe e remove obras a partir do modal de cada item."}
+            </p>
           </div>
         )}
       </div>
@@ -5213,6 +5221,9 @@ const DEMO_PROFILE = { name: "Demo User", bio: "A explorar o TrackAll ✨", avat
   { id: "al-1", title: "Attack on Titan", type: "anime", cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg" },
   { id: "tmdb-2", title: "Breaking Bad", type: "series", cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg" },
   { id: "game-1", title: "Elden Ring", type: "jogos", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg" },
+], hallOfFame: [
+  { id: "al-1", title: "Attack on Titan", type: "anime", cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg" },
+  { id: "tmdb-2", title: "Breaking Bad", type: "series", cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg" },
 ]};
 const DEMO_FEED = [
   { user: "mrdk", avatar: "", action: "completou", item: "Chainsaw Man", type: "manga", rating: 9, time: "há 2h" },
@@ -6240,7 +6251,7 @@ export default function TrackAll() {
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-  const [profile, setProfile] = useState({ name: "", bio: "", avatar: "" });
+  const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
@@ -6449,7 +6460,7 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: prof.hall_of_fame || [] });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -6675,7 +6686,7 @@ export default function TrackAll() {
     await supa.signOut();
     setUser(null);
     setLibrary({});
-    setProfile({ name: "", bio: "", avatar: "" });
+    setProfile({ name: "", bio: "", avatar: "", hallOfFame: [] });
     setView("home");
   };
 
@@ -6722,6 +6733,29 @@ export default function TrackAll() {
         showNotif(lang === "en" ? "Error saving profile. Check your connection." : "Erro ao guardar perfil. Verifica a ligação.", "#ef4444");
       }
     }
+  };
+
+  const toggleHallOfFame = async (item) => {
+    const normalizedItem = normalizeMediaItem(item);
+    const currentHall = Array.isArray(profile.hallOfFame) ? profile.hallOfFame : [];
+    const hallIds = new Set(mediaIdCandidates(normalizedItem.id, normalizedItem.type));
+    const exists = currentHall.some(entry => hallIds.has(entry.id));
+    let nextHall;
+    if (exists) {
+      nextHall = currentHall.filter(entry => !hallIds.has(entry.id));
+      showNotif(lang === "en" ? "Removed from Hall of Fame" : "Removido do Hall of Fame", "#8b949e");
+    } else {
+      if (currentHall.length >= 5) {
+        showNotif(lang === "en" ? "Hall of Fame max: 5 titles" : "Hall of Fame máximo: 5 obras", "#ef4444");
+        return;
+      }
+      const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
+      nextHall = [...currentHall, { id: normalizedItem.id, title: normalizedItem.title, cover: normalizedItem.cover, customCover: libItem?.customCover || normalizedItem.customCover || "", type: normalizedItem.type }];
+      showNotif(lang === "en" ? "Added to Hall of Fame" : "Adicionado ao Hall of Fame", "#fbbf24");
+      if (navigator.vibrate) navigator.vibrate(40);
+    }
+    setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
+    if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: nextHall }); } catch {}
   };
 
   const saveAccent = async (c) => {
@@ -7146,6 +7180,13 @@ export default function TrackAll() {
       setFavorites(newFavs);
       if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
     }
+    const currentHall = Array.isArray(profile.hallOfFame) ? profile.hallOfFame : [];
+    const inHall = currentHall.some(f => f.id === id || f.id === matched.key || f.id === canonicalId);
+    if (inHall) {
+      const newHall = currentHall.map(f => (f.id === id || f.id === matched.key || f.id === canonicalId) ? { ...f, id: canonicalId, customCover: url } : f);
+      setProfile(prev => ({ ...prev, hallOfFame: newHall }));
+      if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: newHall }); } catch {}
+    }
     showNotif(useT("coverUpdated"), accent);
   };
 
@@ -7318,12 +7359,13 @@ export default function TrackAll() {
     const nowReading = withPriority(inProgress.filter(i => readTypes.has(i.type)))[0] || null;
     const forgottenPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
     const worthReturning = [...paused].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
-    const bestForToday = withPriority(actionable, (item) => {
+    const bestForTodayCandidates = withPriority(actionable, (item) => {
       if (item.userStatus === "assistindo") return 28;
       if (pausedStatuses.has(item.userStatus)) return 14;
       if (watchTypes.has(item.type)) return 6;
       return 0;
-    })[0] || null;
+    });
+    const bestForToday = bestForTodayCandidates.find(item => item.id !== currentFocus?.id) || null;
 
     const quickPicks = [];
     const pushPick = (slot, item) => {
@@ -7786,6 +7828,8 @@ export default function TrackAll() {
             accent={accent}
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
+            hallOfFame={activeProfile.hallOfFame || []}
+            onToggleHallOfFame={toggleHallOfFame}
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
             onOpenItem={(newItem) => setSelectedItem(newItem)}
@@ -8054,11 +8098,12 @@ export default function TrackAll() {
                       cursor: "pointer",
                       borderRadius: 18,
                       overflow: "hidden",
-                      border: `1px solid ${accent}2e`,
+                      border: `1px solid ${accent}26`,
                       background: activeDarkMode
-                        ? `linear-gradient(135deg, ${accent}1f 0%, rgba(22,27,34,0.96) 58%, rgba(13,17,23,0.98) 100%)`
-                        : `linear-gradient(135deg, ${accent}12 0%, rgba(255,255,255,0.98) 65%, rgba(248,250,252,0.98) 100%)`,
-                      boxShadow: activeDarkMode ? `0 18px 38px ${accent}18` : `0 18px 38px rgba(15,23,42,0.10)`,
+                        ? `linear-gradient(135deg, ${accent}12 0%, rgba(15,23,42,0.42) 58%, rgba(15,23,42,0.30) 100%)`
+                        : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.60) 65%, rgba(248,250,252,0.42) 100%)`,
+                      backdropFilter: "blur(8px)",
+                      boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`,
                     }}
                   >
                     <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
@@ -8079,7 +8124,7 @@ export default function TrackAll() {
                               </h3>
                             </div>
                             {(focus.userRating > 0 || focus.score) && (
-                              <div style={{ flexShrink: 0, background: activeDarkMode ? "rgba(0,0,0,0.34)" : "rgba(255,255,255,0.78)", border: `1px solid ${accent}26`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>
+                              <div style={{ flexShrink: 0, background: activeDarkMode ? "rgba(10,10,10,0.28)" : "rgba(255,255,255,0.46)", border: `1px solid ${accent}22`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>
                                 ★ {focus.userRating > 0 ? focus.userRating : focus.score}
                               </div>
                             )}
@@ -8088,7 +8133,7 @@ export default function TrackAll() {
                             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>
                               {typeLabel}
                             </span>
-                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.04)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
                               {statusLabel}
                             </span>
                           </div>
@@ -8110,18 +8155,19 @@ export default function TrackAll() {
                         <button
                           key={key}
                           onClick={() => setSelectedItem(item)}
-                          style={{
-                            textAlign: "left",
-                            border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                            background: activeDarkMode ? "rgba(22,27,34,0.92)" : "rgba(255,255,255,0.9)",
-                            borderRadius: 14,
-                            padding: 12,
-                            cursor: "pointer",
-                            display: "grid",
-                            gridTemplateColumns: "52px 1fr",
-                            gap: 10,
-                            fontFamily: "inherit",
-                          }}
+                            style={{
+                              textAlign: "left",
+                              border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
+                              background: activeDarkMode ? "rgba(15,23,42,0.28)" : "rgba(255,255,255,0.34)",
+                              borderRadius: 14,
+                              padding: 12,
+                              cursor: "pointer",
+                              display: "grid",
+                              gridTemplateColumns: "52px 1fr",
+                              gap: 10,
+                              fontFamily: "inherit",
+                              backdropFilter: "blur(6px)",
+                            }}
                         >
                           <div style={{ width: 52, height: 70, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
                             {item.cover
@@ -8151,11 +8197,12 @@ export default function TrackAll() {
                             style={{
                               textAlign: "left",
                               border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.88)",
+                              background: activeDarkMode ? "rgba(15,23,42,0.26)" : "rgba(255,255,255,0.30)",
                               borderRadius: 14,
                               padding: "12px 12px 11px",
                               cursor: "pointer",
                               fontFamily: "inherit",
+                              backdropFilter: "blur(6px)",
                             }}
                           >
                             <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>
@@ -8609,6 +8656,8 @@ export default function TrackAll() {
             userEmail={user?.email || ""}
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
+            hallOfFame={activeProfile.hallOfFame || []}
+            onToggleHallOfFame={toggleHallOfFame}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
