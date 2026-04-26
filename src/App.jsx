@@ -3791,7 +3791,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           </div>
         ) : (
           <div style={{ margin: "0 16px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(5, 1fr)" : "repeat(5, minmax(0, 92px))", gap: isMobileDevice ? 6 : 8, justifyContent: isMobileDevice ? "stretch" : "start" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: isMobileDevice ? 8 : 10 }}>
               {hallOfFame.map((item, idx) => {
                 const coverSrc = item.customCover || item.cover;
                 const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
@@ -3801,7 +3801,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     key={item.id}
                     className="fav-card-wrap"
                     onClick={() => onOpen && onOpen(item)}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", width: isMobileDevice ? 94 : 116, flexShrink: 0 }}
                   >
                     <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
                       {coverSrc
@@ -8100,8 +8100,8 @@ export default function TrackAll() {
                       overflow: "hidden",
                       border: `1px solid ${accent}26`,
                       background: activeDarkMode
-                        ? `linear-gradient(135deg, ${accent}12 0%, rgba(15,23,42,0.42) 58%, rgba(15,23,42,0.30) 100%)`
-                        : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.60) 65%, rgba(248,250,252,0.42) 100%)`,
+                        ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)`
+                        : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`,
                       backdropFilter: "blur(8px)",
                       boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`,
                     }}
@@ -8133,7 +8133,7 @@ export default function TrackAll() {
                             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>
                               {typeLabel}
                             </span>
-                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.04)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
                               {statusLabel}
                             </span>
                           </div>
@@ -8158,7 +8158,7 @@ export default function TrackAll() {
                             style={{
                               textAlign: "left",
                               border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "rgba(15,23,42,0.28)" : "rgba(255,255,255,0.34)",
+                              background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.30)",
                               borderRadius: 14,
                               padding: 12,
                               cursor: "pointer",
@@ -8197,14 +8197,23 @@ export default function TrackAll() {
                             style={{
                               textAlign: "left",
                               border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "rgba(15,23,42,0.26)" : "rgba(255,255,255,0.30)",
+                              background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)",
                               borderRadius: 14,
-                              padding: "12px 12px 11px",
+                              padding: "12px",
                               cursor: "pointer",
                               fontFamily: "inherit",
                               backdropFilter: "blur(6px)",
+                              display: "grid",
+                              gridTemplateColumns: "54px 1fr",
+                              gap: 10,
                             }}
                           >
+                            <div style={{ width: 54, height: 74, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
+                              {item.cover
+                                ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>
                               {quickCopy[slot]?.title || (lang === "en" ? "Pick" : "Escolha")}
                             </div>
@@ -8223,6 +8232,7 @@ export default function TrackAll() {
                                   ★ {item.userRating > 0 ? item.userRating : item.score}
                                 </span>
                               )}
+                            </div>
                             </div>
                           </button>
                         ))}
