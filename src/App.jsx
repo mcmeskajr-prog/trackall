@@ -1605,7 +1605,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const isFavorite = favorites.some(f => f.id === currentItem.id);
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
-  const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 5;
+  const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 9;
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
     : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };
@@ -6745,7 +6745,7 @@ export default function TrackAll() {
       nextHall = currentHall.filter(entry => !hallIds.has(entry.id));
       showNotif(lang === "en" ? "Removed from Hall of Fame" : "Removido do Hall of Fame", "#8b949e");
     } else {
-      if (currentHall.length >= 5) {
+      if (currentHall.length >= 9) {
         showNotif(lang === "en" ? "Hall of Fame max: 5 titles" : "Hall of Fame máximo: 5 obras", "#ef4444");
         return;
       }
