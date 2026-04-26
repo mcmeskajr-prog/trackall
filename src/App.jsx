@@ -3801,13 +3801,12 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     key={item.id}
                     className="fav-card-wrap"
                     onClick={() => onOpen && onOpen(item)}
-                    style={{ cursor: "pointer", width: isMobileDevice ? 94 : 116, flexShrink: 0 }}
+                    style={{ cursor: "pointer", width: isMobileDevice ? 108 : 128, flexShrink: 0 }}
                   >
                     <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
                       {coverSrc
                         ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.80) 100%)" }} />
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
                         style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, padding: 0 }}
@@ -3817,22 +3816,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                       <div style={{ position: "absolute", top: 6, right: 6, minWidth: 22, height: 22, borderRadius: 999, padding: "0 6px", background: "rgba(10,10,10,0.72)", border: "1px solid rgba(251,191,36,0.30)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
                         {score || "—"}
                       </div>
-                      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: isMobileDevice ? "24px 7px 7px" : "28px 8px 8px" }}>
-                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.72)", fontWeight: 700, marginBottom: 2 }}>
-                          {getMediaTypeLabel(item.type, lang)}
-                        </div>
-                        <div style={{ fontSize: isMobileDevice ? 10 : 11, lineHeight: 1.05, color: "white", fontWeight: 900, textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
-                          {item.title}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <p style={{ fontSize: 11, color: darkMode ? "#6b7280" : "#94a3b8", marginTop: 8 }}>
-              {lang === "en" ? "Choose and remove titles from each item modal." : "Escolhe e remove obras a partir do modal de cada item."}
-            </p>
           </div>
         )}
       </div>
