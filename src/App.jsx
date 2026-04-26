@@ -310,6 +310,10 @@ const MEDIA_TYPES = [
   { id: "comics",      label: "Comics",       labelEn: "Comics",       icon: "💬" },
 ];
 const mediaLabel = (m, lang) => lang === "en" ? m.labelEn : m.label;
+const getMediaTypeLabel = (type, lang = "en") => {
+  const mediaType = MEDIA_TYPES.find(t => t.id === type);
+  return mediaType ? mediaLabel(mediaType, lang) : (type || "media");
+};
 const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const MONTH_EN = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
@@ -3810,7 +3814,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                       </div>
                       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: isMobileDevice ? "30px 8px 8px" : "36px 10px 10px" }}>
                         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 700, marginBottom: 3 }}>
-                          {getMediaTypeLabel(item.type)}
+                          {getMediaTypeLabel(item.type, lang)}
                         </div>
                         <div style={{ fontSize: isMobileDevice ? 11 : 13, lineHeight: 1.05, color: "white", fontWeight: 900, textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
                           {item.title}
@@ -7293,11 +7297,6 @@ export default function TrackAll() {
     planejado:  accentShade(accent, 45),
   }), [accent]);
 
-  const getMediaTypeLabel = (type) => {
-    const mediaType = MEDIA_TYPES.find(t => t.id === type);
-    return mediaType ? mediaLabel(mediaType, lang) : (type || "media");
-  };
-
   const homeDashboard = useMemo(() => {
     const plannedStatuses = new Set(["planejado", "planeado"]);
     const pausedStatuses = new Set(["pausado", "pausa"]);
@@ -8013,7 +8012,7 @@ export default function TrackAll() {
             {items.length > 0 && homeDashboard.currentFocus && (() => {
               const focus = homeDashboard.currentFocus;
               const typeObj = MEDIA_TYPES.find(t => t.id === focus.type);
-              const typeLabel = getMediaTypeLabel(focus.type);
+              const typeLabel = getMediaTypeLabel(focus.type, lang);
               const statusLabel = focus.userStatus === "assistindo"
                 ? (lang === "en" ? "In Progress" : "Em curso")
                 : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
@@ -8132,7 +8131,7 @@ export default function TrackAll() {
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{label}</div>
                             <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</div>
-                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b" }}>{getMediaTypeLabel(item.type)}</div>
+                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b" }}>{getMediaTypeLabel(item.type, lang)}</div>
                           </div>
                         </button>
                       ))}
@@ -8170,7 +8169,7 @@ export default function TrackAll() {
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 11, color: activeDarkMode ? "#cbd5e1" : "#475569", fontWeight: 700 }}>
-                                {getMediaTypeLabel(item.type)}
+                                {getMediaTypeLabel(item.type, lang)}
                               </span>
                               {(item.userRating > 0 || item.score) && (
                                 <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>
