@@ -3809,7 +3809,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
-                        style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, padding: 0 }}
+                        style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "none", alignItems: "center", justifyContent: "center", fontSize: 10, padding: 0 }}
                       >
                         ×
                       </button>
@@ -6448,7 +6448,8 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: prof.hall_of_fame || [] });
+        const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []) });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -6743,6 +6744,7 @@ export default function TrackAll() {
       if (navigator.vibrate) navigator.vibrate(40);
     }
     setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
+    try { localStorage.setItem("trackall_hall_of_fame", JSON.stringify(nextHall)); } catch {}
     if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: nextHall }); } catch {}
   };
 
@@ -7173,6 +7175,7 @@ export default function TrackAll() {
     if (inHall) {
       const newHall = currentHall.map(f => (f.id === id || f.id === matched.key || f.id === canonicalId) ? { ...f, id: canonicalId, customCover: url } : f);
       setProfile(prev => ({ ...prev, hallOfFame: newHall }));
+      try { localStorage.setItem('trackall_hall_of_fame', JSON.stringify(newHall)); } catch {}
       if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: newHall }); } catch {}
     }
     showNotif(useT("coverUpdated"), accent);
@@ -7332,6 +7335,15 @@ export default function TrackAll() {
     const watchTypes = new Set(["anime", "filmes", "series"]);
     const readTypes = new Set(["manga", "livros", "comics"]);
     const actionable = items.filter(i => i && i.userStatus !== "completo" && i.userStatus !== "largado" && i.userStatus !== "dropado");
+
+    // Seed diário — muda a cada dia, determinístico
+    const today = new Date();
+    const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const seededIndex = (arr, offset = 0) => {
+      if (!arr.length) return null;
+      return arr[(daySeed + offset) % arr.length];
+    };
+
     const withPriority = (list, extra = () => 0) => [...list].sort((a, b) => {
       const aScore = ((a.userRating || 0) * 20) + (a.score || 0) + extra(a);
       const bScore = ((b.userRating || 0) * 20) + (b.score || 0) + extra(b);
@@ -7342,25 +7354,33 @@ export default function TrackAll() {
     const inProgress = withPriority(actionable.filter(i => i.userStatus === "assistindo"), () => 30);
     const paused = withPriority(actionable.filter(i => pausedStatuses.has(i.userStatus)), () => 12);
     const planned = withPriority(actionable.filter(i => plannedStatuses.has(i.userStatus)), () => 4);
+
+    // Current Focus — sempre o mais prioritário em curso
     const currentFocus = inProgress[0] || paused[0] || planned[0] || null;
     const nowWatching = withPriority(inProgress.filter(i => watchTypes.has(i.type)))[0] || null;
     const nowReading = withPriority(inProgress.filter(i => readTypes.has(i.type)))[0] || null;
-    const forgottenPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
-    const worthReturning = [...paused].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
-    const bestForTodayCandidates = withPriority(actionable, (item) => {
+
+    // Forgotten — rotaciona por dia entre os planned mais antigos
+    const oldestPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    const forgottenPlanned = seededIndex(oldestPlanned.slice(0, Math.min(oldestPlanned.length, 5)), 1) || oldestPlanned[0] || null;
+
+    // Worth Returning — rotaciona por dia entre os pausados
+    const worthReturning = seededIndex(paused, 2) || paused[0] || null;
+
+    // Best For Today — rotaciona por dia entre candidatos (excluindo currentFocus)
+    const bestCandidates = withPriority(actionable, (item) => {
       if (item.userStatus === "assistindo") return 28;
       if (pausedStatuses.has(item.userStatus)) return 14;
       if (watchTypes.has(item.type)) return 6;
       return 0;
-    });
-    const bestForToday = bestForTodayCandidates.find(item => item.id !== currentFocus?.id) || null;
+    }).filter(item => item.id !== currentFocus?.id);
+    const bestForToday = seededIndex(bestCandidates.slice(0, Math.min(bestCandidates.length, 6)), 0) || bestCandidates[0] || null;
 
     const quickPicks = [];
     const pushPick = (slot, item) => {
       if (!item || quickPicks.some(p => p.item?.id === item.id)) return;
       quickPicks.push({ slot, item });
     };
-    pushPick("continue", inProgress[0]);
     pushPick("today", bestForToday);
     pushPick("forgotten", forgottenPlanned);
     pushPick("return", worthReturning);
