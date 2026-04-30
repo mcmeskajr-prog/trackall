@@ -8319,7 +8319,6 @@ export default function TrackAll() {
             {(() => {
               const SIX_MONTHS = 1000 * 60 * 60 * 24 * 180;
               const now = Date.now();
-              // Géneros dominantes dos últimos 20 completos
               const recentCompleted = items
                 .filter(i => i?.userStatus === "completo")
                 .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
@@ -8327,35 +8326,26 @@ export default function TrackAll() {
               const genreCounts = {};
               recentCompleted.forEach(i => (i.genres || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
               const topGenres = new Set(Object.entries(genreCounts).sort((a,b) => b[1]-a[1]).slice(0,5).map(([g]) => g));
-              // Itens planejo há mais de 6 meses e nunca tocados
               const graveyard = items.filter(i => {
-                if (!i || i.userStatus !== "planejado" && i.userStatus !== "planeado") return false;
-                const old = (now - (i.addedAt || now)) > SIX_MONTHS;
-                return old;
+                if (!i) return false;
+                if (i.userStatus !== "planejado" && i.userStatus !== "planeado") return false;
+                return (now - (i.addedAt || now)) > SIX_MONTHS;
               }).map(i => {
                 const outOfPattern = topGenres.size > 0 && !(i.genres || []).some(g => topGenres.has(g));
                 const monthsOld = Math.floor((now - (i.addedAt || now)) / (1000 * 60 * 60 * 24 * 30));
                 const reason = outOfPattern ? (lang === "en" ? "out of your pattern" : "fora do teu padrão") : (lang === "en" ? `forgotten for ${monthsOld}m` : `esquecido há ${monthsOld}m`);
                 return { ...i, reason, monthsOld };
               }).sort((a, b) => b.monthsOld - a.monthsOld);
-
               if (graveyard.length === 0) return null;
-
-              const [graveyardOpen, setGraveyardOpen] = React.useState(false);
-              const visible = graveyardOpen ? graveyard : graveyard.slice(0, 3);
-
+              const [open, setOpen] = React.useState(false);
+              const visible = open ? graveyard : graveyard.slice(0, 3);
               const removeItem = async (item) => {
                 const cat = item.type + "s";
-                setLibrary(prev => {
-                  const next = { ...prev };
-                  if (next[cat]) { next[cat] = { ...next[cat] }; delete next[cat][item.id]; }
-                  return next;
-                });
+                setLibrary(prev => { const next = { ...prev }; if (next[cat]) { next[cat] = { ...next[cat] }; delete next[cat][item.id]; } return next; });
                 if (user) try { await supa.removeFromLibrary(user.id, item.id, item.type); } catch {}
               };
-
               return (
-                <div style={{ margin: "0 0 24px" }}>
+                <div style={{ marginBottom: 8 }}>
                   <div style={{ padding: "0 16px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#e74c3c", marginBottom: 2 }}>
@@ -8364,7 +8354,7 @@ export default function TrackAll() {
                       <div style={{ fontSize: 11, color: "#484f58" }}>{graveyard.length} {lang === "en" ? "titles · added 6+ months ago" : "títulos · adicionados há 6+ meses"}</div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
                     {visible.map(item => {
                       const cover = item.customCover || item.cover;
                       return (
@@ -8378,18 +8368,16 @@ export default function TrackAll() {
                             <div style={{ fontSize: 10, color: "#484f58", marginBottom: 5 }}>{lang === "en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
                             <span style={{ fontSize: 10, color: "#e2a84a", background: "rgba(226,168,74,0.12)", padding: "2px 7px", borderRadius: 4 }}>{item.reason}</span>
                           </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                            <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                              {lang === "en" ? "remove" : "remover"}
-                            </button>
-                          </div>
+                          <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                            {lang === "en" ? "remove" : "remover"}
+                          </button>
                         </div>
                       );
                     })}
                   </div>
                   {graveyard.length > 3 && (
-                    <button onClick={() => setGraveyardOpen(v => !v)} style={{ display: "block", width: "100%", padding: "10px 16px", background: "none", border: "none", borderTop: "0.5px solid #21262d", color: "#484f58", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-                      {graveyardOpen ? (lang === "en" ? "show less" : "mostrar menos") : `${lang === "en" ? "see all" : "ver todos"} (${graveyard.length})`}
+                    <button onClick={() => setOpen(v => !v)} style={{ display: "block", width: "100%", padding: "10px 16px", background: "none", border: "none", borderTop: "0.5px solid #21262d", color: "#484f58", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                      {open ? (lang === "en" ? "show less" : "mostrar menos") : `${lang === "en" ? "see all" : "ver todos"} (${graveyard.length})`}
                     </button>
                   )}
                 </div>
