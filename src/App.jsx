@@ -8093,10 +8093,7 @@ export default function TrackAll() {
                   desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo.",
                 },
               };
-              const sideCards = [
-                { key: "watching", label: lang === "en" ? "Now Watching" : "A Ver Agora", item: homeDashboard.nowWatching },
-                { key: "reading", label: lang === "en" ? "Now Reading" : "A Ler Agora", item: homeDashboard.nowReading },
-              ].filter(card => card.item);
+
 
               return (
                 <div style={{ padding: "14px 16px 0" }}>
@@ -8157,40 +8154,7 @@ export default function TrackAll() {
                     </div>
                   </div>
 
-                  {sideCards.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : `repeat(${sideCards.length}, minmax(0, 1fr))`, gap: 10, marginTop: 10 }}>
-                      {sideCards.map(({ key, label, item }) => (
-                        <button
-                          key={key}
-                          onClick={() => setSelectedItem(item)}
-                            style={{
-                              textAlign: "left",
-                              border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.30)",
-                              borderRadius: 14,
-                              padding: 12,
-                              cursor: "pointer",
-                              display: "grid",
-                              gridTemplateColumns: "52px 1fr",
-                              gap: 10,
-                              fontFamily: "inherit",
-                              backdropFilter: "blur(6px)",
-                            }}
-                        >
-                          <div style={{ width: 52, height: 70, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
-                            {item.cover
-                              ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{label}</div>
-                            <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</div>
-                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b" }}>{getMediaTypeLabel(item.type, lang)}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+
 
                   {homeDashboard.quickPicks.length > 0 && (
                     <div style={{ marginTop: 12 }}>
@@ -8319,17 +8283,7 @@ export default function TrackAll() {
                     }
                   />
 
-                  {inCurso.length > 0 && completados.length > 0 && (
-                    <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
-                  )}
-                  <RowSection
-                    title={useT("emCurso")}
-                    icon="▶"
-                    items={inCurso}
-                    collapsed={homeCollapsedCurso}
-                    onToggleCollapse={() => setHomeCollapsedCurso(v => !v)}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>}
-                  />
+
                 </>
               );
             })()}
