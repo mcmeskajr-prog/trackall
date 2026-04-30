@@ -6448,7 +6448,8 @@ export default function TrackAll() {
         supa.getLibrary(userId),
       ]);
       if (prof) {
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: prof.hall_of_fame || [] });
+        const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []) });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -6743,6 +6744,7 @@ export default function TrackAll() {
       if (navigator.vibrate) navigator.vibrate(40);
     }
     setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
+    try { localStorage.setItem("trackall_hall_of_fame", JSON.stringify(nextHall)); } catch {}
     if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: nextHall }); } catch {}
   };
 
@@ -7342,33 +7344,33 @@ export default function TrackAll() {
     const inProgress = withPriority(actionable.filter(i => i.userStatus === "assistindo"), () => 30);
     const paused = withPriority(actionable.filter(i => pausedStatuses.has(i.userStatus)), () => 12);
     const planned = withPriority(actionable.filter(i => plannedStatuses.has(i.userStatus)), () => 4);
+    const today = new Date();
+    const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const seededPick = (arr, offset = 0) => arr.length ? arr[(daySeed + offset) % arr.length] : null;
+
     const currentFocus = inProgress[0] || paused[0] || planned[0] || null;
-    const nowWatching = withPriority(inProgress.filter(i => watchTypes.has(i.type)))[0] || null;
-    const nowReading = withPriority(inProgress.filter(i => readTypes.has(i.type)))[0] || null;
-    const forgottenPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
-    const worthReturning = [...paused].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0))[0] || null;
-    const bestForTodayCandidates = withPriority(actionable, (item) => {
+    const oldestPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    const forgottenPlanned = seededPick(oldestPlanned.slice(0, Math.min(5, oldestPlanned.length)), 1) || oldestPlanned[0] || null;
+    const worthReturning = seededPick(paused, 2) || paused[0] || null;
+    const bestCandidates = withPriority(actionable, (item) => {
       if (item.userStatus === "assistindo") return 28;
       if (pausedStatuses.has(item.userStatus)) return 14;
       if (watchTypes.has(item.type)) return 6;
       return 0;
-    });
-    const bestForToday = bestForTodayCandidates.find(item => item.id !== currentFocus?.id) || null;
+    }).filter(item => item.id !== currentFocus?.id);
+    const bestForToday = seededPick(bestCandidates.slice(0, 6), 0) || bestCandidates[0] || null;
 
     const quickPicks = [];
     const pushPick = (slot, item) => {
       if (!item || quickPicks.some(p => p.item?.id === item.id)) return;
       quickPicks.push({ slot, item });
     };
-    pushPick("continue", inProgress[0]);
     pushPick("today", bestForToday);
     pushPick("forgotten", forgottenPlanned);
     pushPick("return", worthReturning);
 
     return {
       currentFocus,
-      nowWatching,
-      nowReading,
       quickPicks: quickPicks.slice(0, 3),
     };
   }, [items]);
@@ -8073,10 +8075,7 @@ export default function TrackAll() {
                   desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo.",
                 },
               };
-              const sideCards = [
-                { key: "watching", label: lang === "en" ? "Now Watching" : "A Ver Agora", item: homeDashboard.nowWatching },
-                { key: "reading", label: lang === "en" ? "Now Reading" : "A Ler Agora", item: homeDashboard.nowReading },
-              ].filter(card => card.item);
+
 
               return (
                 <div style={{ padding: "14px 16px 0" }}>
@@ -8137,40 +8136,7 @@ export default function TrackAll() {
                     </div>
                   </div>
 
-                  {sideCards.length > 0 && (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : `repeat(${sideCards.length}, minmax(0, 1fr))`, gap: 10, marginTop: 10 }}>
-                      {sideCards.map(({ key, label, item }) => (
-                        <button
-                          key={key}
-                          onClick={() => setSelectedItem(item)}
-                            style={{
-                              textAlign: "left",
-                              border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.30)",
-                              borderRadius: 14,
-                              padding: 12,
-                              cursor: "pointer",
-                              display: "grid",
-                              gridTemplateColumns: "52px 1fr",
-                              gap: 10,
-                              fontFamily: "inherit",
-                              backdropFilter: "blur(6px)",
-                            }}
-                        >
-                          <div style={{ width: 52, height: 70, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
-                            {item.cover
-                              ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{label}</div>
-                            <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</div>
-                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b" }}>{getMediaTypeLabel(item.type, lang)}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  
 
                   {homeDashboard.quickPicks.length > 0 && (
                     <div style={{ marginTop: 12 }}>
@@ -8299,17 +8265,7 @@ export default function TrackAll() {
                     }
                   />
 
-                  {inCurso.length > 0 && completados.length > 0 && (
-                    <div style={{ borderTop: "1px solid #21262d", margin: "4px 16px" }} />
-                  )}
-                  <RowSection
-                    title={useT("emCurso")}
-                    icon="▶"
-                    items={inCurso}
-                    collapsed={homeCollapsedCurso}
-                    onToggleCollapse={() => setHomeCollapsedCurso(v => !v)}
-                    filterBtn={<button onClick={() => { setView("library"); setFilterStatus("assistindo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>}
-                  />
+
                 </>
               );
             })()}
@@ -8319,29 +8275,26 @@ export default function TrackAll() {
             {(() => {
               const SIX_MONTHS = 1000 * 60 * 60 * 24 * 180;
               const now = Date.now();
-              const recentCompleted = items
-                .filter(i => i?.userStatus === "completo")
-                .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
-                .slice(0, 20);
+              const recentCompleted = items.filter(i => i?.userStatus === "completo").sort((a,b) => (b.addedAt||0)-(a.addedAt||0)).slice(0,20);
               const genreCounts = {};
-              recentCompleted.forEach(i => (i.genres || []).forEach(g => { genreCounts[g] = (genreCounts[g] || 0) + 1; }));
-              const topGenres = new Set(Object.entries(genreCounts).sort((a,b) => b[1]-a[1]).slice(0,5).map(([g]) => g));
+              recentCompleted.forEach(i => (i.genres||[]).forEach(g => { genreCounts[g] = (genreCounts[g]||0)+1; }));
+              const topGenres = new Set(Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g])=>g));
               const graveyard = items.filter(i => {
                 if (!i) return false;
                 if (i.userStatus !== "planejado" && i.userStatus !== "planeado") return false;
                 return (now - (i.addedAt || now)) > SIX_MONTHS;
               }).map(i => {
-                const outOfPattern = topGenres.size > 0 && !(i.genres || []).some(g => topGenres.has(g));
-                const monthsOld = Math.floor((now - (i.addedAt || now)) / (1000 * 60 * 60 * 24 * 30));
-                const reason = outOfPattern ? (lang === "en" ? "out of your pattern" : "fora do teu padrão") : (lang === "en" ? `forgotten for ${monthsOld}m` : `esquecido há ${monthsOld}m`);
+                const outOfPattern = topGenres.size > 0 && !(i.genres||[]).some(g => topGenres.has(g));
+                const monthsOld = Math.floor((now-(i.addedAt||now))/(1000*60*60*24*30));
+                const reason = outOfPattern ? (lang==="en" ? "out of your pattern" : "fora do teu padrão") : (lang==="en" ? `forgotten for ${monthsOld}m` : `esquecido há ${monthsOld}m`);
                 return { ...i, reason, monthsOld };
-              }).sort((a, b) => b.monthsOld - a.monthsOld);
+              }).sort((a,b) => b.monthsOld-a.monthsOld);
               if (graveyard.length === 0) return null;
               const [open, setOpen] = React.useState(false);
-              const visible = open ? graveyard : graveyard.slice(0, 3);
+              const visible = open ? graveyard : graveyard.slice(0,3);
               const removeItem = async (item) => {
-                const cat = item.type + "s";
-                setLibrary(prev => { const next = { ...prev }; if (next[cat]) { next[cat] = { ...next[cat] }; delete next[cat][item.id]; } return next; });
+                const cat = item.type+"s";
+                setLibrary(prev => { const next={...prev}; if(next[cat]){next[cat]={...next[cat]};delete next[cat][item.id];} return next; });
                 if (user) try { await supa.removeFromLibrary(user.id, item.id, item.type); } catch {}
               };
               return (
@@ -8349,9 +8302,9 @@ export default function TrackAll() {
                   <div style={{ padding: "0 16px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#e74c3c", marginBottom: 2 }}>
-                        {lang === "en" ? "Probably never consuming this" : "Provavelmente nunca vais consumir"}
+                        {lang==="en" ? "Probably never consuming this" : "Provavelmente nunca vais consumir"}
                       </h3>
-                      <div style={{ fontSize: 11, color: "#484f58" }}>{graveyard.length} {lang === "en" ? "titles · added 6+ months ago" : "títulos · adicionados há 6+ meses"}</div>
+                      <div style={{ fontSize: 11, color: "#484f58" }}>{graveyard.length} {lang==="en" ? "titles · added 6+ months ago" : "títulos · adicionados há 6+ meses"}</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column" }}>
@@ -8360,24 +8313,24 @@ export default function TrackAll() {
                       return (
                         <div key={item.id} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 10, padding: "10px 16px", alignItems: "center", borderTop: "0.5px solid #21262d" }}>
                           <div onClick={() => setSelectedItem(item)} style={{ width: 52, height: 74, borderRadius: 6, overflow: "hidden", background: "#161b22", cursor: "pointer", flexShrink: 0 }}>
-                            {cover ? <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 18 }}>?</div>}
+                            {cover ? <img src={cover} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} onError={e=>e.currentTarget.style.display="none"}/> : <div style={{ width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#484f58",fontSize:18 }}>?</div>}
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 10, color: "#484f58", marginBottom: 2 }}>{getMediaTypeLabel(item.type, lang)}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", marginBottom: 4, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                            <div style={{ fontSize: 10, color: "#484f58", marginBottom: 5 }}>{lang === "en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", marginBottom: 4, lineHeight: 1.2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.title}</div>
+                            <div style={{ fontSize: 10, color: "#484f58", marginBottom: 5 }}>{lang==="en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
                             <span style={{ fontSize: 10, color: "#e2a84a", background: "rgba(226,168,74,0.12)", padding: "2px 7px", borderRadius: 4 }}>{item.reason}</span>
                           </div>
                           <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                            {lang === "en" ? "remove" : "remover"}
+                            {lang==="en" ? "remove" : "remover"}
                           </button>
                         </div>
                       );
                     })}
                   </div>
                   {graveyard.length > 3 && (
-                    <button onClick={() => setOpen(v => !v)} style={{ display: "block", width: "100%", padding: "10px 16px", background: "none", border: "none", borderTop: "0.5px solid #21262d", color: "#484f58", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-                      {open ? (lang === "en" ? "show less" : "mostrar menos") : `${lang === "en" ? "see all" : "ver todos"} (${graveyard.length})`}
+                    <button onClick={() => setOpen(v=>!v)} style={{ display:"block",width:"100%",padding:"10px 16px",background:"none",border:"none",borderTop:"0.5px solid #21262d",color:"#484f58",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center" }}>
+                      {open ? (lang==="en" ? "show less" : "mostrar menos") : `${lang==="en" ? "see all" : "ver todos"} (${graveyard.length})`}
                     </button>
                   )}
                 </div>
