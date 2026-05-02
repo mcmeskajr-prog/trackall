@@ -329,7 +329,7 @@ function getConsumptionTime(item) {
   if (type === "filmes") {
     if (runtime > 0 && runtime <= 100) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
     if (runtime > 100) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
-    return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+    return null; // sem runtime guardado — não classifica
   }
   if (isWatch && eps > 0) {
     if (eps <= 3) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
