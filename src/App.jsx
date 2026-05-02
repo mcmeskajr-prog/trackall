@@ -317,6 +317,33 @@ const getMediaTypeLabel = (type, lang = "en") => {
 const MONTH_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const MONTH_EN = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
+// Classifica um item do Planejo por tempo necessário para consumir
+function getConsumptionTime(item) {
+  if (!item) return null;
+  const eps = item.episodes ? Number(item.episodes) : 0;
+  const chs = item.chapters ? Number(item.chapters) : 0;
+  const runtime = item.runtime ? parseInt(item.runtime) : 0;
+  const type = item.type || "";
+  const isWatch = ["anime","filmes","series"].includes(type);
+  const isRead = ["manga","manhwa","lightnovels","comics","livros"].includes(type);
+  if (type === "filmes") {
+    if (runtime > 0 && runtime <= 100) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+    if (runtime > 100) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
+    return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+  }
+  if (isWatch && eps > 0) {
+    if (eps <= 3) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+    if (eps <= 13) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
+    return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
+  }
+  if (isRead && chs > 0) {
+    if (chs <= 20) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+    if (chs <= 80) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
+    return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
+  }
+  return null;
+}
+
 // Gera variações subtis do accent — hue ±10° + brilho ligeiramente diferente
 function accentVariant(hex, index) {
   try {
@@ -8199,6 +8226,11 @@ export default function TrackAll() {
                                   ★ {item.userRating > 0 ? item.userRating : item.score}
                                 </span>
                               )}
+                              {(() => { const ct = getConsumptionTime(item); return ct ? (
+                                <span style={{ fontSize: 10, fontWeight: 800, color: ct.color, background: ct.color + "18", borderRadius: 5, padding: "1px 5px" }}>
+                                  {ct.emoji} {lang === "en" ? ct.labelEn : ct.label}
+                                </span>
+                              ) : null; })()}
                             </div>
                             </div>
                           </button>
@@ -8283,6 +8315,61 @@ export default function TrackAll() {
               );
             })()}
 
+
+            {/* ── Quando consumir? ── */}
+            {(() => {
+              const plannedStatuses = new Set(["planejado","planeado"]);
+              const planned = items.filter(i => i && plannedStatuses.has(i.userStatus));
+              if (planned.length === 0) return null;
+              const groups = { hoje: [], fimdesemana: [], ferias: [] };
+              planned.forEach(i => {
+                const ct = getConsumptionTime(i);
+                if (ct) groups[ct.slot].push({ item: i, ct });
+              });
+              const hasAny = groups.hoje.length > 0 || groups.fimdesemana.length > 0 || groups.ferias.length > 0;
+              if (!hasAny) return null;
+              const slotDef = [
+                { key: "hoje", emoji: "⚡", label: "Para hoje", labelEn: "For today", color: "#10b981" },
+                { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4" },
+                { key: "ferias", emoji: "🏖️", label: "Para as férias", labelEn: "For holidays", color: "#f59e0b" },
+              ];
+              return (
+                <div style={{ margin: "20px 0 4px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 10 }}>
+                    {lang === "en" ? "When to consume?" : "Quando consumir?"}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {slotDef.map(({ key, emoji, label, labelEn, color }) => {
+                      const grp = groups[key];
+                      if (grp.length === 0) return null;
+                      return (
+                        <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", backdropFilter: "blur(6px)" }}>
+                          <div style={{ fontSize: 11, fontWeight: 900, color, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                            {emoji} {lang === "en" ? labelEn : label} · {grp.length} {lang === "en" ? "title" + (grp.length > 1 ? "s" : "") : "título" + (grp.length !== 1 ? "s" : "")}
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {grp.slice(0, 3).map(({ item }) => (
+                              <button key={item.id} onClick={() => setSelectedItem(item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left" }}>
+                                <div style={{ width: 32, height: 44, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+                                  {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                                  <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>{getMediaTypeLabel(item.type, lang)}{item.episodes ? ` · ${item.episodes} ep` : item.chapters ? ` · ${item.chapters} cap` : ""}</div>
+                                </div>
+                              </button>
+                            ))}
+                            {grp.length > 3 && (
+                              <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b", paddingLeft: 42 }}>+{grp.length - 3} mais</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── Provavelmente nunca vais consumir ── */}
             {(() => {
