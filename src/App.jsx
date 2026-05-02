@@ -598,7 +598,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       // Race: direto vs worker — usa o mais rápido
       const aniBody = JSON.stringify({ query: `{
           Media(id:${alId}) {
-            episodes chapters volumes averageScore status duration format
+            episodes chapters volumes averageScore status duration format bannerImage
             description(asHtml:false)
             characters(perPage:20, sort:ROLE) {
               edges {
@@ -640,7 +640,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         status: e.node?.status || "",
         mediaType: (e.node?.type || "").toLowerCase(),
       })).filter(r => ["PREQUEL","SEQUEL","SOURCE","ALTERNATIVE","SIDE_STORY","PARENT"].includes(r.type));
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null, cast, relations };
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null, bannerImage: m.bannerImage || null, cast, relations };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);
@@ -1670,11 +1670,18 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           // ── Vista: Modal normal ──
           <div>
             {/* Hero backdrop */}
-            <div style={{ height: 180, background: currentItem.backdrop ? `url(${currentItem.backdrop}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id)), position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden" }}>
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
+            {(() => {
+              const heroBg = detailExtra?.bannerImage || currentItem.backdrop || null;
+              const useBanner = !!heroBg;
+              const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
+              return (
+              <div style={{ height: useBanner ? 200 : 180, background: bgStyle, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
+                <div style={{ position: "absolute", inset: 0, background: useBanner ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(22,27,34,0.97) 100%)" : "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
-            </div>
+              </div>
+              );
+            })()}
 
             <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
               {/* Header: cover + title */}
