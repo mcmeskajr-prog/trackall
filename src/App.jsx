@@ -320,9 +320,12 @@ const MONTH_EN = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","N
 // Classifica um item do Planejo por tempo necessário para consumir
 function getConsumptionTime(item) {
   if (!item) return null;
-  const eps = item.episodes ? Number(item.episodes) : 0;
-  const chs = item.chapters ? Number(item.chapters) : 0;
-  const runtime = item.runtime ? parseInt(item.runtime) : 0;
+  // Tenta enriquecer com dados do sessionStorage (guardados após abrir DetailModal)
+  let cached = {};
+  try { const s = sessionStorage.getItem("trackall_dur_" + item.id); if (s) cached = JSON.parse(s); } catch {}
+  const eps = Number(item.episodes || cached.episodes || 0);
+  const chs = Number(item.chapters || cached.chapters || 0);
+  const runtime = parseInt(item.runtime || cached.runtime || 0);
   const type = item.type || "";
   const isWatch = ["anime","filmes","series"].includes(type);
   const isRead = ["manga","manhwa","lightnovels","comics","livros"].includes(type);
@@ -497,7 +500,7 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
   if (format) extraFilters += `,format_in:[${format}]`;
   if (country) extraFilters += `,countryOfOrigin:"${country}"`;
   const body = JSON.stringify({
-    query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
+    query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore episodes chapters duration genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
   const opts = { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body };
@@ -529,6 +532,9 @@ async function searchAniList(query, type, workerUrl, format = null, country = nu
     genres: (m.genres || []).slice(0, 4),
     extra: type === "anime" ? (m.studios?.nodes?.[0]?.name || "") : (m.staff?.nodes?.[0]?.name?.full || ""),
     source: "AniList",
+    episodes: m.episodes || null,
+    chapters: m.chapters || null,
+    runtime: m.duration ? `${m.duration} min/ep` : null,
   }));
 }
 
@@ -1443,6 +1449,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       // Só guarda no cache se tiver dados reais
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
+        // Persistir duração no sessionStorage para uso na home (getConsumptionTime)
+        if (d.episodes || d.chapters || d.runtime) {
+          try {
+            const durKey = "trackall_dur_" + ci.id;
+            sessionStorage.setItem(durKey, JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null }));
+          } catch {}
+        }
       }
     }).catch((err) => {
       console.error('[DetailModal] fetchMediaDetails falhou:', ci.id, err);
