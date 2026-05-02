@@ -829,13 +829,13 @@ function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
             <div
               style={{ position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star - 0.5)}
-              onClick={() => !readOnly && onChange && onChange(value === star - 0.5 ? 0 : star - 0.5)}
+              onClick={(e) => { if(!readOnly && onChange){ const p=e.currentTarget.parentElement; if(p){p.classList.remove("ta-star");void p.offsetWidth;p.classList.add("ta-star");} onChange(value === star - 0.5 ? 0 : star - 0.5); } }}
             />
             {/* Right half hitbox (X) */}
             <div
               style={{ position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }}
               onMouseEnter={() => !readOnly && setHover(star)}
-              onClick={() => !readOnly && onChange && onChange(value === star ? 0 : star)}
+              onClick={(e) => { if(!readOnly && onChange){ const p=e.currentTarget.parentElement; if(p){p.classList.remove("ta-star");void p.offsetWidth;p.classList.add("ta-star");} onChange(value === star ? 0 : star); } }}
             />
           </div>
         );
@@ -1975,13 +1975,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         {inLib && onToggleFavorite && (
-                          <button onClick={() => onToggleFavorite(currentItem)} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                          <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
                             {isFavorite ? "★ Favorito" : "☆ Favorito"}
                           </button>
                         )}
                         {inLib && onToggleHallOfFame && (
                           <button
-                            onClick={() => onToggleHallOfFame(currentItem)}
+                            onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleHallOfFame(currentItem); }}
                             style={{ background: isHallOfFame ? "#fbbf2422" : "none", border: `1px solid ${isHallOfFame ? "#fbbf24" : "#30363d"}`, color: isHallOfFame ? "#fbbf24" : "#8b949e", cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1 }}
                             title={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
                           >
@@ -1994,7 +1994,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={22} />
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
                       {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={() => onUpdateStatus(currentItem.id, s.id)} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
+                        <button key={s.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); onUpdateStatus(currentItem.id, s.id); }} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
                           {s.emoji} {statusLabel(s, lang)}
                         </button>
                       ))}
@@ -2016,7 +2016,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={() => { onAdd(currentItem, s.id, addRating); onClose(); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
+                        <button key={s.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); setTimeout(() => { onAdd(currentItem, s.id, addRating); onClose(); }, 180); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
                           {s.emoji} {statusLabel(s, lang)}
                         </button>
                       ))}
@@ -7669,6 +7669,12 @@ export default function TrackAll() {
           }
           @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes ta-pop { 0%{transform:scale(1)} 35%{transform:scale(1.28)} 65%{transform:scale(0.92)} 100%{transform:scale(1)} }
+          @keyframes ta-bounce { 0%{transform:scale(1) translateY(0)} 30%{transform:scale(1.12) translateY(-3px)} 60%{transform:scale(0.96) translateY(1px)} 100%{transform:scale(1) translateY(0)} }
+          @keyframes ta-star { 0%{transform:scale(1) rotate(0deg)} 40%{transform:scale(1.4) rotate(-12deg)} 70%{transform:scale(0.9) rotate(6deg)} 100%{transform:scale(1) rotate(0deg)} }
+          .ta-pop { animation: ta-pop 0.32s cubic-bezier(0.34,1.56,0.64,1) both; }
+          .ta-bounce { animation: ta-bounce 0.28s cubic-bezier(0.34,1.56,0.64,1) both; }
+          .ta-star { animation: ta-star 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
           @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
           @keyframes modalSlideUp { from { opacity: 0; transform: translateY(32px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
           .fade-in { animation: fadeIn 0.2s ease; }
