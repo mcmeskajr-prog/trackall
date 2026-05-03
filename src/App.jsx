@@ -8502,7 +8502,6 @@ export default function TrackAll() {
               const daySeed = now.getFullYear() * 10000 + (now.getMonth()+1) * 100 + now.getDate();
               const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
               const completed = items.filter(i => i?.userStatus === "completo");
-              const completedThisMonth = completed.filter(i => (i.addedAt||0) >= thisMonthStart).length;
               const completedPct = items.length > 0 ? Math.round((completed.length / items.length) * 100) : 0;
               const genreCount = {};
               completed.forEach(i => (i.genres||[]).forEach(g => { genreCount[g] = (genreCount[g]||0)+1; }));
@@ -8516,7 +8515,6 @@ export default function TrackAll() {
               const ratedThisMonth = completed.filter(i => (i.addedAt||0) >= thisMonthStart && i.userRating > 0);
               const avgThisMonth = ratedThisMonth.length > 0 ? (ratedThisMonth.reduce((s,i)=>s+i.userRating,0)/ratedThisMonth.length).toFixed(1) : null;
               const pool = [
-                completedThisMonth > 0 && { icon: "✅", text: lang==="en" ? `You completed ${completedThisMonth} title${completedThisMonth>1?"s":""} this month` : `Completaste ${completedThisMonth} obra${completedThisMonth>1?"s":""} este mês` },
                 completedPct > 0 && { icon: "📚", text: lang==="en" ? `You've completed ${completedPct}% of your library` : `Já completaste ${completedPct}% da tua biblioteca` },
                 topGenre && { icon: "🎨", text: lang==="en" ? `Your top genre is ${topGenre}` : `O teu género favorito é ${topGenre}` },
                 topTypeLabel && { icon: "🏆", text: lang==="en" ? `You consume most ${topTypeLabel}` : `Consomes mais ${topTypeLabel}` },
@@ -8531,9 +8529,9 @@ export default function TrackAll() {
               return (
                 <div style={{ margin: "0 16px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
                   {picks.map((insight, idx) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: activeDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: "10px 14px" }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{insight.icon}</span>
-                      <span style={{ fontSize: 13, color: activeDarkMode ? "#8b949e" : "#64748b", fontWeight: 600, lineHeight: 1.4 }}>{insight.text}</span>
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: `${accent}0d`, border: `1px solid ${accent}30`, borderRadius: 12, padding: "10px 14px" }}>
+                      <span style={{ fontSize: 16, flexShrink: 0, color: accent }}>{insight.icon}</span>
+                      <span style={{ fontSize: 13, color: accent, fontWeight: 700, lineHeight: 1.4 }}>{insight.text}</span>
                     </div>
                   ))}
                 </div>
