@@ -3951,15 +3951,43 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       {/* ── Vistos Recentemente ── */}
       {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={isMobileDevice} />}
 
-      {/* Stats grid — colapsável */}
-      <button onClick={() => setShowStats(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: showStats ? 12 : 20, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
-        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          <span style={{ transform: showStats ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block", fontSize: 11 }}>▾</span>
-          ESTATÍSTICAS
-          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
-        </h3>
-      </button>
-      {showStats && (
+      {/* ── Top Géneros ── */}
+      {(() => {
+        const completed = items.filter(i => i?.userStatus === "completo");
+        const genreCount = {};
+        completed.forEach(i => (i.genres||[]).forEach(g => { genreCount[g] = (genreCount[g]||0)+1; }));
+        const topGenres = Object.entries(genreCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+        if (topGenres.length === 0) return null;
+        const maxCount = topGenres[0][1];
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
+              {lang === "en" ? "TOP GENRES" : "TOP GÉNEROS"}
+              <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+            </h3>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {topGenres.map(([genre, count], idx) => {
+                const intensity = Math.round((count / maxCount) * 100);
+                const size = idx === 0 ? 14 : idx < 3 ? 13 : 12;
+                const alpha = Math.max(20, intensity);
+                return (
+                  <div key={genre} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2,"0")}`, border: `1px solid ${accent}${Math.round(alpha*1.5).toString(16).padStart(2,"0")}`, borderRadius: 20, padding: idx === 0 ? "5px 12px" : "4px 10px", cursor: "default" }}>
+                    <span style={{ fontSize: size, fontWeight: idx < 3 ? 800 : 600, color: idx === 0 ? accent : darkMode ? "#c9d1d9" : "#374151" }}>{genre}</span>
+                    <span style={{ fontSize: 10, color: accent, fontWeight: 700, opacity: 0.8 }}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Stats grid */}
+      <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+        ESTATÍSTICAS
+        <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+      </h3>
+      {true && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
             {STATUS_OPTIONS.map((s) => (
@@ -3983,10 +4011,12 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           </div>
           <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>{lang === "en" ? "COMPLETED BY TYPE" : "COMPLETOS POR TIPO"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
           <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-            {MEDIA_TYPES.slice(1).map((t) => {
+            {(() => {
+              const totalCompleted = Math.max(1, MEDIA_TYPES.slice(1).reduce((s,t) => s + (byType[t.id]||0), 0));
+              return MEDIA_TYPES.slice(1).map((t) => {
               const count = byType[t.id] || 0;
               const total = items.filter(i => i.type === t.id).length;
-              const pct = total ? (count / total) * 100 : 0;
+              const pct = (count / totalCompleted) * 100;
               if (!total) return null;
               return (
                 <div key={t.id} style={{ marginBottom: 10 }}>
@@ -3999,7 +4029,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   </div>
                 </div>
               );
-            })}
+            });})()}
           </div>
         </>
       )}
