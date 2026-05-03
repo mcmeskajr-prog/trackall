@@ -322,7 +322,13 @@ function getConsumptionTime(item) {
   if (!item) return null;
   // Tenta enriquecer com dados do sessionStorage (guardados após abrir DetailModal)
   let cached = {};
-  try { const s = localStorage.getItem("trackall_dur_" + item.id); if (s) cached = JSON.parse(s); } catch {}
+  try {
+    const candidates = mediaIdCandidates(item.id, item.type);
+    for (const cid of candidates) {
+      const s = localStorage.getItem("trackall_dur_" + cid);
+      if (s) { cached = JSON.parse(s); break; }
+    }
+  } catch {}
   const eps = Number(item.episodes || cached.episodes || 0);
   const chs = Number(item.chapters || cached.chapters || 0);
   const runtime = parseInt(item.runtime || cached.runtime || 0);
@@ -1449,11 +1455,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       // Só guarda no cache se tiver dados reais
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
-        // Persistir duração no sessionStorage para uso na home (getConsumptionTime)
+        // Persistir duração no localStorage para uso na home (getConsumptionTime)
         if (d.episodes || d.chapters || d.runtime) {
           try {
-            const durKey = "trackall_dur_" + ci.id;
-            localStorage.setItem(durKey, JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null }));
+            const durData = JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null });
+            // Guardar com todos os ids candidatos para garantir match
+            mediaIdCandidates(ci.id, ci.type).forEach(cid => { try { localStorage.setItem("trackall_dur_" + cid, durData); } catch {} });
           } catch {}
         }
       }
@@ -6526,7 +6533,13 @@ export default function TrackAll() {
       ]);
       if (prof) {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []) });
+        // Tentar ler Hall of Fame da library (mais fiável que coluna profiles)
+        let _hallData = (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []);
+        try {
+          const hallRow = await supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").single();
+          if (hallRow.data?.data?.hall?.length) _hallData = hallRow.data.data.hall;
+        } catch {}
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -6822,7 +6835,10 @@ export default function TrackAll() {
     }
     setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
     try { localStorage.setItem("trackall_hall_of_fame", JSON.stringify(nextHall)); } catch {}
-    if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: nextHall }); } catch {}
+    if (user) try {
+      // Guardar na library como item especial — coluna hall_of_fame pode não existir em profiles
+      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: nextHall });
+    } catch {}
   };
 
   const saveAccent = async (c) => {
