@@ -322,7 +322,7 @@ function getConsumptionTime(item) {
   if (!item) return null;
   // Tenta enriquecer com dados do sessionStorage (guardados após abrir DetailModal)
   let cached = {};
-  try { const s = sessionStorage.getItem("trackall_dur_" + item.id); if (s) cached = JSON.parse(s); } catch {}
+  try { const s = localStorage.getItem("trackall_dur_" + item.id); if (s) cached = JSON.parse(s); } catch {}
   const eps = Number(item.episodes || cached.episodes || 0);
   const chs = Number(item.chapters || cached.chapters || 0);
   const runtime = parseInt(item.runtime || cached.runtime || 0);
@@ -1453,7 +1453,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
         if (d.episodes || d.chapters || d.runtime) {
           try {
             const durKey = "trackall_dur_" + ci.id;
-            sessionStorage.setItem(durKey, JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null }));
+            localStorage.setItem(durKey, JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null }));
           } catch {}
         }
       }
@@ -8341,44 +8341,54 @@ export default function TrackAll() {
               });
               const hasAny = groups.hoje.length > 0 || groups.fimdesemana.length > 0 || groups.ferias.length > 0;
               if (!hasAny) return null;
-              const slotDef = [
-                { key: "hoje", emoji: "⚡", label: "Para hoje", labelEn: "For today", color: "#10b981" },
-                { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4" },
-                { key: "ferias", emoji: "🏖️", label: "Para as férias", labelEn: "For holidays", color: "#f59e0b" },
-              ];
+              const nowD = new Date();
+              const isWeekend = nowD.getDay() === 0 || nowD.getDay() === 6;
+              const daySeed = nowD.getFullYear() * 10000 + (nowD.getMonth()+1) * 100 + nowD.getDate();
+              const monday = new Date(nowD); monday.setDate(nowD.getDate() - ((nowD.getDay()+6)%7));
+              const weekSeed = monday.getFullYear() * 10000 + (monday.getMonth()+1) * 100 + monday.getDate();
+              const seededPicks = (arr, seed, n) => {
+                if (!arr.length) return [];
+                const picks = [];
+                for (let i = 0; i < n && i < arr.length; i++) picks.push(arr[(seed + i) % arr.length]);
+                return picks;
+              };
+              const picksHoje = seededPicks(groups.hoje, daySeed, 2);
+              const picksFds = seededPicks(groups.fimdesemana, daySeed + 7, 2);
+              const picksFerias = seededPicks(groups.ferias, weekSeed, 2);
+              const slots = [
+                picksHoje.length > 0 && { key: "hoje", emoji: "⚡", label: "Para hoje", labelEn: "For today", color: "#10b981", picks: picksHoje, total: groups.hoje.length },
+                (isWeekend && picksFds.length > 0) && { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4", picks: picksFds, total: groups.fimdesemana.length },
+                picksFerias.length > 0 && { key: "ferias", emoji: "🏖️", label: "Para as férias", labelEn: "For holidays", color: "#f59e0b", picks: picksFerias, total: groups.ferias.length },
+              ].filter(Boolean);
+              if (slots.length === 0) return null;
               return (
                 <div style={{ margin: "20px 0 4px" }}>
                   <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 10 }}>
                     {lang === "en" ? "When to consume?" : "Quando consumir?"}
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {slotDef.map(({ key, emoji, label, labelEn, color }) => {
-                      const grp = groups[key];
-                      if (grp.length === 0) return null;
-                      return (
-                        <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", backdropFilter: "blur(6px)" }}>
-                          <div style={{ fontSize: 11, fontWeight: 900, color, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                            {emoji} {lang === "en" ? labelEn : label} · {grp.length} {lang === "en" ? "title" + (grp.length > 1 ? "s" : "") : "título" + (grp.length !== 1 ? "s" : "")}
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            {grp.slice(0, 3).map(({ item }) => (
-                              <button key={item.id} onClick={() => setSelectedItem(item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left" }}>
-                                <div style={{ width: 32, height: 44, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                                  {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                                </div>
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                                  <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>{getMediaTypeLabel(item.type, lang)}{item.episodes ? ` · ${item.episodes} ep` : item.chapters ? ` · ${item.chapters} cap` : ""}</div>
-                                </div>
-                              </button>
-                            ))}
-                            {grp.length > 3 && (
-                              <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b", paddingLeft: 42 }}>+{grp.length - 3} mais</div>
-                            )}
-                          </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {slots.map(({ key, emoji, label, labelEn, color, picks, total }) => (
+                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", backdropFilter: "blur(6px)" }}>
+                        <div style={{ fontSize: 10, fontWeight: 900, color, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                          {emoji} {lang === "en" ? labelEn : label}{total > 2 ? ` · ${total} ${lang === "en" ? "options" : "opções"}` : ""}
                         </div>
-                      );
-                    })}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {picks.map((p, pi) => (
+                            <button key={p.item.id + pi} onClick={() => setSelectedItem(p.item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left", width: "100%" }}>
+                              <div style={{ width: 34, height: 48, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+                                {p.item.cover ? <img src={p.item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === p.item.type)?.icon || "★"}</div>}
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.item.title}</div>
+                                <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>
+                                  {getMediaTypeLabel(p.item.type, lang)}{p.item.episodes ? ` · ${p.item.episodes} ep` : p.item.chapters ? ` · ${p.item.chapters} cap` : ""}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
