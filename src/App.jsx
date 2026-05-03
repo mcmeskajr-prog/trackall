@@ -8515,12 +8515,12 @@ export default function TrackAll() {
               const ratedThisMonth = completed.filter(i => (i.addedAt||0) >= thisMonthStart && i.userRating > 0);
               const avgThisMonth = ratedThisMonth.length > 0 ? (ratedThisMonth.reduce((s,i)=>s+i.userRating,0)/ratedThisMonth.length).toFixed(1) : null;
               const pool = [
-                completedPct > 0 && { icon: "📚", text: lang==="en" ? `You've completed ${completedPct}% of your library` : `Já completaste ${completedPct}% da tua biblioteca` },
-                topGenre && { icon: "🎨", text: lang==="en" ? `Your top genre is ${topGenre}` : `O teu género favorito é ${topGenre}` },
-                topTypeLabel && { icon: "🏆", text: lang==="en" ? `You consume most ${topTypeLabel}` : `Consomes mais ${topTypeLabel}` },
-                graveyardCount > 0 && { icon: "💀", text: lang==="en" ? `${graveyardCount} title${graveyardCount>1?"s":""} forgotten in your queue for 6+ months` : `${graveyardCount} obra${graveyardCount>1?"s":""} esquecida${graveyardCount>1?"s":""} no Planejo há 6+ meses` },
-                avgThisMonth && { icon: "⭐", text: lang==="en" ? `Your avg rating this month: ${avgThisMonth}` : `Média de rating este mês: ${avgThisMonth}` },
-                completed.length > 0 && { icon: "🔥", text: lang==="en" ? `${completed.length} titles completed overall` : `${completed.length} obras completadas no total` },
+                completedPct > 0 && { icon: "■", text: lang==="en" ? `You've completed ${completedPct}% of your library` : `Já completaste ${completedPct}% da tua biblioteca` },
+                topGenre && { icon: "◆", text: lang==="en" ? `Your top genre is ${topGenre}` : `O teu género favorito é ${topGenre}` },
+                topTypeLabel && { icon: "▲", text: lang==="en" ? `You consume most ${topTypeLabel}` : `Consomes mais ${topTypeLabel}` },
+                graveyardCount > 0 && { icon: "●", text: lang==="en" ? `${graveyardCount} title${graveyardCount>1?"s":""} forgotten in your queue for 6+ months` : `${graveyardCount} obra${graveyardCount>1?"s":""} esquecida${graveyardCount>1?"s":""} no Planejo há 6+ meses` },
+                avgThisMonth && { icon: "★", text: lang==="en" ? `Your avg rating this month: ${avgThisMonth}` : `Média de rating este mês: ${avgThisMonth}` },
+                completed.length > 0 && { icon: "◉", text: lang==="en" ? `${completed.length} titles completed overall` : `${completed.length} obras completadas no total` },
               ].filter(Boolean);
               if (pool.length === 0) return null;
               const pick1 = pool[daySeed % pool.length];
@@ -8530,8 +8530,8 @@ export default function TrackAll() {
                 <div style={{ margin: "0 16px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
                   {picks.map((insight, idx) => (
                     <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: `${accent}0d`, border: `1px solid ${accent}30`, borderRadius: 12, padding: "10px 14px" }}>
-                      <span style={{ fontSize: 16, flexShrink: 0, color: accent }}>{insight.icon}</span>
-                      <span style={{ fontSize: 13, color: accent, fontWeight: 700, lineHeight: 1.4 }}>{insight.text}</span>
+                      <span style={{ fontSize: 13, flexShrink: 0, color: accent, fontWeight: 900, width: 20, textAlign: "center" }}>{insight.icon}</span>
+                      <span style={{ fontSize: 13, color: activeDarkMode ? "#8b949e" : "#64748b", fontWeight: 600, lineHeight: 1.4 }}>{insight.text}</span>
                     </div>
                   ))}
                 </div>
