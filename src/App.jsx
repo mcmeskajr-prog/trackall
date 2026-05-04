@@ -8211,9 +8211,9 @@ export default function TrackAll() {
                     }}
                   >
                     <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
-                      <div style={{ borderRadius: 14, overflow: "hidden", minHeight: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
+                      <div style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
                         {focus.cover
-                          ? <img src={focus.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ? <img src={focus.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
                           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
                       </div>
                       <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
@@ -8417,11 +8417,11 @@ export default function TrackAll() {
                 return picks;
               };
               const picksHoje = seededPicks(groups.hoje, daySeed, 2);
-              const picksFds = seededPicks(groups.fimdesemana, daySeed + 7, 2);
+              const picksFds = seededPicks(groups.fimdesemana, weekSeed + 1, 2);
               const picksFerias = seededPicks(groups.ferias, weekSeed, 2);
               const slots = [
                 picksHoje.length > 0 && { key: "hoje", emoji: "⚡", label: "Para hoje", labelEn: "For today", color: "#10b981", picks: picksHoje, total: groups.hoje.length },
-                (isWeekend && picksFds.length > 0) && { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4", picks: picksFds, total: groups.fimdesemana.length },
+                picksFds.length > 0 && { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4", picks: picksFds, total: groups.fimdesemana.length },
                 picksFerias.length > 0 && { key: "ferias", emoji: "🏖️", label: "Para as férias", labelEn: "For holidays", color: "#f59e0b", picks: picksFerias, total: groups.ferias.length },
               ].filter(Boolean);
               if (slots.length === 0) return null;
