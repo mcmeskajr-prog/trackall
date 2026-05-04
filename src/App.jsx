@@ -1368,7 +1368,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, tmdbKey, workerUrl }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
@@ -1455,13 +1455,14 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       // Só guarda no cache se tiver dados reais
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
-        // Persistir duração no localStorage para uso na home (getConsumptionTime)
+        // Persistir duração — localStorage (local) + merge na biblioteca (sincroniza entre dispositivos)
         if (d.episodes || d.chapters || d.runtime) {
           try {
             const durData = JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null });
-            // Guardar com todos os ids candidatos para garantir match
             mediaIdCandidates(ci.id, ci.type).forEach(cid => { try { localStorage.setItem("trackall_dur_" + cid, durData); } catch {} });
           } catch {}
+          // Merge silencioso na biblioteca se item estiver lá e faltar duração
+          if (onUpdateDuration) try { onUpdateDuration(ci.id, ci.type, { episodes: d.episodes, chapters: d.chapters, runtime: d.runtime }); } catch {}
         }
       }
     }).catch((err) => {
@@ -4882,7 +4883,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
             {/* Botão Voltar sobreposto no banner */}
             <button onClick={() => { setSelectedFriend(null); setFriendData(null); }} style={{
               position: "absolute", top: 14, left: 14, zIndex: 10,
-              background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
+              background: "rgba(0,0,0,0.45)", 
               border: `1px solid rgba(255,255,255,0.2)`, color: "white",
               cursor: "pointer", fontSize: 13, fontWeight: 700, padding: "6px 14px",
               borderRadius: 20, display: "flex", alignItems: "center", gap: 6,
@@ -7213,6 +7214,19 @@ export default function TrackAll() {
     saveLibrary(lib);
     showNotif("Removido da biblioteca", "#ef4444");
   };
+  const updateDuration = useCallback((id, type, dur) => {
+    if (!dur.episodes && !dur.chapters && !dur.runtime) return;
+    const matched = findLibraryEntry(library, id, type);
+    if (!matched) return;
+    // Só actualiza se faltar algum campo
+    if (matched.item.episodes || matched.item.chapters || matched.item.runtime) return;
+    const canonicalId = normalizeMediaId(id, type);
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, episodes: dur.episodes || matched.item.episodes, chapters: dur.chapters || matched.item.chapters, runtime: dur.runtime || matched.item.runtime };
+    saveLibrary(next);
+  }, [library]);
+
   const updateStatus = useCallback((id, status) => {
     const matched = findLibraryEntry(library, id);
     if (!matched) return;
@@ -7913,6 +7927,7 @@ export default function TrackAll() {
             onAdd={addToLibrary}
             onRemove={(id) => { removeFromLibrary(id); setSelectedItem(null); }}
             onUpdateStatus={updateStatus}
+            onUpdateDuration={updateDuration}
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
             onChangeCover={updateCover}
@@ -8191,7 +8206,7 @@ export default function TrackAll() {
                       background: activeDarkMode
                         ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)`
                         : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`,
-                      backdropFilter: "blur(8px)",
+                      
                       boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`,
                     }}
                   >
@@ -8258,7 +8273,7 @@ export default function TrackAll() {
                               padding: "12px",
                               cursor: "pointer",
                               fontFamily: "inherit",
-                              backdropFilter: "blur(6px)",
+                              
                               display: "grid",
                               gridTemplateColumns: "54px 1fr",
                               gap: 10,
@@ -8417,7 +8432,7 @@ export default function TrackAll() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {slots.map(({ key, emoji, label, labelEn, color, picks, total }) => (
-                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", backdropFilter: "blur(6px)" }}>
+                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", }}>
                         <div style={{ fontSize: 10, fontWeight: 900, color, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                           {emoji} {lang === "en" ? labelEn : label}{total > 2 ? ` · ${total} ${lang === "en" ? "options" : "opções"}` : ""}
                         </div>
