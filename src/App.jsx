@@ -6450,6 +6450,67 @@ export default function TrackAll() {
     return () => { obs.disconnect(); document.removeEventListener('keydown', onKeyDown); };
   }, []);
 
+  // ── Pull-to-refresh — listeners directos com passive:false ──
+  useEffect(() => {
+    if (!isMobileDevice) return;
+    let ptr = { active: false, startY: 0, dist: 0, blocked: false };
+
+    const showInd = (dist) => {
+      const ind = ptrIndicatorRef.current; if (!ind) return;
+      const pct = Math.min(dist / 72, 1);
+      ind.style.transition = "none";
+      ind.style.opacity = String(Math.min(pct * 1.5, 1));
+      ind.style.transform = `translateY(${Math.min(dist * 0.6, 52)}px)`;
+      const icon = ind.querySelector(".ptr-icon");
+      if (icon) { icon.style.transform = `rotate(${pct * 180}deg)`; icon.textContent = pct >= 1 ? "✓" : "↓"; }
+    };
+    const hideInd = (fast) => {
+      const ind = ptrIndicatorRef.current; if (!ind) return;
+      ind.style.transition = `transform ${fast ? 150 : 280}ms ease, opacity ${fast ? 150 : 280}ms ease`;
+      ind.style.transform = "translateY(0)";
+      ind.style.opacity = "0";
+    };
+
+    const onStart = (e) => {
+      if (window.scrollY > 2) { ptr = { active: false, startY: 0, dist: 0, blocked: false }; return; }
+      const t = e.touches?.[0]; if (!t) return;
+      ptr = { active: true, startY: t.clientY, dist: 0, blocked: false };
+    };
+    const onMove = (e) => {
+      if (!ptr.active || ptr.blocked) return;
+      const t = e.touches?.[0]; if (!t) return;
+      const dy = t.clientY - ptr.startY;
+      const dx = Math.abs(t.clientX - (e.touches?.[0]?.clientX || t.clientX));
+      // Se gesto horizontal — bloquear PTR
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) { ptr.blocked = true; hideInd(true); return; }
+      if (dy <= 0) { ptr.dist = 0; return; }
+      if (window.scrollY > 2) { ptr.blocked = true; hideInd(true); return; }
+      ptr.dist = dy;
+      showInd(dy);
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = () => {
+      if (!ptr.active) return;
+      const triggered = ptr.dist >= 72 && !ptr.blocked;
+      hideInd(false);
+      ptr = { active: false, startY: 0, dist: 0, blocked: false };
+      if (triggered) {
+        setTimeout(() => loadRecos(true), 150);
+      }
+    };
+
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    document.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+  }, [isMobileDevice]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchHistory, setSearchHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_search_history") || "[]"); } catch { return []; } });
@@ -6957,10 +7018,6 @@ export default function TrackAll() {
     hidePeek();
     const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
     mainSwipeRef.current = { tracking: true, blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')), startTarget: e.target, isHorizontal: false, peekShown: false, startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastY: touch.clientY };
-    // PTR: iniciar se estiver no topo e na home
-    if (view === "home" && window.scrollY <= 0) {
-      ptrRef.current = { active: true, startY: touch.clientY, dist: 0 };
-    }
   };
   const handleMainSwipeMove = (e) => {
     const state = mainSwipeRef.current;
@@ -6979,37 +7036,11 @@ export default function TrackAll() {
       applyMainSwipeStyle(off, "none"); if (e.cancelable) e.preventDefault(); return;
     }
     if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { state.blocked = true; applyMainSwipeStyle(0, "transform 200ms ease"); }
-    // PTR: actualizar indicador
-    const ptr = ptrRef.current;
-    if (ptr.active && !state.isHorizontal && dy > 0 && window.scrollY <= 0) {
-      ptr.dist = Math.min(dy * 0.5, PTR_THRESHOLD + 20);
-      const ind = ptrIndicatorRef.current;
-      if (ind) {
-        ind.style.transform = `translateY(${Math.min(ptr.dist, PTR_THRESHOLD)}px)`;
-        const pct = Math.min(ptr.dist / PTR_THRESHOLD, 1);
-        ind.style.opacity = String(pct);
-        ind.querySelector(".ptr-icon").style.transform = `rotate(${pct * 180}deg)`;
-        ind.querySelector(".ptr-icon").textContent = pct >= 1 ? "✓" : "↓";
-      }
-      if (e.cancelable) e.preventDefault();
-    }
   };
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current; resetMainSwipe();
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     const dx = state.lastX - state.startX, dy = state.lastY - state.startY;
-    // PTR: verificar se activou
-    const ptr = ptrRef.current;
-    if (ptr.active && ptr.dist >= PTR_THRESHOLD && !state.isHorizontal) {
-      ptrRef.current = { active: false, startY: 0, dist: 0 };
-      const ind = ptrIndicatorRef.current;
-      if (ind) { ind.style.transition = "transform 300ms ease,opacity 300ms ease"; ind.style.transform = "translateY(0)"; ind.style.opacity = "0"; setTimeout(() => { if(ind) ind.style.transition = "none"; }, 320); }
-      loadRecos(true);
-      return;
-    }
-    ptrRef.current = { active: false, startY: 0, dist: 0 };
-    const ind2 = ptrIndicatorRef.current;
-    if (ind2) { ind2.style.transition = "transform 200ms ease,opacity 200ms ease"; ind2.style.transform = "translateY(0)"; ind2.style.opacity = "0"; setTimeout(() => { if(ind2) ind2.style.transition = "none"; }, 220); }
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     const ci = MAIN_SWIPE_VIEWS.indexOf(view);
     if (ci === -1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
