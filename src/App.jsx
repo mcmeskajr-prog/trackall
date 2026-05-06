@@ -6509,6 +6509,7 @@ export default function TrackAll() {
   const mainSwipePeekState = useRef({ dir: 1 });
   const ptrRef = useRef({ active: false, startY: 0, dist: 0 });
   const ptrIndicatorRef = useRef(null);
+  const ptrLoadRecosRef = useRef(null);
   const PTR_THRESHOLD = 72; // px para activar refresh
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
@@ -6683,6 +6684,7 @@ export default function TrackAll() {
       }
     }
   };
+  ptrLoadRecosRef.current = () => loadRecos(true);
 
   // ── Pull-to-refresh — listener com passive:false para interceptar touchmove ──
   useEffect(() => {
@@ -6724,7 +6726,7 @@ export default function TrackAll() {
       const ok = ptr.dist >= THRESHOLD && !ptr.blocked;
       hideInd();
       ptr = { active: false, startY: 0, startX: 0, dist: 0, blocked: false };
-      if (ok) setTimeout(() => loadRecos(true), 200);
+      if (ok) setTimeout(() => ptrLoadRecosRef.current?.(), 200);
     };
     document.addEventListener("touchstart", onStart, { passive: true });
     document.addEventListener("touchmove", onMove, { passive: false });
@@ -6736,7 +6738,7 @@ export default function TrackAll() {
       document.removeEventListener("touchend", onEnd);
       document.removeEventListener("touchcancel", onEnd);
     };
-  }, [isMobileDevice, loadRecos]);
+  }, [isMobileDevice]);
 
   const handleSaveTierlist = async (title, tiers) => {
     if (!user) return;
