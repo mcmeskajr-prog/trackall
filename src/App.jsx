@@ -6507,6 +6507,9 @@ export default function TrackAll() {
   const mainSwipeContentRef = useRef(null);
   const mainSwipePeekRef = useRef(null);
   const mainSwipePeekState = useRef({ dir: 1 });
+  const ptrRef = useRef({ active: false, startY: 0, dist: 0 });
+  const ptrIndicatorRef = useRef(null);
+  const PTR_THRESHOLD = 72; // px para activar refresh
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6680,6 +6683,60 @@ export default function TrackAll() {
       }
     }
   };
+
+  // ── Pull-to-refresh — listener com passive:false para interceptar touchmove ──
+  useEffect(() => {
+    if (!isMobileDevice) return;
+    let ptr = { active: false, startY: 0, startX: 0, dist: 0, blocked: false };
+    const THRESHOLD = 72;
+    const showInd = (dist) => {
+      const ind = ptrIndicatorRef.current; if (!ind) return;
+      const pct = Math.min(dist / THRESHOLD, 1);
+      ind.style.transition = "none";
+      ind.style.opacity = String(Math.min(pct * 1.5, 1));
+      ind.style.transform = `translateY(${Math.min(dist * 0.55, 52)}px)`;
+      const icon = ind.querySelector(".ptr-icon");
+      if (icon) { icon.style.transform = `rotate(${pct * 180}deg)`; icon.textContent = pct >= 1 ? "✓" : "↓"; }
+    };
+    const hideInd = () => {
+      const ind = ptrIndicatorRef.current; if (!ind) return;
+      ind.style.transition = "transform 250ms ease, opacity 250ms ease";
+      ind.style.transform = "translateY(0)"; ind.style.opacity = "0";
+    };
+    const onStart = (e) => {
+      if (window.scrollY > 4) return;
+      const t = e.touches?.[0]; if (!t) return;
+      ptr = { active: true, startY: t.clientY, startX: t.clientX, dist: 0, blocked: false };
+    };
+    const onMove = (e) => {
+      if (!ptr.active || ptr.blocked) return;
+      const t = e.touches?.[0]; if (!t) return;
+      const dy = t.clientY - ptr.startY;
+      const dxAbs = Math.abs(t.clientX - ptr.startX);
+      if (dxAbs > 10 && dxAbs > Math.abs(dy) * 0.8) { ptr.blocked = true; hideInd(); return; }
+      if (dy <= 2 || window.scrollY > 4) { if (dy <= 0) { ptr.dist = 0; return; } ptr.blocked = true; hideInd(); return; }
+      ptr.dist = dy;
+      showInd(dy);
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = () => {
+      if (!ptr.active) return;
+      const ok = ptr.dist >= THRESHOLD && !ptr.blocked;
+      hideInd();
+      ptr = { active: false, startY: 0, startX: 0, dist: 0, blocked: false };
+      if (ok) setTimeout(() => loadRecos(true), 200);
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    document.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+  }, [isMobileDevice]);
 
   const handleSaveTierlist = async (title, tiers) => {
     if (!user) return;
@@ -8039,6 +8096,14 @@ export default function TrackAll() {
 
         <div style={{ display: view === "home" ? "block" : "none" }}>
         {/* ── HOME ── */}
+          {/* Pull-to-refresh indicator */}
+          {isMobileDevice && (
+            <div ref={ptrIndicatorRef} style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, display: "flex", justifyContent: "center", alignItems: "flex-end", height: 56, opacity: 0, transform: "translateY(0)", pointerEvents: "none" }}>
+              <div style={{ background: accent, borderRadius: 999, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.3)", marginBottom: 4 }}>
+                <span className="ptr-icon" style={{ fontSize: 16, color: "#fff", fontWeight: 900, transition: "transform 0.15s", display: "block" }}>↓</span>
+              </div>
+            </div>
+          )}
           <div style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
