@@ -6684,7 +6684,6 @@ export default function TrackAll() {
       }
     }
   };
-  ptrLoadRecosRef.current = () => loadRecos(true);
 
   // ── Pull-to-refresh — listener com passive:false para interceptar touchmove ──
   useEffect(() => {
@@ -6726,7 +6725,7 @@ export default function TrackAll() {
       const ok = ptr.dist >= THRESHOLD && !ptr.blocked;
       hideInd();
       ptr = { active: false, startY: 0, startX: 0, dist: 0, blocked: false };
-      if (ok) setTimeout(() => ptrLoadRecosRef.current?.(), 200);
+      if (ok) setTimeout(() => { try { ptrLoadRecosRef.current?.(); } catch {} }, 200);
     };
     document.addEventListener("touchstart", onStart, { passive: true });
     document.addEventListener("touchmove", onMove, { passive: false });
@@ -6739,6 +6738,8 @@ export default function TrackAll() {
       document.removeEventListener("touchcancel", onEnd);
     };
   }, [isMobileDevice]);
+
+  useEffect(() => { ptrLoadRecosRef.current = () => loadRecos(true); });
 
   const handleSaveTierlist = async (title, tiers) => {
     if (!user) return;
