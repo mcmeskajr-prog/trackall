@@ -6983,10 +6983,10 @@ export default function TrackAll() {
       ptr.dist = dy;
       const pct = Math.min(dy / PTR_THRESHOLD, 1);
       const ind = ptrIndRef.current;
-      if (ind) { ind.style.opacity = String(Math.min(pct * 1.4, 1)); ind.style.transform = `translateY(${Math.min(dy * 0.5, 50)}px)`; const ic = ind.querySelector(".ptr-ic"); if (ic) { ic.style.transform = `rotate(${pct * 180}deg)`; ic.textContent = pct >= 1 ? "✓" : "↓"; } }
+      if (ind) { ind.style.opacity = String(Math.min(pct * 1.4, 1)); ind.style.transform = `translateX(-50%) translateY(${Math.min(dy * 0.5, 50)}px)`; const ic = ind.querySelector(".ptr-ic"); if (ic) { ic.style.transform = `rotate(${pct * 180}deg)`; ic.textContent = pct >= 1 ? "✓" : "↓"; } }
     } else if (ptr.on && (state.isHorizontal || Math.abs(touch.clientX - ptr.startX) >= 30)) {
       ptr.on = false;
-      const ind = ptrIndRef.current; if (ind) { ind.style.opacity = "0"; ind.style.transform = "translateY(0)"; }
+      const ind = ptrIndRef.current; if (ind) { ind.style.opacity = "0"; ind.style.transform = "translateX(-50%) translateY(0)"; }
     }
   };
   const handleMainSwipeEnd = () => {
@@ -6996,12 +6996,12 @@ export default function TrackAll() {
     if (ptr.on && ptr.dist >= PTR_THRESHOLD) {
       ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
       const ind = ptrIndRef.current;
-      if (ind) { ind.style.transition = "opacity 250ms ease,transform 250ms ease"; ind.style.opacity = "0"; ind.style.transform = "translateY(0)"; setTimeout(() => { if(ind) ind.style.transition = "none"; }, 260); }
+      if (ind) { ind.style.transition = "opacity 250ms ease,transform 250ms ease"; ind.style.opacity = "0"; ind.style.transform = "translateX(-50%) translateY(0)"; setTimeout(() => { if(ind) { ind.style.transition = "none"; } }, 260); }
       setTimeout(() => loadRecos(true), 100);
       hidePeek(); applyMainSwipeStyle(0, "none"); return;
     }
     ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
-    const ind2 = ptrIndRef.current; if (ind2) { ind2.style.transition = "opacity 200ms ease,transform 200ms ease"; ind2.style.opacity = "0"; ind2.style.transform = "translateY(0)"; setTimeout(() => { if(ind2) ind2.style.transition = "none"; }, 210); }
+    const ind2 = ptrIndRef.current; if (ind2) { ind2.style.transition = "opacity 200ms ease,transform 200ms ease"; ind2.style.opacity = "0"; ind2.style.transform = "translateX(-50%) translateY(0)"; setTimeout(() => { if(ind2) ind2.style.transition = "none"; }, 210); }
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     const dx = state.lastX - state.startX, dy = state.lastY - state.startY;
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
@@ -7011,7 +7011,7 @@ export default function TrackAll() {
     else if (dx > 0 && ci > 0) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci - 1], -1);
     else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
   };
-  const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); };
+  const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 }; const _i = ptrIndRef.current; if (_i) { _i.style.opacity = "0"; _i.style.transform = "translateX(-50%) translateY(0)"; } };
   useEffect(() => { window.scrollTo(0, 0); }, [view]);
 
   /* const mainSwipeTabs = [
