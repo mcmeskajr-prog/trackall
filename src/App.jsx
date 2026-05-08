@@ -6507,6 +6507,9 @@ export default function TrackAll() {
   const mainSwipeContentRef = useRef(null);
   const mainSwipePeekRef = useRef(null);
   const mainSwipePeekState = useRef({ dir: 1 });
+  const ptrState = useRef({ on: false, startY: 0, startX: 0, dist: 0 });
+  const ptrIndRef = useRef(null);
+  const PTR_THRESHOLD = 68;
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6954,6 +6957,8 @@ export default function TrackAll() {
     hidePeek();
     const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
     mainSwipeRef.current = { tracking: true, blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')), startTarget: e.target, isHorizontal: false, peekShown: false, startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastY: touch.clientY };
+    if (view === "home" && window.scrollY <= 1) ptrState.current = { on: true, startY: touch.clientY, startX: touch.clientX, dist: 0 };
+    else ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
   };
   const handleMainSwipeMove = (e) => {
     const state = mainSwipeRef.current;
@@ -6972,9 +6977,31 @@ export default function TrackAll() {
       applyMainSwipeStyle(off, "none"); if (e.cancelable) e.preventDefault(); return;
     }
     if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { state.blocked = true; applyMainSwipeStyle(0, "transform 200ms ease"); }
+    // PTR
+    const ptr = ptrState.current;
+    if (ptr.on && !state.isHorizontal && dy > 4 && window.scrollY <= 1 && Math.abs(touch.clientX - ptr.startX) < 30) {
+      ptr.dist = dy;
+      const pct = Math.min(dy / PTR_THRESHOLD, 1);
+      const ind = ptrIndRef.current;
+      if (ind) { ind.style.opacity = String(Math.min(pct * 1.4, 1)); ind.style.transform = `translateY(${Math.min(dy * 0.5, 50)}px)`; const ic = ind.querySelector(".ptr-ic"); if (ic) { ic.style.transform = `rotate(${pct * 180}deg)`; ic.textContent = pct >= 1 ? "✓" : "↓"; } }
+    } else if (ptr.on && (state.isHorizontal || Math.abs(touch.clientX - ptr.startX) >= 30)) {
+      ptr.on = false;
+      const ind = ptrIndRef.current; if (ind) { ind.style.opacity = "0"; ind.style.transform = "translateY(0)"; }
+    }
   };
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current; resetMainSwipe();
+    // PTR check
+    const ptr = ptrState.current;
+    if (ptr.on && ptr.dist >= PTR_THRESHOLD) {
+      ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
+      const ind = ptrIndRef.current;
+      if (ind) { ind.style.transition = "opacity 250ms ease,transform 250ms ease"; ind.style.opacity = "0"; ind.style.transform = "translateY(0)"; setTimeout(() => { if(ind) ind.style.transition = "none"; }, 260); }
+      setTimeout(() => loadRecos(true), 100);
+      hidePeek(); applyMainSwipeStyle(0, "none"); return;
+    }
+    ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
+    const ind2 = ptrIndRef.current; if (ind2) { ind2.style.transition = "opacity 200ms ease,transform 200ms ease"; ind2.style.opacity = "0"; ind2.style.transform = "translateY(0)"; setTimeout(() => { if(ind2) ind2.style.transition = "none"; }, 210); }
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     const dx = state.lastX - state.startX, dy = state.lastY - state.startY;
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
@@ -8039,6 +8066,7 @@ export default function TrackAll() {
 
         <div style={{ display: view === "home" ? "block" : "none" }}>
         {/* ── HOME ── */}
+          {isMobileDevice && <div ref={ptrIndRef} style={{ position: "fixed", top: 0, left: "50%", transform: "translateX(-50%) translateY(0)", zIndex: 9999, opacity: 0, pointerEvents: "none", transition: "none" }}><div style={{ marginTop: 6, width: 36, height: 36, borderRadius: 999, background: accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}><span className="ptr-ic" style={{ color: "#fff", fontSize: 15, fontWeight: 900, display: "block", transition: "transform 0.1s" }}>↓</span></div></div>}
           <div style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
