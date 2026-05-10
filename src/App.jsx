@@ -6977,14 +6977,14 @@ export default function TrackAll() {
     // bg e text color baseados no tema actual
     el.style.background = activeDarkMode ? "#0d1117" : "#f5f0e8";
     el.style.opacity = "0";
-    el.style.transform = `translateX(${dir * 100}%)`;
+    el.style.transform = `translateX(${dir * -100}%)`;
     el.style.transition = "none";
     el.style.display = "block";
     // Slide in suave
     requestAnimationFrame(() => {
       el.style.transition = "opacity 180ms ease, transform 180ms ease";
       el.style.opacity = "0.92";
-      el.style.transform = `translateX(${dir * 18}%)`;
+      el.style.transform = `translateX(${dir * -18}%)`;
     });
   };
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
