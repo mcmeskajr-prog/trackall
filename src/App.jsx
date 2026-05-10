@@ -6472,6 +6472,14 @@ export default function TrackAll() {
   });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
+  // Refs para o back handler (lê estado actual sem deps no useEffect)
+  const selectedItemRef = useRef(null);
+  const logOpenRef = useRef(false);
+  const showTierlistEditorRef = useRef(false);
+  const viewingTierlistRef = useRef(null);
+  const showCollectionEditorRef = useRef(false);
+  const viewingCollectionRef = useRef(null);
+  const viewRef = useRef("home");
   const [logQuery, setLogQuery] = useState("");
   const [logResults, setLogResults] = useState([]);
   const [logSearching, setLogSearching] = useState(false);
@@ -6507,9 +6515,6 @@ export default function TrackAll() {
   const mainSwipeContentRef = useRef(null);
   const mainSwipePeekRef = useRef(null);
   const mainSwipePeekState = useRef({ dir: 1 });
-  const ptrState = useRef({ on: false, startY: 0, startX: 0, dist: 0 });
-  const ptrIndRef = useRef(null);
-  const PTR_THRESHOLD = 68;
   const MAIN_SWIPE_VIEWS = ["home", "library", "friends", "profile"];
 
   // ── Restaurar sessão ao arrancar ──
@@ -6897,6 +6902,35 @@ export default function TrackAll() {
   // isMobile check — calculado uma vez, estável entre renders
   const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
+  // Sincronizar refs com estados para o back handler
+  useEffect(() => { selectedItemRef.current = selectedItem; }, [selectedItem]);
+  useEffect(() => { logOpenRef.current = logOpen; }, [logOpen]);
+  useEffect(() => { showTierlistEditorRef.current = showTierlistEditor; }, [showTierlistEditor]);
+  useEffect(() => { viewingTierlistRef.current = viewingTierlist; }, [viewingTierlist]);
+  useEffect(() => { showCollectionEditorRef.current = showCollectionEditor; }, [showCollectionEditor]);
+  useEffect(() => { viewingCollectionRef.current = viewingCollection; }, [viewingCollection]);
+  useEffect(() => { viewRef.current = view; }, [view]);
+
+  // ── Android Back Button ──
+  useEffect(() => {
+    if (!isMobileDevice) return;
+    // Empurrar estado inicial para o history
+    window.history.pushState({ trackall: true }, "");
+    const onPop = () => {
+      // Fechar o primeiro estado aberto encontrado
+      if (selectedItemRef.current) { setSelectedItem(null); window.history.pushState({ trackall: true }, ""); return; }
+      if (logOpenRef.current) { setLogOpen(false); window.history.pushState({ trackall: true }, ""); return; }
+      if (showTierlistEditorRef.current) { setShowTierlistEditor(false); window.history.pushState({ trackall: true }, ""); return; }
+      if (viewingTierlistRef.current) { setViewingTierlist(null); window.history.pushState({ trackall: true }, ""); return; }
+      if (showCollectionEditorRef.current) { setShowCollectionEditor(false); window.history.pushState({ trackall: true }, ""); return; }
+      if (viewingCollectionRef.current) { setViewingCollection(null); window.history.pushState({ trackall: true }, ""); return; }
+      if (viewRef.current !== "home") { setView("home"); window.history.pushState({ trackall: true }, ""); return; }
+      // Nada aberto + home → sair (deixar o browser fazer pop normal)
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [isMobileDevice]);
+
   const canUseMainSwipe = isMobileDevice
     && MAIN_SWIPE_VIEWS.includes(view)
     && !selectedItem
@@ -6957,8 +6991,6 @@ export default function TrackAll() {
     hidePeek();
     const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
     mainSwipeRef.current = { tracking: true, blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')), startTarget: e.target, isHorizontal: false, peekShown: false, startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastY: touch.clientY };
-    if (view === "home" && window.scrollY <= 1) ptrState.current = { on: true, startY: touch.clientY, startX: touch.clientX, dist: 0 };
-    else ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
   };
   const handleMainSwipeMove = (e) => {
     const state = mainSwipeRef.current;
@@ -6977,31 +7009,9 @@ export default function TrackAll() {
       applyMainSwipeStyle(off, "none"); if (e.cancelable) e.preventDefault(); return;
     }
     if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { state.blocked = true; applyMainSwipeStyle(0, "transform 200ms ease"); }
-    // PTR
-    const ptr = ptrState.current;
-    if (ptr.on && !state.isHorizontal && dy > 4 && window.scrollY <= 1 && Math.abs(touch.clientX - ptr.startX) < 30) {
-      ptr.dist = dy;
-      const pct = Math.min(dy / PTR_THRESHOLD, 1);
-      const ind = ptrIndRef.current;
-      if (ind) { ind.style.opacity = String(Math.min(pct * 1.4, 1)); ind.style.transform = `translateX(-50%) translateY(${Math.min(dy * 0.5, 50)}px)`; const ic = ind.querySelector(".ptr-ic"); if (ic) { ic.style.transform = `rotate(${pct * 180}deg)`; ic.textContent = pct >= 1 ? "✓" : "↓"; } }
-    } else if (ptr.on && (state.isHorizontal || Math.abs(touch.clientX - ptr.startX) >= 30)) {
-      ptr.on = false;
-      const ind = ptrIndRef.current; if (ind) { ind.style.opacity = "0"; ind.style.transform = "translateX(-50%) translateY(0)"; }
-    }
   };
   const handleMainSwipeEnd = () => {
     const state = mainSwipeRef.current; resetMainSwipe();
-    // PTR check
-    const ptr = ptrState.current;
-    if (ptr.on && ptr.dist >= PTR_THRESHOLD) {
-      ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
-      const ind = ptrIndRef.current;
-      if (ind) { ind.style.transition = "opacity 250ms ease,transform 250ms ease"; ind.style.opacity = "0"; ind.style.transform = "translateX(-50%) translateY(0)"; setTimeout(() => { if(ind) { ind.style.transition = "none"; } }, 260); }
-      setTimeout(() => loadRecos(true), 100);
-      hidePeek(); applyMainSwipeStyle(0, "none"); return;
-    }
-    ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 };
-    const ind2 = ptrIndRef.current; if (ind2) { ind2.style.transition = "opacity 200ms ease,transform 200ms ease"; ind2.style.opacity = "0"; ind2.style.transform = "translateX(-50%) translateY(0)"; setTimeout(() => { if(ind2) ind2.style.transition = "none"; }, 210); }
     if (!canUseMainSwipe || !state.tracking || state.blocked || !state.isHorizontal) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
     const dx = state.lastX - state.startX, dy = state.lastY - state.startY;
     if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.1) { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); return; }
@@ -7011,7 +7021,7 @@ export default function TrackAll() {
     else if (dx > 0 && ci > 0) animateMainSwipeToView(MAIN_SWIPE_VIEWS[ci - 1], -1);
     else { hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); }
   };
-  const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); ptrState.current = { on: false, startY: 0, startX: 0, dist: 0 }; const _i = ptrIndRef.current; if (_i) { _i.style.opacity = "0"; _i.style.transform = "translateX(-50%) translateY(0)"; } };
+  const handleMainSwipeCancel = () => { resetMainSwipe(); hidePeek(); applyMainSwipeStyle(0, "transform 220ms cubic-bezier(0.25,0.46,0.45,0.94)"); };
   useEffect(() => { window.scrollTo(0, 0); }, [view]);
 
   /* const mainSwipeTabs = [
@@ -8066,7 +8076,6 @@ export default function TrackAll() {
 
         <div style={{ display: view === "home" ? "block" : "none" }}>
         {/* ── HOME ── */}
-          {isMobileDevice && <div ref={ptrIndRef} style={{ position: "fixed", top: 0, left: "50%", transform: "translateX(-50%) translateY(0)", zIndex: 9999, opacity: 0, pointerEvents: "none", transition: "none" }}><div style={{ marginTop: 6, width: 36, height: 36, borderRadius: 999, background: accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}><span className="ptr-ic" style={{ color: "#fff", fontSize: 15, fontWeight: 900, display: "block", transition: "transform 0.1s" }}>↓</span></div></div>}
           <div style={{ paddingLeft: 0, paddingRight: 0 }}>
             {/* Hero — Avatar + Stats side by side */}
             <div className="hero-gradient" style={{ padding: "16px 16px 14px" }}>
