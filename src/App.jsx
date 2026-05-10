@@ -6961,8 +6961,32 @@ export default function TrackAll() {
     return false;
   };
   const resetMainSwipe = () => { mainSwipeRef.current = { tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0, startTarget: null, peekShown: false }; };
-  const hidePeek = () => {};
-  const showPeek = () => {};
+  const hidePeek = () => {
+    const el = mainSwipePeekRef.current; if (!el) return;
+    el.style.opacity = "0";
+    el.style.display = "none";
+  };
+  const showPeek = (targetView, dir) => {
+    const el = mainSwipePeekRef.current; if (!el) return;
+    const tabInfo = { home: ["⌂","Home"], library: ["▦","Library"], friends: ["⊙","Friends"], profile: ["◉","Perfil"] };
+    const [icon, label] = tabInfo[targetView] || ["",""];
+    const icon_el = el.querySelector("[data-peek-icon]");
+    const label_el = el.querySelector("[data-peek-label]");
+    if (icon_el) icon_el.textContent = icon;
+    if (label_el) { label_el.textContent = label; label_el.style.color = accent; }
+    // bg e text color baseados no tema actual
+    el.style.background = activeDarkMode ? "#0d1117" : "#f5f0e8";
+    el.style.opacity = "0";
+    el.style.transform = `translateX(${dir * 100}%)`;
+    el.style.transition = "none";
+    el.style.display = "block";
+    // Slide in suave
+    requestAnimationFrame(() => {
+      el.style.transition = "opacity 180ms ease, transform 180ms ease";
+      el.style.opacity = "0.92";
+      el.style.transform = `translateX(${dir * 18}%)`;
+    });
+  };
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = window.innerWidth || 360;
     const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
@@ -8031,36 +8055,10 @@ export default function TrackAll() {
         >
 
         {canUseMainSwipe && (
-          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#f5f0e8" }}>
-            <div data-sk="home" style={{ display: "none", padding: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-                <div className="shimmer" style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div className="shimmer" style={{ width: "50%", height: 16, borderRadius: 6, marginBottom: 8 }} />
-                  <div style={{ display: "flex", gap: 8 }}>{[80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 42, borderRadius: 10 }} />)}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[72,90,80,68,76].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 32, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              {[0,1].map(r => <div key={r} style={{ marginBottom: 16 }}><div className="shimmer" style={{ width: 110, height: 13, borderRadius: 6, marginBottom: 10 }} /><div style={{ display: "flex", gap: 10 }}>{[0,1,2,3].map(i => <div key={i} style={{ flexShrink: 0 }}><div className="shimmer" style={{ width: 88, height: 128, borderRadius: 10, marginBottom: 5 }} /><div className="shimmer" style={{ width: 70, height: 9, borderRadius: 4 }} /></div>)}</div></div>)}
-            </div>
-            <div data-sk="library" style={{ display: "none", padding: "16px 12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><div className="shimmer" style={{ width: 110, height: 26, borderRadius: 8 }} /><div className="shimmer" style={{ width: 76, height: 30, borderRadius: 20 }} /></div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>{[60,90,80,72,68].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 30, borderRadius: 20, flexShrink: 0 }} />)}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>{[0,1,2,3,4,5,6,7,8,9,10,11].map(i => <div key={i}><div className="shimmer" style={{ width: "100%", height: 130, borderRadius: 10, marginBottom: 4 }} /><div className="shimmer" style={{ width: "70%", height: 9, borderRadius: 4 }} /></div>)}</div>
-            </div>
-            <div data-sk="friends" style={{ display: "none", padding: "16px 0" }}>
-              <div style={{ display: "flex", gap: 8, padding: "0 16px", marginBottom: 18 }}>{[70,100,90,80].map((w,i) => <div key={i} className="shimmer" style={{ width: w, height: 34, borderRadius: 8, flexShrink: 0 }} />)}</div>
-              {[0,1,2].map(i => <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 10px", padding: "14px 16px", borderRadius: 14, background: activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}` }}><div className="shimmer" style={{ width: 50, height: 50, borderRadius: "50%", flexShrink: 0 }} /><div style={{ flex: 1 }}><div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6, marginBottom: 6 }} /><div className="shimmer" style={{ width: "35%", height: 10, borderRadius: 4 }} /></div></div>)}
-            </div>
-            <div data-sk="profile" style={{ display: "none" }}>
-              <div className="shimmer" style={{ width: "100%", height: 180 }} />
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: -36 }}>
-                <div className="shimmer" style={{ width: 76, height: 76, borderRadius: "50%", marginBottom: 10 }} />
-                <div className="shimmer" style={{ width: 130, height: 17, borderRadius: 6, marginBottom: 7 }} />
-                <div className="shimmer" style={{ width: 90, height: 11, borderRadius: 4, marginBottom: 18 }} />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%", marginBottom: 10 }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, width: "90%" }}>{[0,1,2].map(i => <div key={i} className="shimmer" style={{ height: 54, borderRadius: 10 }} />)}</div>
-              </div>
+          <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden" }}>
+            <div data-peek-content style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+              <span data-peek-icon style={{ fontSize: 48, lineHeight: 1 }}></span>
+              <span data-peek-label style={{ fontSize: 18, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}></span>
             </div>
           </div>
         )}
