@@ -6992,7 +6992,7 @@ export default function TrackAll() {
     const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
     const dir = mainSwipePeekState.current.dir;
     if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    if (peek && peek.style.display !== "none") { peek.style.transition = transition; peek.style.transform = `translate3d(${offset + dir * W}px,0,0)`; }
+    // peek é overlay fixo — não segue o offset do conteúdo
   };
   const animateMainSwipeToView = (nextView, direction) => {
     const W = window.innerWidth || 360;
@@ -8195,90 +8195,64 @@ export default function TrackAll() {
               );
             })()}
 
-            {items.length > 0 && homeDashboard.currentFocus && (() => {
+            {items.length > 0 && (homeDashboard.currentFocus || homeDashboard.quickPicks.length > 0) && (() => {
               const focus = homeDashboard.currentFocus;
-              const typeObj = MEDIA_TYPES.find(t => t.id === focus.type);
-              const typeLabel = getMediaTypeLabel(focus.type, lang);
-              const statusLabel = focus.userStatus === "assistindo"
-                ? (lang === "en" ? "In Progress" : "Em curso")
-                : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
-                  ? (lang === "en" ? "Paused" : "Pausado")
-                  : (lang === "en" ? "Planned" : "Planeado");
-              const focusReason = focus.userStatus === "assistindo"
-                ? (lang === "en" ? "You already started it, so this is your strongest immediate pick." : "Já começaste, por isso esta é a tua escolha mais forte para agora.")
-                : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
-                  ? (lang === "en" ? "This one deserves a clean return before the backlog grows again." : "Esta merece um regresso limpo antes da fila voltar a crescer.")
-                  : (lang === "en" ? "This has been waiting long enough to move from queue to action." : "Isto já esperou o suficiente para passar da fila para ação.");
+              const picks = homeDashboard.quickPicks;
+              const todayPick = picks.find(p => p.slot === "today");
+              const otherPicks = picks.filter(p => p.slot !== "today");
+              // Hero principal: Best for Today se existir, senão Current Focus
+              const hero = todayPick ? todayPick.item : focus;
+              const heroLabel = todayPick ? (lang === "en" ? "Best for Today" : "Melhor para Hoje") : (lang === "en" ? "Current Focus" : "Foco Atual");
+              const heroDesc = todayPick
+                ? (lang === "en" ? "Strongest current pick." : "A aposta mais forte do momento.")
+                : focus ? (
+                    focus.userStatus === "assistindo"
+                      ? (lang === "en" ? "You already started it, so this is your strongest immediate pick." : "Já começaste, por isso esta é a tua escolha mais forte.")
+                      : (focus.userStatus === "pausado" || focus.userStatus === "pausa")
+                        ? (lang === "en" ? "This one deserves a clean return before the backlog grows again." : "Esta merece um regresso limpo antes da fila crescer.")
+                        : (lang === "en" ? "This has been waiting long enough." : "Isto já esperou o suficiente.")
+                  ) : "";
               const quickCopy = {
-                continue: {
-                  title: lang === "en" ? "Continue now" : "Continuar agora",
-                  desc: lang === "en" ? "Keep the momentum." : "Mantém o embalo.",
-                },
-                today: {
-                  title: lang === "en" ? "Best for today" : "Melhor para hoje",
-                  desc: lang === "en" ? "Strongest current pick." : "Aposta mais forte do momento.",
-                },
-                forgotten: {
-                  title: lang === "en" ? "Forgotten in queue" : "Esquecido na fila",
-                  desc: lang === "en" ? "Has been waiting for a while." : "Já está contigo há algum tempo.",
-                },
-                return: {
-                  title: lang === "en" ? "Worth returning" : "Vale regressar",
-                  desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo.",
-                },
+                continue: { title: lang === "en" ? "Continue now" : "Continuar agora", desc: lang === "en" ? "Keep the momentum." : "Mantém o embalo." },
+                today: { title: lang === "en" ? "Best for today" : "Melhor para hoje", desc: lang === "en" ? "Strongest current pick." : "Aposta mais forte do momento." },
+                forgotten: { title: lang === "en" ? "Forgotten in queue" : "Esquecido na fila", desc: lang === "en" ? "Has been waiting for a while." : "Já está contigo há algum tempo." },
+                return: { title: lang === "en" ? "Worth returning" : "Vale regressar", desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo." },
               };
-
-
+              if (!hero) return null;
+              const heroType = MEDIA_TYPES.find(t => t.id === hero.type);
+              const heroTypeLabel = getMediaTypeLabel(hero.type, lang);
+              // Current Focus secundário (só aparece se Best for Today for o hero E existir currentFocus diferente)
+              const showSecondary = todayPick && focus && focus.id !== todayPick.item.id;
+              const secondaryStatusLabel = focus ? (
+                focus.userStatus === "assistindo" ? (lang === "en" ? "In Progress" : "Em curso")
+                : (focus.userStatus === "pausado" || focus.userStatus === "pausa") ? (lang === "en" ? "Paused" : "Pausado")
+                : (lang === "en" ? "Planned" : "Planeado")
+              ) : "";
               return (
                 <div style={{ padding: "14px 16px 0" }}>
-                  <div
-                    onClick={() => setSelectedItem(focus)}
-                    style={{
-                      cursor: "pointer",
-                      borderRadius: 18,
-                      overflow: "hidden",
-                      border: `1px solid ${accent}26`,
-                      background: activeDarkMode
-                        ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)`
-                        : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`,
-                      
-                      boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`,
-                    }}
-                  >
+                  {/* Hero principal — Best for Today ou Current Focus */}
+                  <div onClick={() => setSelectedItem(hero)} style={{ cursor: "pointer", borderRadius: 18, overflow: "hidden", border: `1px solid ${accent}26`, background: activeDarkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)` }}>
                     <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
                       <div style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                        {focus.cover
-                          ? <img src={focus.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
+                        {hero.cover ? <img src={hero.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{heroType?.icon || "★"}</div>}
                       </div>
                       <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
                             <div>
-                              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>
-                                {lang === "en" ? "Current Focus" : "Foco Atual"}
-                              </div>
-                              <h3 style={{ fontSize: isMobileDevice ? 21 : 25, lineHeight: 1.05, fontWeight: 900, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>
-                                {focus.title}
-                              </h3>
+                              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{heroLabel}</div>
+                              <h3 style={{ fontSize: isMobileDevice ? 21 : 25, lineHeight: 1.05, fontWeight: 900, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{hero.title}</h3>
                             </div>
-                            {(focus.userRating > 0 || focus.score) && (
+                            {(hero.userRating > 0 || hero.score) && (
                               <div style={{ flexShrink: 0, background: activeDarkMode ? "rgba(10,10,10,0.28)" : "rgba(255,255,255,0.46)", border: `1px solid ${accent}22`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>
-                                ★ {focus.userRating > 0 ? focus.userRating : focus.score}
+                                ★ {hero.userRating > 0 ? hero.userRating : hero.score}
                               </div>
                             )}
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>
-                              {typeLabel}
-                            </span>
-                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)", color: activeDarkMode ? "#cbd5e1" : "#475569" }}>
-                              {statusLabel}
-                            </span>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>{heroTypeLabel}</span>
                           </div>
-                          <p style={{ fontSize: 13, lineHeight: 1.5, color: activeDarkMode ? "#cbd5e1" : "#475569", margin: 0 }}>
-                            {focusReason}
-                          </p>
+                          <p style={{ fontSize: 13, lineHeight: 1.5, color: activeDarkMode ? "#cbd5e1" : "#475569", margin: 0 }}>{heroDesc}</p>
                         </div>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: accent, fontSize: 12, fontWeight: 800 }}>
                           <span>{lang === "en" ? "Open title" : "Abrir obra"}</span>
@@ -8288,62 +8262,41 @@ export default function TrackAll() {
                     </div>
                   </div>
 
-                  
+                  {/* Current Focus secundário — só se Best for Today for o hero */}
+                  {showSecondary && (
+                    <button onClick={() => setSelectedItem(focus)} style={{ marginTop: 8, width: "100%", display: "flex", alignItems: "center", gap: 10, background: activeDarkMode ? "rgba(12,12,16,0.28)" : "rgba(255,255,255,0.28)", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                      <div style={{ width: 36, height: 48, borderRadius: 7, overflow: "hidden", flexShrink: 0, background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
+                        {focus.cover ? <img src={focus.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t=>t.id===focus.type)?.icon||"★"}</div>}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{lang === "en" ? "Current Focus" : "Foco Atual"} · {secondaryStatusLabel}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{focus.title}</div>
+                      </div>
+                      <span style={{ color: accent, fontSize: 14, flexShrink: 0 }}>→</span>
+                    </button>
+                  )}
 
-                  {homeDashboard.quickPicks.length > 0 && (
+                  {/* Quick Picks — sem o "today" que já está no hero */}
+                  {otherPicks.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 8 }}>
                         {lang === "en" ? "Quick picks" : "Escolhas rápidas"}
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                        {homeDashboard.quickPicks.map(({ slot, item }) => (
-                          <button
-                            key={`${slot}-${item.id}`}
-                            onClick={() => setSelectedItem(item)}
-                            style={{
-                              textAlign: "left",
-                              border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`,
-                              background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)",
-                              borderRadius: 14,
-                              padding: "12px",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              
-                              display: "grid",
-                              gridTemplateColumns: "54px 1fr",
-                              gap: 10,
-                            }}
-                          >
+                        {otherPicks.map(({ slot, item }) => (
+                          <button key={`${slot}-${item.id}`} onClick={() => setSelectedItem(item)} style={{ textAlign: "left", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", borderRadius: 14, padding: "12px", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "54px 1fr", gap: 10 }}>
                             <div style={{ width: 54, height: 74, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
-                              {item.cover
-                                ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                              {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>
-                              {quickCopy[slot]?.title || (lang === "en" ? "Pick" : "Escolha")}
-                            </div>
-                            <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 5 }}>
-                              {item.title}
-                            </div>
-                            <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b", marginBottom: 6 }}>
-                              {quickCopy[slot]?.desc}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 11, color: activeDarkMode ? "#cbd5e1" : "#475569", fontWeight: 700 }}>
-                                {getMediaTypeLabel(item.type, lang)}
-                              </span>
-                              {(item.userRating > 0 || item.score) && (
-                                <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>
-                                  ★ {item.userRating > 0 ? item.userRating : item.score}
-                                </span>
-                              )}
-                              {(() => { const ct = getConsumptionTime(item); return ct ? (
-                                <span style={{ fontSize: 10, fontWeight: 800, color: ct.color, background: ct.color + "18", borderRadius: 5, padding: "1px 5px" }}>
-                                  {ct.emoji} {lang === "en" ? ct.labelEn : ct.label}
-                                </span>
-                              ) : null; })()}
-                            </div>
+                              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>{quickCopy[slot]?.title || (lang === "en" ? "Pick" : "Escolha")}</div>
+                              <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 5 }}>{item.title}</div>
+                              <div style={{ fontSize: 12, color: activeDarkMode ? "#94a3b8" : "#64748b", marginBottom: 6 }}>{quickCopy[slot]?.desc}</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 11, color: activeDarkMode ? "#cbd5e1" : "#475569", fontWeight: 700 }}>{getMediaTypeLabel(item.type, lang)}</span>
+                                {(item.userRating > 0 || item.score) && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating > 0 ? item.userRating : item.score}</span>}
+                                {(() => { const ct = getConsumptionTime(item); return ct ? <span style={{ fontSize: 10, fontWeight: 800, color: ct.color, background: ct.color + "18", borderRadius: 5, padding: "1px 5px" }}>{ct.emoji} {lang === "en" ? ct.labelEn : ct.label}</span> : null; })()}
+                              </div>
                             </div>
                           </button>
                         ))}
