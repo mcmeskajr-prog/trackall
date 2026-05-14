@@ -684,11 +684,20 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
 
     // Google Books — pesquisar pelo título+autor para obter detalhes
     if (id.startsWith("gb-")) {
-      const searchQ = encodeURIComponent((item.title || "") + (item.extra ? " " + item.extra : ""));
+      // Pesquisa com intitle + inauthor para maior precisão
+      const titlePart = item.title ? `intitle:${item.title}` : "";
+      const authorPart = item.extra ? `+inauthor:${item.extra}` : "";
+      const searchQ = encodeURIComponent(titlePart + authorPart);
       const res = await fetch(`${wUrl}/books?q=${searchQ}`);
       if (!res.ok) return null;
       const data = await res.json();
-      const vol = data?.items?.[0]?.volumeInfo;
+      // Encontrar o volume com mais páginas (edição mais completa)
+      const items = data?.items || [];
+      const best = items.reduce((acc, cur) => {
+        const pages = cur.volumeInfo?.pageCount || 0;
+        return pages > (acc.volumeInfo?.pageCount || 0) ? cur : acc;
+      }, items[0] || null);
+      const vol = best?.volumeInfo;
       if (!vol) return null;
       return {
         synopsis: vol.description || null,
@@ -1513,7 +1522,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
     const cached = detailCacheRef.current[ci.id];
-    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
+    // Para jogos, invalidar cache se não tiver dados do fetchMediaDetails (timeToBeat, platforms)
+    const cacheInvalid = isIGDB && cached && !cached.detailExtra?.platforms && !cached.detailExtra?.timeToBeat;
+    if (cached && !cacheInvalid && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
       setDetailExtra(cached.detailExtra ?? {});
       setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
