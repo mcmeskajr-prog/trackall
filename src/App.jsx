@@ -682,10 +682,10 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       };
     }
 
-    // Google Books
+    // Google Books — pesquisar pelo título+autor para obter detalhes
     if (id.startsWith("gb-")) {
-      const gbId = id.replace("gb-", "");
-      const res = await fetch(`${wUrl}/books?q=id:${gbId}`);
+      const searchQ = encodeURIComponent((item.title || "") + (item.extra ? " " + item.extra : ""));
+      const res = await fetch(`${wUrl}/books?q=${searchQ}`);
       if (!res.ok) return null;
       const data = await res.json();
       const vol = data?.items?.[0]?.volumeInfo;
@@ -1513,7 +1513,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
     const cached = detailCacheRef.current[ci.id];
-    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters)) {
+    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
       setDetailExtra(cached.detailExtra ?? {});
       setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
@@ -1543,7 +1543,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       setDetailExtra(d || {});
       setDetailLoading(false);
       // Só guarda no cache se tiver dados reais
-      if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters)) {
+      if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.timeToBeat || d.pages || d.platforms)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
         // Persistir duração — localStorage (local) + merge na biblioteca (sincroniza entre dispositivos)
         if (d.episodes || d.chapters || d.runtime) {
@@ -1948,8 +1948,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
                   {/* Keywords TMDB */}
                   {detailExtra?.keywords?.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 12 }}>
-                      {detailExtra.keywords.map(k => <span key={k} style={{ background: darkMode ? "#161b22" : "#f1f5f9", color: "#8b949e", padding: "3px 8px", borderRadius: 6, fontSize: 11 }}>{k}</span>)}
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Keywords</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {detailExtra.keywords.map(k => <span key={k} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, color: darkMode ? "#8b949e" : "#64748b", padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 500 }}>{k}</span>)}
+                      </div>
                     </div>
                   )}
 
