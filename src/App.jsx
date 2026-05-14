@@ -8212,15 +8212,51 @@ export default function TrackAll() {
               };
 
 
+              const todayPick = picks.find(p => p.slot === "today");
+              const smallPicks = picks.filter(p => p.slot !== "today");
               return (
                 <div style={{ padding: "14px 16px 0" }}>
-                  {picks.length > 0 && (
+                  {/* Best for Today — card grande */}
+                  {todayPick && (() => {
+                    const item = todayPick.item;
+                    const typeObj = MEDIA_TYPES.find(t => t.id === item.type);
+                    return (
+                      <div onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", borderRadius: 18, overflow: "hidden", border: `1px solid ${accent}26`, background: activeDarkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`, marginBottom: smallPicks.length > 0 ? 12 : 0 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
+                          <div style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+                            {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
+                          </div>
+                          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
+                            <div>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                                <div>
+                                  <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{lang === "en" ? "Best for Today" : "Melhor para Hoje"}</div>
+                                  <h3 style={{ fontSize: isMobileDevice ? 21 : 25, lineHeight: 1.05, fontWeight: 900, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</h3>
+                                </div>
+                                {(item.userRating > 0 || item.score) && <div style={{ flexShrink: 0, background: activeDarkMode ? "rgba(10,10,10,0.28)" : "rgba(255,255,255,0.46)", border: `1px solid ${accent}22`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>★ {item.userRating > 0 ? item.userRating : item.score}</div>}
+                              </div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>{getMediaTypeLabel(item.type, lang)}</span>
+                              </div>
+                              <p style={{ fontSize: 13, lineHeight: 1.5, color: activeDarkMode ? "#cbd5e1" : "#475569", margin: 0 }}>{lang === "en" ? "Strongest current pick." : "A aposta mais forte do momento."}</p>
+                            </div>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: accent, fontSize: 12, fontWeight: 800 }}>
+                              <span>{lang === "en" ? "Open title" : "Abrir obra"}</span>
+                              <span style={{ fontSize: 14 }}>→</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {/* Outros quick picks — cards pequenos */}
+                  {smallPicks.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 8, marginTop: todayPick ? 0 : 0 }}>
                         {lang === "en" ? "Quick picks" : "Escolhas rápidas"}
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                        {picks.map(({ slot, item }) => (
+                        {smallPicks.map(({ slot, item }) => (
                           <button key={`${slot}-${item.id}`} onClick={() => setSelectedItem(item)} style={{ textAlign: "left", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", borderRadius: 14, padding: "12px", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "54px 1fr", gap: 10 }}>
                             <div style={{ width: 54, height: 74, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
                               {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
