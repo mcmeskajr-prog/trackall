@@ -8387,7 +8387,7 @@ export default function TrackAll() {
               ].filter(Boolean);
               if (slots.length === 0) return null;
               return (
-                <div style={{ margin: "20px 0 4px" }}>
+                <div style={{ margin: "20px 0 4px", padding: "0 16px" }}>
                   <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 10 }}>
                     {lang === "en" ? "When to consume?" : "Quando consumir?"}
                   </div>
