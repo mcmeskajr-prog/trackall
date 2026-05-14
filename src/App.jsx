@@ -597,37 +597,127 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     // TMDB filmes — vários formatos possíveis
     if (id.startsWith("tmdb-filmes-") || id.startsWith("tmdb-movie-")) {
       const tmdbId = id.replace("tmdb-filmes-", "").replace("tmdb-movie-", "");
-      const [detailRes, creditsRes] = await Promise.all([
-        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`),
-        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/credits&language=en-US`),
+      const [detailRes, creditsRes, videosRes, keywordsRes] = await Promise.allSettled([
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/credits&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/videos&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/movie/${tmdbId}/keywords`).then(r => r.json()),
       ]);
-      const d = await detailRes.json();
-      const c = creditsRes.ok ? await creditsRes.json() : null;
+      const d = detailRes.status === "fulfilled" ? detailRes.value : {};
+      const c = creditsRes.status === "fulfilled" ? creditsRes.value : null;
+      const vids = videosRes.status === "fulfilled" ? videosRes.value : null;
+      const kws = keywordsRes.status === "fulfilled" ? keywordsRes.value : null;
       const cast = (c?.cast || []).slice(0, 20).map(p => ({
         id: p.id, name: p.name, character: p.character,
         image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
       }));
       const directorData = (c?.crew || []).find(p => p.job === "Director");
       const director = directorData ? { id: directorData.id, name: directorData.name, image: directorData.profile_path ? `https://image.tmdb.org/t/p/w185${directorData.profile_path}` : null } : null;
-      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year, cast, director };
+      const videos = (vids?.results || []).filter(v => v.site === "YouTube" && ["Trailer","Teaser","Clip"].includes(v.type)).slice(0, 4).map(v => ({ id: v.key, name: v.name, type: v.type }));
+      const keywords = (kws?.keywords || []).slice(0, 12).map(k => k.name);
+      return { runtime: d.runtime ? `${d.runtime} min` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, year: d.release_date?.slice(0, 4) || item.year, cast, director, videos, keywords };
     }
 
     // TMDB séries — vários formatos possíveis
     if (id.startsWith("tmdb-series-") || id.startsWith("tmdb-tv-")) {
       const tmdbId = id.replace("tmdb-series-", "").replace("tmdb-tv-", "");
-      const [detailRes, creditsRes] = await Promise.all([
-        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=en-US`),
-        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/credits&language=en-US`),
+      const [detailRes, creditsRes, videosRes, keywordsRes] = await Promise.allSettled([
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/credits&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/videos&language=en-US`).then(r => r.json()),
+        fetch(`${wUrl}/tmdb?endpoint=/tv/${tmdbId}/keywords`).then(r => r.json()),
       ]);
-      const d = await detailRes.json();
-      const c = creditsRes.ok ? await creditsRes.json() : null;
+      const d = detailRes.status === "fulfilled" ? detailRes.value : {};
+      const c = creditsRes.status === "fulfilled" ? creditsRes.value : null;
+      const vids = videosRes.status === "fulfilled" ? videosRes.value : null;
+      const kws = keywordsRes.status === "fulfilled" ? keywordsRes.value : null;
       const cast = (c?.cast || []).slice(0, 20).map(p => ({
         id: p.id, name: p.name, character: p.character,
         image: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
       }));
       const creatorData = d.created_by?.[0];
       const director = creatorData ? { id: creatorData.id, name: creatorData.name, image: creatorData.profile_path ? `https://image.tmdb.org/t/p/w185${creatorData.profile_path}` : null } : null;
-      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast, director };
+      const videos = (vids?.results || []).filter(v => v.site === "YouTube" && ["Trailer","Teaser","Clip"].includes(v.type)).slice(0, 4).map(v => ({ id: v.key, name: v.name, type: v.type }));
+      const keywords = (kws?.results || kws?.keywords || []).slice(0, 12).map(k => k.name);
+      const seasonsList = (d.seasons || []).filter(s => s.season_number > 0).map(s => ({ number: s.season_number, name: s.name, episodes: s.episode_count, airDate: s.air_date?.slice(0,4) || null, poster: s.poster_path ? `https://image.tmdb.org/t/p/w185${s.poster_path}` : null }));
+      return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast, director, videos, keywords, seasonsList };
+    }
+
+    // IGDB jogos
+    if (id.startsWith("igdb-")) {
+      const igdbId = id.replace("igdb-", "");
+      const [mainRes, videosRes, artworksRes] = await Promise.allSettled([
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,game_modes.name,involved_companies.company.name,involved_companies.developer,time_to_beat.normally,time_to_beat.hastily,time_to_beat.completely,first_release_date,total_rating,artworks.image_id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
+      ]);
+      const g = (mainRes.status === "fulfilled" && mainRes.value?.[0]) ? mainRes.value[0] : null;
+      if (!g) return null;
+      const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
+      const ttb = g.time_to_beat;
+      const timeToBeat = ttb ? {
+        main: ttb.normally ? `${Math.round(ttb.normally / 3600)}h` : null,
+        completionist: ttb.completely ? `${Math.round(ttb.completely / 3600)}h` : null,
+        rushed: ttb.hastily ? `${Math.round(ttb.hastily / 3600)}h` : null,
+      } : null;
+      const videos = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
+        ? videosRes.value.filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }))
+        : [];
+      const artworks = (artworksRes.status === "fulfilled" && Array.isArray(artworksRes.value))
+        ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
+        : [];
+      return {
+        synopsis: g.summary || null,
+        genres: (g.genres || []).map(g => g.name),
+        platforms: (g.platforms || []).map(p => p.name),
+        franchises: [...(g.franchises || []).map(f => f.name), ...(g.collections || []).map(c => c.name)].filter(Boolean),
+        developer,
+        timeToBeat,
+        videos,
+        artworks,
+        score: g.total_rating ? +(g.total_rating / 10).toFixed(1) : null,
+      };
+    }
+
+    // Google Books
+    if (id.startsWith("gb-")) {
+      const gbId = id.replace("gb-", "");
+      const res = await fetch(`${wUrl}/books?q=id:${gbId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const vol = data?.items?.[0]?.volumeInfo;
+      if (!vol) return null;
+      return {
+        synopsis: vol.description || null,
+        genres: vol.categories || [],
+        pages: vol.pageCount || null,
+        publisher: vol.publisher || null,
+        publishedDate: vol.publishedDate || null,
+        language: vol.language || null,
+        score: vol.averageRating || null,
+      };
+    }
+
+    // ComicVine
+    if (id.startsWith("cv-")) {
+      const cvId = id.replace("cv-", "");
+      const [volRes, charsRes] = await Promise.allSettled([
+        fetch(`${wUrl}/comicvine?q=${cvId}&resource=volume`).then(r => r.json()),
+        fetch(`${wUrl}/comicvine-char?q=${cvId}`).then(r => r.json()),
+      ]);
+      const vol = volRes.status === "fulfilled" ? volRes.value?.results?.[0] : null;
+      const chars = charsRes.status === "fulfilled" && Array.isArray(charsRes.value) ? charsRes.value.slice(0, 12) : [];
+      if (!vol && chars.length === 0) return null;
+      return {
+        synopsis: vol?.description?.replace(/<[^>]*>/g, "").slice(0, 800) || null,
+        publisher: vol?.publisher?.name || null,
+        startYear: vol?.start_year || null,
+        issueCount: vol?.count_of_issues || null,
+        cast: chars.map(c => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image?.medium_url || null, role: "CHARACTER" })),
+      };
     }
 
     // AniList — formatos: al-anime-123, al-manga-123, al-123
@@ -1405,9 +1495,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const isIGDB = (currentItem.id || "").startsWith("igdb-");
   const isFilme = currentItem.type === "filmes";
   const isSerie = currentItem.type === "series";
-  const hasCast = isAniList || isTMDB;
+  const hasCast = isAniList || isTMDB || currentItem?.id?.startsWith("cv-");
   const hasRelations = isAniList;
-  const hasMedia = isTMDB || isIGDB;
+  const hasMedia = isTMDB || isIGDB || detailExtra?.videos?.length > 0 || detailExtra?.artworks?.length > 0;
 
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
 
@@ -1810,6 +1900,86 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || currentItem.synopsis || ""}</p>
                   )}
 
+                  {/* Tempo de jogo IGDB */}
+                  {detailExtra?.timeToBeat && (detailExtra.timeToBeat.main || detailExtra.timeToBeat.completionist) && (
+                    <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {detailExtra.timeToBeat.rushed && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#10b981" }}>{detailExtra.timeToBeat.rushed}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Rushed</div></div>}
+                      {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Main Story</div></div>}
+                      {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e" }}>100%</div></div>}
+                    </div>
+                  )}
+
+                  {/* Plataformas IGDB */}
+                  {detailExtra?.platforms?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                      {detailExtra.platforms.map(p => <span key={p} style={{ background: darkMode ? "#21262d" : "#f1f5f9", color: "#8b949e", padding: "3px 8px", borderRadius: 6, fontSize: 11 }}>{p}</span>)}
+                    </div>
+                  )}
+
+                  {/* Franchises IGDB */}
+                  {detailExtra?.franchises?.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Franchise:</span>
+                      {detailExtra.franchises.map(f => <span key={f} style={{ fontSize: 12, color: accent, fontWeight: 700, marginRight: 8 }}>{f}</span>)}
+                    </div>
+                  )}
+
+                  {/* Developer IGDB */}
+                  {detailExtra?.developer && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Developer:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.developer}</span>
+                    </div>
+                  )}
+
+                  {/* Google Books — páginas e publisher */}
+                  {detailExtra?.pages && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Páginas:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.pages}</span>
+                    </div>
+                  )}
+                  {detailExtra?.publisher && (
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Editora:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.publisher}</span>
+                    </div>
+                  )}
+
+                  {/* Keywords TMDB */}
+                  {detailExtra?.keywords?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 12 }}>
+                      {detailExtra.keywords.map(k => <span key={k} style={{ background: darkMode ? "#161b22" : "#f1f5f9", color: "#8b949e", padding: "3px 8px", borderRadius: 6, fontSize: 11 }}>{k}</span>)}
+                    </div>
+                  )}
+
+                  {/* Temporadas TMDB */}
+                  {detailExtra?.seasonsList?.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Temporadas</h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {detailExtra.seasonsList.map(s => (
+                          <div key={s.number} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: darkMode ? "#161b22" : "#f1f5f9" }}>
+                            {s.poster && <img src={s.poster} alt="" style={{ width: 32, height: 44, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#f0f6fc" : "#0f172a" }}>{s.name}</div>
+                              <div style={{ fontSize: 11, color: "#8b949e" }}>{s.episodes} ep{s.airDate ? ` · ${s.airDate}` : ""}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Arcs ComicVine */}
+                  {detailExtra?.issueCount && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Issues:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.issueCount}</span>
+                      {detailExtra.startYear && <span style={{ fontSize: 11, color: "#8b949e", marginLeft: 8 }}>· desde {detailExtra.startYear}</span>}
+                    </div>
+                  )}
+
                   {/* Coleção TMDB */}
                   {collection && (
                     <div style={{ marginTop: 20 }}>
@@ -1898,15 +2068,60 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
                       <p style={{ fontSize: 13 }}>A carregar...</p>
                     </div>
-                  ) : screenshots.length === 0 ? (
-                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem screenshots disponíveis.</p>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {screenshots.map((src, i) => (
-                        <div key={i} style={{ borderRadius: 10, overflow: "hidden", background: "#161b22" }}>
-                          <img src={src} alt="" style={{ width: "100%", display: "block", borderRadius: 10 }} onError={e => e.currentTarget.parentElement.style.display="none"} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {/* Vídeos/Trailers — TMDB e IGDB */}
+                      {(detailExtra?.videos?.length > 0) && (
+                        <div>
+                          <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>🎬 Trailers</h4>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {detailExtra.videos.map(v => (
+                              <a key={v.id} href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f1f5f9", textDecoration: "none" }}>
+                                <div style={{ width: 48, height: 34, borderRadius: 6, overflow: "hidden", flexShrink: 0, position: "relative", background: "#000" }}>
+                                  <img src={`https://img.youtube.com/vi/${v.id}/mqdefault.jpg`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <span style={{ fontSize: 16, filter: "drop-shadow(0 0 3px rgba(0,0,0,0.8))" }}>▶</span>
+                                  </div>
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</div>
+                                  <div style={{ fontSize: 11, color: "#8b949e" }}>{v.type || "YouTube"}</div>
+                                </div>
+                                <span style={{ color: accent, fontSize: 18, flexShrink: 0 }}>↗</span>
+                              </a>
+                            ))}
+                          </div>
                         </div>
-                      ))}
+                      )}
+                      {/* Artworks IGDB */}
+                      {detailExtra?.artworks?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>🖼 Artworks</h4>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {detailExtra.artworks.map((src, i) => (
+                              <div key={i} style={{ borderRadius: 10, overflow: "hidden", background: "#161b22" }}>
+                                <img src={src} alt="" style={{ width: "100%", display: "block", borderRadius: 10 }} onError={e => e.currentTarget.parentElement.style.display="none"} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Screenshots */}
+                      {screenshots.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>📸 Screenshots</h4>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {screenshots.map((src, i) => (
+                              <div key={i} style={{ borderRadius: 10, overflow: "hidden", background: "#161b22" }}>
+                                <img src={src} alt="" style={{ width: "100%", display: "block", borderRadius: 10 }} onError={e => e.currentTarget.parentElement.style.display="none"} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!detailExtra?.videos?.length && !detailExtra?.artworks?.length && !screenshots.length && (
+                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem media disponível.</p>
+                      )}
                     </div>
                   )}
                 </div>
