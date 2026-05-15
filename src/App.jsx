@@ -1521,10 +1521,12 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     if (!ci?.id) return;
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
+    // Para jogos IGDB, limpar cache se não tiver dados do novo fetchMediaDetails
+    if (ci.id.startsWith("igdb-") && detailCacheRef.current[ci.id] && !detailCacheRef.current[ci.id].detailExtra?.platforms && !detailCacheRef.current[ci.id].detailExtra?.timeToBeat) {
+      delete detailCacheRef.current[ci.id];
+    }
     const cached = detailCacheRef.current[ci.id];
-    // Para jogos, invalidar cache se não tiver dados do fetchMediaDetails (timeToBeat, platforms)
-    const cacheInvalid = isIGDB && cached && !cached.detailExtra?.platforms && !cached.detailExtra?.timeToBeat;
-    if (cached && !cacheInvalid && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
+    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
       setDetailExtra(cached.detailExtra ?? {});
       setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
