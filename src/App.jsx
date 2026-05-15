@@ -655,7 +655,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "game_time_to_beat", body: `fields normally,hastily,completely; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "game_time_to_beat", body: `fields normally,hastily,completely,game; where game = (${igdbId}); limit 1;` }) }).then(r => r.json()),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
