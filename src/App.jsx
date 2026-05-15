@@ -646,22 +646,25 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     // IGDB jogos
     if (id.startsWith("igdb-")) {
       const igdbId = id.replace("igdb-", "");
-      const [mainRes, videosRes, artworksRes] = await Promise.allSettled([
+      const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
+        // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,game_modes.name,involved_companies.company.name,involved_companies.developer,time_to_beat.normally,time_to_beat.hastily,time_to_beat.completely,first_release_date,total_rating,artworks.image_id; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "game_time_to_beats", body: `fields normally,hastily,completely; where game_id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
       ]);
-      const g = (mainRes.status === "fulfilled" && mainRes.value?.[0]) ? mainRes.value[0] : null;
+      const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
       const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
-      const ttb = g.time_to_beat;
-      const timeToBeat = ttb ? {
-        main: ttb.normally ? `${Math.round(ttb.normally / 3600)}h` : null,
-        completionist: ttb.completely ? `${Math.round(ttb.completely / 3600)}h` : null,
-        rushed: ttb.hastily ? `${Math.round(ttb.hastily / 3600)}h` : null,
+      const ttbData = (ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
+      const timeToBeat = ttbData ? {
+        main: ttbData.normally ? `${Math.round(ttbData.normally / 3600)}h` : null,
+        completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
+        rushed: ttbData.hastily ? `${Math.round(ttbData.hastily / 3600)}h` : null,
       } : null;
       const videos = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
         ? videosRes.value.filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }))
@@ -669,10 +672,11 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const artworks = (artworksRes.status === "fulfilled" && Array.isArray(artworksRes.value))
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
+      const platforms = (g.platforms || []).map(p => p.name);
       return {
         synopsis: g.summary || null,
-        genres: (g.genres || []).map(g => g.name),
-        platforms: (g.platforms || []).map(p => p.name),
+        genres: (g.genres || []).map(gg => gg.name),
+        platforms,
         franchises: [...(g.franchises || []).map(f => f.name), ...(g.collections || []).map(c => c.name)].filter(Boolean),
         developer,
         timeToBeat,
