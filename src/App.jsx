@@ -1530,8 +1530,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     if (!ci?.id) return;
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
-    // Para jogos IGDB, limpar cache se não tiver dados do novo fetchMediaDetails
-    if (ci.id.startsWith("igdb-") && detailCacheRef.current[ci.id] && !detailCacheRef.current[ci.id].detailExtra?.platforms && !detailCacheRef.current[ci.id].detailExtra?.timeToBeat) {
+    // Para jogos IGDB, apagar sempre o cache para garantir dados frescos do fetchMediaDetails
+    if (ci.id.startsWith("igdb-")) {
       delete detailCacheRef.current[ci.id];
     }
     const cached = detailCacheRef.current[ci.id];
