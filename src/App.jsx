@@ -649,7 +649,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
         // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -666,9 +666,11 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
         rushed: ttbData.hastily ? `${Math.round(ttbData.hastily / 3600)}h` : null,
       } : null;
-      const videos = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
+      const videosFromMain = (g.videos || []).filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }));
+      const videosFromEndpoint = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
         ? videosRes.value.filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }))
         : [];
+      const videos = videosFromEndpoint.length > 0 ? videosFromEndpoint : videosFromMain;
       const artworks = (artworksRes.status === "fulfilled" && Array.isArray(artworksRes.value))
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
@@ -1918,7 +1920,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   )}
 
                   {/* Tempo de jogo IGDB */}
-                  {detailExtra?.timeToBeat && (detailExtra.timeToBeat.main || detailExtra.timeToBeat.completionist) && (
+                  {detailExtra?.timeToBeat && (
                     <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {detailExtra.timeToBeat.rushed && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#10b981" }}>{detailExtra.timeToBeat.rushed}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Rushed</div></div>}
                       {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Main Story</div></div>}
