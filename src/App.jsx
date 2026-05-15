@@ -649,7 +649,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
         // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name,game_time_to_beat.normally,game_time_to_beat.hastily,game_time_to_beat.completely; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -660,7 +660,10 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
       const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
-      const ttbData = (ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
+      // Tentar time_to_beat do endpoint separado, depois do campo inline
+      const ttbEndpoint = (ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
+      const ttbInline = g.game_time_to_beat || null;
+      const ttbData = ttbEndpoint || ttbInline;
       const timeToBeat = ttbData ? {
         main: ttbData.normally ? `${Math.round(ttbData.normally / 3600)}h` : null,
         completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
