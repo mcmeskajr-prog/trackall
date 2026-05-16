@@ -668,24 +668,17 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
         // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name,game_time_to_beat.main,game_time_to_beat.completely; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        fetch(`${wUrl}/hltb?q=${encodeURIComponent(item.title || '')}`, { method: 'GET' }).then(r => r.json()).catch(() => null),
+        Promise.resolve(null), // HLTB removido
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
       const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
-      // HLTB — encontrar o jogo com nome mais parecido
-      const hltbResults = (ttbRes.status === "fulfilled" && ttbRes.value?.results) ? ttbRes.value.results : [];
-      const hltbMatch = hltbResults.find(r => r.name?.toLowerCase().includes((item.title || "").toLowerCase().slice(0, 10))) || hltbResults[0] || null;
-      const timeToBeat = hltbMatch && (hltbMatch.main || hltbMatch.extra || hltbMatch.completionist) ? {
-        main: hltbMatch.main ? `${hltbMatch.main}h` : null,
-        extra: hltbMatch.extra ? `${hltbMatch.extra}h` : null,
-        completionist: hltbMatch.completionist ? `${hltbMatch.completionist}h` : null,
-      } : null;
+
       const videosFromMain = (g.videos || []).filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }));
       const videosFromEndpoint = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
         ? videosRes.value.filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }))
@@ -695,6 +688,11 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
       const platforms = (g.platforms || []).map(p => p.name);
+      const ttbData = g.game_time_to_beat || null;
+      const timeToBeat = ttbData ? {
+        main: ttbData.main ? `${Math.round(ttbData.main / 3600)}h` : null,
+        completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
+      } : null;
       return {
         synopsis: g.summary || null,
         genres: (g.genres || []).map(gg => gg.name),
