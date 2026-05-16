@@ -350,6 +350,25 @@ function getConsumptionTime(item) {
     if (chs <= 80) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
     return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
   }
+  // Jogos: usar timeToBeatMain do localStorage
+  if (["jogos","games"].includes(type)) {
+    try {
+      const candidates = typeof mediaIdCandidates === "function" ? mediaIdCandidates(item.id, item.type) : [item.id];
+      for (const cid of candidates) {
+        const s = localStorage.getItem("trackall_dur_" + cid);
+        if (s) {
+          const d = JSON.parse(s);
+          if (d.timeToBeatMain) {
+            const h = Number(d.timeToBeatMain);
+            if (h <= 8) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+            if (h <= 20) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
+            return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
+          }
+          break;
+        }
+      }
+    } catch {}
+  }
   return null;
 }
 
@@ -654,20 +673,18 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "game_time_to_beats", body: `fields normally,hastily,completely; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+        fetch(`${wUrl}/hltb?q=${encodeURIComponent(item.title || '')}`, { method: 'GET' }).then(r => r.json()).catch(() => null),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
       const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
-      // Tentar time_to_beat do endpoint separado, depois do campo inline
-      const ttbEndpoint = (ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
-      const ttbInline = g.game_time_to_beat || null;
-      const ttbData = ttbEndpoint || ttbInline;
-      const timeToBeat = ttbData ? {
-        main: ttbData.normally ? `${Math.round(ttbData.normally / 3600)}h` : null,
-        completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
-        rushed: ttbData.hastily ? `${Math.round(ttbData.hastily / 3600)}h` : null,
+      // HLTB — encontrar o jogo com nome mais parecido
+      const hltbResults = (ttbRes.status === "fulfilled" && ttbRes.value?.results) ? ttbRes.value.results : [];
+      const hltbMatch = hltbResults.find(r => r.name?.toLowerCase().includes((item.title || "").toLowerCase().slice(0, 10))) || hltbResults[0] || null;
+      const timeToBeat = hltbMatch && (hltbMatch.main || hltbMatch.extra || hltbMatch.completionist) ? {
+        main: hltbMatch.main ? `${hltbMatch.main}h` : null,
+        extra: hltbMatch.extra ? `${hltbMatch.extra}h` : null,
+        completionist: hltbMatch.completionist ? `${hltbMatch.completionist}h` : null,
       } : null;
       const videosFromMain = (g.videos || []).filter(v => v.video_id).map(v => ({ id: v.video_id, name: v.name || "Trailer" }));
       const videosFromEndpoint = (videosRes.status === "fulfilled" && Array.isArray(videosRes.value))
@@ -1567,14 +1584,28 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       // Só guarda no cache se tiver dados reais
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.timeToBeat || d.pages || d.platforms)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
-        // Persistir duração — localStorage (local) + merge na biblioteca (sincroniza entre dispositivos)
+        // Persistir duração — localStorage
         if (d.episodes || d.chapters || d.runtime) {
           try {
             const durData = JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null });
             mediaIdCandidates(ci.id, ci.type).forEach(cid => { try { localStorage.setItem("trackall_dur_" + cid, durData); } catch {} });
           } catch {}
-          // Merge silencioso na biblioteca se item estiver lá e faltar duração
           if (onUpdateDuration) try { onUpdateDuration(ci.id, ci.type, { episodes: d.episodes, chapters: d.chapters, runtime: d.runtime }); } catch {}
+        }
+        // Guardar timeToBeat para jogos no localStorage
+        if (d.timeToBeat?.main) {
+          try {
+            const mainH = parseInt(d.timeToBeat.main);
+            if (!isNaN(mainH)) {
+              mediaIdCandidates(ci.id, ci.type).forEach(cid => {
+                try {
+                  const existing = localStorage.getItem("trackall_dur_" + cid);
+                  const parsed = existing ? JSON.parse(existing) : {};
+                  localStorage.setItem("trackall_dur_" + cid, JSON.stringify({ ...parsed, timeToBeatMain: mainH }));
+                } catch {}
+              });
+            }
+          } catch {}
         }
       }
     }).catch((err) => {
@@ -1924,10 +1955,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
                   {/* Tempo de jogo IGDB */}
                   {detailExtra?.timeToBeat && (
-                    <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {detailExtra.timeToBeat.rushed && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#10b981" }}>{detailExtra.timeToBeat.rushed}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Rushed</div></div>}
-                      {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e" }}>Main Story</div></div>}
-                      {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e" }}>100%</div></div>}
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Time to Beat</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Main Story</div></div>}
+                        {detailExtra.timeToBeat.extra && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#06b6d4" }}>{detailExtra.timeToBeat.extra}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Main + Extras</div></div>}
+                        {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>100%</div></div>}
+                      </div>
                     </div>
                   )}
 
