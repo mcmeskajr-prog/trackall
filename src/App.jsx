@@ -655,10 +655,10 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "game_time_to_beat", body: `fields normally,hastily,completely; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "game_time_to_beats", body: `fields normally,hastily,completely; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
-      if (!g) { console.warn("[IGDB] mainRes falhou:", mainRes); return null; }
+      if (!g) return null;
       const developer = (g.involved_companies || []).find(c => c.developer)?.company?.name || g.involved_companies?.[0]?.company?.name || null;
       // Tentar time_to_beat do endpoint separado, depois do campo inline
       const ttbEndpoint = (ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
@@ -1530,8 +1530,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     if (!ci?.id) return;
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
-    // Para jogos IGDB, apagar sempre o cache para garantir dados frescos do fetchMediaDetails
-    if (ci.id.startsWith("igdb-")) {
+    // Para jogos IGDB, invalidar cache se não tiver platforms (dados do novo fetchMediaDetails)
+    if (ci.id.startsWith("igdb-") && detailCacheRef.current[ci.id] && !detailCacheRef.current[ci.id].detailExtra?.platforms) {
       delete detailCacheRef.current[ci.id];
     }
     const cached = detailCacheRef.current[ci.id];
