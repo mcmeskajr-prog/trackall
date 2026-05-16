@@ -668,12 +668,12 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
         // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name,game_time_to_beat.main,game_time_to_beat.completely; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
+          body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        Promise.resolve(null), // HLTB removido
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "game_time_to_beat", body: `fields main,completely; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()).catch(() => null),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
@@ -688,10 +688,10 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
       const platforms = (g.platforms || []).map(p => p.name);
-      const ttbData = g.game_time_to_beat || null;
-      const timeToBeat = ttbData ? {
-        main: ttbData.main ? `${Math.round(ttbData.main / 3600)}h` : null,
-        completionist: ttbData.completely ? `${Math.round(ttbData.completely / 3600)}h` : null,
+      const ttbRaw = (ttbRes && ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
+      const timeToBeat = ttbRaw ? {
+        main: ttbRaw.main ? `${Math.round(ttbRaw.main / 3600)}h` : null,
+        completionist: ttbRaw.completely ? `${Math.round(ttbRaw.completely / 3600)}h` : null,
       } : null;
       return {
         synopsis: g.summary || null,
@@ -1545,10 +1545,8 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     if (!ci?.id) return;
 
     // Usar cache se disponível E tiver dados reais (evita usar cache de erros anteriores)
-    // Para jogos IGDB, invalidar cache se não tiver platforms (dados do novo fetchMediaDetails)
-    if (ci.id.startsWith("igdb-") && detailCacheRef.current[ci.id] && !detailCacheRef.current[ci.id].detailExtra?.platforms) {
-      delete detailCacheRef.current[ci.id];
-    }
+    // Para jogos IGDB, apagar cache sempre para garantir dados frescos
+    if (ci.id.startsWith("igdb-")) delete detailCacheRef.current[ci.id];
     const cached = detailCacheRef.current[ci.id];
     if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
       setDetailExtra(cached.detailExtra ?? {});
