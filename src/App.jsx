@@ -673,7 +673,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields game_time_to_beat.main,game_time_to_beat.completely; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()).catch(() => null),
+        Promise.resolve(null), // game_time_to_beat não suportado via IGDB API
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
@@ -688,12 +688,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
       const platforms = (g.platforms || []).map(p => p.name);
-      const ttbGame = (ttbRes && ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
-      const ttbRaw = ttbGame?.game_time_to_beat || null;
-      const timeToBeat = ttbRaw ? {
-        main: ttbRaw.main ? `${Math.round(ttbRaw.main / 3600)}h` : null,
-        completionist: ttbRaw.completely ? `${Math.round(ttbRaw.completely / 3600)}h` : null,
-      } : null;
+      const timeToBeat = null;
       return {
         synopsis: g.summary || null,
         genres: (g.genres || []).map(gg => gg.name),
