@@ -7744,26 +7744,42 @@ export default function TrackAll() {
     const seededPick = (arr, offset = 0) => arr.length ? arr[(daySeed + offset) % arr.length] : null;
 
     const currentFocus = inProgress[0] || paused[0] || planned[0] || null;
-    const oldestPlanned = [...planned].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
-    const forgottenPlanned = seededPick(oldestPlanned.slice(0, Math.min(5, oldestPlanned.length)), 1) || oldestPlanned[0] || null;
-    const worthReturning = seededPick(paused, 2) || paused[0] || null;
+
+    // Forgotten: mais antigo no Planejo, excluindo currentFocus
+    const oldestPlanned = [...planned]
+      .filter(i => i.id !== currentFocus?.id)
+      .sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    const forgottenPlanned = seededPick(oldestPlanned.slice(0, Math.min(8, oldestPlanned.length)), 1) || oldestPlanned[0] || null;
+
+    // Worth Returning: pausados, excluindo currentFocus
+    const pausedFiltered = paused.filter(i => i.id !== currentFocus?.id);
+    const worthReturning = seededPick(pausedFiltered, 2) || pausedFiltered[0] || null;
+
+    // Best for Today: candidatos excluindo currentFocus, forgotten e worthReturning
+    // Com diversidade de tipos — não repetir o mesmo tipo que currentFocus
+    const excludeIds = new Set([currentFocus?.id, forgottenPlanned?.id, worthReturning?.id].filter(Boolean));
     const bestCandidates = withPriority(actionable, (item) => {
       if (item.userStatus === "assistindo") return 28;
       if (pausedStatuses.has(item.userStatus)) return 14;
       if (watchTypes.has(item.type)) return 6;
       return 0;
-    }).filter(item => item.id !== currentFocus?.id);
-    // Rotação melhorada: usar daySeed * primo para mais variação
+    }).filter(item => !excludeIds.has(item.id));
+
+    // Rotação com diversidade: tentar tipo diferente do currentFocus
     const prime = 31;
     const seededPickPrime = (arr, offset = 0) => arr.length ? arr[Math.abs((daySeed * prime + offset * 17)) % arr.length] : null;
-    const bestForToday = seededPickPrime(bestCandidates.slice(0, Math.min(10, bestCandidates.length)), 0) || bestCandidates[0] || null;
+    // Preferir tipo diferente do currentFocus para variedade
+    const focusType = currentFocus?.type;
+    const diverseCandidates = focusType
+      ? [...bestCandidates.filter(i => i.type !== focusType), ...bestCandidates.filter(i => i.type === focusType)]
+      : bestCandidates;
+    const bestForToday = seededPickPrime(diverseCandidates.slice(0, Math.min(12, diverseCandidates.length)), 0) || diverseCandidates[0] || null;
 
     const quickPicks = [];
     const pushPick = (slot, item) => {
       if (!item || quickPicks.some(p => p.item?.id === item.id)) return;
       quickPicks.push({ slot, item });
     };
-    // currentFocus entra nos quick picks como card normal
     if (currentFocus) pushPick("focus", currentFocus);
     pushPick("today", bestForToday);
     pushPick("forgotten", forgottenPlanned);
