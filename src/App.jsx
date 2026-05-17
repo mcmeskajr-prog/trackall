@@ -673,7 +673,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        Promise.resolve(null), // game_time_to_beat não suportado via IGDB API
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,time_to_beat; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()).catch(() => null),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
@@ -688,7 +688,13 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
       const platforms = (g.platforms || []).map(p => p.name);
-      const timeToBeat = null;
+      const ttbGame = (ttbRes && ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
+      const ttb = ttbGame?.time_to_beat || null;
+      const timeToBeat = ttb ? {
+        main: ttb.normally ? `${Math.round(ttb.normally / 3600)}h` : null,
+        extra: ttb.hastily ? `${Math.round(ttb.hastily / 3600)}h` : null,
+        completionist: ttb.completely ? `${Math.round(ttb.completely / 3600)}h` : null,
+      } : null;
       return {
         synopsis: g.summary || null,
         genres: (g.genres || []).map(gg => gg.name),
@@ -1950,9 +1956,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     <div style={{ marginTop: 14 }}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Time to Beat</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Main Story</div></div>}
-                        {detailExtra.timeToBeat.extra && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#06b6d4" }}>{detailExtra.timeToBeat.extra}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Main + Extras</div></div>}
-                        {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>100%</div></div>}
+                        {detailExtra.timeToBeat.extra && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#10b981" }}>{detailExtra.timeToBeat.extra}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Hastily</div></div>}
+                        {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Normally</div></div>}
+                        {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Completely</div></div>}
                       </div>
                     </div>
                   )}
