@@ -350,25 +350,7 @@ function getConsumptionTime(item) {
     if (chs <= 80) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
     return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
   }
-  // Jogos: usar timeToBeatMain do localStorage
-  if (["jogos","games"].includes(type)) {
-    try {
-      const candidates = typeof mediaIdCandidates === "function" ? mediaIdCandidates(item.id, item.type) : [item.id];
-      for (const cid of candidates) {
-        const s = localStorage.getItem("trackall_dur_" + cid);
-        if (s) {
-          const d = JSON.parse(s);
-          if (d.timeToBeatMain) {
-            const h = Number(d.timeToBeatMain);
-            if (h <= 8) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
-            if (h <= 20) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
-            return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
-          }
-          break;
-        }
-      }
-    } catch {}
-  }
+
   return null;
 }
 
@@ -673,7 +655,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "games", body: `fields name,time_to_beat; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()).catch(() => null),
+
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
@@ -688,20 +670,13 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
       const platforms = (g.platforms || []).map(p => p.name);
-      const ttbGame = (ttbRes && ttbRes.status === "fulfilled" && Array.isArray(ttbRes.value) && ttbRes.value[0]) ? ttbRes.value[0] : null;
-      const ttb = ttbGame?.time_to_beat || null;
-      const timeToBeat = ttb ? {
-        main: ttb.normally ? `${Math.round(ttb.normally / 3600)}h` : null,
-        extra: ttb.hastily ? `${Math.round(ttb.hastily / 3600)}h` : null,
-        completionist: ttb.completely ? `${Math.round(ttb.completely / 3600)}h` : null,
-      } : null;
+      const timeToBeat = null;
       return {
         synopsis: g.summary || null,
         genres: (g.genres || []).map(gg => gg.name),
         platforms,
         franchises: [...(g.franchises || []).map(f => f.name), ...(g.collections || []).map(c => c.name)].filter(Boolean),
         developer,
-        timeToBeat,
         videos,
         artworks,
         score: g.total_rating ? +(g.total_rating / 10).toFixed(1) : null,
@@ -1550,7 +1525,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     // Para jogos IGDB, apagar cache sempre para garantir dados frescos
     if (ci.id.startsWith("igdb-")) delete detailCacheRef.current[ci.id];
     const cached = detailCacheRef.current[ci.id];
-    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.timeToBeat || cached.detailExtra?.pages)) {
+    if (cached && (cached.detailExtra?.synopsis || cached.detailExtra?.cast?.length || cached.detailExtra?.episodes || cached.detailExtra?.chapters || cached.detailExtra?.pages)) {
       setDetailExtra(cached.detailExtra ?? {});
       setDetailLoading(false);
       setScreenshots(cached.screenshots || []);
@@ -1580,7 +1555,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       setDetailExtra(d || {});
       setDetailLoading(false);
       // Só guarda no cache se tiver dados reais
-      if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.timeToBeat || d.pages || d.platforms)) {
+      if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.pages || d.platforms)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
         // Persistir duração — localStorage
         if (d.episodes || d.chapters || d.runtime) {
@@ -1590,21 +1565,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
           } catch {}
           if (onUpdateDuration) try { onUpdateDuration(ci.id, ci.type, { episodes: d.episodes, chapters: d.chapters, runtime: d.runtime }); } catch {}
         }
-        // Guardar timeToBeat para jogos no localStorage
-        if (d.timeToBeat?.main) {
-          try {
-            const mainH = parseInt(d.timeToBeat.main);
-            if (!isNaN(mainH)) {
-              mediaIdCandidates(ci.id, ci.type).forEach(cid => {
-                try {
-                  const existing = localStorage.getItem("trackall_dur_" + cid);
-                  const parsed = existing ? JSON.parse(existing) : {};
-                  localStorage.setItem("trackall_dur_" + cid, JSON.stringify({ ...parsed, timeToBeatMain: mainH }));
-                } catch {}
-              });
-            }
-          } catch {}
-        }
+
       }
     }).catch((err) => {
       console.error('[DetailModal] fetchMediaDetails falhou:', ci.id, err);
@@ -1952,16 +1913,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   )}
 
                   {/* Tempo de jogo IGDB */}
-                  {detailExtra?.timeToBeat && (
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Time to Beat</div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {detailExtra.timeToBeat.extra && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#10b981" }}>{detailExtra.timeToBeat.extra}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Hastily</div></div>}
-                        {detailExtra.timeToBeat.main && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: accent }}>{detailExtra.timeToBeat.main}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Normally</div></div>}
-                        {detailExtra.timeToBeat.completionist && <div style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 14px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 800, color: "#f59e0b" }}>{detailExtra.timeToBeat.completionist}</div><div style={{ fontSize: 10, color: "#8b949e", marginTop: 2 }}>Completely</div></div>}
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* Plataformas IGDB */}
                   {detailExtra?.platforms?.length > 0 && (
