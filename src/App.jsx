@@ -351,6 +351,25 @@ function getConsumptionTime(item) {
     return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
   }
 
+  // Livros por páginas
+  if (type === "livros") {
+    let pages = Number(cached.pages || item.pages || 0);
+    if (!pages) {
+      try {
+        const candidates = mediaIdCandidates(item.id, item.type);
+        for (const cid of candidates) {
+          const s = localStorage.getItem("trackall_dur_" + cid);
+          if (s) { const d = JSON.parse(s); if (d.pages) { pages = Number(d.pages); break; } }
+        }
+      } catch {}
+    }
+    if (pages > 0) {
+      if (pages <= 200) return { slot: "hoje", label: "Para hoje", labelEn: "For today", emoji: "⚡", color: "#10b981" };
+      if (pages <= 400) return { slot: "fimdesemana", label: "Fim de semana", labelEn: "Weekend", emoji: "📅", color: "#06b6d4" };
+      return { slot: "ferias", label: "Para as férias", labelEn: "For holidays", emoji: "🏖️", color: "#f59e0b" };
+    }
+  }
+
   return null;
 }
 
@@ -1558,9 +1577,9 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.pages || d.platforms)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
         // Persistir duração — localStorage
-        if (d.episodes || d.chapters || d.runtime) {
+        if (d.episodes || d.chapters || d.runtime || d.pages) {
           try {
-            const durData = JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null });
+            const durData = JSON.stringify({ episodes: d.episodes || null, chapters: d.chapters || null, runtime: d.runtime || null, pages: d.pages || null });
             mediaIdCandidates(ci.id, ci.type).forEach(cid => { try { localStorage.setItem("trackall_dur_" + cid, durData); } catch {} });
           } catch {}
           if (onUpdateDuration) try { onUpdateDuration(ci.id, ci.type, { episodes: d.episodes, chapters: d.chapters, runtime: d.runtime }); } catch {}
@@ -8611,15 +8630,22 @@ export default function TrackAll() {
               const daySeed = nowD.getFullYear() * 10000 + (nowD.getMonth()+1) * 100 + nowD.getDate();
               const monday = new Date(nowD); monday.setDate(nowD.getDate() - ((nowD.getDay()+6)%7));
               const weekSeed = monday.getFullYear() * 10000 + (monday.getMonth()+1) * 100 + monday.getDate();
+              // Rotação melhorada com primo diferente por slot
+              const prime = 31;
               const seededPicks = (arr, seed, n) => {
                 if (!arr.length) return [];
                 const picks = [];
-                for (let i = 0; i < n && i < arr.length; i++) picks.push(arr[(seed + i) % arr.length]);
+                const seen = new Set();
+                for (let i = 0; picks.length < n && picks.length < arr.length; i++) {
+                  const idx = Math.abs((seed * prime + i * 17)) % arr.length;
+                  if (!seen.has(idx)) { seen.add(idx); picks.push(arr[idx]); }
+                  if (i > arr.length * 3) break;
+                }
                 return picks;
               };
               const picksHoje = seededPicks(groups.hoje, daySeed, 2);
               const picksFds = seededPicks(groups.fimdesemana, weekSeed + 1, 2);
-              const picksFerias = seededPicks(groups.ferias, weekSeed, 2);
+              const picksFerias = seededPicks(groups.ferias, weekSeed + 2, 2);
               const slots = [
                 picksHoje.length > 0 && { key: "hoje", emoji: "⚡", label: "Para hoje", labelEn: "For today", color: "#10b981", picks: picksHoje, total: groups.hoje.length },
                 picksFds.length > 0 && { key: "fimdesemana", emoji: "📅", label: "Fim de semana", labelEn: "Weekend", color: "#06b6d4", picks: picksFds, total: groups.fimdesemana.length },
@@ -8632,13 +8658,23 @@ export default function TrackAll() {
                     {lang === "en" ? "When to consume?" : "Quando consumir?"}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {slots.map(({ key, emoji, label, labelEn, color, picks, total }) => (
-                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px", }}>
-                        <div style={{ fontSize: 10, fontWeight: 900, color, marginBottom: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                          {emoji} {lang === "en" ? labelEn : label}{total > 2 ? ` · ${total} ${lang === "en" ? "options" : "opções"}` : ""}
+                    {slots.map(({ key, emoji, label, labelEn, color, picks, total }) => {
+                      const [expanded, setExpanded] = React.useState(false);
+                      const visible = expanded ? groups[key] : picks;
+                      return (
+                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                          <div style={{ fontSize: 10, fontWeight: 900, color, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                            {emoji} {lang === "en" ? labelEn : label}
+                          </div>
+                          {total > 2 && (
+                            <button onClick={() => setExpanded(v => !v)} style={{ background: "none", border: `1px solid ${color}40`, borderRadius: 20, padding: "2px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, color, fontFamily: "inherit" }}>
+                              {expanded ? (lang === "en" ? "less" : "menos") : `+${total - 2} ${lang === "en" ? "more" : "mais"}`}
+                            </button>
+                          )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {picks.map((p, pi) => (
+                          {visible.map((p, pi) => (
                             <button key={p.item.id + pi} onClick={() => setSelectedItem(p.item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left", width: "100%" }}>
                               <div style={{ width: 34, height: 48, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
                                 {p.item.cover ? <img src={p.item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === p.item.type)?.icon || "★"}</div>}
@@ -8646,14 +8682,15 @@ export default function TrackAll() {
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 800, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.item.title}</div>
                                 <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>
-                                  {getMediaTypeLabel(p.item.type, lang)}{p.item.episodes ? ` · ${p.item.episodes} ep` : p.item.chapters ? ` · ${p.item.chapters} cap` : ""}
+                                  {getMediaTypeLabel(p.item.type, lang)}{p.item.episodes ? ` · ${p.item.episodes} ep` : p.item.chapters ? ` · ${p.item.chapters} cap` : p.item.pages ? ` · ${p.item.pages} pág` : ""}
                                 </div>
                               </div>
                             </button>
                           ))}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
