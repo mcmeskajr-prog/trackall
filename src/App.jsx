@@ -6546,7 +6546,41 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
   );
 }
 
-export default function TrackAll() {
+export default function WhenToConsumeSlot({ keyName, emoji, label, labelEn, color, picks, total, groups, lang, activeDarkMode, setSelectedItem }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? groups[keyName] : picks;
+  return (
+    <div style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          {emoji} {lang === "en" ? labelEn : label}
+        </div>
+        {total > 2 && (
+          <button onClick={() => setExpanded(v => !v)} style={{ background: "none", border: `1px solid ${color}40`, borderRadius: 20, padding: "2px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, color, fontFamily: "inherit" }}>
+            {expanded ? (lang === "en" ? "less" : "menos") : `+${total - 2} ${lang === "en" ? "more" : "mais"}`}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {visible.map((p, pi) => (
+          <button key={p.item.id + pi} onClick={() => setSelectedItem(p.item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left", width: "100%" }}>
+            <div style={{ width: 34, height: 48, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+              {p.item.cover ? <img src={p.item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === p.item.type)?.icon || "★"}</div>}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.item.title}</div>
+              <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>
+                {getMediaTypeLabel(p.item.type, lang)}{p.item.episodes ? ` · ${p.item.episodes} ep` : p.item.chapters ? ` · ${p.item.chapters} cap` : p.item.pages ? ` · ${p.item.pages} pág` : ""}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrackAll() {
   const [lang, setLang] = useState(() => detectLang());
   const useT = (key) => t(key, lang);
   const changeLang = (newLang) => { setLang(newLang); saveLang(newLang); };
@@ -8658,39 +8692,14 @@ export default function TrackAll() {
                     {lang === "en" ? "When to consume?" : "Quando consumir?"}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {slots.map(({ key, emoji, label, labelEn, color, picks, total }) => {
-                      const [expanded, setExpanded] = React.useState(false);
-                      const visible = expanded ? groups[key] : picks;
-                      return (
-                      <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                          <div style={{ fontSize: 10, fontWeight: 900, color, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                            {emoji} {lang === "en" ? labelEn : label}
-                          </div>
-                          {total > 2 && (
-                            <button onClick={() => setExpanded(v => !v)} style={{ background: "none", border: `1px solid ${color}40`, borderRadius: 20, padding: "2px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, color, fontFamily: "inherit" }}>
-                              {expanded ? (lang === "en" ? "less" : "menos") : `+${total - 2} ${lang === "en" ? "more" : "mais"}`}
-                            </button>
-                          )}
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {visible.map((p, pi) => (
-                            <button key={p.item.id + pi} onClick={() => setSelectedItem(p.item)} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "2px 0", textAlign: "left", width: "100%" }}>
-                              <div style={{ width: 34, height: 48, borderRadius: 6, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                                {p.item.cover ? <img src={p.item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find(t => t.id === p.item.type)?.icon || "★"}</div>}
-                              </div>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 800, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.item.title}</div>
-                                <div style={{ fontSize: 11, color: activeDarkMode ? "#8b949e" : "#64748b" }}>
-                                  {getMediaTypeLabel(p.item.type, lang)}{p.item.episodes ? ` · ${p.item.episodes} ep` : p.item.chapters ? ` · ${p.item.chapters} cap` : p.item.pages ? ` · ${p.item.pages} pág` : ""}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      );
-                    })}
+                    {(() => {
+                      // expandedSlots como objecto simples — sem useState dentro do map
+                      const expandedRef = {};
+                      slots.forEach(s => { expandedRef[s.key] = false; });
+                      return slots.map(({ key, emoji, label, labelEn, color, picks, total }) => (
+                        <WhenToConsumeSlot key={key} keyName={key} emoji={emoji} label={label} labelEn={labelEn} color={color} picks={picks} total={total} groups={groups} lang={lang} activeDarkMode={activeDarkMode} setSelectedItem={setSelectedItem} accent={accent} />
+                      ));
+                    })()}
                   </div>
                 </div>
               );
