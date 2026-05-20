@@ -6548,8 +6548,10 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
 
 export default function WhenToConsumeSlot({ keyName, emoji, label, labelEn, color, picks, total, groups, lang, activeDarkMode, setSelectedItem }) {
   const [expanded, setExpanded] = useState(false);
-  const allItems = groups[keyName] || picks;
-  const visible = expanded ? allItems : picks;
+  const allItems = Array.isArray(groups[keyName]) ? groups[keyName] : (picks || []);
+  const safePicks = Array.isArray(picks) ? picks : [];
+  const visible = expanded ? allItems : safePicks;
+  if (!visible || visible.length === 0) return null;
   return (
     <div style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
