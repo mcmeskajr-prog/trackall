@@ -7765,15 +7765,37 @@ export default function TrackAll() {
       return 0;
     }).filter(item => !excludeIds.has(item.id));
 
-    // Rotação com diversidade: tentar tipo diferente do currentFocus
     const prime = 31;
     const seededPickPrime = (arr, offset = 0) => arr.length ? arr[Math.abs((daySeed * prime + offset * 17)) % arr.length] : null;
-    // Preferir tipo diferente do currentFocus para variedade
-    const focusType = currentFocus?.type;
-    const diverseCandidates = focusType
-      ? [...bestCandidates.filter(i => i.type !== focusType), ...bestCandidates.filter(i => i.type === focusType)]
-      : bestCandidates;
-    const bestForToday = seededPickPrime(diverseCandidates.slice(0, Math.min(12, diverseCandidates.length)), 0) || diverseCandidates[0] || null;
+
+    // Diversidade: para cada slot, preferir tipo diferente dos slots já preenchidos
+    const pickWithDiversity = (candidates, usedTypes, seed, offset) => {
+      if (!candidates.length) return null;
+      // Primeiro tentar tipo não usado
+      const fresh = candidates.filter(i => !usedTypes.has(i.type));
+      if (fresh.length > 0) return seededPickPrime(fresh.slice(0, Math.min(10, fresh.length)), offset);
+      // Fallback: qualquer candidato
+      return seededPickPrime(candidates.slice(0, Math.min(10, candidates.length)), offset);
+    };
+
+    const usedTypes = new Set([currentFocus?.type].filter(Boolean));
+
+    // Best for Today — tipo diferente do currentFocus
+    const bestForToday = pickWithDiversity(bestCandidates, usedTypes, daySeed, 0) || bestCandidates[0] || null;
+    if (bestForToday) usedTypes.add(bestForToday.type);
+
+    // Forgotten — tipo diferente dos anteriores, dos mais antigos no planejo
+    const forgottenDiverse = oldestPlanned.filter(i => !usedTypes.has(i.type));
+    const forgottenFinal = forgottenDiverse.length > 0
+      ? (seededPickPrime(forgottenDiverse.slice(0, Math.min(8, forgottenDiverse.length)), 1) || forgottenDiverse[0])
+      : forgottenPlanned;
+    if (forgottenFinal) usedTypes.add(forgottenFinal.type);
+
+    // Worth Returning — tipo diferente dos anteriores
+    const returnDiverse = pausedFiltered.filter(i => !usedTypes.has(i.type));
+    const worthReturningFinal = returnDiverse.length > 0
+      ? (seededPickPrime(returnDiverse, 2) || returnDiverse[0])
+      : worthReturning;
 
     const quickPicks = [];
     const pushPick = (slot, item) => {
@@ -7782,8 +7804,8 @@ export default function TrackAll() {
     };
     if (currentFocus) pushPick("focus", currentFocus);
     pushPick("today", bestForToday);
-    pushPick("forgotten", forgottenPlanned);
-    pushPick("return", worthReturning);
+    pushPick("forgotten", forgottenFinal || forgottenPlanned);
+    pushPick("return", worthReturningFinal || worthReturning);
 
     return {
       currentFocus,
