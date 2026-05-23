@@ -1853,7 +1853,21 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                     {currentItem.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {currentItem.score}</span>}
                     {currentItem.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{currentItem.source}</span>}
                   </div>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>{currentItem.title}</h2>
+                  <h2
+                    onClick={(e) => {
+                      if (!isMobileDevice) return;
+                      navigator.clipboard?.writeText(currentItem.title).then(() => {
+                        const el = e.currentTarget;
+                        const orig = el.style.opacity;
+                        el.style.opacity = "0.4";
+                        setTimeout(() => { el.style.opacity = orig; }, 500);
+                        showNotif("✓ " + currentItem.title, "#10b981");
+                      }).catch(() => {});
+                    }}
+                    title={isMobileDevice ? "Toque para copiar" : undefined}
+                    style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4, cursor: isMobileDevice ? "pointer" : "default" }}>
+                    {currentItem.title}
+                  </h2>
                   {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
                   {currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
                 </div>
