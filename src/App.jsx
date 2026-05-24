@@ -1468,7 +1468,7 @@ function CoverEditModal({item, onSave, onClose }) {
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, tmdbKey, workerUrl }) {
+function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
@@ -1482,6 +1482,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   const [addRating, setAddRating] = useState(0);
   const [detailExtra, setDetailExtra] = useState(null);
   const [chapterInput, setChapterInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
@@ -1577,6 +1578,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
     fetchExtraData(ci);
     const lb = findLibraryEntry(library, ci?.id, ci?.type)?.item;
     setChapterInput(lb?.lastChapter || "");
+    setNoteInput(lb?.userNote || "");
   }, [currentItem?.id]);
 
   const fetchExtraData = async (capturedItem) => {
@@ -1918,7 +1920,13 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                   {currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
                       {currentItem.genres.slice(0, 6).map((g) => (
-                        <span key={g} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12 }}>{g}</span>
+                        <button key={g} onClick={() => {
+                          onClose();
+                          setTimeout(() => {
+                            setView("library");
+                            setLibSearch(g);
+                          }, 150);
+                        }} style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "4px 10px", borderRadius: 6, fontSize: 12, border: "none", cursor: "pointer", fontFamily: "inherit" }}>{g}</button>
                       ))}
                     </div>
                   )}
@@ -2291,6 +2299,17 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
                           {s.emoji} {statusLabel(s, lang)}
                         </button>
                       ))}
+                    </div>
+                    {/* Nota pessoal */}
+                    <div style={{ marginTop: 12 }}>
+                      <textarea
+                        value={noteInput}
+                        onChange={e => setNoteInput(e.target.value)}
+                        onBlur={() => { if (onUpdateNote) onUpdateNote(currentItem.id, noteInput.trim()); }}
+                        placeholder={lang === "en" ? "Your note..." : "A tua nota..."}
+                        rows={2}
+                        style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${accent}30`, borderRadius: 0, padding: "4px 0", color: darkMode ? "#8b949e" : "#64748b", fontSize: 12, fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5, boxSizing: "border-box" }}
+                      />
                     </div>
                     {isChapterType && libItem.userStatus === "assistindo" && (
                       <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
@@ -7526,6 +7545,16 @@ export default function TrackAll() {
     saveLibrary(next);
   }, [library]);
 
+  const updateNote = useCallback((id, note) => {
+    const matched = findLibraryEntry(library, id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item.type);
+    const next = { ...library };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, userNote: note };
+    saveLibrary(next);
+  }, [library]);
+
   const updateStatus = useCallback((id, status) => {
     const matched = findLibraryEntry(library, id);
     if (!matched) return;
@@ -8270,6 +8299,7 @@ export default function TrackAll() {
             onRemove={(id) => { removeFromLibrary(id); setSelectedItem(null); }}
             onUpdateStatus={updateStatus}
             onUpdateDuration={updateDuration}
+            onUpdateNote={updateNote}
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
             onChangeCover={updateCover}
