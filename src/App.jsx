@@ -8917,18 +8917,110 @@ export default function TrackAll() {
               <>
                 {(() => {
                   const filtered = activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab);
-                  return (
-                    <>
-                      <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{searchQuery}</strong>"</p>
-                      {filtered.length === 0 ? (
-                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>
-                      ) : (
-                        <div className="media-grid">
-                          {filtered.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
+                  if (filtered.length === 0) return <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>;
+
+                  // Vista tipo único — lista com quick add
+                  if (activeTab !== "all") {
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {filtered.map(item => {
+                          const libItem = findLibraryEntry(library, item.id, item.type)?.item;
+                          const inLib = !!libItem;
+                          const status = inLib ? STATUS_OPTIONS.find(s => s.id === libItem.userStatus) : null;
+                          const coverSrc = libItem?.customCover || libItem?.cover || item.cover;
+                          const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
+                          return (
+                            <button key={item.id} onClick={() => setSelectedItem(item)} style={{ display: "flex", alignItems: "center", gap: 12, background: inLib ? (activeDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)") : "transparent", border: `1px solid ${inLib ? (activeDarkMode ? "#21262d" : "#e2e8f0") : "transparent"}`, borderRadius: 12, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%", WebkitTapHighlightColor: "transparent" }}>
+                              <div style={{ width: 44, height: 60, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                                {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                              </div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: activeDarkMode ? "#f0f6fc" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>{item.title}</div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                  {item.year && <span style={{ fontSize: 11, color: "#8b949e" }}>{item.year}</span>}
+                                  {score && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>★ {score}</span>}
+                                  {status && <span style={{ fontSize: 10, fontWeight: 700, color: status.color, background: status.color + "20", borderRadius: 6, padding: "1px 6px" }}>{status.emoji} {statusLabel(status, lang)}</span>}
+                                </div>
+                                {item.extra && <div style={{ fontSize: 11, color: "#484f58", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.extra}</div>}
+                              </div>
+                              {inLib ? (
+                                <span style={{ fontSize: 16, color: accent, flexShrink: 0 }}>✓</span>
+                              ) : (
+                                <button onClick={e => { e.stopPropagation(); addToLibrary(item, "planejado"); showNotif("✓ " + item.title, accent); }} style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 999, background: accent + "20", border: `1px solid ${accent}40`, color: accent, fontSize: 18, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontFamily: "inherit" }}>+</button>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // Vista "All" — grupos por tipo com grid
+                  const groups = {};
+                  filtered.forEach(item => {
+                    if (!groups[item.type]) groups[item.type] = [];
+                    groups[item.type].push(item);
+                  });
+                  // Prioridade: items na biblioteca primeiro, depois score médio, depois quantidade
+                  const scoreGroup = (items) => {
+                    const libCount = items.filter(i => findLibraryEntry(library, i.id, i.type)).length;
+                    const avgScore = items.reduce((s, i) => s + (i.score || 0), 0) / items.length;
+                    return libCount * 20 + avgScore + items.length * 0.5;
+                  };
+                  const sortedGroups = Object.entries(groups).sort((a, b) => scoreGroup(b[1]) - scoreGroup(a[1]));
+                  const COLS = isMobileDevice ? 3 : 5;
+                  return sortedGroups.map(([type, items]) => {
+                    const typeObj = MEDIA_TYPES.find(t => t.id === type);
+                    const sorted = [...items].sort((a, b) => {
+                      const aLib = !!findLibraryEntry(library, a.id, a.type);
+                      const bLib = !!findLibraryEntry(library, b.id, b.type);
+                      if (aLib !== bLib) return bLib ? 1 : -1;
+                      return (b.score || 0) - (a.score || 0);
+                    });
+                    const preview = sorted.slice(0, COLS * 2);
+                    const hasMore = sorted.length > preview.length;
+                    return (
+                      <div key={type} style={{ marginBottom: 28 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 13 }}>{typeObj?.icon}</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b" }}>{typeObj ? mediaLabel(typeObj, lang) : type}</span>
+                            <span style={{ fontSize: 11, color: "#484f58" }}>· {items.length}</span>
+                          </div>
+                          {hasMore && (
+                            <button onClick={() => setActiveTab(type)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: accent, fontWeight: 700, fontFamily: "inherit", padding: "2px 0" }}>
+                              {lang === "en" ? "See all" : "Ver todos"} →
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </>
-                  );
+                        <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`, gap: isMobileDevice ? 8 : 10 }}>
+                          {preview.map(item => {
+                            const libItem = findLibraryEntry(library, item.id, item.type)?.item;
+                            const inLib = !!libItem;
+                            const status = inLib ? STATUS_OPTIONS.find(s => s.id === libItem.userStatus) : null;
+                            const coverSrc = libItem?.customCover || libItem?.cover || item.cover;
+                            const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
+                            return (
+                              <div key={item.id} style={{ position: "relative" }}>
+                                <button onClick={() => setSelectedItem(item)} style={{ display: "block", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
+                                  <div style={{ width: "100%", paddingBottom: "150%", position: "relative", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id) }}>
+                                    {coverSrc && <img src={coverSrc} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
+                                    {score && <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(0,0,0,0.7)", borderRadius: 5, padding: "1px 5px", fontSize: 10, fontWeight: 700, color: "#fbbf24" }}>★ {score}</div>}
+                                    {status && <div style={{ position: "absolute", top: 4, right: 4, background: status.color + "cc", borderRadius: 5, padding: "2px 4px", fontSize: 10 }}>{status.emoji}</div>}
+                                    {!inLib && (
+                                      <button onClick={e => { e.stopPropagation(); addToLibrary(item, "planejado"); showNotif("✓ " + item.title, accent); }} style={{ position: "absolute", bottom: 4, right: 4, width: 22, height: 22, borderRadius: 999, background: accent, border: "none", color: "#fff", fontSize: 14, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>+</button>
+                                    )}
+                                  </div>
+                                  <p style={{ fontSize: 11, fontWeight: 600, color: activeDarkMode ? "#c9d1d9" : "#374151", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>{item.title}</p>
+                                  {item.year && <p style={{ fontSize: 10, color: "#484f58", textAlign: "left", marginTop: 1 }}>{item.year}</p>}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
                 })()}
               </>
             )}
