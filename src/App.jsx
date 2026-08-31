@@ -62,69 +62,6 @@ function normalizeAniListType(type) {
   return "";
 }
 
-function normalizeMediaId(id, type = "") {
-  if (!id) return id;
-  const num = id.match(/(\d+)$/)?.[1];
-  const aniType = normalizeAniListType(type);
-
-  if (id.startsWith("al-")) {
-    if (/^al-\d+$/.test(id) && aniType && num) return `al-${aniType}-${num}`;
-    if (/^al-(anime|manga)-\d+$/.test(id)) return id;
-    if (/^al-[A-Za-z]+-\d+$/.test(id) && num) {
-      const rawType = id.split("-")[1];
-      const normalizedType = aniType || normalizeAniListType(rawType);
-      if (normalizedType) return `al-${normalizedType}-${num}`;
-    }
-  }
-
-  if (/^tmdb-\d+$/.test(id) && num) {
-    if (type === "filmes") return `tmdb-filmes-${num}`;
-    if (type === "series") return `tmdb-series-${num}`;
-  }
-  if (id.startsWith("tmdb-movie-") && num) return `tmdb-filmes-${num}`;
-  if (id.startsWith("tmdb-tv-") && num) return `tmdb-series-${num}`;
-
-  return id;
-}
-
-function mediaIdCandidates(id, type = "") {
-  if (!id) return [];
-  const num = id.match(/(\d+)$/)?.[1];
-  const normalized = normalizeMediaId(id, type);
-  const candidates = new Set([normalized, id].filter(Boolean));
-
-  if (num) {
-    if (id.startsWith("al-") || normalized?.startsWith("al-")) {
-      candidates.add(`al-anime-${num}`);
-      candidates.add(`al-manga-${num}`);
-      candidates.add(`al-${num}`);
-    }
-    if (id.startsWith("tmdb-") || normalized?.startsWith("tmdb-")) {
-      candidates.add(`tmdb-filmes-${num}`);
-      candidates.add(`tmdb-series-${num}`);
-      candidates.add(`tmdb-movie-${num}`);
-      candidates.add(`tmdb-tv-${num}`);
-      candidates.add(`tmdb-${num}`);
-    }
-  }
-
-  return [...candidates];
-}
-
-function findLibraryEntry(library, id, type = "") {
-  if (!library || !id) return null;
-  for (const candidate of mediaIdCandidates(id, type)) {
-    if (library[candidate]) return { key: candidate, item: library[candidate] };
-  }
-  return null;
-}
-
-function normalizeMediaItem(item) {
-  if (!item?.id) return item;
-  const normalizedId = normalizeMediaId(item.id, item.type);
-  if (normalizedId === item.id) return item;
-  return { ...item, id: normalizedId };
-}
 
 // ─── APIs ─────────────────────────────────────────────────────────────────────
 
@@ -2368,13 +2305,6 @@ function RecentSection({ items, onOpen, showDiary = true }) {
 }
 
 // ─── Tier List Components ─────────────────────────────────────────────────────
-const TIER_LEVELS = [
-  { id: "S", color: "#ef4444" },
-  { id: "A", color: "#f97316" },
-  { id: "B", color: "#eab308" },
-  { id: "C", color: "#22c55e" },
-  { id: "D", color: "#3b82f6" },
-];
 
 // ─── Collection Components ────────────────────────────────────────────────────
 
