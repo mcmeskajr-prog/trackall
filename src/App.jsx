@@ -8,12 +8,23 @@ import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } f
 import { supabase, supa } from './config/supabase';
 
 // ─── Lib imports ──────────────────────────────────────────────────────────────
-import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
+import { normalizeMediaId, mediaIdCandidates, findLibraryEntry } from './lib/mediaIds';
 import { getConsumptionTime } from './lib/consumptionTime';
+
 // Safety fallback for lang
 let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
 
+// ── Theme Context (temporary until fully refactored) ────────────────────────
+const ThemeContext = createContext(null);
+const useTheme = () => useContext(ThemeContext);
+const useAccent = () => useContext(ThemeContext)?.accent ?? "#f97316";
+const useDarkMode = () => useContext(ThemeContext)?.darkMode ?? true;
+const useIsMobile = () => useContext(ThemeContext)?.isMobileDevice ?? false;
 
+// ── Lang Context (temporary until fully refactored) ────────────────────────
+const _safeT = (k) => { try { const s = STRINGS?.[_globalLang]; return s?.[k] ?? STRINGS?.["en"]?.[k] ?? k; } catch { return k; } };
+const LangContext = createContext({ lang: _globalLang, useT: _safeT });
+const useLang = () => { const ctx = useContext(LangContext); return ctx ?? { lang: _globalLang, useT: _safeT }; };
 
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
