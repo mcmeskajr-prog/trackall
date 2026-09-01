@@ -17,6 +17,7 @@ import { searchAniList, fetchAniListSafe, fetchTrendingAnime, fetchTrendingManga
 import { searchTMDB, fetchTrendingMovies, fetchTrendingSeries } from './api/tmdb';
 import { searchIGDB, searchSteam, fetchTrendingGames } from './api/igdb';
 import { searchGoogleBooks } from './api/books';
+import { searchComicVine } from './api/comicvine';
 
 // Safety fallback for lang
 let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
@@ -294,28 +295,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
 
 // 4. IGDB, Steam — ver src/api/igdb.js (searchIGDB, searchSteam, fetchTrendingGames)
 
-// 5. ComicVine via Proxy Worker
-// O Worker resolve o CORS que bloqueia chamadas diretas de browser/webview.
-async function searchComicVine(query, workerUrl) {
-  if (!workerUrl) return null;
-  const url = workerUrl.replace(/\/$/, "") + `/comicvine?q=${encodeURIComponent(query)}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.results?.length) return null;
-  return data.results.slice(0, 15).map((c) => ({
-    id: `cv-${c.id}`,
-    title: c.name || "",
-    cover: c.image?.medium_url || c.image?.small_url || "",
-    type: "comics",
-    year: String(c.start_year || ""),
-    score: null,
-    synopsis: (c.deck || "").slice(0, 220),
-    genres: [],
-    extra: c.publisher?.name || "",
-    source: "ComicVine",
-  }));
-}
+// 5. ComicVine — ver src/api/comicvine.js (searchComicVine)
 
 // ─── smartSearch — escolhe a melhor API por tipo ──────────────────────────────
 async function smartSearch(query, mediaType, keys = {}) {
