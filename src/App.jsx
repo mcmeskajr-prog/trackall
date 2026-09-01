@@ -16,6 +16,7 @@ import { shuffle } from './lib/utils';
 import { searchAniList, fetchAniListSafe, fetchTrendingAnime, fetchTrendingManga } from './api/anilist';
 import { searchTMDB, fetchTrendingMovies, fetchTrendingSeries } from './api/tmdb';
 import { searchIGDB, searchSteam, fetchTrendingGames } from './api/igdb';
+import { searchGoogleBooks } from './api/books';
 
 // Safety fallback for lang
 let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
@@ -289,29 +290,7 @@ async function fetchMediaDetails(item, tmdbKey, workerUrl) {
   }
   return null;
 }
-async function searchGoogleBooks(query, workerUrl) {
-  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
-  const res = await fetch(`${wUrl}/books?q=${encodeURIComponent(query)}`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.items?.length) return null;
-  return data.items.map((b) => {
-    const info = b.volumeInfo || {};
-    const cover = info.imageLinks?.extraLarge || info.imageLinks?.large || info.imageLinks?.medium || info.imageLinks?.thumbnail || "";
-    return {
-      id: `gb-${b.id}`,
-      title: info.title || "",
-      cover: cover.replace("http://", "https://"),
-      type: "livros",
-      year: String((info.publishedDate || "").slice(0, 4)),
-      score: info.averageRating ? +(info.averageRating * 2).toFixed(1) : null,
-      synopsis: (info.description || "").replace(/<[^>]*>/g, "").trim(),
-      genres: (info.categories || []).slice(0, 4),
-      extra: (info.authors || []).join(", ").slice(0, 60),
-      source: "Google Books",
-    };
-  });
-}
+// 3. Google Books — ver src/api/books.js (searchGoogleBooks)
 
 // 4. IGDB, Steam — ver src/api/igdb.js (searchIGDB, searchSteam, fetchTrendingGames)
 
