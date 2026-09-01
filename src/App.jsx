@@ -2005,7 +2005,7 @@ const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
             <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{item.title.slice(0, 40)}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{(item.title || "Sem título").slice(0, 40)}</span>
           </div>
         )}
         {/* Badges — status + score sem ícone de tipo */}
@@ -6927,7 +6927,7 @@ export default function TrackAll() {
       addedAt: Date.now(),
     };
     saveLibrary(lib);
-    showNotif(`"${normalizedItem.title.slice(0, 30)}" adicionado!`, "#10b981");
+    showNotif(`"${(normalizedItem.title || "Item").slice(0, 30)}" adicionado!`, "#10b981");
     if (navigator.vibrate) navigator.vibrate(50);
   }, [library]);
 
@@ -6939,7 +6939,7 @@ export default function TrackAll() {
     const existingByTitle = {};
     Object.values(lib).forEach(e => { const n = (e.title||'').toLowerCase().trim(); if (n) existingByTitle[n] = e.id; });
     pbItems.forEach(item => {
-      const norm = item.title.toLowerCase().trim();
+      const norm = (item.title || "").toLowerCase().trim();
       const existingId = existingByTitle[norm];
       if (lib[item.id]) {
         lib[item.id] = { ...lib[item.id], userStatus: item.userStatus, chaptersRead: item.chaptersRead, totalChapters: item.totalChapters };
@@ -7006,7 +7006,7 @@ export default function TrackAll() {
     const existingByTitle = {};
     Object.values(lib).forEach(e => { const n = (e.title||'').toLowerCase().trim(); if (n) existingByTitle[n] = e.id; });
     lbItems.forEach(item => {
-      const norm = item.title.toLowerCase().trim();
+      const norm = (item.title || "").toLowerCase().trim();
       const existingId = existingByTitle[norm];
       if (lib[item.id]) {
         lib[item.id] = { ...lib[item.id], userStatus: 'completo', userRating: item.userRating || lib[item.id].userRating };
@@ -7852,9 +7852,9 @@ export default function TrackAll() {
                 const base = matched?.item || normalizedPending;
                 next[canonicalId] = { ...base, id: canonicalId, userStatus: "completo", userRating: rating };
                 saveLibrary(next);
-                showNotif(`"${logPendingItem.title.slice(0,24)}" ✓  ★ ${rating}`, accent);
+                showNotif(`"${(logPendingItem.title || "Item").slice(0, 24)}" ✓  ★ ${rating}`, accent);
               } else {
-                showNotif(`"${logPendingItem.title.slice(0,30)}" ✓`, accent);
+                showNotif(`"${(logPendingItem.title || "Item").slice(0, 30)}" ✓`, accent);
               }
               setLogPendingItem(null);
             }}
