@@ -56,8 +56,15 @@ const supa = {
   },
 
   async getLibrary(userId) {
-    const { data } = await supabase.from('library').select('media_id, data').eq('user_id', userId);
-    return data;
+    const { data, error } = await supabase.from('library').select('media_id, data').eq('user_id', userId);
+    if (error) { console.error('getLibrary error:', error); return {}; }
+    const lib = {};
+    (data || []).forEach(row => {
+      if (row.media_id && row.media_id !== '__hall_of_fame__' && row.data) {
+        lib[row.media_id] = { ...row.data, id: row.media_id };
+      }
+    });
+    return lib;
   },
 
   async upsertLibraryItem(userId, mediaId, mediaData) {
