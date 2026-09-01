@@ -5501,7 +5501,7 @@ function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
 }
 
 // ─── Sidebar Search ───────────────────────────────────────────────────────────
-function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
+function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearchQuery, setView, useT }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
@@ -5517,6 +5517,13 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+  const submit = () => {
+    if (!q.trim()) return;
+    setSearchQuery(q);
+    setView("search");
+    doSearch(q, activeTab);
+    setOpen(false); setQ("");
+  };
   return (
     <>
       {!open ? (
@@ -5537,7 +5544,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, useT }) {
           </svg>
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => {
-              if (e.key === "Enter" && q.trim()) { doSearch(q, activeTab); setOpen(false); setQ(""); }
+              if (e.key === "Enter") submit();
               if (e.key === "Escape") { setOpen(false); setQ(""); }
             }}
             placeholder={useT("search") + "..."}
@@ -6992,7 +6999,7 @@ export default function TrackAll() {
                   </span>
                   {useT("friends")}
                 </button>
-                <SidebarSearch accent={accent} darkMode={activeDarkMode} activeTab={activeTab} doSearch={doSearch} useT={useT} />
+                <SidebarSearch accent={accent} darkMode={activeDarkMode} activeTab={activeTab} doSearch={doSearch} setSearchQuery={setSearchQuery} setView={setView} useT={useT} />
               </div>
 
               {/* Botão + Log Rápido */}
