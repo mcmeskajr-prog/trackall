@@ -6651,7 +6651,7 @@ export default function TrackAll() {
 
   const toggleHallOfFame = async (item) => {
     const normalizedItem = normalizeMediaItem(item);
-    const currentHall = Array.isArray(profile.hallOfFame) ? profile.hallOfFame : [];
+    const currentHall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
     const hallIds = new Set(mediaIdCandidates(normalizedItem.id, normalizedItem.type));
     const exists = currentHall.some(entry => hallIds.has(entry.id));
     let nextHall;
@@ -7179,7 +7179,7 @@ export default function TrackAll() {
       setFavorites(newFavs);
       if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
     }
-    const currentHall = Array.isArray(profile.hallOfFame) ? profile.hallOfFame : [];
+    const currentHall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
     const inHall = currentHall.some(f => f.id === id || f.id === matched.key || f.id === canonicalId);
     if (inHall) {
       const newHall = currentHall.map(f => (f.id === id || f.id === matched.key || f.id === canonicalId) ? { ...f, id: canonicalId, customCover: url } : f);
@@ -7304,7 +7304,7 @@ export default function TrackAll() {
   }, [library, demoMode]);
 
   const activeProfile = demoMode ? DEMO_PROFILE : profile;
-  const activeFavorites = demoMode ? DEMO_PROFILE.favorites : favorites;
+  const activeFavorites = demoMode ? DEMO_PROFILE.favorites : (Array.isArray(favorites) ? favorites : []);
 
   const stats = useMemo(() => ({
     assistindo: items.filter((i) => i.userStatus === "assistindo").length,
