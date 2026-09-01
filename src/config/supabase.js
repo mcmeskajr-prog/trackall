@@ -90,12 +90,13 @@ const supa = {
   },
 
   async removeFriend(userId, friendId) {
-    await supabase.from('friendships').delete().or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
+    await supabase.from('friendships').delete().or(`and(requester_id.eq.${userId},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${userId})`);
   },
 
   async getFriendships(userId) {
-    const { data } = await supabase.from('friendships').select('*').or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-    return data;
+    const { data, error } = await supabase.from('friendships').select('*').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+    if (error) { console.error('getFriendships error:', error); return []; }
+    return data || [];
   },
 
   async getFriendLibrary(friendId) {
