@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // ─── Supabase Config ─────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_YhoOLOhQdAS1WgCUjLPvQ_HoO4uZ4B';
+const SUPABASE_KEY = 'sb_publishable_YhoOLoNbQda5iWgCUjLPvQ_HoO4uZ4B';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── Auth State Persistence ──────────────────────────────────────────────────
