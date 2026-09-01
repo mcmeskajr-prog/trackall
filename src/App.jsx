@@ -5697,7 +5697,9 @@ export default function TrackAll() {
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResultsByType, setSearchResultsByType] = useState({});
+  const searchSeqRef = useRef(0);
+  const searchQueryRef = useRef("");
   const [searchHistory, setSearchHistory] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_search_history") || "[]"); } catch { return []; } });
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -6630,9 +6632,13 @@ export default function TrackAll() {
 
   const doSearch = useCallback(async (q, type) => {
     if (!q.trim()) return;
-    setIsSearching(true); setSearchError(""); setSearchResults([]); setView("search");
+    const mySeq = ++searchSeqRef.current;
+    const qNorm = q.trim().toLowerCase();
+    const isNewQuery = qNorm !== searchQueryRef.current;
+    searchQueryRef.current = qNorm;
+    setIsSearching(true); setSearchError(""); setView("search");
+    if (isNewQuery) setSearchResultsByType({});
     try {
-      let results = [];
       if (type === "all") {
         const [anime, manga, manhwa, lightnovels, livros, filmes, series, jogos, comics] = await Promise.allSettled([
           smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
@@ -6645,27 +6651,31 @@ export default function TrackAll() {
           smartSearch(q, "jogos", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "comics", { tmdb: tmdbKey, workerUrl }),
         ]);
-        const all = [
-          ...(anime.status === "fulfilled" ? anime.value || [] : []),
-          ...(manga.status === "fulfilled" ? manga.value || [] : []),
-          ...(manhwa.status === "fulfilled" ? manhwa.value || [] : []),
-          ...(lightnovels.status === "fulfilled" ? lightnovels.value || [] : []),
-          ...(livros.status === "fulfilled" ? livros.value || [] : []),
-          ...(filmes.status === "fulfilled" ? filmes.value || [] : []),
-          ...(series.status === "fulfilled" ? series.value || [] : []),
-          ...(jogos.status === "fulfilled" ? jogos.value || [] : []),
-          ...(comics.status === "fulfilled" ? comics.value || [] : []),
-        ];
-        const seen = new Set();
-        results = all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
+        const byType = {
+          anime: anime.status === "fulfilled" ? anime.value || [] : [],
+          manga: manga.status === "fulfilled" ? manga.value || [] : [],
+          manhwa: manhwa.status === "fulfilled" ? manhwa.value || [] : [],
+          lightnovels: lightnovels.status === "fulfilled" ? lightnovels.value || [] : [],
+          livros: livros.status === "fulfilled" ? livros.value || [] : [],
+          filmes: filmes.status === "fulfilled" ? filmes.value || [] : [],
+          series: series.status === "fulfilled" ? series.value || [] : [],
+          jogos: jogos.status === "fulfilled" ? jogos.value || [] : [],
+          comics: comics.status === "fulfilled" ? comics.value || [] : [],
+        };
+        // Ignorar se entretanto já foi disparada outra pesquisa mais recente
+        if (searchSeqRef.current !== mySeq) return;
+        setSearchResultsByType(byType);
       } else {
         // Limpar cache para garantir resultados frescos ao trocar de tipo
         const ck = cacheKey(q, type);
         CACHE.delete(ck);
-        results = await smartSearch(q, type, { tmdb: tmdbKey, workerUrl });
+        const typeResults = (await smartSearch(q, type, { tmdb: tmdbKey, workerUrl })) || [];
+        // Ignorar se entretanto já foi disparada outra pesquisa mais recente
+        // (ex: trocaste de separador antes desta responder) — nunca apagar
+        // os resultados já obtidos para os outros tipos.
+        if (searchSeqRef.current !== mySeq) return;
+        setSearchResultsByType(prev => ({ ...prev, [type]: typeResults }));
       }
-      setSearchResults(results);
-      if (!results.length) setSearchError("Nenhum resultado encontrado. Tenta outro termo ou seleciona um tipo específico.");
       // Guardar no histórico
       if (q.trim()) {
         setSearchHistory(prev => {
@@ -6675,9 +6685,9 @@ export default function TrackAll() {
         });
       }
     } catch (e) {
-      setSearchError("Erro ao pesquisar. Verifica a tua ligação à internet.");
+      if (searchSeqRef.current === mySeq) setSearchError("Erro ao pesquisar. Verifica a tua ligação à internet.");
     } finally {
-      setIsSearching(false);
+      if (searchSeqRef.current === mySeq) setIsSearching(false);
     }
   }, [tmdbKey, workerUrl]);
 
@@ -7878,51 +7888,56 @@ export default function TrackAll() {
                 </p>
               </div>
             )}
-            {!isSearching && !searchError && searchResults.length === 0 && (
-              <div style={{ color: "#484f58" }}>
-                {searchHistory.length > 0 && !searchQuery && (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                      <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b949e" }}>{useT("recentSearches")}</p>
-                      <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem("trackall_search_history"); } catch {} }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>{useT("clearHistory")}</button>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      {searchHistory.map((h, i) => (
-                        <button key={i} onClick={() => { setSearchQuery(h); doSearch(h, activeTab); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f8fafc", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, WebkitTapHighlightColor: "transparent" }}>
-                          <span style={{ color: "#484f58", fontSize: 13 }}>↩</span> {h}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {!searchQuery && (
-                  <div style={{ textAlign: "center", padding: "32px 0" }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-                    <p style={{ marginBottom: 8 }}>{lang === "en" ? "Search something above!" : "Pesquisa algo acima!"}</p>
-                    <p style={{ fontSize: 12, color: "#30363d" }}>{lang === "en" ? "Anime · Manga · Series · Movies · Games · Books · and more" : "Anime · Manga · Séries · Filmes · Jogos · Livros · e mais"}</p>
-                  </div>
-                )}
-              </div>
-            )}
-            {!isSearching && searchResults.length > 0 && (
-              <>
-                {(() => {
-                  const filtered = activeTab === "all" ? searchResults : searchResults.filter(i => i.type === activeTab);
-                  return (
-                    <>
-                      <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{filtered.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{searchQuery}</strong>"</p>
-                      {filtered.length === 0 ? (
-                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>
-                      ) : (
-                        <div className="media-grid">
-                          {filtered.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
+            {(() => {
+              if (isSearching || searchError) return null;
+              const seen = new Set();
+              const currentResults = activeTab === "all"
+                ? Object.values(searchResultsByType).flat().filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; })
+                : (searchResultsByType[activeTab] || []);
+              const hasAnyResults = Object.values(searchResultsByType).some(arr => arr && arr.length > 0);
+              if (!hasAnyResults) {
+                return (
+                  <div style={{ color: "#484f58" }}>
+                    {searchHistory.length > 0 && !searchQuery && (
+                      <div style={{ marginBottom: 24 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b949e" }}>{useT("recentSearches")}</p>
+                          <button onClick={() => { setSearchHistory([]); try { localStorage.removeItem("trackall_search_history"); } catch {} }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>{useT("clearHistory")}</button>
                         </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {searchHistory.map((h, i) => (
+                            <button key={i} onClick={() => { setSearchQuery(h); doSearch(h, activeTab); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: darkMode ? "#161b22" : "#f8fafc", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, WebkitTapHighlightColor: "transparent" }}>
+                              <span style={{ color: "#484f58", fontSize: 13 }}>↩</span> {h}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!searchQuery ? (
+                      <div style={{ textAlign: "center", padding: "32px 0" }}>
+                        <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+                        <p style={{ marginBottom: 8 }}>{lang === "en" ? "Search something above!" : "Pesquisa algo acima!"}</p>
+                        <p style={{ fontSize: 12, color: "#30363d" }}>{lang === "en" ? "Anime · Manga · Series · Movies · Games · Books · and more" : "Anime · Manga · Séries · Filmes · Jogos · Livros · e mais"}</p>
+                      </div>
+                    ) : Object.keys(searchResultsByType).length > 0 && (
+                      <p style={{ textAlign: "center", padding: "32px 0", fontSize: 13 }}>Nenhum resultado encontrado. Tenta outro termo ou seleciona um tipo específico.</p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <>
+                  <p style={{ color: "#484f58", fontSize: 13, marginBottom: 16 }}>{currentResults.length} resultados{activeTab !== "all" ? ` em ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : ""} para "<strong style={{ color: activeDarkMode ? "#e6edf3" : "#0d1117" }}>{searchQuery}</strong>"</p>
+                  {currentResults.length === 0 ? (
+                    <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", marginTop: 40 }}>Sem resultados para este tipo. Tenta "All".</p>
+                  ) : (
+                    <div className="media-grid">
+                      {currentResults.map((item) => <MediaCard key={item.id} item={item} library={library} onOpen={setSelectedItem} accent={accent} />)}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
         <div style={{ display: view === "library" ? "block" : "none" }}>
