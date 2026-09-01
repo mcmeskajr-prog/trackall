@@ -34,3 +34,19 @@ export function findLibraryEntry(library, id, type) {
   }
   return null;
 }
+
+// ─── Normalizar Item de Media ─────────────────────────────────────────────────
+// Garante que um item vindo de uma API externa (AniList, TMDB, IGDB, etc.) tem
+// sempre os campos base (id, type, title, cover) preenchidos de forma consistente,
+// sem perder os restantes campos originais. Usado antes de guardar/comparar itens
+// (addToLibrary, toggleFavorite, toggleHallOfFame, log rápido).
+export function normalizeMediaItem(item) {
+  if (!item) return { id: "", type: "", title: "", cover: "" };
+  return {
+    ...item,
+    id: item.id !== undefined && item.id !== null ? item.id : "",
+    type: item.type || "",
+    title: item.title || item.name || "",
+    cover: item.cover || item.poster || item.image || "",
+  };
+}

@@ -8,7 +8,7 @@ import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } f
 import { supabase, supa } from './config/supabase';
 
 // ─── Lib imports ──────────────────────────────────────────────────────────────
-import { normalizeMediaId, mediaIdCandidates, findLibraryEntry } from './lib/mediaIds';
+import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
 import { getConsumptionTime } from './lib/consumptionTime';
 
 // Safety fallback for lang
