@@ -20,6 +20,7 @@ import { searchGoogleBooks } from './api/books';
 import { searchComicVine } from './api/comicvine';
 import { fetchMediaDetails } from './api/details';
 import { fetchPersonalizedRecos } from './api/recommendations';
+import { smartSearch, CACHE, cacheKey } from './api/smartSearch';
 
 // Safety fallback for lang
 let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
@@ -72,9 +73,6 @@ const DB = {
   },
 };
 
-// ─── Simple in-memory search cache (evita re-fetch da mesma query) ────────────
-const CACHE = new Map();
-function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 
 function normalizeAniListType(type) {
   if (!type) return "";
@@ -97,36 +95,7 @@ function normalizeAniListType(type) {
 
 // 5. ComicVine — ver src/api/comicvine.js (searchComicVine)
 
-// ─── smartSearch — escolhe a melhor API por tipo ──────────────────────────────
-async function smartSearch(query, mediaType, keys = {}) {
-  const ck = cacheKey(query, mediaType);
-  if (CACHE.has(ck)) return CACHE.get(ck);
-
-  let results = null;
-  try {
-    if (mediaType === "anime") results = await searchAniList(query, "anime", keys.workerUrl);
-    else if (mediaType === "manga") results = await searchAniList(query, "manga", keys.workerUrl);
-    else if (mediaType === "manhwa") { const r = await searchAniList(query, "manhwa", keys.workerUrl, null, "KR"); results = r; }
-    else if (mediaType === "lightnovels") { const r = await searchAniList(query, "lightnovels", keys.workerUrl, "NOVEL"); results = r; }
-    else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
-    else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
-    else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
-    else if (mediaType === "jogos") {
-      results = await searchIGDB(query, keys.workerUrl);
-      if (!results?.length) results = await searchSteam(query);
-    }
-    else if (mediaType === "comics") results = await searchComicVine(query, keys.workerUrl);
-  } catch (err) {
-    console.error('[Search] Erro na pesquisa:', err);
-  }
-
-  if (results?.length) {
-    CACHE.set(ck, results);
-    if (CACHE.size > 50) CACHE.delete(CACHE.keys().next().value);
-    return results;
-  }
-  return [];
-}
+// smartSearch, CACHE, cacheKey — ver src/api/smartSearch.js
 
 // ─── Placeholder Gradients ─────────────────────────────────────────────────────
 const GRADIENTS = [
