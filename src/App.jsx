@@ -7094,12 +7094,13 @@ export default function TrackAll() {
     showNotif(`Capas atualizadas ✓`, "#10b981");
   };
   const removeFromLibrary = (id) => {
-    const matched = getLibraryMatch(id);
-    if (!matched) return;
-    const lib = { ...library };
-    delete lib[matched.key];
-    saveLibrary(lib);
-    showNotif("Removido da biblioteca", "#ef4444");
+   const matched = findLibraryEntry(library, id);
+   if (!matched) return;
+   const lib = { ...library };
+   delete lib[matched.key];
+   saveLibrary(lib);
+   showNotif("Removido da biblioteca", "#ef4444");
+
   };
   const updateDuration = useCallback((id, type, dur) => {
     if (!dur.episodes && !dur.chapters && !dur.runtime) return;
@@ -7153,18 +7154,19 @@ export default function TrackAll() {
     showNotif(`Capítulo: ${chapter} ✓`, accent);
   }, [library, accent]);
   const updateRating = (id, rating) => {
-    const matched = getLibraryMatch(id);
-    if (!matched) return;
-    const canonicalId = normalizeMediaId(id, matched.item?.type);
-    const next = { ...library };
-    if (matched.key !== canonicalId) delete next[matched.key];
-    next[canonicalId] = { ...matched.item, id: canonicalId, userRating: rating };
-    saveLibrary(next);
-    showNotif(rating > 0 ? `${rating} ★` : useT("ratingRemoved"), "#f59e0b");
+   const matched = findLibraryEntry(library, id);
+   if (!matched) return;
+   const canonicalId = normalizeMediaId(id, matched.item?.type);
+   const next = { ...library };
+   if (matched.key !== canonicalId) delete next[matched.key];
+   next[canonicalId] = { ...matched.item, id: canonicalId, userRating: rating };
+   saveLibrary(next);
+   showNotif(rating > 0 ? `${rating} ★` : useT("ratingRemoved"), "#f59e0b");
+
   };
   const updateCover = async (id, url) => {
-    const matched = getLibraryMatch(id);
-    if (!matched) return;
+   const matched = findLibraryEntry(library, id);
+   if (!matched) return;
     const canonicalId = normalizeMediaId(id, matched.item?.type);
     const next = { ...library };
     if (matched.key !== canonicalId) delete next[matched.key];
