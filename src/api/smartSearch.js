@@ -10,6 +10,27 @@ import { searchComicVine } from './comicvine';
 export const CACHE = new Map();
 export function cacheKey(q, type) { return `${type}::${q.toLowerCase().trim()}`; }
 
+// ─── Relevância ─────────────────────────────────────────────────────────────────
+// Cada API já devolve os seus resultados numa ordem própria (relevância nativa,
+// popularidade, etc.). Isto só reordena para dar prioridade a títulos que batem
+// mais de perto com o texto pesquisado, mantendo a ordem original da API como
+// desempate (sort estável) para não perder essa relevância/popularidade nativa.
+function normalizeForMatch(s) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+function matchRank(title, q) {
+  const t = normalizeForMatch(title);
+  if (!q) return 3;
+  if (t === q) return 0;           // título igual à pesquisa
+  if (t.startsWith(q)) return 1;   // título começa pela pesquisa
+  if (t.includes(q)) return 2;     // título contém a pesquisa
+  return 3;                        // resto (ex: encontrado por autor/sinopse)
+}
+function sortByRelevance(items, query) {
+  const q = normalizeForMatch(query);
+  return [...items].sort((a, b) => matchRank(a.title, q) - matchRank(b.title, q));
+}
+
 // ─── smartSearch — escolhe a melhor API por tipo ──────────────────────────────
 export async function smartSearch(query, mediaType, keys = {}) {
   const ck = cacheKey(query, mediaType);
@@ -34,6 +55,7 @@ export async function smartSearch(query, mediaType, keys = {}) {
   }
 
   if (results?.length) {
+    results = sortByRelevance(results, query);
     CACHE.set(ck, results);
     if (CACHE.size > 50) CACHE.delete(CACHE.keys().next().value);
     return results;

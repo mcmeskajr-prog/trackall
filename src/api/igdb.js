@@ -12,7 +12,7 @@ export async function searchIGDB(query, workerUrl) {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    body: `search "${query}"; fields name,cover.url,first_release_date,summary,total_rating,genres.name,involved_companies.company.name,external_games.uid,external_games.category,platforms.name; limit 15; where version_parent = null;`,
+    body: `search "${query}"; fields name,cover.url,first_release_date,summary,total_rating,genres.name,involved_companies.company.name,external_games.uid,external_games.category,platforms.name; limit 24; where version_parent = null;`,
   });
   if (!res.ok) return null;
   const games = await res.json();
@@ -45,7 +45,7 @@ export async function searchSteam(query) {
   if (!res.ok) return null;
   const data = await res.json();
   if (!data.items?.length) return null;
-  return data.items.slice(0, 15).map((g) => ({
+  return data.items.slice(0, 24).map((g) => ({
     id: `steam-${g.id}`,
     title: g.name || "",
     cover: SC(g.id),

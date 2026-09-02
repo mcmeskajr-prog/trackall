@@ -12,7 +12,7 @@ export async function searchTMDB(query, type, key, workerUrl) {
       if (!res.ok) return null;
       const data = await res.json();
       if (!data.results?.length) return null;
-      return data.results.slice(0, 15).map((m) => ({
+      return data.results.slice(0, 24).map((m) => ({
         id: `tmdb-${type}-${m.id}`,
         title: m.title || m.name || "",
         cover: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : "",
@@ -28,7 +28,7 @@ export async function searchTMDB(query, type, key, workerUrl) {
     if (!res.ok) return null;
     const data = await res.json();
     if (!data.results?.length) return null;
-    return data.results.slice(0, 15).map((m) => ({
+    return data.results.slice(0, 24).map((m) => ({
       id: `tmdb-${type}-${m.id}`,
       title: m.title || m.name || "",
       cover: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : "",

@@ -8,7 +8,7 @@ export async function searchComicVine(query, workerUrl) {
   if (!res.ok) return null;
   const data = await res.json();
   if (!data.results?.length) return null;
-  return data.results.slice(0, 15).map((c) => ({
+  return data.results.slice(0, 24).map((c) => ({
     id: `cv-${c.id}`,
     title: c.name || "",
     cover: c.image?.medium_url || c.image?.small_url || "",

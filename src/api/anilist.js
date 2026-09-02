@@ -9,7 +9,7 @@ export async function searchAniList(query, type, workerUrl, format = null, count
   if (format) extraFilters += `,format_in:[${format}]`;
   if (country) extraFilters += `,countryOfOrigin:"${country}"`;
   const body = JSON.stringify({
-    query: `query($s:String,$t:MediaType){Page(perPage:15){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore episodes chapters duration genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
+    query: `query($s:String,$t:MediaType){Page(perPage:24){media(search:$s,type:$t,sort:SEARCH_MATCH${extraFilters}){id title{romaji english native}coverImage{large medium}startDate{year}description(asHtml:false)averageScore episodes chapters duration genres studios(isMain:true){nodes{name}}staff(perPage:2,sort:RELEVANCE){nodes{name{full}}}}}}`,
     variables: { s: query, t: mediaType },
   });
   const opts = { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body };
