@@ -47,7 +47,7 @@ export async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
     else if (mediaType === "jogos") {
       results = await searchIGDB(query, keys.workerUrl);
-      if (!results?.length) results = await searchSteam(query);
+      if (!results?.length) results = await searchSteam(query, keys.workerUrl);
     }
     else if (mediaType === "comics") results = await searchComicVine(query, keys.workerUrl);
   } catch (err) {

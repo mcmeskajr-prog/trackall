@@ -40,8 +40,10 @@ export async function searchIGDB(query, workerUrl) {
   });
 }
 
-export async function searchSteam(query) {
-  const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=portuguese&cc=PT`);
+export async function searchSteam(query, workerUrl) {
+  if (!workerUrl) return null;
+  const url = workerUrl.replace(/\/$/, "") + `/steam?q=${encodeURIComponent(query)}`;
+  const res = await fetch(url);
   if (!res.ok) return null;
   const data = await res.json();
   if (!data.items?.length) return null;
