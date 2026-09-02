@@ -1525,7 +1525,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 }
 // ─── Media Card ────────────────────────────────────────────────────────────────
 // ── VirtualGrid: only renders cards near the viewport ──────────────────────
-const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3 }) {
+const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3, size = "normal" }) {
   const [visibleCount, setVisibleCount] = useState(columns * 6); // initial render
   const sentinelRef = useRef(null);
 
@@ -1552,7 +1552,7 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
 
   return (
     <>
-      <div className="media-grid">
+      <div className="media-grid" style={size === "large" ? { gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" } : undefined}>
         {visible.map((item) => (
           <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
         ))}
@@ -7566,8 +7566,11 @@ export default function TrackAll() {
                   {/* Outros quick picks — cards pequenos */}
                   {smallPicks.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b", marginBottom: 8, marginTop: todayPick ? 0 : 0 }}>
-                        {lang === "en" ? "Quick picks" : "Escolhas rápidas"}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b" }}>
+                          {`💡 ${(lang === "en" ? "Quick picks" : "Escolhas rápidas").toUpperCase()}`}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#484f58" }}>{smallPicks.length}</span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                         {smallPicks.map(({ slot, item }) => (
@@ -7979,8 +7982,8 @@ export default function TrackAll() {
                   </div>
                 )}
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
-                  {[{id:"grid",icon:"▦"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
-                    <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? "Compacto" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                  {[{id:"grid",icon:"▦"},{id:"large",icon:"◻"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
+                    <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? "Compacto" : m.id === "large" ? "Grande" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
                   ))}
                 </div>
               </div>
@@ -8097,12 +8100,13 @@ export default function TrackAll() {
                   </div>
                 ) : (
                   <VirtualGrid
-                    key={`${filterStatus}-${activeTab}-${libSort}`}
+                    key={`${filterStatus}-${activeTab}-${libSort}-${libViewMode}`}
                     items={sortedLib}
                     library={library}
                     onOpen={setSelectedItem}
                     accent={accent}
                     columns={typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5}
+                    size={libViewMode === "large" ? "large" : "normal"}
                   />
                 )}
               </div>
