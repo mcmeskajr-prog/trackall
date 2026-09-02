@@ -7092,7 +7092,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${activeDarkMode ? "#161b22" : "rgba(255,252,247,0.92)"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card { background: ${activeDarkMode ? "rgba(22,27,34,0.6)" : "rgba(255,252,247,0.75)"}; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
@@ -7115,7 +7115,7 @@ export default function TrackAll() {
           img { will-change: auto; }
           .card { contain: layout style; }
           @media (max-width: 768px) {
-            .card { contain: layout; border: none; border-radius: 8px; transition: none !important; }
+            .card { contain: layout; border: none; border-radius: 8px; transition: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
             .fade-in { animation: none !important; }
             .view-transition { animation: none !important; }
             .media-thumb:hover img { transform: none !important; }
