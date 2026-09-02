@@ -1775,7 +1775,7 @@ function RecentSection({ items, onOpen, showDiary = true }) {
       {completados.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{`✓ ${useT("completedLabel").toUpperCase()}`}</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{(lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>
             {completados.length > 10 && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
@@ -3256,7 +3256,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
           <h3 style={{ fontSize: 12, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0f172a", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#fbbf24" }}>★</span>
             <span>{lang === "en" ? "Hall of Fame" : "Hall of Fame"}</span>
           </h3>
           <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700 }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
@@ -8088,11 +8087,14 @@ export default function TrackAll() {
                       const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
                       const status = STATUS_OPTIONS.find(s => s.id === libItem?.userStatus);
                       return (
-                        <div key={item.id} onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", position: "relative" }}>
-                          <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", background: gradientFor(item.id) }}>
+                        <div key={item.id} className="recent-card" onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", position: "relative" }}>
+                          <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", position: "relative", background: gradientFor(item.id) }}>
                             {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                             {status && <span style={{ position: "absolute", top: 3, right: 3, fontSize: 9, background: `${status.color}cc`, color: "white", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>{status.emoji}</span>}
                             {libItem?.userRating > 0 && <span style={{ position: "absolute", bottom: 3, left: 3, fontSize: 9, background: "rgba(0,0,0,0.85)", color: "#f59e0b", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>★{libItem.userRating}</span>}
+                            <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", alignItems: "flex-end", padding: "20px 5px 5px" }}>
+                              <p style={{ fontSize: 9, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{item.title}</p>
+                            </div>
                           </div>
                         </div>
                       );
