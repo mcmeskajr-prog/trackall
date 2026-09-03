@@ -1926,7 +1926,8 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
 
   return (
     <div onClick={() => onOpen(col)} style={{
-      background: darkMode ? "#161b22" : "#f8fafc",
+      background: darkMode ? "rgba(22,27,34,0.6)" : "rgba(248,250,252,0.7)",
+      backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
       borderRadius: 14, overflow: "hidden", cursor: "pointer",
       transition: "transform 0.15s, box-shadow 0.15s",
@@ -2544,7 +2545,7 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   })).filter(g => g.items.length > 0);
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "#161b22" : "rgba(255,255,255,0.95)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "rgba(22,27,34,0.6)" : "rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
 
       {/* Mosaico com grupos separados por cor do tier */}
       <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", flexShrink: 0 }}>
@@ -3073,14 +3074,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           borderRadius: "20px 20px 0 0",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${accentShade(accent, -25)} 0%, ${darkMode ? "#0d1117" : "#f1f5f9"} 78%)`,
+            : darkMode ? "#0d1117" : "#f1f5f9",
         }}>
           {/* Multi-layer gradient overlay for impact */}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 0%, transparent 65%, rgba(0,0,0,0.45) 100%)" }} />
           {/* Banner fallback — hexágonos + partículas animadas */}
           {!currentBanner && (
             <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.28 }} xmlns="http://www.w3.org/2000/svg">
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
                     <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
@@ -3108,7 +3109,12 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   </circle>
                 ))}
               </svg>
-              {/* Gradiente respirante removido — dava um ar translúcido/a espreitar; o banner passou a usar um gradiente sólido acima */}
+              {/* Gradiente respirante */}
+              <div style={{ position: "absolute", inset: 0 }}>
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
+                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
+              </div>
+              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
             </>
           )}
           {editing && (
