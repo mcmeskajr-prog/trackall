@@ -2147,7 +2147,7 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
 
   return (
     <div className="modal-bg" onClick={onClose} style={isMobileDevice ? { paddingBottom: 64 } : {}}>
-      <div className="modal fade-in cover-modal" style={{ maxWidth: 560, padding: 0, display: "flex", flexDirection: "column", width: "100%" }} onClick={e => e.stopPropagation()}>
+      <div className="modal fade-in cover-modal modal-glass" style={{ maxWidth: 560, padding: 0, display: "flex", flexDirection: "column", width: "100%" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>
@@ -2442,7 +2442,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
       {/* Modal de personagem */}
       {selectedChar && (
         <div className="modal-bg" onClick={() => { setSelectedChar(null); setCharData(null); }} style={{ zIndex: 200 }}>
-          <div className="modal fade-in" style={{ maxWidth: 420, width: "95%", padding: 0, overflow: "hidden", maxHeight: "88vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+          <div className="modal fade-in modal-glass" style={{ maxWidth: 420, width: "95%", padding: 0, overflow: "hidden", maxHeight: "88vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
             {/* Header com imagem + nome */}
             <div style={{ display: "flex", gap: 0, position: "relative", background: "#0d1117", flexShrink: 0 }}>
               {/* Imagem */}
@@ -2674,7 +2674,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
 
   return (
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 660, maxHeight: "94vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+      <div className="modal fade-in modal-glass" style={{ maxWidth: 660, maxHeight: "94vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: "16px 20px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, position: "sticky", top: 0, background: darkMode ? "#161b22" : "#fff", zIndex: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -2807,7 +2807,7 @@ function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   return (
     <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in" style={{ maxWidth: 600, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+      <div className="modal fade-in modal-glass" style={{ maxWidth: 600, maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "20px 20px 0" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
             <h2 style={{ fontSize: 18, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1, marginRight: 12 }}>{tl.title}</h2>
@@ -3073,14 +3073,14 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           borderRadius: "20px 20px 0 0",
           background: currentBanner
             ? `url(${currentBanner}) center/cover no-repeat`
-            : darkMode ? "#0d1117" : "#f1f5f9",
+            : `linear-gradient(135deg, ${accentShade(accent, -25)} 0%, ${darkMode ? "#0d1117" : "#f1f5f9"} 78%)`,
         }}>
           {/* Multi-layer gradient overlay for impact */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 0%, transparent 65%, rgba(0,0,0,0.45) 100%)" }} />
           {/* Banner fallback — hexágonos + partículas animadas */}
           {!currentBanner && (
             <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.28 }} xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
                     <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
@@ -3108,12 +3108,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                   </circle>
                 ))}
               </svg>
-              {/* Gradiente respirante */}
-              <div style={{ position: "absolute", inset: 0 }}>
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
-              </div>
-              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
+              {/* Gradiente respirante removido — dava um ar translúcido/a espreitar; o banner passou a usar um gradiente sólido acima */}
             </>
           )}
           {editing && (
@@ -4285,7 +4280,7 @@ function FriendsView({user, accent, darkMode = true, isMobileDevice = false, lib
               ? `url(${friendData.profile.banner}) center/cover no-repeat`
               : fBgImage ? "transparent" : fBgColor,
           }}>
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 100%)" }} />
             {!friendData.profile?.banner && (
               <>
                 <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.15 }} xmlns="http://www.w3.org/2000/svg">
@@ -7107,6 +7102,7 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${activeDarkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
+          .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.72)" : "rgba(255,255,255,0.78)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
