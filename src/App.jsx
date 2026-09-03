@@ -5725,6 +5725,7 @@ export default function TrackAll() {
   });
   const setLibViewModePersist = (mode) => { setLibViewMode(mode); try { localStorage.setItem("trackall_lib_view", mode); } catch {} };
   const [logOpen, setLogOpen] = useState(false);
+  const [graveyardOpen, setGraveyardOpen] = useState(false);
   // Refs para o back handler (lê estado actual sem deps no useEffect)
   const selectedItemRef = useRef(null);
   const logOpenRef = useRef(false);
@@ -7755,7 +7756,7 @@ export default function TrackAll() {
                 return { ...i, reason, monthsOld };
               }).sort((a,b) => b.monthsOld-a.monthsOld);
               if (graveyard.length === 0) return null;
-              const [open, setOpen] = React.useState(false);
+              const open = graveyardOpen;
               const visible = open ? graveyard : graveyard.slice(0,3);
               const removeItem = async (item) => {
                 const cat = item.type+"s";
@@ -7794,7 +7795,7 @@ export default function TrackAll() {
                     })}
                   </div>
                   {graveyard.length > 3 && (
-                    <button onClick={() => setOpen(v=>!v)} style={{ display:"block",width:"100%",padding:"10px 16px",background:"none",border:"none",borderTop:"0.5px solid #21262d",color:"#484f58",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center" }}>
+                    <button onClick={() => setGraveyardOpen(v=>!v)} style={{ display:"block",width:"100%",padding:"10px 16px",background:"none",border:"none",borderTop:"0.5px solid #21262d",color:"#484f58",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center" }}>
                       {open ? (lang==="en" ? "show less" : "mostrar menos") : `${lang==="en" ? "see all" : "ver todos"} (${graveyard.length})`}
                     </button>
                   )}
