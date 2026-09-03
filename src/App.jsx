@@ -2254,41 +2254,37 @@ function CollectionModal({ initialData, library, onSave, onClose, workerUrl }) {
               <p style={{ fontSize: 13 }}>Pesquisa e adiciona itens à coleção</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 12 }}>
               {colItems.map((item, idx) => (
-                <div key={item.id} style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  background: darkMode ? "#0d1117" : "#f8fafc",
-                  border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-                  borderRadius: 10, padding: "8px 10px",
-                }}>
-                  {/* Cover */}
-                  <div style={{ width: 32, height: 44, borderRadius: 5, overflow: "hidden", flexShrink: 0, background: "#21262d" }}>
-                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>{itemTypeIcon[item.itemType]}</span>}
-                  </div>
-                  {/* Info + note */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {showNumbers && <span style={{ color: accent, marginRight: 5 }}>{idx + 1}.</span>}{item.title}
+                <div key={item.id} className="col-item-card" style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <div style={{ position: "relative", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d" }}>
+                    {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>{itemTypeIcon[item.itemType]}</span>}
+                    {showNumbers && <span style={{ position: "absolute", top: 4, left: 4, background: accent, color: "#fff", fontSize: 10, fontWeight: 800, borderRadius: 4, padding: "1px 5px" }}>{idx + 1}</span>}
+                    {/* Overlay de controlo — só no hover */}
+                    <div className="col-item-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", opacity: 0, transition: "opacity 0.15s", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 4 }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button onClick={() => removeItem(item.id)} style={{ background: "rgba(0,0,0,0.6)", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 13, width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} style={{ background: "rgba(0,0,0,0.6)", border: "none", color: idx === 0 ? "#484f58" : "#fff", cursor: idx === 0 ? "default" : "pointer", fontSize: 12, width: 22, height: 22, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>◀</button>
+                        <button onClick={() => moveItem(idx, 1)} disabled={idx === colItems.length - 1} style={{ background: "rgba(0,0,0,0.6)", border: "none", color: idx === colItems.length - 1 ? "#484f58" : "#fff", cursor: idx === colItems.length - 1 ? "default" : "pointer", fontSize: 12, width: 22, height: 22, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>▶</button>
+                      </div>
                     </div>
-                    <input
-                      placeholder="Nota pessoal (opcional)..."
-                      value={item.note || ""}
-                      onChange={e => updateNote(item.id, e.target.value)}
-                      style={{ width: "100%", padding: "3px 7px", fontSize: 11, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
-                    />
                   </div>
-                  {/* Controls */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-                    <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} style={{ background: "none", border: "none", color: idx === 0 ? "#30363d" : "#8b949e", cursor: idx === 0 ? "default" : "pointer", fontSize: 13, padding: "1px 4px", lineHeight: 1 }}>▲</button>
-                    <button onClick={() => moveItem(idx, 1)} disabled={idx === colItems.length - 1} style={{ background: "none", border: "none", color: idx === colItems.length - 1 ? "#30363d" : "#8b949e", cursor: idx === colItems.length - 1 ? "default" : "pointer", fontSize: 13, padding: "1px 4px", lineHeight: 1 }}>▼</button>
-                  </div>
-                  <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16, padding: "0 2px", flexShrink: 0 }}>✕</button>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.25, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</div>
+                  <input
+                    placeholder="Nota (opcional)..."
+                    value={item.note || ""}
+                    onChange={e => updateNote(item.id, e.target.value)}
+                    style={{ width: "100%", padding: "3px 6px", fontSize: 10, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
+                  />
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        <style>{`.col-item-card:hover .col-item-overlay { opacity: 1; }`}</style>
 
         {/* Footer */}
         <div style={{ padding: "12px 24px", paddingBottom: isMobileDevice ? 24 : 14, borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10, flexShrink: 0 }}>
@@ -2830,18 +2826,19 @@ function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
           {TIER_LEVELS.map(tier => {
             const items = tl.tiers[tier.id] || [];
             return (
-              <div key={tier.id} style={{ display: "flex", minHeight: 56, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                <div style={{ width: 48, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div key={tier.id} style={{ display: "flex", minHeight: 96, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+                <div style={{ width: 52, background: tier.color, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, gap: 3 }}>
                   <span style={{ fontSize: 20, fontWeight: 900, color: "white" }}>{tier.id}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", fontWeight: 700 }}>{items.length}</span>
                 </div>
-                <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 6, padding: 8, alignContent: "flex-start" }}>
+                <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", gap: 8, padding: 8, overflowX: "auto", alignItems: "center" }}>
                   {items.length === 0 ? (
-                    <span style={{ fontSize: 12, color: "#484f58", alignSelf: "center" }}>Vazio</span>
+                    <span style={{ fontSize: 12, color: "#484f58" }}>Vazio</span>
                   ) : items.map(item => {
                     const cover = item.customCover || item.cover || item.thumbnailUrl;
                     return (
-                      <div key={item.id} title={item.title}>
-                        <div style={{ width: 54, height: 78, borderRadius: 6, overflow: "hidden", background: gradientFor(item.id) }}>
+                      <div key={item.id} title={item.title} style={{ flexShrink: 0 }}>
+                        <div style={{ width: 62, height: 90, borderRadius: 7, overflow: "hidden", background: gradientFor(item.id) }}>
                           {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
                         </div>
                       </div>
