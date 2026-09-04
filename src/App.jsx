@@ -7581,13 +7581,28 @@ export default function TrackAll() {
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: activeDarkMode ? "#8b949e" : "#64748b" }}>
-                          {`💡 ${(lang === "en" ? "Quick picks" : "Escolhas rápidas").toUpperCase()}`}
+                          {(lang === "en" ? "Quick picks" : "Escolhas rápidas").toUpperCase()}
                         </span>
                         <span style={{ fontSize: 11, color: "#484f58" }}>{smallPicks.length}</span>
                       </div>
+                      {(() => {
+                        const plannedPool = items.filter(i => i.userStatus === "planejado" || i.userStatus === "planeado");
+                        const surpriseLibrary = () => { if (plannedPool.length) setSelectedItem(plannedPool[Math.floor(Math.random() * plannedPool.length)]); };
+                        const surpriseNew = () => { if (personalRecos.length) setSelectedItem(personalRecos[Math.floor(Math.random() * personalRecos.length)]); };
+                        return (
+                          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                            <button onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 10, border: `1px solid ${accent}26`, background: "transparent", color: plannedPool.length ? accent : "#484f58", fontSize: 11, fontWeight: 800, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit", opacity: plannedPool.length ? 1 : 0.5 }}>
+                              🎲 {lang === "en" ? "Surprise me" : "Surpreende-me"}
+                            </button>
+                            <button onClick={surpriseNew} disabled={!personalRecos.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 10, border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, background: "transparent", color: personalRecos.length ? (activeDarkMode ? "#cbd5e1" : "#475569") : "#484f58", fontSize: 11, fontWeight: 800, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit", opacity: personalRecos.length ? 1 : 0.5 }}>
+                              ✦ {lang === "en" ? "Something new" : "Algo novo"}
+                            </button>
+                          </div>
+                        );
+                      })()}
                       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                         {smallPicks.map(({ slot, item }) => (
-                          <button key={`${slot}-${item.id}`} onClick={() => setSelectedItem(item)} style={{ textAlign: "left", border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", borderRadius: 14, padding: "12px", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "54px 1fr", gap: 10 }}>
+                          <button key={`${slot}-${item.id}`} onClick={() => setSelectedItem(item)} style={{ textAlign: "left", border: `1px solid ${accent}26`, background: activeDarkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, borderRadius: 14, padding: "12px", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "54px 1fr", gap: 10 }}>
                             <div style={{ width: 54, height: 74, borderRadius: 10, overflow: "hidden", background: activeDarkMode ? "#0d1117" : "#e2e8f0" }}>
                               {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
                             </div>
@@ -7725,7 +7740,7 @@ export default function TrackAll() {
                     {slots.map(({ key, emoji, label, labelEn, color, picks, all, total }) => (
                       <div key={key} style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: `1px solid ${color}30`, borderRadius: 14, padding: "10px 12px" }}>
                         <div style={{ fontSize: 10, fontWeight: 900, color, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
-                          {emoji} {lang === "en" ? labelEn : label}
+                          {lang === "en" ? labelEn : label}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {picks.map((p, pi) => (
@@ -7790,7 +7805,7 @@ export default function TrackAll() {
                     {visible.map(item => {
                       const cover = item.customCover || item.cover;
                       return (
-                        <div key={item.id} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 10, padding: "10px 16px", alignItems: "center", borderTop: "0.5px solid #21262d" }}>
+                        <div key={item.id} style={{ display: "grid", gridTemplateColumns: "52px minmax(0, 480px) auto", gap: 10, padding: "10px 16px", alignItems: "center", borderTop: "0.5px solid #21262d" }}>
                           <div onClick={() => setSelectedItem(item)} style={{ width: 52, height: 74, borderRadius: 6, overflow: "hidden", background: "#161b22", cursor: "pointer", flexShrink: 0 }}>
                             {cover ? <img src={cover} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} onError={e=>e.currentTarget.style.display="none"}/> : <div style={{ width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#484f58",fontSize:18 }}>?</div>}
                           </div>
