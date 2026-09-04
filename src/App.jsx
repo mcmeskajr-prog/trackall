@@ -1926,7 +1926,7 @@ function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete })
 
   return (
     <div onClick={() => onOpen(col)} style={{
-      background: darkMode ? "rgba(22,27,34,0.6)" : "rgba(248,250,252,0.7)",
+      background: darkMode ? "rgba(22,27,34,0.35)" : "rgba(248,250,252,0.42)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
       borderRadius: 14, overflow: "hidden", cursor: "pointer",
@@ -2306,7 +2306,9 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
   const items = col.items || [];
   const itemTypeIcon = { media: "🎬", character: "👤", person: "🎭", comicchar: "💬" };
-  const cols = isMobileDevice ? 3 : 5;
+  const [colSize, setColSize] = useState(() => { try { return localStorage.getItem("trackall_col_size") || "medium"; } catch { return "medium"; } });
+  const setColSizePersist = (s) => { setColSize(s); try { localStorage.setItem("trackall_col_size", s); } catch {} };
+  const colMinWidth = colSize === "small" ? 100 : colSize === "large" ? 190 : 140;
   const [selectedChar, setSelectedChar] = useState(null);
   const [charData, setCharData] = useState(null);
   const [charLoading, setCharLoading] = useState(false);
@@ -2382,6 +2384,11 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
           }}>♥ {col.likes_count || 0}</button>
           <span style={{ fontSize: 12, color: "#8b949e" }}>{items.length} {items.length === 1 ? "item" : "itens"}</span>
           <span style={{ fontSize: 11, color: "#8b949e" }}>{col.visibility === "private" ? "🔒 Privada" : col.visibility === "friends" ? "👥 Amigos" : "🌐 Pública"}</span>
+          <div style={{ display: "flex", gap: 2, marginLeft: "auto", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: 2 }}>
+            {[{ id: "small", label: "P" }, { id: "medium", label: "M" }, { id: "large", label: "G" }].map(s => (
+              <button key={s.id} onClick={() => setColSizePersist(s.id)} title={s.id === "small" ? "Pequeno" : s.id === "large" ? "Grande" : "Médio"} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, background: colSize === s.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: colSize === s.id ? accent : "#8b949e" }}>{s.label}</button>
+            ))}
+          </div>
         </div>
         {col.description ? <p style={{ fontSize: 13, color: "#8b949e", margin: 0, lineHeight: 1.5 }}>{col.description}</p> : null}
       </div>
@@ -2394,7 +2401,7 @@ function CollectionViewer({ col, onClose, onLike, liked, currentUserId, onEdit, 
             <p style={{ fontSize: 14 }}>Esta coleção está vazia</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileDevice ? 6 : 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobileDevice ? Math.max(colMinWidth - 40, 90) : colMinWidth}px, 1fr))`, gap: isMobileDevice ? 6 : 10 }}>
             {items.map((item, idx) => {
               const isChar = item.itemType === "character" || item.itemType === "person" || item.itemType === "comicchar";
               const clickable = true;
@@ -2541,7 +2548,7 @@ function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   })).filter(g => g.items.length > 0);
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "rgba(22,27,34,0.6)" : "rgba(255,255,255,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "rgba(22,27,34,0.35)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
 
       {/* Mosaico com grupos separados por cor do tier */}
       <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", flexShrink: 0 }}>
@@ -2800,7 +2807,7 @@ function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdb
   );
 }
 
-function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
+function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit, onOpenItem }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   return (
     <div className="modal-bg" onClick={onClose}>
@@ -2837,7 +2844,7 @@ function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit }) {
                   ) : items.map(item => {
                     const cover = item.customCover || item.cover || item.thumbnailUrl;
                     return (
-                      <div key={item.id} title={item.title} style={{ flexShrink: 0 }}>
+                      <div key={item.id} title={item.title} onClick={() => onOpenItem && onOpenItem(item)} style={{ flexShrink: 0, cursor: onOpenItem ? "pointer" : "default" }}>
                         <div style={{ width: 62, height: 90, borderRadius: 7, overflow: "hidden", background: gradientFor(item.id) }}>
                           {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
                         </div>
@@ -7105,7 +7112,7 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${activeDarkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
-          .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.72)" : "rgba(255,255,255,0.78)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+          .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.42)" : "rgba(255,255,255,0.5)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
@@ -8234,6 +8241,7 @@ export default function TrackAll() {
             liked={userLikes.includes(viewingTierlist.id)}
             currentUserId={user?.id}
             onEdit={(tl) => { setViewingTierlist(null); setEditingTierlist(tl); setShowTierlistEditor(true); }}
+            onOpenItem={(item) => setSelectedItem(item)}
           />
         )}
 
