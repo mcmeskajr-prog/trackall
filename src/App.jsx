@@ -7591,10 +7591,10 @@ export default function TrackAll() {
                         const surpriseNew = () => { if (personalRecos.length) setSelectedItem(personalRecos[Math.floor(Math.random() * personalRecos.length)]); };
                         return (
                           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                            <button onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 10, border: `1px solid ${accent}26`, background: "transparent", color: plannedPool.length ? accent : "#484f58", fontSize: 11, fontWeight: 800, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit", opacity: plannedPool.length ? 1 : 0.5 }}>
+                            <button onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: "none", background: plannedPool.length ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0"), color: plannedPool.length ? "#fff" : "#6e7681", fontSize: 11, fontWeight: 800, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit" }}>
                               🎲 {lang === "en" ? "Surprise me" : "Surpreende-me"}
                             </button>
-                            <button onClick={surpriseNew} disabled={!personalRecos.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 10, border: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, background: "transparent", color: personalRecos.length ? (activeDarkMode ? "#cbd5e1" : "#475569") : "#484f58", fontSize: 11, fontWeight: 800, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit", opacity: personalRecos.length ? 1 : 0.5 }}>
+                            <button onClick={surpriseNew} disabled={!personalRecos.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: `1px solid ${accent}55`, background: activeDarkMode ? "#161b22" : "#fff", color: personalRecos.length ? (activeDarkMode ? "#e6edf3" : "#0f172a") : "#6e7681", fontSize: 11, fontWeight: 800, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit" }}>
                               ✦ {lang === "en" ? "Something new" : "Algo novo"}
                             </button>
                           </div>
@@ -7805,17 +7805,17 @@ export default function TrackAll() {
                     {visible.map(item => {
                       const cover = item.customCover || item.cover;
                       return (
-                        <div key={item.id} style={{ display: "grid", gridTemplateColumns: "52px minmax(0, 480px) auto", gap: 10, padding: "10px 16px", alignItems: "center", borderTop: "0.5px solid #21262d" }}>
+                        <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", maxWidth: 640, borderTop: "0.5px solid #21262d" }}>
                           <div onClick={() => setSelectedItem(item)} style={{ width: 52, height: 74, borderRadius: 6, overflow: "hidden", background: "#161b22", cursor: "pointer", flexShrink: 0 }}>
                             {cover ? <img src={cover} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} onError={e=>e.currentTarget.style.display="none"}/> : <div style={{ width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#484f58",fontSize:18 }}>?</div>}
                           </div>
-                          <div style={{ minWidth: 0 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 10, color: "#484f58", marginBottom: 2 }}>{getMediaTypeLabel(item.type, lang)}</div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", marginBottom: 4, lineHeight: 1.2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.title}</div>
                             <div style={{ fontSize: 10, color: "#484f58", marginBottom: 5 }}>{lang==="en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
                             <span style={{ fontSize: 10, color: "#e2a84a", background: "rgba(226,168,74,0.12)", padding: "2px 7px", borderRadius: 4 }}>{item.reason}</span>
                           </div>
-                          <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                          <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
                             {lang==="en" ? "remove" : "remover"}
                           </button>
                         </div>
