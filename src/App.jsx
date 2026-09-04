@@ -936,7 +936,7 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
 
   return (
     <>
-    <div className="modal-bg" onClick={onClose}>
+    <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
       <div ref={modalScrollRef} className="modal" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0, animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
 
         {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
@@ -5981,13 +5981,20 @@ export default function TrackAll() {
     setUserCollectionLikes(colLikes);
   };
 
+  const likingTierlistRef = useRef(new Set());
   const handleTierlistLike = async (tierlistId) => {
     if (!user) return;
-    const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
-    setUserLikes(prev => isLiked ? [...prev, tierlistId] : prev.filter(id => id !== tierlistId));
-    setUserTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: (tl.likes_count || 0) + (isLiked ? 1 : -1) } : tl));
-    if (viewingTierlist?.id === tierlistId) {
-      setViewingTierlist(prev => ({ ...prev, likes_count: (prev.likes_count || 0) + (isLiked ? 1 : -1) }));
+    if (likingTierlistRef.current.has(tierlistId)) return; // já em curso, ignora clique repetido
+    likingTierlistRef.current.add(tierlistId);
+    try {
+      const isLiked = await supa.toggleTierlistLike(user.id, tierlistId);
+      setUserLikes(prev => isLiked ? [...prev, tierlistId] : prev.filter(id => id !== tierlistId));
+      setUserTierlists(prev => prev.map(tl => tl.id === tierlistId ? { ...tl, likes_count: Math.max(0, (tl.likes_count || 0) + (isLiked ? 1 : -1)) } : tl));
+      if (viewingTierlist?.id === tierlistId) {
+        setViewingTierlist(prev => ({ ...prev, likes_count: Math.max(0, (prev.likes_count || 0) + (isLiked ? 1 : -1)) }));
+      }
+    } finally {
+      likingTierlistRef.current.delete(tierlistId);
     }
   };
 

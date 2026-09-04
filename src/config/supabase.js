@@ -140,13 +140,15 @@ const supa = {
   },
 
   async toggleTierlistLike(userId, tierlistId) {
-    const { data: existing } = await supabase.from('tierlist_likes').select('*').eq('user_id', userId).eq('tierlist_id', tierlistId).single();
+    const { data: existing } = await supabase.from('tierlist_likes').select('id').eq('user_id', userId).eq('tierlist_id', tierlistId).maybeSingle();
     if (existing) {
-      await supabase.from('tierlist_likes').delete().eq('id', existing.id);
-      await supabase.from('tierlists').update({ likes_count: supabase.rpc('decrement_likes', { tierlist_id: tierlistId }) }).eq('id', tierlistId);
+      const { error } = await supabase.from('tierlist_likes').delete().eq('id', existing.id);
+      if (!error) await supabase.from('tierlists').update({ likes_count: supabase.rpc('decrement_likes', { tierlist_id: tierlistId }) }).eq('id', tierlistId);
+      return false;
     } else {
-      await supabase.from('tierlist_likes').insert({ user_id: userId, tierlist_id: tierlistId });
-      await supabase.from('tierlists').update({ likes_count: supabase.rpc('increment_likes', { tierlist_id: tierlistId }) }).eq('id', tierlistId);
+      const { error } = await supabase.from('tierlist_likes').insert({ user_id: userId, tierlist_id: tierlistId });
+      if (!error) await supabase.from('tierlists').update({ likes_count: supabase.rpc('increment_likes', { tierlist_id: tierlistId }) }).eq('id', tierlistId);
+      return true;
     }
   },
 
