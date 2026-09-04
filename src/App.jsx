@@ -7182,6 +7182,10 @@ export default function TrackAll() {
           .view-transition { animation: viewIn 0.18s ease both; }
           @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
           .recent-card:hover > div { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.7) !important; }
+          .qp-btn { transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+          .qp-btn:not(:disabled):hover { transform: translateY(-1px); }
+          .qp-btn-primary:not(:disabled):hover { background: ${accent}35 !important; border-color: ${accent} !important; }
+          .qp-btn-secondary:not(:disabled):hover { background: ${activeDarkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.08)"} !important; border-color: ${activeDarkMode ? "#484f58" : "#94a3b8"} !important; }
           .recent-card:hover .recent-hover-overlay { opacity: 1 !important; }
           .fav-card-wrap:hover > div { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 28px rgba(0,0,0,0.65) !important; }
           .fav-card-wrap > div { transition: transform 0.18s, box-shadow 0.18s; }
@@ -7590,11 +7594,11 @@ export default function TrackAll() {
                         const surpriseLibrary = () => { if (plannedPool.length) setSelectedItem(plannedPool[Math.floor(Math.random() * plannedPool.length)]); };
                         const surpriseNew = () => { if (personalRecos.length) setSelectedItem(personalRecos[Math.floor(Math.random() * personalRecos.length)]); };
                         return (
-                          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                            <button onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: "none", background: plannedPool.length ? accent : (activeDarkMode ? "#21262d" : "#e2e8f0"), color: plannedPool.length ? "#fff" : "#6e7681", fontSize: 11, fontWeight: 800, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit" }}>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                            <button className="qp-btn qp-btn-primary" onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, border: `1px solid ${accent}70`, background: `${accent}20`, color: plannedPool.length ? (activeDarkMode ? "#fff" : "#0f172a") : "#6e7681", fontSize: 12, fontWeight: 700, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit", opacity: plannedPool.length ? 1 : 0.5 }}>
                               🎲 {lang === "en" ? "Surprise me" : "Surpreende-me"}
                             </button>
-                            <button onClick={surpriseNew} disabled={!personalRecos.length} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 10px", borderRadius: 10, border: `1px solid ${accent}55`, background: activeDarkMode ? "#161b22" : "#fff", color: personalRecos.length ? (activeDarkMode ? "#e6edf3" : "#0f172a") : "#6e7681", fontSize: 11, fontWeight: 800, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit" }}>
+                            <button className="qp-btn qp-btn-secondary" onClick={surpriseNew} disabled={!personalRecos.length} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, border: `1px solid ${activeDarkMode ? "#30363d" : "#cbd5e1"}`, background: activeDarkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)", color: personalRecos.length ? (activeDarkMode ? "#e6edf3" : "#0f172a") : "#6e7681", fontSize: 12, fontWeight: 700, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit", opacity: personalRecos.length ? 1 : 0.5 }}>
                               ✦ {lang === "en" ? "Something new" : "Algo novo"}
                             </button>
                           </div>
@@ -7792,27 +7796,28 @@ export default function TrackAll() {
                 if (user) try { await supa.removeFromLibrary(user.id, item.id, item.type); } catch {}
               };
               return (
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ padding: "0 16px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#e74c3c", marginBottom: 2 }}>
-                        {lang==="en" ? "Probably never consuming this" : "Provavelmente nunca vais consumir"}
-                      </h3>
-                      <div style={{ fontSize: 11, color: "#484f58" }}>{graveyard.length} {lang==="en" ? "titles · added 6+ months ago" : "títulos · adicionados há 6+ meses"}</div>
+                <div style={{ margin: "20px 0 4px", padding: "0 16px" }}>
+                  <div style={{ background: activeDarkMode ? "rgba(12,12,16,0.30)" : "rgba(255,255,255,0.28)", border: "1px solid #e74c3c30", borderRadius: 14, padding: "10px 12px 4px", overflow: "hidden" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div>
+                        <h3 style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#e74c3c", marginBottom: 2 }}>
+                          {lang==="en" ? "Probably never consuming this" : "Provavelmente nunca vais consumir"}
+                        </h3>
+                        <div style={{ fontSize: 11, color: "#8b949e" }}>{graveyard.length} {lang==="en" ? "titles · added 6+ months ago" : "títulos · adicionados há 6+ meses"}</div>
+                      </div>
                     </div>
-                  </div>
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     {visible.map(item => {
                       const cover = item.customCover || item.cover;
                       return (
-                        <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", maxWidth: 640, borderTop: "0.5px solid #21262d" }}>
+                        <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "0.5px solid rgba(231,76,60,0.15)" }}>
                           <div onClick={() => setSelectedItem(item)} style={{ width: 52, height: 74, borderRadius: 6, overflow: "hidden", background: "#161b22", cursor: "pointer", flexShrink: 0 }}>
                             {cover ? <img src={cover} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} onError={e=>e.currentTarget.style.display="none"}/> : <div style={{ width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#484f58",fontSize:18 }}>?</div>}
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: 10, color: "#484f58", marginBottom: 2 }}>{getMediaTypeLabel(item.type, lang)}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", marginBottom: 4, lineHeight: 1.2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.title}</div>
-                            <div style={{ fontSize: 10, color: "#484f58", marginBottom: 5 }}>{lang==="en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
+                            <div style={{ fontSize: 10, color: "#8b949e", marginBottom: 2 }}>{getMediaTypeLabel(item.type, lang)}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: activeDarkMode ? "#f8fafc" : "#0f172a", marginBottom: 4, lineHeight: 1.2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.title}</div>
+                            <div style={{ fontSize: 10, color: "#8b949e", marginBottom: 5 }}>{lang==="en" ? `Added ${item.monthsOld}m ago` : `Adicionado há ${item.monthsOld}m`}</div>
                             <span style={{ fontSize: 10, color: "#e2a84a", background: "rgba(226,168,74,0.12)", padding: "2px 7px", borderRadius: 4 }}>{item.reason}</span>
                           </div>
                           <button onClick={() => removeItem(item)} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, border: "0.5px solid rgba(231,76,60,0.4)", background: "transparent", color: "#e74c3c", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
@@ -7823,10 +7828,11 @@ export default function TrackAll() {
                     })}
                   </div>
                   {graveyard.length > 3 && (
-                    <button onClick={() => setGraveyardOpen(v=>!v)} style={{ display:"block",width:"100%",padding:"10px 16px",background:"none",border:"none",borderTop:"0.5px solid #21262d",color:"#484f58",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center" }}>
+                    <button onClick={() => setGraveyardOpen(v=>!v)} style={{ display:"block",width:"100%",padding:"10px 0",background:"none",border:"none",borderTop:"0.5px solid rgba(231,76,60,0.15)",color:"#8b949e",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",textAlign:"center" }}>
                       {open ? (lang==="en" ? "show less" : "mostrar menos") : `${lang==="en" ? "see all" : "ver todos"} (${graveyard.length})`}
                     </button>
                   )}
+                  </div>
                 </div>
               );
             })()}
