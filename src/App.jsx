@@ -3247,24 +3247,6 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             {profile.bio && <p style={{ color: "#8b949e", fontSize: 14, marginTop: 4 }}>{profile.bio}</p>}
             {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
             <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
-            {(() => {
-              const inProgress = items.filter(i => i.userStatus === "assistindo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-              const nowItem = inProgress[0];
-              if (!nowItem) return null;
-              const typeObj = MEDIA_TYPES.find(t => t.id === nowItem.type);
-              const verb = { anime: "A ver", series: "A ver", filmes: "A ver", jogos: "A jogar", manga: "A ler", manhwa: "A ler", lightnovels: "A ler", livros: "A ler", comics: "A ler" };
-              const verbEn = { anime: "Watching", series: "Watching", filmes: "Watching", jogos: "Playing", manga: "Reading", manhwa: "Reading", lightnovels: "Reading", livros: "Reading", comics: "Reading" };
-              return (
-                <div onClick={() => onOpen && onOpen(nowItem)} style={{ display: "inline-flex", alignItems: "center", gap: 14, marginTop: 14, padding: "10px 22px 10px 10px", borderRadius: 999, background: darkMode ? `${accent}15` : `${accent}0d`, border: `1px solid ${accent}30`, cursor: "pointer" }}>
-                  <TiltCard maxTilt={12} glare style={{ width: 56, height: 76, borderRadius: 8, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                    {nowItem.cover ? <img src={nowItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{typeObj?.icon}</div>}
-                  </TiltCard>
-                  <span style={{ fontSize: 15, color: darkMode ? "#e6edf3" : "#0f172a" }}>
-                    <span style={{ color: accent, fontWeight: 700 }}>{lang === "en" ? (verbEn[nowItem.type] || "Consuming") : (verb[nowItem.type] || "A consumir")}:</span> {nowItem.title}
-                  </span>
-                </div>
-              );
-            })()}
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
