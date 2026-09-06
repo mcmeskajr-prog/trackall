@@ -3343,9 +3343,9 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     onClick={() => onOpen && onOpen(item)}
                     style={{ cursor: "pointer", width: isMobileDevice ? 108 : 128, flexShrink: 0 }}
                   >
-                    <div style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
+                    <TiltCard maxTilt={9} style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
                       {coverSrc
-                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display = "none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
@@ -3356,7 +3356,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                       <div style={{ position: "absolute", top: 6, right: 6, minWidth: 22, height: 22, borderRadius: 999, padding: "0 6px", background: "rgba(10,10,10,0.72)", border: "1px solid rgba(251,191,36,0.30)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
                         {score || "—"}
                       </div>
-                    </div>
+                    </TiltCard>
                   </div>
                 );
               })}
@@ -3410,16 +3410,16 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                               const currentRating = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                               return (
                                 <div key={item.id} className="recent-card fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.5)", transition: "transform 0.18s" }}>
+                                  <TiltCard maxTilt={9} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
                                     {coverSrc
-                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display = "none"} />
                                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
                                     }
                                     <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
                                       <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 4 }}>{item.title}</p>
                                       {currentRating > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800 }}>★ {currentRating}</span>}
                                     </div>
-                                  </div>
+                                  </TiltCard>
                                   <button className="fav-rm" onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
                                     style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.15s", zIndex: 10 }}>✕</button>
                                 </div>
