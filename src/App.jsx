@@ -1574,8 +1574,9 @@ const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, 
 // e limita a 1 atualização por frame com requestAnimationFrame — não causa
 // re-renders do React nem sobrecarrega o browser, mesmo com o rato a mexer
 // muito rápido.
-function TiltCard({ children, maxTilt = 8, scale = 1.02, style, className }) {
+function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, style, className }) {
   const ref = useRef(null);
+  const glareRef = useRef(null);
   const rafRef = useRef(null);
   const handleMove = (e) => {
     if (rafRef.current) return;
@@ -1590,12 +1591,17 @@ function TiltCard({ children, maxTilt = 8, scale = 1.02, style, className }) {
       const rotateY = (x - 0.5) * maxTilt * 2;
       const rotateX = -(y - 0.5) * maxTilt * 2;
       el.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale},${scale},${scale})`;
+      if (glare && glareRef.current) {
+        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.4), transparent 60%)`;
+        glareRef.current.style.opacity = "1";
+      }
     });
   };
   const handleLeave = () => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     const el = ref.current;
     if (el) el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)";
+    if (glare && glareRef.current) glareRef.current.style.opacity = "0";
   };
   return (
     <div
@@ -1603,9 +1609,10 @@ function TiltCard({ children, maxTilt = 8, scale = 1.02, style, className }) {
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       className={className}
-      style={{ transition: "transform 0.2s ease-out", transformStyle: "preserve-3d", willChange: "transform", ...style }}
+      style={{ position: "relative", transition: "transform 0.2s ease-out", transformStyle: "preserve-3d", willChange: "transform", ...style }}
     >
       {children}
+      {glare && <div ref={glareRef} style={{ position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.3s ease-out", pointerEvents: "none", mixBlendMode: "overlay" }} />}
     </div>
   );
 }
@@ -3248,11 +3255,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               const verb = { anime: "A ver", series: "A ver", filmes: "A ver", jogos: "A jogar", manga: "A ler", manhwa: "A ler", lightnovels: "A ler", livros: "A ler", comics: "A ler" };
               const verbEn = { anime: "Watching", series: "Watching", filmes: "Watching", jogos: "Playing", manga: "Reading", manhwa: "Reading", lightnovels: "Reading", livros: "Reading", comics: "Reading" };
               return (
-                <div onClick={() => onOpen && onOpen(nowItem)} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10, padding: "5px 12px 5px 5px", borderRadius: 999, background: darkMode ? `${accent}15` : `${accent}0d`, border: `1px solid ${accent}30`, cursor: "pointer" }}>
-                  <TiltCard maxTilt={12} style={{ width: 26, height: 36, borderRadius: 5, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                    {nowItem.cover ? <img src={nowItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>{typeObj?.icon}</div>}
+                <div onClick={() => onOpen && onOpen(nowItem)} style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 12, padding: "8px 18px 8px 8px", borderRadius: 999, background: darkMode ? `${accent}15` : `${accent}0d`, border: `1px solid ${accent}30`, cursor: "pointer" }}>
+                  <TiltCard maxTilt={12} glare style={{ width: 38, height: 52, borderRadius: 7, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+                    {nowItem.cover ? <img src={nowItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{typeObj?.icon}</div>}
                   </TiltCard>
-                  <span style={{ fontSize: 12, color: darkMode ? "#e6edf3" : "#0f172a" }}>
+                  <span style={{ fontSize: 14, color: darkMode ? "#e6edf3" : "#0f172a" }}>
                     <span style={{ color: accent, fontWeight: 700 }}>{lang === "en" ? (verbEn[nowItem.type] || "Consuming") : (verb[nowItem.type] || "A consumir")}:</span> {nowItem.title}
                   </span>
                 </div>
@@ -7613,7 +7620,7 @@ export default function TrackAll() {
                     return (
                       <div onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", borderRadius: 18, overflow: "hidden", border: `1px solid ${accent}26`, background: activeDarkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, boxShadow: activeDarkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`, marginBottom: smallPicks.length > 0 ? 12 : 0 }}>
                         <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
-                          <TiltCard maxTilt={7} style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0, boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}>
+                          <TiltCard maxTilt={7} glare style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: activeDarkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0, boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}>
                             {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
                           </TiltCard>
                           <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
