@@ -187,6 +187,20 @@ const supa = {
   async getUserCollectionLikes(userId) {
     const { data } = await supabase.from('collection_likes').select('collection_id').eq('user_id', userId);
     return data;
+  },
+
+  // Envia uma imagem (Blob) para o Storage e devolve o URL público curto,
+  // em vez de guardarmos a imagem toda como texto base64 na base de dados
+  // (isso é o que fazia o guardar do banner/avatar encravar).
+  async uploadImage(userId, blob, filename) {
+    const path = `${userId}/${filename}`;
+    const { error } = await supabase.storage.from('profile-images').upload(path, blob, {
+      upsert: true,
+      contentType: blob.type || 'image/jpeg',
+    });
+    if (error) throw new Error(error.message);
+    const { data } = supabase.storage.from('profile-images').getPublicUrl(path);
+    return data.publicUrl;
   }
 };
 

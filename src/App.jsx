@@ -3099,10 +3099,28 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
     setCropType("banner");
   };
 
-  const handleCropSave = (dataUrl) => {
-    if (cropType === "avatar") setAvatarPreview(dataUrl);
-    if (cropType === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
+  const [uploadingImage, setUploadingImage] = useState(null); // "avatar" | "banner" | null
+  const [uploadError, setUploadError] = useState("");
+  const handleCropSave = async (dataUrl) => {
+    const type = cropType;
     setCropSrc(null); setCropType(null);
+    setUploadError("");
+    // Pré-visualização imediata (local) enquanto o upload real acontece
+    if (type === "avatar") setAvatarPreview(dataUrl);
+    if (type === "banner") { setBannerPreview(dataUrl); setBannerUrl(dataUrl); }
+    if (!currentUserId) return;
+    setUploadingImage(type);
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const url = await supa.uploadImage(currentUserId, blob, `${type}-${Date.now()}.jpg`);
+      if (type === "avatar") setAvatarPreview(url);
+      if (type === "banner") { setBannerPreview(url); setBannerUrl(url); }
+    } catch (e) {
+      console.error("Upload falhou:", e);
+      setUploadError(lang === "en" ? "Image upload failed — try a smaller image or a direct link instead" : "O envio da imagem falhou — tenta uma imagem mais pequena ou um link direto");
+    } finally {
+      setUploadingImage(null);
+    }
   };
 
   const handleSave = async () => {
@@ -3172,11 +3190,12 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
           {editing && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
               <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
-              <button onClick={() => bannerRef.current?.click()} style={{
+              <button onClick={() => bannerRef.current?.click()} disabled={uploadingImage === "banner"} style={{
                 padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
-                background: "rgba(0,0,0,0.5)", color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)",
-              }}>🖼 Alterar Banner</button>
+                background: "rgba(0,0,0,0.5)", color: "white", cursor: uploadingImage === "banner" ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)", opacity: uploadingImage === "banner" ? 0.6 : 1,
+              }}>{uploadingImage === "banner" ? (lang === "en" ? "⏳ Uploading..." : "⏳ A enviar...") : "🖼 Alterar Banner"}</button>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
+              {uploadError && <p style={{ fontSize: 11, color: "#ff8a8a", textAlign: "center", maxWidth: 260 }}>{uploadError}</p>}
               <input
                 placeholder="ou cola URL do banner..."
                 value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
@@ -3211,11 +3230,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
             {editing && (
               <>
                 <input type="file" accept="image/*" ref={avatarRef} onChange={handleAvatarFile} style={{ display: "none" }} />
-                <button onClick={() => avatarRef.current?.click()} style={{
+                <button onClick={() => avatarRef.current?.click()} disabled={uploadingImage === "avatar"} style={{
                   position: "absolute", bottom: 2, right: 2, width: 26, height: 26, borderRadius: 999,
-                  background: accent, border: `2px solid ${bgColor}`, cursor: "pointer", fontSize: 12,
+                  background: accent, border: `2px solid ${bgColor}`, cursor: uploadingImage === "avatar" ? "default" : "pointer", fontSize: 12, opacity: uploadingImage === "avatar" ? 0.6 : 1,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                }}>🖊</button>
+                }}>{uploadingImage === "avatar" ? "⏳" : "🖊"}</button>
               </>
             )}
           </div>
@@ -3237,7 +3256,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no mobile"}</span>
             </label>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn-accent" style={{ flex: 1, padding: "10px" }} onClick={handleSave}>{useT("saveProfile")}</button>
+              <button className="btn-accent" style={{ flex: 1, padding: "10px", opacity: uploadingImage ? 0.6 : 1 }} onClick={handleSave} disabled={!!uploadingImage}>{uploadingImage ? (lang === "en" ? "Uploading image..." : "A enviar imagem...") : useT("saveProfile")}</button>
               <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
             </div>
           </div>
