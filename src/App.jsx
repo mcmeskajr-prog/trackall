@@ -3255,11 +3255,11 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
               const verb = { anime: "A ver", series: "A ver", filmes: "A ver", jogos: "A jogar", manga: "A ler", manhwa: "A ler", lightnovels: "A ler", livros: "A ler", comics: "A ler" };
               const verbEn = { anime: "Watching", series: "Watching", filmes: "Watching", jogos: "Playing", manga: "Reading", manhwa: "Reading", lightnovels: "Reading", livros: "Reading", comics: "Reading" };
               return (
-                <div onClick={() => onOpen && onOpen(nowItem)} style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 12, padding: "8px 18px 8px 8px", borderRadius: 999, background: darkMode ? `${accent}15` : `${accent}0d`, border: `1px solid ${accent}30`, cursor: "pointer" }}>
-                  <TiltCard maxTilt={12} glare style={{ width: 38, height: 52, borderRadius: 7, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
-                    {nowItem.cover ? <img src={nowItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{typeObj?.icon}</div>}
+                <div onClick={() => onOpen && onOpen(nowItem)} style={{ display: "inline-flex", alignItems: "center", gap: 14, marginTop: 14, padding: "10px 22px 10px 10px", borderRadius: 999, background: darkMode ? `${accent}15` : `${accent}0d`, border: `1px solid ${accent}30`, cursor: "pointer" }}>
+                  <TiltCard maxTilt={12} glare style={{ width: 56, height: 76, borderRadius: 8, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0 }}>
+                    {nowItem.cover ? <img src={nowItem.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{typeObj?.icon}</div>}
                   </TiltCard>
-                  <span style={{ fontSize: 14, color: darkMode ? "#e6edf3" : "#0f172a" }}>
+                  <span style={{ fontSize: 15, color: darkMode ? "#e6edf3" : "#0f172a" }}>
                     <span style={{ color: accent, fontWeight: 700 }}>{lang === "en" ? (verbEn[nowItem.type] || "Consuming") : (verb[nowItem.type] || "A consumir")}:</span> {nowItem.title}
                   </span>
                 </div>
@@ -3350,7 +3350,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                     onClick={() => onOpen && onOpen(item)}
                     style={{ cursor: "pointer", width: isMobileDevice ? 108 : 128, flexShrink: 0 }}
                   >
-                    <TiltCard maxTilt={9} style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
+                    <TiltCard maxTilt={9} glare style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
                       {coverSrc
                         ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display = "none"} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
@@ -3417,7 +3417,7 @@ function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage
                               const currentRating = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                               return (
                                 <div key={item.id} className="recent-card fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                                  <TiltCard maxTilt={9} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
+                                  <TiltCard maxTilt={9} glare style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 6 : 9, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>
                                     {coverSrc
                                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display = "none"} />
                                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t.icon}</div>
