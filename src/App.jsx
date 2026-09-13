@@ -1,7 +1,12 @@
-import { useState, useEffect, useCallback, useRef, useMemo, memo, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { flushSync, createPortal } from "react-dom";
 import { createClient } from '@supabase/supabase-js';
-import { t, detectLang, saveLang, STRINGS } from './translations';
+import { StarRating } from './components/StarRating';
+import { Notification } from './components/Notification';
+import { MediaCard } from './components/MediaCard';
+import { VirtualGrid } from './components/VirtualGrid';
+import { TiltCard } from './components/TiltCard';
+import { t, detectLang, saveLang } from './translations';
 // ─── Config imports ───────────────────────────────────────────────────────────
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
@@ -10,7 +15,7 @@ import { supabase, supa } from './config/supabase';
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
 import { getConsumptionTime } from './lib/consumptionTime';
-import { shuffle } from './lib/utils';
+import { shuffle, gradientFor } from './lib/utils';
 
 // ─── API imports ──────────────────────────────────────────────────────────────
 import { searchAniList, fetchAniListSafe, fetchTrendingAnime, fetchTrendingManga } from './api/anilist';
@@ -22,20 +27,9 @@ import { fetchMediaDetails } from './api/details';
 import { fetchPersonalizedRecos } from './api/recommendations';
 import { smartSearch, CACHE, cacheKey } from './api/smartSearch';
 
-// Safety fallback for lang
-let _globalLang = (() => { try { return localStorage.getItem("trackall_lang") || (navigator.language?.startsWith("pt") ? "pt" : "en"); } catch { return "en"; } })();
-
-// ── Theme Context (temporary until fully refactored) ────────────────────────
-const ThemeContext = createContext(null);
-const useTheme = () => useContext(ThemeContext);
-const useAccent = () => useContext(ThemeContext)?.accent ?? "#f97316";
-const useDarkMode = () => useContext(ThemeContext)?.darkMode ?? true;
-const useIsMobile = () => useContext(ThemeContext)?.isMobileDevice ?? false;
-
-// ── Lang Context (temporary until fully refactored) ────────────────────────
-const _safeT = (k) => { try { const s = STRINGS?.[_globalLang]; return s?.[k] ?? STRINGS?.["en"]?.[k] ?? k; } catch { return k; } };
-const LangContext = createContext({ lang: _globalLang, useT: _safeT });
-const useLang = () => { const ctx = useContext(LangContext); return ctx ?? { lang: _globalLang, useT: _safeT }; };
+// ─── Contexts ─────────────────────────────────────────────────────────────────
+import { ThemeContext, useTheme, useAccent, useDarkMode, useIsMobile } from './contexts/ThemeContext';
+import { LangContext, useLang } from './contexts/LangContext';
 
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
@@ -98,84 +92,10 @@ function normalizeAniListType(type) {
 // smartSearch, CACHE, cacheKey — ver src/api/smartSearch.js
 
 // ─── Placeholder Gradients ─────────────────────────────────────────────────────
-const GRADIENTS = [
-  ["#1a0533","#4a0080"],["#0d1f2d","#1a5276"],["#1a1a00","#7d6608"],
-  ["#1a0000","#7b241c"],["#0a2e1a","#1e8449"],["#0d0d2b","#1a237e"],
-  ["#1c0a2e","#6b21a8"],["#0a1628","#1e3a5f"],["#1a0a00","#7c3a00"],
-  ["#001a1a","#006666"],
-];
-const gradientFor = (id) => {
-  const i = Math.abs((id || "x").split("").reduce((a, c) => a + c.charCodeAt(0), 0)) % GRADIENTS.length;
-  return `linear-gradient(145deg, ${GRADIENTS[i][0]} 0%, ${GRADIENTS[i][1]} 100%)`;
-};
+// GRADIENTS, gradientFor — ver src/lib/utils.js
+// StarRating — ver components/StarRating.jsx
 
-// ─── Star Rating Component ─────────────────────────────────────────────────────
-function StarRating({ value = 0, onChange, size = 16, readOnly = false }) {
-  const [hover, setHover] = useState(0);
-  const active = hover || value;
-
-  // Each star = 1 point, but we support 0.5 increments
-  // We render 10 stars, each star can be empty, half, or full
-  return (
-    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-      {[1,2,3,4,5,6,7,8,9,10].map((star) => {
-        const full = active >= star;
-        const half = !full && active >= star - 0.5;
-        return (
-          <div
-            key={star}
-            style={{ position: "relative", width: size, height: size, cursor: readOnly ? "default" : "pointer", flexShrink: 0 }}
-            onMouseLeave={() => !readOnly && setHover(0)}
-          >
-            {/* Background star */}
-            <span style={{ fontSize: size, color: "#374151", lineHeight: 1, userSelect: "none" }}>★</span>
-            {/* Filled overlay */}
-            {(full || half) && (
-              <span style={{
-                position: "absolute", left: 0, top: 0, fontSize: size, color: "#f59e0b",
-                lineHeight: 1, overflow: "hidden", width: full ? "100%" : "50%", userSelect: "none",
-              }}>★</span>
-            )}
-            {/* Left half hitbox (X - 0.5) */}
-            <div
-              style={{ position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }}
-              onMouseEnter={() => !readOnly && setHover(star - 0.5)}
-              onClick={(e) => { if(!readOnly && onChange){ const p=e.currentTarget.parentElement; if(p){p.classList.remove("ta-star");void p.offsetWidth;p.classList.add("ta-star");} onChange(value === star - 0.5 ? 0 : star - 0.5); } }}
-            />
-            {/* Right half hitbox (X) */}
-            <div
-              style={{ position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }}
-              onMouseEnter={() => !readOnly && setHover(star)}
-              onClick={(e) => { if(!readOnly && onChange){ const p=e.currentTarget.parentElement; if(p){p.classList.remove("ta-star");void p.offsetWidth;p.classList.add("ta-star");} onChange(value === star ? 0 : star); } }}
-            />
-          </div>
-        );
-      })}
-      {active > 0 && !readOnly && (
-        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4, minWidth: "2.2ch", display: "inline-block" }}>{active}</span>
-      )}
-      {readOnly && value > 0 && (
-        <span style={{ fontSize: size * 0.8, color: "#f59e0b", fontWeight: 700, marginLeft: 4 }}>{value}</span>
-      )}
-    </div>
-  );
-}
-
-// ─── Notification ──────────────────────────────────────────────────────────────
-function Notification({ notif }) {
-  if (!notif) return null;
-  return (
-    <div style={{
-      position: "fixed", top: 20, right: 20, zIndex: 9999,
-      background: notif.color || "#10b981", color: "white",
-      padding: "12px 20px", borderRadius: 12, fontWeight: 600, fontSize: 14,
-      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-      animation: "slideIn 0.25s cubic-bezier(.34,1.56,.64,1)",
-    }}>
-      {notif.msg}
-    </div>
-  );
-}
+// Notification — ver components/Notification.jsx
 
 // ─── Image utils ───────────────────────────────────────────────────────────────
 // Compresses an image File to a base64 JPEG ≤ 300 KB (portrait 400×600)
@@ -1539,186 +1459,11 @@ function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateR
   );
 }
 // ─── Media Card ────────────────────────────────────────────────────────────────
-// ── VirtualGrid: only renders cards near the viewport ──────────────────────
-const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, accent, columns = 3, size = "normal" }) {
-  const [visibleCount, setVisibleCount] = useState(columns * 6); // initial render
-  const sentinelRef = useRef(null);
+// VirtualGrid — ver components/VirtualGrid.jsx
 
-  useEffect(() => {
-    setVisibleCount(columns * 6); // reset on filter change
-  }, [items.length, columns]);
+// TiltCard — ver components/TiltCard.jsx
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount(prev => Math.min(prev + columns * 4, items.length));
-        }
-      },
-      { rootMargin: '100px' }
-    );
-    obs.observe(sentinel);
-    return () => obs.disconnect();
-  }, [items.length, columns]);
-
-  const visible = items.slice(0, visibleCount);
-
-  return (
-    <>
-      <div className="media-grid" style={size === "large" ? { gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" } : undefined}>
-        {visible.map((item) => (
-          <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
-        ))}
-      </div>
-      {visibleCount < items.length && (
-        <div ref={sentinelRef} style={{ height: 1, margin: '20px 0' }} />
-      )}
-      {visibleCount >= items.length && items.length > 0 && (
-        <p style={{ textAlign: 'center', color: '#484f58', fontSize: 12, padding: '16px 0' }}>
-          {items.length} itens
-        </p>
-      )}
-    </>
-  );
-}); // end memo(VirtualGrid)
-
-// ── TiltCard: efeito de inclinação 3D ao seguir o rato ─────────────────────────
-// Escreve o transform diretamente no DOM (via ref) em vez de usar useState,
-// e limita a 1 atualização por frame com requestAnimationFrame — não causa
-// re-renders do React nem sobrecarrega o browser, mesmo com o rato a mexer
-// muito rápido.
-function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, style, className }) {
-  const ref = useRef(null);
-  const glareRef = useRef(null);
-  const rafRef = useRef(null);
-  const handleMove = (e) => {
-    if (rafRef.current) return;
-    const clientX = e.clientX, clientY = e.clientY;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = (clientX - rect.left) / rect.width;
-      const y = (clientY - rect.top) / rect.height;
-      const rotateY = (x - 0.5) * maxTilt * 2;
-      const rotateX = -(y - 0.5) * maxTilt * 2;
-      el.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale},${scale},${scale})`;
-      if (glare && glareRef.current) {
-        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.4), transparent 60%)`;
-        glareRef.current.style.opacity = "1";
-      }
-    });
-  };
-  const handleLeave = () => {
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    const el = ref.current;
-    if (el) el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)";
-    if (glare && glareRef.current) glareRef.current.style.opacity = "0";
-  };
-  return (
-    <div
-      ref={ref}
-      onMouseMove={handleMove}
-      onMouseLeave={handleLeave}
-      className={className}
-      style={{ position: "relative", transition: "transform 0.2s ease-out", transformStyle: "preserve-3d", willChange: "transform", ...style }}
-    >
-      {children}
-      {glare && <div ref={glareRef} style={{ position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.3s ease-out", pointerEvents: "none", mixBlendMode: "overlay" }} />}
-    </div>
-  );
-}
-
-const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
-  const { lang, useT } = useLang();
-  const libItem = findLibraryEntry(library, item.id, item.type)?.item;
-  const inLib = !!libItem;
-  const coverSrc = libItem?.customCover || libItem?.cover || libItem?.thumbnailUrl || item.cover || item.thumbnailUrl;
-  const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
-
-  const handleError = (e) => {
-    if (item.coverFallback && e.currentTarget.src !== item.coverFallback) {
-      e.currentTarget.src = item.coverFallback;
-    } else {
-      setImgError(true);
-    }
-  };
-
-  return (
-    <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
-      <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
-        {coverSrc && !imgError ? (
-          <img
-            src={coverSrc}
-            alt={item.title}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={handleError}
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 1, display: "block" }}
-          />
-        ) : (
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
-            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{(item.title || "Sem título").slice(0, 40)}</span>
-          </div>
-        )}
-        {/* Badges — status + score sem ícone de tipo */}
-        <div style={{ position: "absolute", top: 6, left: 6, right: 6, display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: 3 }}>
-          {!inLib && item.score && (
-            <span style={{ background: "rgba(0,0,0,0.75)", borderRadius: 6, padding: "2px 6px", fontSize: 11, fontWeight: 700, color: "#fbbf24" }}>
-              ★ {item.score}
-            </span>
-          )}
-          {status && status.id !== "completo" && (
-            <span style={{ background: `${status.color}cc`, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 700, color: "white" }}>
-              {status.emoji}
-            </span>
-          )}
-        </div>
-        {/* Hover rating overlay — desktop rico */}
-        <div className="rating-hover no-tc">
-          <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{item.title}</p>
-            {libItem?.userRating > 0 ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 8 }}>
-                <span style={{ fontSize: 16, color: "#f59e0b" }}>★</span>
-                <span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{libItem.userRating}</span>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>★ sem nota</span>
-              </div>
-            )}
-            {status && (
-              <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
-                {status.emoji} {statusLabel(status, lang)}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="card-info" style={{ padding: "6px 8px 8px" }}>
-        <p className="card-info-title card-title-text" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
-        <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>
-          {MEDIA_TYPES.find((t) => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}
-        </p>
-        {libItem?.lastChapter && libItem?.userStatus === 'assistindo' && (
-          <p style={{ fontSize: 10, color: accent, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            📖 {libItem.lastChapter}
-          </p>
-        )}
-        {!inLib && (
-          <div style={{ marginTop: 8, padding: "5px 0", borderTop: "1px solid #21262d", fontSize: 11, color: accent, fontWeight: 600 }}>+ Adicionar</div>
-        )}
-      </div>
-    </div>
-  );
-}); // end memo(MediaCard)
+// MediaCard — ver components/MediaCard.jsx
 
 // ─── Profile / Settings View ──────────────────────────────────────────────────
 function DiaryPanel({ completados, onOpen }) {
