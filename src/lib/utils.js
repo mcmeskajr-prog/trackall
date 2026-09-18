@@ -19,3 +19,34 @@ export const gradientFor = (id) => {
   return `linear-gradient(145deg, ${GRADIENTS[i][0]} 0%, ${GRADIENTS[i][1]} 100%)`;
 };
 
+// ─── Compressão de imagens (canvas → base64 JPEG) ─────────────────────────────
+// Usado antes de enviar capas/avatares/banners — reduz o ficheiro no browser
+// antes do upload, tanto para o Supabase Storage como para pré-visualizações.
+export function compressImage(file, maxW = 600, maxH = 900, quality = 0.92) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+// Banner — alta qualidade
+export function compressBanner(file) {
+  return compressImage(file, 1200, 400, 0.90);
+}
+
+
