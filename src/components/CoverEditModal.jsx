@@ -24,7 +24,7 @@ export function CoverEditModal({item, onSave, onClose }) {
   const handleUrlChange = (v) => { setUrl(v); setPreview(v); };
 
   return (
-    <div className="modal-bg" onClick={onClose} style={isMobileDevice ? { paddingBottom: 64 } : {}}>
+    <div className="modal-bg" onClick={onClose} style={{ zIndex: 170, ...(isMobileDevice ? { paddingBottom: 64 } : {}) }}>
       <div className="modal fade-in cover-modal" style={{ maxWidth: 440, padding: 0, display: "flex", flexDirection: "column" }} onClick={(e) => e.stopPropagation()}>
         {/* Conteúdo scrollável */}
         <div style={{ overflowY: "auto", padding: 24, paddingBottom: 8, flex: 1 }}>
