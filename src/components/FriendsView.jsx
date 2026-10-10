@@ -7,6 +7,8 @@ import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/
 import { FeedTab } from "./FeedTab";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
+import { isColorDark } from "../config/theme";
+import { TYPE_COLORS, MONTH_EN, MONTH_PT } from "../config/constants";
 
 export function FriendsView({user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
   const { lang, useT } = useLang();

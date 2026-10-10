@@ -5,10 +5,11 @@ import { findLibraryEntry, mediaIdCandidates } from "../lib/mediaIds";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
 import { fetchMediaDetails } from "../api/details";
+import { fetchAniListSafe } from "../api/anilist";
 import { StarRating } from "./StarRating";
 import { CoverEditModal } from "./CoverEditModal";
 
-export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl }) {
+export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);

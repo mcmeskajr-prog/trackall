@@ -5,7 +5,7 @@ import { supa, supabase } from "../config/supabase";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor, compressImage } from "../lib/utils";
 import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
-import { accentShade } from "../config/theme";
+import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
 import { CropModal } from "./CropModal";
 import { CollectionCard } from "./CollectionCard";
@@ -942,11 +942,11 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           setDeleting(true);
           try {
             // 1. Apagar todos os dados da biblioteca
-            await supabase.from("library").delete().eq("user_id", user.id);
+            await supabase.from("library").delete().eq("user_id", currentUserId);
             // 2. Apagar friendships
-            await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+            await supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
             // 3. Apagar perfil
-            await supabase.from("profiles").delete().eq("id", user.id);
+            await supabase.from("profiles").delete().eq("id", currentUserId);
             // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
             await supabase.auth.signOut();
             onSignOut && onSignOut();

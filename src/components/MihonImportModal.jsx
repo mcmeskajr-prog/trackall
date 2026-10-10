@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
+import { STATUS_OPTIONS, statusLabel } from "../config/constants";
 import { parseMihonBackup } from "../lib/importParsers";
 
 export function MihonImportModal({ onClose, onImport }) {

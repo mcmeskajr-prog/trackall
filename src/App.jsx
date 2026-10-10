@@ -2772,6 +2772,9 @@ export default function TrackAll() {
             tmdbKey={tmdbKey}
             workerUrl={workerUrl}
             onOpenItem={(newItem) => setSelectedItem(newItem)}
+            showNotif={showNotif}
+            setView={setView}
+            setLibSearch={setLibSearch}
           />
         )}
 
