@@ -1,6 +1,6 @@
 # 📘 TrackAll — Developer Guide
 
-> **Última atualização:** 2026-09-01 (Fase 1 e Fase 2 concluídas + correção de 4 bugs de integração pós-refatorização)
+> **Última atualização:** 2026-10-10 (Fases 1–4 concluídas; Fase 5 parcial — falta extrair Home/Biblioteca/Pesquisa)
 > **Estado:** Em refatorização ativa
 
 ---
@@ -48,10 +48,9 @@ TrackAll/
     - mediaIds.js (normalização de IDs)
     - consumptionTime.js (lógica "Quando Consumir?")
   - api/ (Fase 2 — anilist.js, tmdb.js, igdb.js, books.js, comicvine.js, details.js, recommendations.js, smartSearch.js)
-  - components/ (Fase 3 - vazio por agora)
-  - contexts/ (Fase 4 - vazio por agora)
-  - hooks/ (Fase 4 - vazio por agora)
-  - views/ (Fase 5 - vazio por agora)   
+  - components/ (AuthScreen, CollectionCard, CollectionModal, CoverEditModal, CropModal, DetailModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileTabCompletos, ProfileTabDiario, ProfileView, RecentSection, StarRating, TierListCard, TiltCard, VirtualGrid)
+  - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
+  - lib/ (inclui utils.js e importParsers.js)
 
 ---
 
@@ -300,28 +299,23 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 - [x] `src/api/recommendations.js`
 - [x] `src/api/smartSearch.js`
 
-### ⏳ Fase 3 — Componentes UI (em pausa)
-> Pausada de proposito em 2026-09-01 — vai andar a par do trabalho na parte visual da app, que ainda nao comecou. Nao retomar sem isso estar alinhado.
-- [ ] `StarRating`
-- [ ] `Notification`
-- [ ] `MediaCard`
-- [ ] `VirtualGrid`
+### ✅ Fase 3 — Componentes UI (Concluída)
+- [x] `StarRating`, `Notification`, `MediaCard`, `VirtualGrid`, `TiltCard`, `TierListCard`, `CollectionCard`, `RecentSection`
 
-###  Fase 4 — Modais + Contexts + Hooks
-- [ ] `DetailModal`
-- [ ] `CropModal`
-- [ ] `CollectionModal`
-- [ ] Contextos React
-- [ ] Custom hooks
+### ✅ Fase 4 — Modais + Contexts (Concluída)
+- [x] `DetailModal`, `CoverEditModal`, `CropModal`, `CollectionModal`, import modals (Mihon/Paperback/Letterboxd)
+- [x] `ThemeContext`, `LangContext`
+- [ ] Custom hooks (não criados; avaliar se compensa)
 
-### ⏳ Fase 5 — Views
-- [ ] `HomeView`
-- [ ] `LibraryView`
-- [ ] `SearchView`
-- [ ] `FriendsView`
-- [ ] `ProfileView`
-- [ ] `AuthScreen`
-- [ ] `LandingPage`
+### ⏳ Fase 5 — Views (parcial)
+- [x] `FriendsView`, `ProfileView`, `AuthScreen`, `LandingPage`, `FeedTab`, `ProfileTabCompletos`, `ProfileTabDiario`
+- [ ] `HomeView`, `LibraryView`, `SearchView` (ainda inline no `TrackAll`; desenhar as props antes de extrair, uma de cada vez)
+- [ ] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer` (ainda no `App.jsx`)
+
+### 🧪 Verificação depois de extrair código
+O esbuild só valida sintaxe e NÃO deteta imports em falta (causou um ecrã branco após o login). Correr sempre:
+`npx eslint --no-eslintrc -c .eslintrc.json --ext .js,.jsx src` com `no-undef`, `react/jsx-uses-vars` e `react/jsx-no-undef` ativos, e exigir 0 erros.
+Regras: modais novos usam `createPortal(..., document.body)` (ancestrais com `transform` quebram `position: fixed`); nunca chamar hooks depois de um `return` condicional.
 
 ---
 
