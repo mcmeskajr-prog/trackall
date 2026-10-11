@@ -25,7 +25,9 @@ export function ProfileStats({ items, panelBg }) {
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const sub = darkMode ? "#aab4c0" : "#475569";
   const muted = darkMode ? "#8b949e" : "#64748b";
-  const card = { background: panelBg, borderRadius: 18, border: `1px solid ${darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px" };
+  // Mesmo vidro do ProfileCard; só usa panelBg quando o utilizador personalizou os painéis
+  const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
+  const card = { background: panelBg || glass, borderRadius: 18, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
   const eyebrow = { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, marginBottom: 12 };
 
   const tiles = [

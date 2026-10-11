@@ -61,6 +61,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
 
       {/* Item em destaque */}
       {featured ? (
+        <div style={{ position: "relative", marginBottom: 14 }}>
         <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
           <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.06} style={{
             aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
@@ -68,7 +69,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
-              ? <img src={hiRes(coverSrc)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
+              ? <img src={hiRes(coverSrc)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
@@ -80,21 +81,25 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             )}
           </TiltCard>
         </div>
+        {onPickFeatured && (
+          <button onClick={(e) => { e.stopPropagation(); onPickFeatured(); }} aria-label={lang === "en" ? "Change featured item" : "Trocar item em destaque"} title={lang === "en" ? "Change featured item" : "Trocar item em destaque"}
+            style={{ position: "absolute", top: 8, left: 8, width: 44, height: 44, borderRadius: "50%", border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4" /><path d="M3 11V9a2 2 0 0 1 2-2h16" /><path d="M7 21l-4-4 4-4" /><path d="M21 13v2a2 2 0 0 1-2 2H3" /></svg>
+            </span>
+          </button>
+        )}
+        </div>
       ) : (
-        <div style={{ aspectRatio: "2/3", borderRadius: 16, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 20, color: sub, fontSize: 13, lineHeight: 1.5 }}>
+        <div onClick={onPickFeatured || undefined} style={{ cursor: onPickFeatured ? "pointer" : "default", aspectRatio: "2/3", borderRadius: 16, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 20, color: sub, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>
           {lang === "en" ? "Pick a featured item to show on your profile" : "Escolhe um item em destaque para mostrar no teu perfil"}
         </div>
       )}
 
-      {onPickFeatured && (
-        <button onClick={onPickFeatured} style={{ display: "block", margin: "2px auto 0", minHeight: 44, padding: "0 12px", background: "none", border: "none", color: darkMode ? "#6e7681" : "#64748b", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}>
-          {lang === "en" ? "Change featured item" : "Trocar destaque"}
-        </button>
-      )}
       {userEmail && !hideEmail && <p style={{ fontSize: 12, color: darkMode ? "#6e7681" : "#64748b", margin: "0 0 10px", overflowWrap: "anywhere", textAlign: "center" }}>✉ {userEmail}</p>}
 
       {/* Ações */}
-      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 0 }}>
         <button onClick={onEdit} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: "none", background: accent, color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700 }}>
           {lang === "en" ? "Edit profile" : "Editar perfil"}
         </button>
