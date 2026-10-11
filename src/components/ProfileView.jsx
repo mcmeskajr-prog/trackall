@@ -311,7 +311,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* ── Hall of Fame ── */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: isMobileDevice ? "0 16px" : "0 38px" }}>
           <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
           <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
         </div>
@@ -321,7 +321,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", flexWrap: "wrap", gap: 10 } : { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14 }) }}>
+          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14 }) }}>
             {hallOfFame.map((item, idx) => {
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
@@ -332,7 +332,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   className="fav-card-wrap"
                   onClick={() => onOpen && onOpen(item)}
                   title={item.title}
-                  style={{ cursor: "pointer", ...(isMobileDevice ? { width: 108, flexShrink: 0 } : { minWidth: 0 }) }}
+                  style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
                 >
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
                     position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
@@ -386,7 +386,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       })()}
 
       {/* ── Recentes (filtrados) ── */}
-      {items.length > 0 && <RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={isMobileDevice} />}
+      {items.length > 0 && <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={isMobileDevice} /></div>}
 
       {/* ── Favoritos (v2): uma fila por tipo em "Tudo"; o filtro partilhado escolhe o tipo ── */}
       {(() => {
@@ -463,10 +463,16 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                         <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}</span>
                         <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                       </div>
-                      <div style={gridStyle}>
-                        {visible.map(item => renderFav(item, false))}
-                        {collapsed && moreTile(list.length - cap, () => setFavExpanded(prev => ({ ...prev, [t.id]: true })))}
-                      </div>
+                      {isMobileDevice ? (
+                        <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 }}>
+                          {list.map(item => <div key={item.id} style={{ width: 104, flexShrink: 0 }}>{renderFav(item, false)}</div>)}
+                        </div>
+                      ) : (
+                        <div style={gridStyle}>
+                          {visible.map(item => renderFav(item, false))}
+                          {collapsed && moreTile(list.length - cap, () => setFavExpanded(prev => ({ ...prev, [t.id]: true })))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
