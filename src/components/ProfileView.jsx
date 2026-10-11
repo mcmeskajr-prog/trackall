@@ -311,7 +311,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* ── Hall of Fame ── */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: isMobileDevice ? "0 16px" : "0 38px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
           <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
           <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
         </div>
