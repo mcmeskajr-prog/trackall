@@ -3,7 +3,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor, hiRes } from "../lib/utils";
-import { MEDIA_TYPES, TYPE_COLORS, mediaLabel } from "../config/constants";
+import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
@@ -27,38 +27,50 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const sub = darkMode ? "#aab4c0" : "#475569";
   const typeDef = featured ? MEDIA_TYPES.find(t => t.id === featured.type) : null;
-  const typeColor = featured ? (TYPE_COLORS[featured.type] || accent) : accent;
   const coverSrc = featured ? (featured.customCover || featured.cover) : null;
   const count = (items || []).length;
+
+  const avatarSize = isMobileDevice ? 76 : 92;
 
   return (
     <div style={{
       borderRadius: 26, padding: isMobileDevice ? 16 : 22, position: "relative", overflow: "hidden",
-      background: darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04))" : "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))",
-      border: `1px solid ${darkMode ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.1)"}`,
+      background: darkMode
+        ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)"
+        : "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))",
+      border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`,
       boxShadow: "0 30px 50px -24px rgba(0,0,0,0.7)",
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
     }}>
-      {/* Linha de topo: marca + avatar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: sub }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 2px ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "white", flexShrink: 0 }}>
+      {/* Identidade: avatar com presença + nome */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+        <div style={{
+          width: avatarSize, height: avatarSize, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+          background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+          boxShadow: `0 0 0 3px ${accent}, 0 0 28px ${accent}77, 0 10px 28px rgba(0,0,0,0.55)`,
+          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: avatarSize * 0.4, color: "white",
+        }}>
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ fontSize: isMobileDevice ? 24 : 28, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</h2>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: sub, marginTop: 6 }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
+        </div>
       </div>
+      {profile.bio && <p style={{ fontSize: 13, color: sub, margin: "0 0 14px", lineHeight: 1.5 }}>{profile.bio}</p>}
 
       {/* Item em destaque */}
       {featured ? (
         <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
-          <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.1} style={{
+          <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.06} style={{
             aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.16), 0 18px 30px -12px rgba(0,0,0,0.7)",
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
               ? <img src={hiRes(coverSrc)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 45%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.8 }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>
               <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
@@ -66,7 +78,6 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             {featured.userRating > 0 && (
               <div style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {featured.userRating}</div>
             )}
-            <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 5, background: typeColor }} />
           </TiltCard>
         </div>
       ) : (
@@ -76,20 +87,14 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       )}
 
       {onPickFeatured && (
-        <button onClick={onPickFeatured} style={{ marginTop: 12, width: "100%", minHeight: 44, borderRadius: 12, border: `1px dashed ${darkMode ? "rgba(255,255,255,0.3)" : "rgba(15,23,42,0.3)"}`, background: "transparent", color: text, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>
-          {lang === "en" ? "Change featured item" : "Trocar item em destaque"}
+        <button onClick={onPickFeatured} style={{ display: "block", margin: "2px auto 0", minHeight: 44, padding: "0 12px", background: "none", border: "none", color: darkMode ? "#6e7681" : "#64748b", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}>
+          {lang === "en" ? "Change featured item" : "Trocar destaque"}
         </button>
       )}
-
-      {/* Identidade */}
-      <div style={{ marginTop: 16 }}>
-        <h2 style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</h2>
-        {profile.bio && <p style={{ fontSize: 13, color: sub, marginTop: 4, lineHeight: 1.5 }}>{profile.bio}</p>}
-        {userEmail && !hideEmail && <p style={{ fontSize: 12, color: darkMode ? "#6e7681" : "#64748b", marginTop: 4, overflowWrap: "anywhere" }}>✉ {userEmail}</p>}
-      </div>
+      {userEmail && !hideEmail && <p style={{ fontSize: 12, color: darkMode ? "#6e7681" : "#64748b", margin: "0 0 10px", overflowWrap: "anywhere", textAlign: "center" }}>✉ {userEmail}</p>}
 
       {/* Ações */}
-      <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
         <button onClick={onEdit} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: "none", background: accent, color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700 }}>
           {lang === "en" ? "Edit profile" : "Editar perfil"}
         </button>

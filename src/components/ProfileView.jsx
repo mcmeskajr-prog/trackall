@@ -14,6 +14,7 @@ import { RecentSection } from "./RecentSection";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { ProfileCard } from "./ProfileCard";
+import { ProfileStats } from "./ProfileStats";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
@@ -263,6 +264,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       <div style={{ flex: 1, minWidth: 0 }}>
 
 
+      {/* ── Estatísticas (Fase 2) ── */}
+      <ProfileStats items={items} panelBg={computedPanelBg} />
+
       {/* ── Hall of Fame ── */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
@@ -280,7 +284,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
               const tone = accentVariant(accent, idx);
-              const typeColor = TYPE_COLORS[item.type] || accent;
               return (
                 <div
                   key={item.id}
@@ -308,7 +311,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     {score > 0 && (
                       <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 11, fontWeight: 800 }}>★ {score}</div>
                     )}
-                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 4, background: typeColor }} />
                   </TiltCard>
                 </div>
               );
@@ -422,59 +424,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           </div>
         );
       })()}
-
-      {/* Stats grid */}
-      <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
-        ESTATÍSTICAS
-        <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
-      </h3>
-      {true && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
-            {STATUS_OPTIONS.map((s) => (
-              <div key={s.id} style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${s.color}`, borderTop: `1px solid ${s.color}22`, borderRight: `1px solid ${s.color}11`, borderBottom: `1px solid ${s.color}11` }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{byStatus[s.id] || 0}</div>
-                <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{statusLabel(s, lang)}</div>
-              </div>
-            ))}
-            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: "3px solid #f59e0b", borderTop: "1px solid #f59e0b22", borderRight: "1px solid #f59e0b11", borderBottom: "1px solid #f59e0b11" }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#f59e0b" }}>{avgRating}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("avgRating")}</div>
-            </div>
-            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
-              <div style={{ fontSize: 24, fontWeight: 800 }}>{items.length}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{useT("totalItems")}</div>
-            </div>
-            <div style={{ background: computedPanelBg, borderRadius: 12, padding: "14px 10px 14px 14px", textAlign: "left", borderLeft: `3px solid ${accent}99`, borderTop: `1px solid ${accent}22`, borderRight: `1px solid ${accent}11`, borderBottom: `1px solid ${accent}11` }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{totalRatings.length}</div>
-              <div style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{lang === "en" ? "Rated" : "Avaliados"}</div>
-            </div>
-          </div>
-          <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase" }}>{lang === "en" ? "COMPLETED BY TYPE" : "COMPLETOS POR TIPO"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
-          <div style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-            {(() => {
-              const totalCompleted = Math.max(1, MEDIA_TYPES.slice(1).reduce((s,t) => s + (byType[t.id]||0), 0));
-              return MEDIA_TYPES.slice(1).map((t) => {
-              const count = byType[t.id] || 0;
-              const total = items.filter(i => i.type === t.id).length;
-              const pct = (count / totalCompleted) * 100;
-              if (!total) return null;
-              return (
-                <div key={t.id} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13 }}>{t.icon} {mediaLabel(t, lang)}</span>
-                    <span style={{ fontSize: 12, color: "#8b949e" }}>{count}</span>
-                  </div>
-                  <div style={{ height: 6, background: "#21262d", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}88)`, borderRadius: 999, transition: "width 0.5s" }} />
-                  </div>
-                </div>
-              );
-            });})()}
-          </div>
-        </>
-      )}
-
 
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
