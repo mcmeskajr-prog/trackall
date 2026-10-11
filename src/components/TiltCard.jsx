@@ -9,6 +9,7 @@ export function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, g
   const ref = useRef(null);
   const glareRef = useRef(null);
   const rafRef = useRef(null);
+  const handleEnter = () => { if (ref.current) ref.current.style.willChange = "transform"; };
   const handleMove = (e) => {
     if (rafRef.current) return;
     const clientX = e.clientX, clientY = e.clientY;
@@ -31,16 +32,17 @@ export function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, g
   const handleLeave = () => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     const el = ref.current;
-    if (el) el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)";
+    if (el) { el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)"; el.style.willChange = "auto"; }
     if (glare && glareRef.current) glareRef.current.style.opacity = "0";
   };
   return (
     <div
       ref={ref}
+      onMouseEnter={handleEnter}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       className={className}
-      style={{ position: "relative", transition: "transform 0.2s ease-out", transformStyle: "preserve-3d", willChange: "transform", ...style }}
+      style={{ position: "relative", transition: "transform 0.2s ease-out", transformStyle: "preserve-3d", ...style }}
     >
       {children}
       {glare && <div ref={glareRef} style={{ position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.3s ease-out", pointerEvents: "none", mixBlendMode: "overlay" }} />}

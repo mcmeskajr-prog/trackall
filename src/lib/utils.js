@@ -50,3 +50,14 @@ export function compressBanner(file) {
 }
 
 
+
+
+// ─── Capa em melhor resolução (para cartões grandes) ───
+// Só troca padrões de URL conhecidos; quem usar deve ter onError a voltar ao original.
+export function hiRes(url) {
+  if (!url || typeof url !== "string") return url;
+  return url
+    .replace(/(image\.tmdb\.org\/t\/p\/)w\d+\//, "$1w780/")
+    .replace(/(images\.igdb\.com\/igdb\/image\/upload\/)t_(?:thumb|micro|cover_small|cover_big|screenshot_med)\//, "$1t_720p/")
+    .replace(/(anilist\.co\/file\/anilistcdn\/media\/[^/]+\/cover\/)(?:small|medium)\//, "$1large/");
+}

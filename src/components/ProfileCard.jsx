@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry } from "../lib/mediaIds";
-import { gradientFor } from "../lib/utils";
+import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, TYPE_COLORS, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 
@@ -41,7 +41,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
     }}>
       {/* Linha de topo: marca + avatar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: accent }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: sub }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
         <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 2px ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "white", flexShrink: 0 }}>
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>
@@ -50,13 +50,13 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       {/* Item em destaque */}
       {featured ? (
         <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
-          <TiltCard maxTilt={8} scale={1.02} glare glareOpacity={0.1} style={{
+          <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.1} style={{
             aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
             boxShadow: "0 0 0 1px rgba(255,255,255,0.16), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
-              ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+              ? <img src={hiRes(coverSrc)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 45%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>

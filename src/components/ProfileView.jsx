@@ -125,12 +125,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
   return (
     <>
-    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto", position: "relative", isolation: "isolate" }}>
-
-      {/* Fundo ambiente translúcido (substitui o banner): usa a cor de destaque e deixa passar o fundo da app */}
-      <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: isMobileDevice ? 340 : 440, zIndex: -1, pointerEvents: "none",
-        background: `linear-gradient(120deg, ${accent}66 0%, ${accentVariant(accent, 2)}44 55%, ${accentVariant(accent, 4)}33 100%)`,
-        WebkitMaskImage: "linear-gradient(180deg, #000 0%, #000 35%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 0%, #000 35%, transparent 100%)" }} />
+    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Avatar (só a editar ou noutros separadores; no Perfil a identidade vive no ProfileCard) ── */}
       <div style={{ position: "relative", display: "flex", justifyContent: "center", padding: showHeaderIdentity ? "28px 0 14px" : 0 }}>
@@ -280,9 +275,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 5 titles from the item modal." : "Escolhe até 5 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice
-            ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }
-            : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }) }}>
+          <div style={{ margin: "0 16px", display: "flex", flexWrap: "wrap", gap: isMobileDevice ? 10 : 16 }}>
             {hallOfFame.map((item, idx) => {
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
@@ -293,19 +286,18 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   key={item.id}
                   className="fav-card-wrap"
                   onClick={() => onOpen && onOpen(item)}
-                  style={{ cursor: "pointer", flexShrink: 0, ...(isMobileDevice ? { width: 150 } : {}) }}
+                  title={item.title}
+                  style={{ cursor: "pointer", width: isMobileDevice ? 108 : 160, flexShrink: 0 }}
                 >
-                  <TiltCard maxTilt={6} glare glareOpacity={0.12} style={{
-                    position: "relative", height: isMobileDevice ? 96 : 150, borderRadius: isMobileDevice ? 14 : 18, overflow: "hidden",
+                  <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
+                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: `linear-gradient(160deg, ${tone}55, ${tone}22)`,
                     border: `1px solid ${darkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}`,
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
                     {coverSrc
-                      ? <img src={coverSrc} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 22%", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                      : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.72) 100%)", pointerEvents: "none" }} />
-                    <div style={{ position: "absolute", left: isMobileDevice ? 10 : 16, right: isMobileDevice ? 10 : 16, bottom: isMobileDevice ? 10 : 14, color: "white", fontSize: isMobileDevice ? 13 : 16, fontWeight: 800, lineHeight: 1.2, pointerEvents: "none", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</div>
+                      ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
                       aria-label={lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame"}
@@ -314,7 +306,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                       ×
                     </button>
                     {score > 0 && (
-                      <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 9px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 11, fontWeight: 800 }}>★ {score}</div>
+                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 11, fontWeight: 800 }}>★ {score}</div>
                     )}
                     <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 4, background: typeColor }} />
                   </TiltCard>
