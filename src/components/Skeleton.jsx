@@ -28,24 +28,65 @@ export function PosterGridSkeleton({ count = 12, minWidth = 130, gap = 14, light
   );
 }
 
-// Ecrã de arranque: barra de topo + título + grelha, em vez de um spinner
+// Ecrã de arranque: reproduz a estrutura da app (barra lateral no PC, barra inferior no telemóvel)
+// com a forma da Home, para a transição para o conteúdo real ser quase impercetível.
+const SHELL_CSS = `
+.sk-side { display: none; }
+.sk-bottom { display: flex; }
+.sk-main { padding: 16px 14px 84px; }
+@media (min-width: 768px) {
+  .sk-side { display: flex; }
+  .sk-bottom { display: none; }
+  .sk-main { margin-left: 220px; padding: 28px 32px; }
+}
+`;
+
 export function AppSkeleton({ accent = "#8b5cf6", bg = "#0d1117" }) {
-  return (
-    <div style={{ minHeight: "100vh", background: bg, fontFamily: "'Outfit', sans-serif", padding: "24px 28px", boxSizing: "border-box" }}>
-      <SkeletonStyles />
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 20 }}>T</div>
-        <Skeleton width={120} height={18} />
-        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-          <Skeleton width={90} height={32} radius={10} />
-          <Skeleton width={32} height={32} radius={999} />
+  const rowOf = (n, w = 130) => (
+    <div style={{ display: "flex", gap: 14, overflow: "hidden" }}>
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} style={{ width: w, flexShrink: 0 }}>
+          <Skeleton height="auto" radius={12} style={{ aspectRatio: "2/3", width: "100%" }} />
+          <Skeleton width="70%" height={11} radius={6} style={{ marginTop: 8 }} />
         </div>
-      </div>
-      <Skeleton width={180} height={26} radius={8} style={{ marginBottom: 18 }} />
-      <div style={{ display: "flex", gap: 8, marginBottom: 22 }}>
-        {[70, 60, 80, 64, 72].map((w, i) => <Skeleton key={i} width={w} height={30} radius={999} />)}
-      </div>
-      <PosterGridSkeleton count={14} />
+      ))}
+    </div>
+  );
+  return (
+    <div role="status" aria-label="A carregar" style={{ minHeight: "100vh", background: bg, fontFamily: "'Outfit', sans-serif", boxSizing: "border-box" }}>
+      <SkeletonStyles />
+      <style>{SHELL_CSS}</style>
+
+      {/* Barra lateral (PC) */}
+      <aside className="sk-side" style={{ position: "fixed", left: 0, top: 0, bottom: 0, width: 220, flexDirection: "column", gap: 6, padding: "20px 12px", borderRight: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px 18px" }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 18 }}>T</div>
+          <Skeleton width={90} height={16} />
+        </div>
+        {[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} height={38} radius={10} style={{ opacity: i === 0 ? 1 : 0.7 }} />)}
+        <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 10, padding: "0 8px" }}>
+          <Skeleton width={34} height={34} radius={999} />
+          <Skeleton width={90} height={13} />
+        </div>
+      </aside>
+
+      {/* Conteúdo: forma da Home */}
+      <main className="sk-main">
+        <Skeleton width={220} height={28} radius={8} style={{ marginBottom: 8 }} />
+        <Skeleton width={150} height={13} radius={6} style={{ marginBottom: 24 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 30 }}>
+          {[0, 1, 2, 3].map(i => <Skeleton key={i} height={84} radius={16} />)}
+        </div>
+        <Skeleton width={160} height={18} radius={6} style={{ marginBottom: 14 }} />
+        {rowOf(10)}
+        <Skeleton width={190} height={18} radius={6} style={{ margin: "30px 0 14px" }} />
+        {rowOf(10)}
+      </main>
+
+      {/* Barra inferior (telemóvel) */}
+      <nav className="sk-bottom" style={{ position: "fixed", left: 0, right: 0, bottom: 0, height: 64, alignItems: "center", justifyContent: "space-around", borderTop: "1px solid rgba(255,255,255,0.06)", background: bg }}>
+        {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} width={28} height={28} radius={8} />)}
+      </nav>
     </div>
   );
 }
