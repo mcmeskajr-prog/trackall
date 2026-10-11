@@ -298,7 +298,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const isFavorite = favorites.some(f => f.id === currentItem.id);
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
-  const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 9;
+  const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 10;
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
     : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };

@@ -20,6 +20,16 @@ import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
 
+// Flor de sakura (badge do Hall of Fame)
+function Sakura({ size = 11 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">
+      {[0, 72, 144, 216, 288].map(r => <ellipse key={r} cx="12" cy="6.2" rx="3.6" ry="5.6" transform={`rotate(${r} 12 12)`} fill="#f9a8d4" />)}
+      <circle cx="12" cy="12" r="2.3" fill="#be185d" />
+    </svg>
+  );
+}
+
 export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
@@ -291,16 +301,13 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             onSignOut={onSignOut}
             onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null}
           />
-          {!isMobileDevice && renderTopGenres(true)}
         </div>
       )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={(!isMobileDevice && !editing) ? { display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: 24, alignItems: "start" } : {}}>
-      <div style={{ minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, ...(isMobileDevice ? {} : { margin: "0 -16px" }) }}>
 
 
       {/* ── Estatísticas (Fase 2) ── */}
-      {(isMobileDevice || editing) && <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} />}
+      <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} />
 
       {/* ── Hall of Fame ── */}
       <div style={{ marginBottom: 28 }}>
@@ -311,10 +318,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
         {hallOfFame.length === 0 ? (
           <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
-            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 5 titles from the item modal." : "Escolhe até 5 obras a partir do modal de cada item."}</p>
+            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", flexWrap: "wrap", gap: 10 } : { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 16 }) }}>
+          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", flexWrap: "wrap", gap: 10 } : { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14 }) }}>
             {hallOfFame.map((item, idx) => {
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
@@ -328,7 +335,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   style={{ cursor: "pointer", ...(isMobileDevice ? { width: 108, flexShrink: 0 } : { minWidth: 0 }) }}
                 >
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
-                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
+                    position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: `linear-gradient(160deg, ${tone}55, ${tone}22)`,
                     border: `1px solid ${darkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}`,
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
@@ -344,7 +351,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                       ×
                     </button>
                     {score > 0 && (
-                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbbf24", fontSize: 11, fontWeight: 800 }}>♛ {score}</div>
+                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
                     )}
                   </TiltCard>
                 </div>
@@ -354,12 +361,39 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         )}
       </div>
 
-      {/* ── Favoritos (Fase 4): todos misturados, com filtro por tipo ── */}
+      </div>
+      {diaryPanel}
+      </div>
+
+      <div style={{ padding: "0 16px", marginTop: isMobileDevice ? 8 : 28 }}>
+      {/* ── Filtro partilhado (Recentes + Favoritos) ── */}
+      {(() => {
+        const filterTypes = MEDIA_TYPES.slice(1).filter(t => items.some(i => i.type === t.id));
+        const border = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
+        return (
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", padding: "0 16px", marginBottom: 18, justifyContent: isMobileDevice ? "flex-start" : "flex-end" }}>
+            {[{ id: "all" }, ...filterTypes].map(t => {
+              const on = favFilter === t.id;
+              return (
+                <button key={t.id} onClick={() => setFavFilter(t.id)} style={{
+                  flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                  border: `1px solid ${on ? accent : border}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569"),
+                }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* ── Recentes (filtrados) ── */}
+      {items.length > 0 && <RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={isMobileDevice} />}
+
+      {/* ── Favoritos (v2): uma fila por tipo em "Tudo"; o filtro partilhado escolhe o tipo ── */}
       {(() => {
         const typesWithFavs = MEDIA_TYPES.slice(1).filter(t => favorites.some(f => f.type === t.id));
-        const activeFilter = typesWithFavs.some(t => t.id === favFilter) ? favFilter : "all";
-        const shown = activeFilter === "all" ? favorites : favorites.filter(f => f.type === activeFilter);
-        const border = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
+        const activeFilter = favFilter;
+        const byRating = (a, b) => ((b.userRating || 0) - (a.userRating || 0)) || ((b.addedAt || 0) - (a.addedAt || 0));
+        const LIMIT = 11;
         const renderFav = (item, showType) => {
                   const coverSrc = item.customCover || item.cover;
                   const t = MEDIA_TYPES.find(x => x.id === item.type);
@@ -387,81 +421,78 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     </div>
                   );
 };
-                const LIMIT = 11;
-        const byRating = (a, b) => ((b.userRating || 0) - (a.userRating || 0)) || ((b.addedAt || 0) - (a.addedAt || 0));
-        // "Tudo": o melhor de cada tipo (maior rating; empate → o mais recente)
-        const highlights = typesWithFavs.map(t => favorites.filter(f => f.type === t.id).sort(byRating)[0]).filter(Boolean);
-        const typeList = activeFilter === "all" ? [] : [...shown].sort(byRating);
-        const typeOpen = typeList.length <= LIMIT + 1 || favExpanded[activeFilter];
-        const typeVisible = typeOpen ? typeList : typeList.slice(0, LIMIT);
-        const cols = isMobileDevice ? 3 : Math.min(7, Math.max(highlights.length, 4));
-        const gridStyle = { display: "grid", gridTemplateColumns: `repeat(${activeFilter === "all" ? cols : (isMobileDevice ? 3 : 6)}, minmax(0, 1fr))`, gap: isMobileDevice ? 10 : 14 };
+        const COLS = isMobileDevice ? 3 : 7;
+        const gridStyle = { display: "grid", gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`, gap: isMobileDevice ? 10 : 14 };
+        const moreTile = (n, onClick) => (
+          <button onClick={onClick} style={{ aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, background: "transparent", color: darkMode ? "#aab4c0" : "#475569", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <span style={{ fontSize: 22, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a" }}>+{n}</span>
+            <span style={{ fontSize: 11, fontWeight: 600 }}>{lang === "en" ? "see all" : "ver todos"}</span>
+          </button>
+        );
+        const groups = (activeFilter === "all" ? typesWithFavs : typesWithFavs.filter(t => t.id === activeFilter))
+          .map(t => ({ t, list: favorites.filter(f => f.type === t.id).sort(byRating) }));
+        const rowSize = COLS - 1; // 6 posters + bloco "+N"
+        const border = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
 
         return (
           <div style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14, padding: "0 16px" }}>
-              <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0, display: "flex", alignItems: "baseline", gap: 10 }}>
-                {useT("favorites")}
-                <span style={{ fontSize: 12, fontWeight: 500, color: darkMode ? "#aab4c0" : "#64748b" }}>{favorites.length}</span>
-              </h3>
-              {typesWithFavs.length > 1 && (
-                <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", maxWidth: "100%" }}>
-                  {[{ id: "all" }, ...typesWithFavs].map(t => {
-                    const on = activeFilter === t.id;
-                    return (
-                      <button key={t.id} onClick={() => setFavFilter(t.id)} style={{
-                        flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
-                        border: `1px solid ${on ? accent : border}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569"),
-                      }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>
-                    );
-                  })}
-                </div>
-              )}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14, padding: "0 16px" }}>
+              <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>{useT("favorites")}</h3>
+              <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{favorites.length}</span>
             </div>
 
             {favorites.length === 0 ? (
               <div style={{ margin: "0 16px", background: computedPanelBg, border: "1px dashed #30363d", borderRadius: 12, padding: 20, textAlign: "center" }}>
                 <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
               </div>
+            ) : groups.length === 0 ? (
+              <div style={{ margin: "0 16px", border: `1px dashed ${border}`, borderRadius: 12, padding: 20, textAlign: "center", color: darkMode ? "#8b949e" : "#64748b", fontSize: 13 }}>
+                {lang === "en" ? "No favorites of this type." : "Sem favoritos deste tipo."}
+              </div>
             ) : (
-              <div style={{ margin: "0 16px" }}>
-                {activeFilter === "all" ? (
-                  <>
-                    <div style={gridStyle}>{highlights.map(item => renderFav(item, true))}</div>
-                    {typesWithFavs.length > 1 && (
-                      <div style={{ marginTop: 12, fontSize: 12, color: darkMode ? "#8b949e" : "#64748b" }}>
-                        {lang === "en" ? "Top-rated of each type · pick a type above to see them all" : "O melhor de cada tipo · escolhe um tipo acima para ver todos"}
+              <div style={{ margin: "0 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+                {groups.map(({ t, list }) => {
+                  const expanded = !!favExpanded[t.id];
+                  const cap = expanded ? list.length : (activeFilter === "all" ? rowSize : LIMIT);
+                  const collapsed = list.length > cap + (activeFilter === "all" ? 0 : 1);
+                  const visible = collapsed ? list.slice(0, cap) : list;
+                  return (
+                    <div key={t.id}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>
+                        {mediaLabel(t, lang)}
+                        <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}</span>
+                        <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <div style={gridStyle}>
-                    {typeVisible.map(item => renderFav(item, false))}
-                    {!typeOpen && (
-                      <button onClick={() => setFavExpanded(prev => ({ ...prev, [activeFilter]: true }))} style={{ aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, background: "transparent", color: darkMode ? "#aab4c0" : "#475569", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a" }}>+{typeList.length - LIMIT}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600 }}>{lang === "en" ? "see all" : "ver todos"}</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                      <div style={gridStyle}>
+                        {visible.map(item => renderFav(item, false))}
+                        {collapsed && moreTile(list.length - cap, () => setFavExpanded(prev => ({ ...prev, [t.id]: true })))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         );
       })()}
 
-      {/* ── Vistos Recentemente ── */}
-      {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={isMobileDevice} />}
-      </div>
-      {!isMobileDevice && !editing && (
-        <div style={{ position: "sticky", top: 16 }}>
-          <ProfileStats stacked items={items} panelBg={panelBg ? computedPanelBg : null} />
+      {/* ── Tier Lists e Listas ── */}
+      {!editing && (
+        <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 14, margin: "0 16px 28px" }}>
+          {[
+            { tab: "tierlists", label: "Tier Lists", count: userTierlists.length, grad: "rgba(236,72,153,0.16)" },
+            { tab: "listas", label: lang === "en" ? "My Lists" : "Minhas Listas", count: userCollections.length, grad: "rgba(59,130,246,0.16)" },
+          ].map(c => (
+            <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 20, padding: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>{c.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>{c.count} {c.count === 1 ? (lang === "en" ? "list" : "lista") : (lang === "en" ? "lists" : "listas")}</div>
+              <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#475569", marginTop: 2 }}>{lang === "en" ? "Open" : "Abrir"} →</div>
+            </button>
+          ))}
         </div>
       )}
-      </div>
 
-      {(isMobileDevice || editing) && renderTopGenres(false)}
+      <div style={{ margin: "0 16px" }}>{renderTopGenres(false)}</div>
 
       {/* Temas */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
@@ -934,8 +965,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       })()}
 
             </div>
-      {diaryPanel}
-      </div>
       </div> {/* fim wrapper tab perfil */}
 
       {/* Tab Completos */}
