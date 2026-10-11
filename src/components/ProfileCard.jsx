@@ -41,6 +41,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`,
       boxShadow: "0 30px 50px -24px rgba(0,0,0,0.7)",
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
+      display: "flex", flexDirection: "column", boxSizing: "border-box", flex: isMobileDevice ? undefined : 1,
     }}>
       {/* Identidade: avatar com presença + nome, centrados */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 18 }}>
@@ -59,15 +60,15 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
 
       {/* Item em destaque */}
       {featured ? (
-        <div style={{ position: "relative", marginBottom: 14 }}>
-        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
+        <div style={{ position: "relative", marginBottom: 14, ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }) }}>
+        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer", ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column" }) }}>
           <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.06} style={{
-            aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
+            ...(isMobileDevice ? { aspectRatio: "2/3" } : { flex: 1, minHeight: 400 }), borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
             boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
-              ? <img src={hiRes(coverSrc)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
+              ? <img src={hiRes(coverSrc)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>

@@ -283,7 +283,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "stretch" }
         : { padding: "16px 16px 0" }
       }>
       {!editing && (
