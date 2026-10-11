@@ -9,7 +9,7 @@ import { LibGroupedList } from "../components/LibGroupedList";
 
 // ─── Vista da Biblioteca ───
 // Estado (filtros, ordenação, modo de vista) vive no TrackAll; items/filteredLib/sortedLib são calculados lá.
-export function LibraryView({ view, setView, items, filteredLib, sortedLib, library, activeTab, setActiveTab, filterStatus, setFilterStatus, libSearch, setLibSearch, libSort, setLibSort, libViewMode, setLibViewModePersist, searchQuery, doSearch, setSelectedItem }) {
+export function LibraryView({ view, setView, items, filteredLib, sortedLib, library, activeTab, setActiveTab, filterStatus, setFilterStatus, filterRating = null, setFilterRating, libSearch, setLibSearch, libSort, setLibSort, libViewMode, setLibViewModePersist, searchQuery, doSearch, setSelectedItem }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   return (
@@ -112,6 +112,12 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
               {/* MAIN CONTENT */}
               <div style={{ flex: 1, minWidth: 0 }}>
 
+                {filterRating !== null && setFilterRating && (
+                  <button onClick={() => setFilterRating(null)} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "5px 12px", borderRadius: 999, border: `1px solid ${accent}`, background: `${accent}22`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                    {filterRating === "rated" ? (lang === "en" ? "Rated only" : "Só avaliados") : `★ ${filterRating}`} <span aria-hidden="true">✕</span>
+                  </button>
+                )}
+
                 {/* Mobile-only: filtros + sort compactos */}
                 <div className="lib-mobile-controls">
                   <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
@@ -166,7 +172,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                   </div>
                 ) : (
                   <VirtualGrid
-                    key={`${filterStatus}-${activeTab}-${libSort}-${libViewMode}`}
+                    key={`${filterStatus}-${activeTab}-${libSort}-${libViewMode}-${filterRating}`}
                     items={sortedLib}
                     library={library}
                     onOpen={setSelectedItem}

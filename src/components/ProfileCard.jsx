@@ -36,9 +36,9 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
     <div style={{
       borderRadius: 26, padding: isMobileDevice ? 16 : 22, position: "relative", overflow: "hidden",
       background: darkMode
-        ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)"
+        ? "linear-gradient(160deg, rgba(255,255,255,0.02), rgba(255,255,255,0.004)), rgba(9,11,15,0.84)"
         : "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))",
-      border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`,
+      border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.1)"}`,
       boxShadow: "0 30px 50px -24px rgba(0,0,0,0.7)",
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
       display: "flex", flexDirection: "column", boxSizing: "border-box", flex: isMobileDevice ? undefined : 1,
@@ -62,10 +62,10 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       {featured ? (
         <div style={{ position: "relative", marginBottom: 14, ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }) }}>
         <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer", ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column" }) }}>
-          <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.06} style={{
+          <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.03} style={{
             ...(isMobileDevice ? { aspectRatio: "2/3" } : { flex: 1, minHeight: 400 }), borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 18px 30px -12px rgba(0,0,0,0.7)",
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
               ? <img src={hiRes(coverSrc)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />

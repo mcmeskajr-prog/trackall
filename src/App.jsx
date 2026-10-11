@@ -1036,6 +1036,7 @@ export default function TrackAll() {
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRating, setFilterRating] = useState(null); // null | "rated" | nota exata (vem das estatísticas do perfil)
   const [libSort, setLibSort] = useState("date");
   const [libSearch, setLibSearch] = useState("");
   const [libViewMode, setLibViewMode] = useState(() => { 
@@ -2123,9 +2124,20 @@ export default function TrackAll() {
   const filteredLib = useMemo(() => items.filter((i) => {
     if (filterStatus !== "all" && i.userStatus !== filterStatus) return false;
     if (activeTab !== "all" && i.type !== activeTab) return false;
+    if (filterRating === "rated" ? !(i.userRating > 0) : (filterRating !== null && i.userRating !== filterRating)) return false;
     if (libSearch.trim() && !i.title?.toLowerCase().includes(libSearch.toLowerCase().trim())) return false;
     return true;
-  }), [items, filterStatus, activeTab, libSearch]);
+  }), [items, filterStatus, activeTab, libSearch, filterRating]);
+
+  // Estatísticas do perfil → abre a Biblioteca já filtrada
+  const openLibraryFiltered = ({ type, status, rating, sort } = {}) => {
+    setActiveTab(type || "all");
+    setFilterStatus(status || "all");
+    setFilterRating(rating ?? null);
+    setLibSearch("");
+    if (sort) setLibSort(sort);
+    setView("library");
+  };
 
   const sortedLib = useMemo(() => {
     const arr = [...filteredLib];
@@ -2772,7 +2784,7 @@ export default function TrackAll() {
 
         <HomeView view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
         <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />
-        <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />
+        <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />
         <div style={{ display: view === "friends" ? "block" : "none" }}>
         {/* ── FRIENDS ── */}
           {demoMode || !user ? (
@@ -2791,6 +2803,7 @@ export default function TrackAll() {
         <div style={{ display: view === "profile" ? "block" : "none" }}>
           <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
           <ProfileView
+            onOpenLibrary={openLibraryFiltered}
             profile={activeProfile}
             library={library}
             accent={accent}
