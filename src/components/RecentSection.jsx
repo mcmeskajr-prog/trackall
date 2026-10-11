@@ -28,7 +28,7 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
           const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
           return (
             <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
-              <div style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 4, position: "relative" }}>
+              <div style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "none", marginBottom: 4, position: "relative" }}>
                 {coverSrc
                   ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
@@ -74,7 +74,7 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
               const when = days === null ? "" : days <= 0 ? (lang === "en" ? "Today" : "Hoje") : days === 1 ? (lang === "en" ? "Yesterday" : "Ontem") : days < 14 ? (lang === "en" ? `${days} days ago` : `Há ${days} dias`) : days < 60 ? (lang === "en" ? `${Math.floor(days / 7)} weeks ago` : `Há ${Math.floor(days / 7)} semanas`) : new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
               return (
                 <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, width: (isMobileDevice && !showAllCompleto) ? 104 : undefined, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
+                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: "none", boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
                     {coverSrc
                       ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>

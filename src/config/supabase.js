@@ -68,12 +68,23 @@ const supa = {
   },
 
   async upsertLibraryItem(userId, mediaId, mediaData) {
-    const { error } = await supabase.from('library').upsert({ user_id: userId, media_id: mediaId, data: mediaData, updated_at: new Date().toISOString() });
-    if (error) throw error; // antes falhava em silêncio e o item ficava por gravar
+    const row = { user_id: userId, media_id: mediaId, data: mediaData, updated_at: new Date().toISOString() };
+    // 1.º tentativa: upsert por (user_id, media_id)
+    const first = await supabase.from('library').upsert(row, { onConflict: 'user_id,media_id' });
+    if (!first.error) return;
+    console.warn('[TrackAll] upsert falhou, a tentar update/insert:', first.error.message || first.error);
+    // Plano B (não depende de constraints): atualiza a linha; se não existir, insere
+    const upd = await supabase.from('library').update({ data: mediaData, updated_at: row.updated_at }).eq('user_id', userId).eq('media_id', mediaId).select('media_id');
+    if (upd.error) throw upd.error;
+    if (!upd.data || upd.data.length === 0) {
+      const ins = await supabase.from('library').insert(row);
+      if (ins.error) throw ins.error;
+    }
   },
 
   async deleteLibraryItem(userId, mediaId) {
-    await supabase.from('library').delete().eq('user_id', userId).eq('media_id', mediaId);
+    const { error } = await supabase.from('library').delete().eq('user_id', userId).eq('media_id', mediaId);
+    if (error) throw error;
   },
 
   async updateFavorites(userId, favorites) {

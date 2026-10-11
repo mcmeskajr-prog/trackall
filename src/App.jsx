@@ -896,6 +896,8 @@ export default function TrackAll() {
   // Cópia sempre atualizada da biblioteca: os handlers leem daqui para nunca gravarem por cima de alterações recentes (ex.: rating + completado seguidos)
   const libraryRef = useRef({});
   const saveQueueRef = useRef(Promise.resolve());
+  // Hall of Fame: só se escreve depois de carregado (evita gravar uma lista vazia por cima da real)
+  const hallRef = useRef({ loaded: false, hall: [], featured: null });
   libraryRef.current = library;
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
@@ -1118,12 +1120,27 @@ export default function TrackAll() {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
         // Tentar ler Hall of Fame da library (mais fiável que coluna profiles)
         let _featuredData = (() => { try { const s = localStorage.getItem("trackall_featured"); return s ? JSON.parse(s) : null; } catch { return null; } })();
-        let _hallData = (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []);
+        const _scoped = (k) => { try { const v = localStorage.getItem(`${k}_${userId}`); return v ? JSON.parse(v) : null; } catch { return null; } };
+        const _cands = [];
+        let _rowHall = null, _rowErr = false;
         try {
-          const hallRow = await supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").single();
-          if (hallRow.data?.data?.hall?.length) _hallData = hallRow.data.data.hall;
-          if (hallRow.data?.data?.featured) _featuredData = hallRow.data.data.featured;
-        } catch {}
+          const hr = await supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle();
+          if (hr.error) _rowErr = true;
+          else if (hr.data?.data) { _rowHall = hr.data.data; if (_rowHall.featured) _featuredData = _rowHall.featured; }
+        } catch { _rowErr = true; }
+        if (Array.isArray(_rowHall?.hall)) _cands.push(_rowHall.hall);
+        if (Array.isArray(prof.hall_of_fame)) _cands.push(prof.hall_of_fame);
+        const _sc = _scoped("trackall_hall_of_fame"); if (Array.isArray(_sc)) _cands.push(_sc);
+        if (Array.isArray(_savedHall)) _cands.push(_savedHall);
+        // escolhe a lista mais completa entre todas as fontes (nunca perde itens)
+        let _hallData = _cands.reduce((best, c) => (c.length > best.length ? c : best), []);
+        if (!_featuredData) _featuredData = _scoped("trackall_featured");
+        hallRef.current = { loaded: !_rowErr || _hallData.length > 0, hall: _hallData, featured: _featuredData };
+        try { localStorage.setItem(`trackall_hall_of_fame_${userId}`, JSON.stringify(_hallData)); if (_featuredData) localStorage.setItem(`trackall_featured_${userId}`, JSON.stringify(_featuredData)); } catch {}
+        // auto-reparação: se a linha na BD está vazia/desatualizada mas há dados noutra fonte, volta a gravar
+        if (!_rowErr && _hallData.length > (_rowHall?.hall?.length || 0)) {
+          supa.upsertLibraryItem(userId, "__hall_of_fame__", { hall: _hallData, featured: _featuredData || null }).catch(() => {});
+        }
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData, featuredItem: _featuredData });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
@@ -1357,6 +1374,7 @@ export default function TrackAll() {
     await supa.signOut();
     setUser(null);
     setLibrary({});
+    hallRef.current = { loaded: false, hall: [], featured: null };
     setProfile({ name: "", bio: "", avatar: "", hallOfFame: [] });
     setView("home");
   };
@@ -1377,10 +1395,10 @@ export default function TrackAll() {
           }
         }
         for (const id of Object.keys(prev)) {
-          if (!lib[id]) await supa.deleteLibraryItem(user.id, id);
+          if (!id.startsWith("__") && !lib[id]) await supa.deleteLibraryItem(user.id, id);
         }
       } catch (err) {
-        console.error('[TrackAll] Erro ao guardar biblioteca:', err);
+        console.error('[TrackAll] Erro ao guardar biblioteca:', err?.message || err, err?.details || '', err?.hint || '', err?.code || '');
         showNotif(lang === "en" ? "Could not sync — check your connection" : "Não foi possível sincronizar — verifica a ligação", "#ef4444");
       }
     });
@@ -1408,9 +1426,24 @@ export default function TrackAll() {
     }
   };
 
+  // Grava Hall of Fame + destaque num só sítio (linha especial na BD) com cópia local por utilizador.
+  // Usa sempre o último valor conhecido (ref) e nunca grava antes de o Hall ter sido carregado.
+  const persistHall = async (hall, featured) => {
+    const cur = hallRef.current;
+    const next = { loaded: cur.loaded, hall: hall !== undefined ? hall : cur.hall, featured: featured !== undefined ? featured : cur.featured };
+    hallRef.current = next;
+    if (user) try {
+      localStorage.setItem(`trackall_hall_of_fame_${user.id}`, JSON.stringify(next.hall));
+      if (next.featured) localStorage.setItem(`trackall_featured_${user.id}`, JSON.stringify(next.featured)); else localStorage.removeItem(`trackall_featured_${user.id}`);
+    } catch {}
+    if (!user || !next.loaded) return;
+    try { await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: next.hall, featured: next.featured || null }); }
+    catch (err) { console.error("[TrackAll] Erro ao guardar Hall of Fame:", err); showNotif(lang === "en" ? "Could not sync Hall of Fame" : "Não foi possível sincronizar o Hall of Fame", "#ef4444"); }
+  };
+
   const toggleHallOfFame = async (item) => {
     const normalizedItem = normalizeMediaItem(item);
-    const currentHall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
+    const currentHall = hallRef.current.loaded ? hallRef.current.hall : (Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : []);
     const hallIds = new Set(mediaIdCandidates(normalizedItem.id, normalizedItem.type));
     const exists = currentHall.some(entry => hallIds.has(entry.id));
     let nextHall;
@@ -1428,11 +1461,7 @@ export default function TrackAll() {
       if (navigator.vibrate) navigator.vibrate(40);
     }
     setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
-    try { localStorage.setItem("trackall_hall_of_fame", JSON.stringify(nextHall)); } catch {}
-    if (user) try {
-      // Guardar na library como item especial — coluna hall_of_fame pode não existir em profiles
-      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: nextHall, featured: profile?.featuredItem || null });
-    } catch {}
+    await persistHall(nextHall, undefined);
   };
 
   // Item em destaque do cartão de perfil — guardado na mesma linha especial do Hall of Fame (não precisa de coluna nova)
@@ -1443,11 +1472,7 @@ export default function TrackAll() {
       return { id: n.id, type: n.type, title: n.title, cover: n.cover || "", customCover: libItem?.customCover || n.customCover || "" };
     })() : null;
     setProfile(prev => ({ ...prev, featuredItem: featured }));
-    try { if (featured) localStorage.setItem("trackall_featured", JSON.stringify(featured)); else localStorage.removeItem("trackall_featured"); } catch {}
-    if (user) try {
-      const currentHall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
-      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: currentHall, featured });
-    } catch {}
+    await persistHall(undefined, featured);
   };
 
   const saveAccent = async (c) => {
@@ -1958,7 +1983,7 @@ export default function TrackAll() {
     if (inHall) {
       const newHall = currentHall.map(f => (f.id === id || f.id === matched.key || f.id === canonicalId) ? { ...f, id: canonicalId, customCover: url } : f);
       setProfile(prev => ({ ...prev, hallOfFame: newHall }));
-      if (user) try { await supa.upsertProfile(user.id, { hall_of_fame: newHall }); } catch {}
+      await persistHall(newHall, undefined);
     }
     showNotif(useT("coverUpdated"), accent);
   };
