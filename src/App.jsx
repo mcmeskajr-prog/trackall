@@ -1113,12 +1113,14 @@ export default function TrackAll() {
       if (prof) {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
         // Tentar ler Hall of Fame da library (mais fiável que coluna profiles)
+        let _featuredData = (() => { try { const s = localStorage.getItem("trackall_featured"); return s ? JSON.parse(s) : null; } catch { return null; } })();
         let _hallData = (prof.hall_of_fame && prof.hall_of_fame.length) ? prof.hall_of_fame : (_savedHall || []);
         try {
           const hallRow = await supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").single();
           if (hallRow.data?.data?.hall?.length) _hallData = hallRow.data.data.hall;
+          if (hallRow.data?.data?.featured) _featuredData = hallRow.data.data.featured;
         } catch {}
-        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData });
+        setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData, featuredItem: _featuredData });
         if (prof.accent) setAccent(prof.accent);
         if (prof.panel_bg !== undefined) setPanelBg(prof.panel_bg || "");
         if (prof.panel_opacity !== undefined) setPanelOpacity(prof.panel_opacity ?? 100);
@@ -1423,7 +1425,22 @@ export default function TrackAll() {
     try { localStorage.setItem("trackall_hall_of_fame", JSON.stringify(nextHall)); } catch {}
     if (user) try {
       // Guardar na library como item especial — coluna hall_of_fame pode não existir em profiles
-      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: nextHall });
+      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: nextHall, featured: profile?.featuredItem || null });
+    } catch {}
+  };
+
+  // Item em destaque do cartão de perfil — guardado na mesma linha especial do Hall of Fame (não precisa de coluna nova)
+  const saveFeatured = async (item) => {
+    const featured = item ? (() => {
+      const n = normalizeMediaItem(item);
+      const libItem = getLibraryMatch(n.id, n.type)?.item;
+      return { id: n.id, type: n.type, title: n.title, cover: n.cover || "", customCover: libItem?.customCover || n.customCover || "" };
+    })() : null;
+    setProfile(prev => ({ ...prev, featuredItem: featured }));
+    try { if (featured) localStorage.setItem("trackall_featured", JSON.stringify(featured)); else localStorage.removeItem("trackall_featured"); } catch {}
+    if (user) try {
+      const currentHall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
+      await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: currentHall, featured });
     } catch {}
   };
 
@@ -2802,6 +2819,8 @@ export default function TrackAll() {
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
             hallOfFame={activeProfile.hallOfFame || []}
+            featuredItem={activeProfile.featuredItem || null}
+            onSetFeatured={demoMode ? null : saveFeatured}
             onToggleHallOfFame={toggleHallOfFame}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}

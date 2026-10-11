@@ -1,6 +1,6 @@
 # 📘 TrackAll — Developer Guide
 
-> **Última atualização:** 2026-10-10 (Fases 1–4 concluídas; Fase 5 parcial — falta extrair Home/Biblioteca/Pesquisa)
+> **Última atualização:** 2026-10-10 (Fases 1–4 concluídas; Fase 5: Home/Biblioteca/Pesquisa extraídas; falta SidebarSearch, TierListEditor/Viewer, CollectionViewer)
 > **Estado:** Em refatorização ativa
 
 ---
@@ -51,6 +51,7 @@ TrackAll/
   - components/ (AuthScreen, CollectionCard, CollectionModal, CoverEditModal, CropModal, DetailModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileTabCompletos, ProfileTabDiario, ProfileView, RecentSection, StarRating, TierListCard, TiltCard, VirtualGrid)
   - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
   - lib/ (inclui utils.js e importParsers.js)
+  - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
 
 ---
 
@@ -309,7 +310,7 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 
 ### ⏳ Fase 5 — Views (parcial)
 - [x] `FriendsView`, `ProfileView`, `AuthScreen`, `LandingPage`, `FeedTab`, `ProfileTabCompletos`, `ProfileTabDiario`
-- [ ] `HomeView`, `LibraryView`, `SearchView` (ainda inline no `TrackAll`; desenhar as props antes de extrair, uma de cada vez)
+- [x] `HomeView`, `LibraryView`, `SearchView` em `src/views/` (+ `LibGroupedList` e `RecoCarousel` em components/)
 - [ ] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer` (ainda no `App.jsx`)
 
 ### 🧪 Verificação depois de extrair código

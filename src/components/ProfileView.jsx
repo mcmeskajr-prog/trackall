@@ -13,17 +13,20 @@ import { TierListCard } from "./TierListCard";
 import { RecentSection } from "./RecentSection";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
+import { ProfileCard } from "./ProfileCard";
+import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
 
-export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection }) {
+export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
@@ -114,6 +117,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     setEditing(false);
   };
 
+  const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); };
+  // Na vista normal do separador Perfil, a identidade vive no ProfileCard; o cabeçalho antigo só aparece a editar ou noutros separadores.
+  const showHeaderIdentity = editing || profileTab !== "perfil";
   const currentBanner = editing ? bannerPreview : profile.banner;
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
@@ -122,7 +128,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
 
       {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: 64 }}>
+      <div style={{ position: "relative", marginBottom: showHeaderIdentity ? 64 : 20 }}>
         {/* Banner — escondido no mobile se hideBannerMobile */}
         {(!isMobileDevice || !profile.hideBannerMobile) && (
         <div style={{
@@ -199,6 +205,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         </div>
         )} {/* fim hideBannerMobile */}
 
+        {showHeaderIdentity && (
+        <>
         {/* Avatar — overlaps banner */}
         <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
           <div style={{ position: "relative", display: "inline-block" }}>
@@ -225,8 +233,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
 
+      {showHeaderIdentity && (
+      <>
       {/* Name / bio / edit */}
       <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
         {editing ? (
@@ -274,6 +286,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         )}
       </div>
 
+      </>
+      )}
+
       {/* ── Profile Tabs ── */}
       <div style={{ display: "flex", borderBottom: "1px solid #21262d", scrollbarWidth: "none" }}>
         {["perfil","completos","tierlists","listas","diario"].map(tab => (
@@ -307,7 +322,25 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
         : { padding: "16px 16px 0" }
-      }><div style={{ flex: 1, minWidth: 0 }}>
+      }>
+      {!editing && (
+        <div style={ !isMobileDevice ? { width: 330, flexShrink: 0 } : { marginBottom: 20 } }>
+          <ProfileCard
+            profile={profile}
+            avatar={currentAvatar}
+            items={items}
+            library={library}
+            featuredItem={featuredItem}
+            userEmail={userEmail}
+            hideEmail={hideEmail}
+            onOpen={onOpen}
+            onEdit={startEditing}
+            onSignOut={onSignOut}
+            onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null}
+          />
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
 
 
       {/* ── Hall of Fame ── */}
@@ -1073,6 +1106,15 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       )}
 
     </div>{/* fim conteudo */}
+    {showFeaturedPicker && (
+      <FeaturedPickerModal
+        items={items}
+        currentId={featuredItem?.id}
+        onSelect={(it) => { onSetFeatured && onSetFeatured(it); setShowFeaturedPicker(false); }}
+        onClear={() => { onSetFeatured && onSetFeatured(null); setShowFeaturedPicker(false); }}
+        onClose={() => setShowFeaturedPicker(false)}
+      />
+    )}
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
