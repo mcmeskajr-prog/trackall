@@ -1,9 +1,11 @@
+import { useTheme } from "../contexts/ThemeContext";
 import { useState, useMemo } from "react";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, MONTH_PT, MONTH_EN, TYPE_COLORS, mediaLabel } from "../config/constants";
 
 // ─── Diário (v2): resumo do ano, atividade por mês, filtros por tipo e entradas por mês ───
 export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
+  const { panelBg: ctxPanelBg } = useTheme() || {};
   const [filter, setFilter] = useState("all");
 
   const completados = useMemo(
@@ -58,7 +60,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
   const sub = darkMode ? "#aab4c0" : "#475569";
   const muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)";
-  const card = { background: darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)", borderRadius: 18, border: `1px solid ${line}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+  const card = { background: ctxPanelBg ? ctxPanelBg : darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)", borderRadius: 18, border: `1px solid ${line}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
   const eyebrow = { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: muted };
 
   const tiles = [

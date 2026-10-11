@@ -3,7 +3,7 @@ import { gradientFor } from "../lib/utils";
 import { TIER_LEVELS } from "../config/constants";
 
 export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
-  const { accent, darkMode } = useTheme();
+  const { accent, darkMode, panelBg } = useTheme();
   const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
 
   // Mosaico: grupos por tier, cada grupo com até 2 capas — separados por barra colorida
@@ -13,7 +13,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
   })).filter(g => g.items.length > 0);
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: darkMode ? "rgba(22,27,34,0.35)" : "rgba(255,255,255,0.42)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
+    <div onClick={() => onOpen(tl)} style={{ background: panelBg || (darkMode ? "rgba(22,27,34,0.35)" : "rgba(255,255,255,0.42)"), backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
 
       {/* Mosaico com grupos separados por cor do tier */}
       <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", flexShrink: 0 }}>

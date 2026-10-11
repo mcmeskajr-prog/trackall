@@ -15,6 +15,7 @@ import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileStats } from "./ProfileStats";
+import { AppearanceSettings } from "./AppearanceSettings";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
@@ -45,7 +46,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
   const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [themeName, setThemeName] = useState("");
+  const [settingsSection, setSettingsSection] = useState("aparencia");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Calcula o background dos painéis com cor + opacidade
   const computedPanelBg = (() => {
@@ -254,7 +257,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* ── Profile Tabs ── */}
       <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? "8px 16px 0" : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none" }}>
-        {["perfil","completos","tierlists","listas","diario"].map(tab => (
+        {["perfil","completos","tierlists","listas","diario","definicoes"].map(tab => (
           <button key={tab} onClick={() => setProfileTab(tab)} style={{
             flexShrink: 0, padding: "0 2px 14px", minHeight: 44,
             background: "none", border: "none",
@@ -275,7 +278,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 </svg>
                 {lang === "en" ? "Lists" : "Listas"}
               </span>
-            ) : useT("tabDiario")}
+            ) : tab === "definicoes" ? (lang === "en" ? "⚙ Settings" : "⚙ Definições") : useT("tabDiario")}
           </button>
         ))}
       </div>
@@ -500,294 +503,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       <div style={{ margin: "0 16px" }}>{renderTopGenres(false)}</div>
 
-      {/* Temas */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{useT("appearance")}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
+            </div>
+      </div> {/* fim wrapper tab perfil */}
 
-      {/* ── Temas Guardados ── */}
-      {(() => {
-        const themes = onSavedThemes?.themes || [];
-        const getCurrentTheme = () => ({ accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, panelBg, panelOpacity, bgImage, bgImageMobile, bgOverlay, bgBlur, bgParallax });
-        const applyTheme = (t) => {
-          if (t.accent) onAccentChange(t.accent);
-          if (t.bgColor) onBgChange(t.bgColor);
-          if (t.bgColorMobile !== undefined) onBgColorMobile(t.bgColorMobile);
-          if (t.sidebarColor !== undefined) onSidebarColor(t.sidebarColor);
-          if (t.textContrast !== undefined) onTextContrast(t.textContrast);
-          if (t.textContrastMobile !== undefined) onTextContrastMobile(t.textContrastMobile);
-          if (t.panelBg !== undefined) onPanelBg(t.panelBg);
-          if (t.panelOpacity !== undefined) onPanelOpacity(t.panelOpacity);
-          if (t.bgOverlay !== undefined) onBgOverlay(t.bgOverlay);
-          if (t.bgBlur !== undefined) onBgBlur(t.bgBlur);
-          if (t.bgParallax !== undefined) onBgParallax(t.bgParallax);
-          // Carregar imagens guardadas separadamente
-          try {
-            if (t.hasBgImage) { const img = localStorage.getItem(`trackall_theme_img_${t.name}`); onBgImage(img || ""); }
-            else onBgImage("");
-            // Só restaura imagem mobile se estiver no mobile
-            if (isMobileDevice) {
-              if (t.hasBgImageMobile) { const img = localStorage.getItem(`trackall_theme_imgm_${t.name}`); onBgImageMobile(img || ""); }
-              else onBgImageMobile("");
-            }
-          } catch {}
-        };
-        const saveTheme = () => {
-          if (!themeName.trim()) return;
-          const name = themeName.trim();
-          // Guardar imagens separadamente (são grandes)
-          try {
-            if (bgImage) localStorage.setItem(`trackall_theme_img_${name}`, bgImage);
-            if (bgImageMobile) localStorage.setItem(`trackall_theme_imgm_${name}`, bgImageMobile);
-          } catch {}
-          // Tema sem imagens (ficam no localStorage por chave separada)
-          const newTheme = { name, accent, bgColor, bgColorMobile, sidebarColor, textContrast, textContrastMobile, bgSeparateDevices, darkMode, panelBg, panelOpacity, bgOverlay, bgBlur, bgParallax, hasBgImage: !!bgImage, hasBgImageMobile: !!bgImageMobile };
-          const updated = [...themes.filter(t => t.name !== name), newTheme];
-          onSavedThemes?.save(updated);
-          setThemeName("");
-        };
-        return (
-          <div style={{ background: computedPanelBg, border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: themes.length ? 12 : 6 }}>
-              <span style={{ fontSize: 13 }}>🎨</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", flex: 1 }}>{useT("savedThemes")}</span>
-              <input value={themeName} onChange={e => setThemeName(e.target.value)} placeholder={useT("themeNamePlaceholder")}
-                onKeyDown={e => e.key === "Enter" && saveTheme()}
-                style={{ padding: "5px 10px", fontSize: 12, borderRadius: 8, width: 140 }} />
-              <button onClick={saveTheme} disabled={!themeName.trim()} style={{ padding: "5px 12px", borderRadius: 8, background: accent, border: "none", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: themeName.trim() ? 1 : 0.4 }}>{useT("saveProfile")}</button>
-            </div>
-            {themes.length > 0 ? (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {themes.map(t => (
-                  <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 4, background: darkMode ? "#21262d" : "#f1f5f9", borderRadius: 20, padding: "4px 4px 4px 10px", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}` }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
-                    <button onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px 0 2px" }}>{t.name}</button>
-                    <button onClick={() => {
-                      try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {}
-                      onSavedThemes?.save(themes.filter(x => x.name !== t.name));
-                    }} style={{ background: "none", border: "none", color: "#484f58", fontSize: 11, cursor: "pointer", padding: "0 4px" }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Save your current setup with a name to switch between later." : "Guarda o teu setup atual com um nome para trocar depois."}</p>
-            )}
-          </div>
-        );
-      })()}
-
-      <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
-
-        {/* Sub-secção: CORES */}
-        {[
-          { key: "cores", label: useT("colorsSection"), content: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("mode")}</p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => {
-                    const hasBg = bgSeparateDevices && isMobileDevice ? bgImageMobile : bgImage;
-                    const doChange = () => {
-                      if (bgSeparateDevices && isMobileDevice) onBgColorMobile("#0d1117");
-                      else { onBgChange("#0d1117"); if (hasBg) onBgImage(""); }
-                    };
-                    if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
-                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: darkMode ? accent : "#21262d", color: darkMode ? "white" : "#8b949e" }}>{useT("nightMode")}</button>
-                  <button onClick={() => {
-                    const hasBg = bgSeparateDevices && isMobileDevice ? bgImageMobile : bgImage;
-                    const doChange = () => {
-                      if (bgSeparateDevices && isMobileDevice) onBgColorMobile("#f1f5f9");
-                      else { onBgChange("#f1f5f9"); if (hasBg) onBgImage(""); }
-                    };
-                    if (hasBg && !(bgSeparateDevices && isMobileDevice)) { if (window.confirm("Mudar o modo vai remover a imagem de fundo. Continuar?")) doChange(); } else doChange();
-                  }} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: !darkMode ? accent : "#21262d", color: !darkMode ? "white" : "#8b949e" }}>{useT("dayMode")}</button>
-                </div>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("accentColor")}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  {ACCENT_PRESETS.map((p) => (
-                    <button key={p.name} onClick={() => onAccentChange(p.color)} style={{ width: 32, height: 32, borderRadius: 999, background: p.color, border: accent === p.color ? "3px solid white" : "3px solid transparent", cursor: "pointer" }} title={p.name} />
-                  ))}
-                  <label style={{ width: 32, height: 32, borderRadius: 999, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={accent} onBlur={(e) => onAccentChange(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-                </div>
-              </div>
-            </div>
-          )},
-          { key: "texto", label: useT("textSection"), content: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{bgSeparateDevices ? "PC" : "Geral"}</p>
-                  <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{textContrast}%</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
-                  <input type="range" min={40} max={160} step={5} value={textContrast} onChange={e => onTextContrast(Number(e.target.value))} style={{ flex: 1, accentColor: accent, height: 4, cursor: "pointer" }} />
-                  <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
-                </div>
-                <button onClick={() => onTextContrast(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
-              </div>
-              {bgSeparateDevices && (
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>📱 Mobile</p>
-                    <span style={{ fontSize: 11, color: "#06b6d4", fontWeight: 700 }}>{textContrastMobile}%</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("dark")}</span>
-                    <input type="range" min={40} max={160} step={5} value={textContrastMobile} onChange={e => onTextContrastMobile(Number(e.target.value))} style={{ flex: 1, accentColor: "#06b6d4", height: 4, cursor: "pointer" }} />
-                    <span style={{ fontSize: 11, color: "#484f58" }}>{useT("light")}</span>
-                  </div>
-                  <button onClick={() => onTextContrastMobile(100)} style={{ marginTop: 6, fontSize: 11, color: "#484f58", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ Repor</button>
-                </div>
-              )}
-            </div>
-          )},
-          { key: "fundo", label: useT("bgSection"), content: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Cor de fundo{bgSeparateDevices ? " 🖥 PC" : ""}</p>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => { onBgChange(p.value); onBgImage(""); }} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColor === p.value && !bgImage ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
-                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: bgColor && !BG_PRESETS.find(p => p.value === bgColor) && !bgImage ? bgColor : "transparent" }}>
-                    {bgColor && !BG_PRESETS.find(p => p.value === bgColor) && !bgImage ? "" : "+"}
-                    <input type="color" value={bgColor} onChange={(e) => { onBgChange(e.target.value); onBgImage(""); }} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                  </label>
-                </div>
-              </div>
-              {bgSeparateDevices && (
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgColorMobile")}</p>
-                    {bgColorMobile && <button onClick={() => onBgColorMobile("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual PC</button>}
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                    {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onBgColorMobile(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: bgColorMobile === p.value ? "2px solid #06b6d4" : "2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
-                    <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: bgColorMobile && !BG_PRESETS.find(p => p.value === bgColorMobile) ? bgColorMobile : "transparent" }}>
-                      {bgColorMobile && !BG_PRESETS.find(p => p.value === bgColorMobile) ? "" : "+"}
-                      <input type="color" value={bgColorMobile || bgColor} onChange={(e) => onBgColorMobile(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                    </label>
-                  </div>
-                </div>
-              )}
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("bgImage")}</p>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
-                    <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImage ? `2px solid ${accent}` : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImage ? `url(${bgImage}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
-                      {!bgImage && <><span>🖥</span><span style={{ fontSize: 9, color: "#484f58" }}>PC</span></>}
-                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const file = e.target.files[0]; if (!file) return; const c = await compressImage(file, 1920, 1080, 0.90); if (c) onBgImage(c); }} />
-                    </label>
-                    {bgImage && <button onClick={() => onBgImage("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
-                  </div>
-                  {bgSeparateDevices && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
-                      <label style={{ width: 56, height: 56, borderRadius: 10, border: bgImageMobile ? "2px solid #06b6d4" : "2px dashed #30363d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: bgImageMobile ? `url(${bgImageMobile}) center/cover` : "#21262d", overflow: "hidden", gap: 2 }}>
-                        {!bgImageMobile && <><span>📱</span><span style={{ fontSize: 9, color: "#484f58" }}>Mobile</span></>}
-                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const file = e.target.files[0]; if (!file) return; const c = await compressImage(file, 1080, 1920, 0.85); if (c) onBgImageMobile(c); }} />
-                      </label>
-                      {bgImageMobile && <button onClick={() => onBgImageMobile("")} style={{ fontSize: 10, padding: "2px 8px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
-                    </div>
-                  )}
-                </div>
-                {(bgImage || bgImageMobile) && (
-                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("overlay")}</p>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {[{ label: "Nenhum", val: "rgba(0,0,0,0)" }, { label: useT("overlaySoft"), val: "rgba(0,0,0,0.3)" }, { label: useT("overlayMid"), val: "rgba(0,0,0,0.55)" }, { label: useT("overlayStrong"), val: "rgba(0,0,0,0.75)" }, { label: useT("overlayWhite"), val: "rgba(255,255,255,0.6)" }].map(o => (
-                          <button key={o.label} onClick={() => onBgOverlay(o.val)} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${bgOverlay===o.val?accent:"#30363d"}`, background: bgOverlay===o.val?`${accent}22`:"transparent", color: bgOverlay===o.val?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{o.label}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>Desfoque — {bgBlur}px</p>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {[0,2,4,8,12].map(v => (<button key={v} onClick={() => onBgBlur(v)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${bgBlur===v?accent:"#30363d"}`, background: bgBlur===v?`${accent}22`:"transparent", color: bgBlur===v?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{v===0?"Nenhum":`${v}px`}</button>))}
-                      </div>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 12, color: "#8b949e", marginBottom: 6 }}>{useT("scroll")}</p>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => onBgParallax(true)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${bgParallax?accent:"#30363d"}`, background: bgParallax?`${accent}22`:"transparent", color: bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("parallax")}</button>
-                        <button onClick={() => onBgParallax(false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${!bgParallax?accent:"#30363d"}`, background: !bgParallax?`${accent}22`:"transparent", color: !bgParallax?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600 }}>{useT("staticScroll")}</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )},
-          { key: "sidebar", label: useT("sidebarSection"), content: (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("sidebarSection")}</p>
-                {sidebarColor && <button onClick={() => onSidebarColor("")} style={{ fontSize: 10, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ igual ao fundo</button>}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                <button onClick={() => onSidebarColor("")} style={{ width: 32, height: 32, borderRadius: 8, background: bgColor, border: !sidebarColor ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 9, color: "#8b949e", fontFamily: "inherit" }} title={useT("sameAsBg")}>≡</button>
-                {BG_PRESETS.map((p) => (<button key={p.name} onClick={() => onSidebarColor(p.value)} style={{ width: 32, height: 32, borderRadius: 8, background: p.value, border: sidebarColor===p.value?`2px solid ${accent}`:"2px solid #30363d", cursor: "pointer" }} title={p.name} />))}
-                <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative" }}>+<input type="color" defaultValue={sidebarColor||bgColor} onBlur={(e) => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} /></label>
-              </div>
-            </div>
-          )},
-          { key: "dispositivos", label: useT("devicesSection"), content: (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{useT("separateDevices")}</p>
-                <p style={{ fontSize: 11, color: "#484f58" }}>{lang === "en" ? "Different color, image and contrast per device" : "Cor, imagem e contraste diferentes por dispositivo"}</p>
-              </div>
-              <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, flexShrink: 0, cursor: "pointer" }}>
-                <input type="checkbox" checked={!!bgSeparateDevices} onChange={e => onBgSeparateDevices(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
-                <span style={{ position: "absolute", inset: 0, background: bgSeparateDevices ? accent : "#30363d", borderRadius: 22, transition: "background 0.2s" }} />
-                <span style={{ position: "absolute", top: 3, left: bgSeparateDevices ? 21 : 3, width: 16, height: 16, background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
-              </label>
-              <span style={{ fontSize: 12, color: bgSeparateDevices ? accent : "#484f58", fontWeight: bgSeparateDevices ? 700 : 400, flexShrink: 0 }}>{bgSeparateDevices ? "🖥≠📱" : "🖥=📱"}</span>
-            </div>
-          )},
-          { key: "stats", label: useT("statsCards"), content: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{useT("statsCardsColor")}</p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <button onClick={() => { onPanelBg(""); onPanelOpacity(100); }} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", border: !panelBg ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer", fontSize: 10, color: "#8b949e", fontFamily: "inherit" }}>Auto</button>
-                  {["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].map(c => (
-                    <button key={c} onClick={() => onPanelBg(c)} style={{ width: 32, height: 32, borderRadius: 8, background: c, border: panelBg===c ? `2px solid ${accent}` : "2px solid #30363d", cursor: "pointer" }} title={c} />
-                  ))}
-                  <label style={{ width: 32, height: 32, borderRadius: 8, border: "2px dashed #30363d", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, position: "relative", background: panelBg && !["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].includes(panelBg) ? panelBg : "transparent" }}>
-                    {panelBg && !["#161b22","#1e293b","#0f172a","#1c1c1e","#0d1117","#ffffff","#f1f5f9","#f6f8fa"].includes(panelBg) ? "" : "+"}
-                    <input type="color" value={panelBg || "#161b22"} onChange={(e) => onPanelBg(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-                  </label>
-                </div>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, color: "#8b949e", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{useT("panelOpacity")}</p>
-                  <span style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{panelOpacity ?? 100}%</span>
-                </div>
-                <input type="range" min={0} max={100} value={panelOpacity ?? 100}
-                  onChange={e => onPanelOpacity(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: accent, cursor: "pointer" }}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#484f58", marginTop: 2 }}>
-                  <span>Transparente</span><span>Sólido</span>
-                </div>
-              </div>
-            </div>
-          )},
-        ].map(({ key, label, content }) => (
-          <div key={key} style={{ borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-            <button onClick={() => toggleAppear(key)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: appearSections[key] ? accent : (darkMode ? "#c9d1d9" : "#374151") }}>{label}</span>
-              <span style={{ fontSize: 12, color: "#484f58", transform: appearSections[key] ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
-            </button>
-            {appearSections[key] && <div style={{ padding: "0 16px 16px" }}>{content}</div>}
-          </div>
-        ))}
-
-      </div>
-
+      {/* Modais de importação (fora do separador Perfil para funcionarem a partir das Definições) */}
       {/* Mihon Modal */}
       {showMihon && (
         <MihonImportModal
@@ -814,6 +533,53 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         />
       )}
 
+      {/* ── Separador Definições ── */}
+      {profileTab === "definicoes" && (
+        <div style={{ padding: isMobileDevice ? "16px 16px 40px" : "24px 32px 48px", display: "flex", flexDirection: isMobileDevice ? "column" : "row", gap: isMobileDevice ? 16 : 32, alignItems: "flex-start" }}>
+          <nav aria-label={lang === "en" ? "Settings sections" : "Secções das definições"} style={isMobileDevice ? { display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", width: "100%" } : { width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 16 }}>
+            {[
+              { id: "aparencia", label: lang === "en" ? "Appearance" : "Aparência" },
+              { id: "importar", label: lang === "en" ? "Import" : "Importar" },
+              { id: "apis", label: "APIs" },
+              { id: "geral", label: lang === "en" ? "General" : "Geral" },
+              { id: "perigo", label: lang === "en" ? "Danger zone" : "Zona de perigo" },
+            ].map(s => {
+              const on = settingsSection === s.id;
+              const danger = s.id === "perigo";
+              return (
+                <button key={s.id} onClick={() => setSettingsSection(s.id)} style={{
+                  display: "flex", alignItems: "center", gap: 10, flexShrink: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                  padding: isMobileDevice ? "8px 14px" : "11px 12px", minHeight: 40, borderRadius: isMobileDevice ? 999 : 12,
+                  border: isMobileDevice ? `1px solid ${on ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)")}` : "none",
+                  background: on ? (darkMode ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.06)") : "transparent",
+                  color: danger ? "#ef4444" : on ? (darkMode ? "#e6edf3" : "#0f172a") : (darkMode ? "#9aa6b2" : "#475569"),
+                  fontSize: 14, fontWeight: 600, whiteSpace: "nowrap",
+                }}>
+                  {!isMobileDevice && <span style={{ width: 6, height: 6, borderRadius: 99, background: on ? (danger ? "#ef4444" : accent) : "transparent" }} />}
+                  {s.label}
+                </button>
+              );
+            })}
+          </nav>
+          <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
+            {settingsSection === "aparencia" && (
+              <>
+                <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 4px" }}>{lang === "en" ? "Appearance" : "Aparência"}</h2>
+                <p style={{ fontSize: 14, color: darkMode ? "#9aa6b2" : "#475569", margin: "0 0 22px" }}>{lang === "en" ? "Pick a style and fine-tune it. Everything shows live on the preview." : "Escolhe um estilo e afina por cima. Tudo se vê ao vivo na pré-visualização."}</p>
+                <AppearanceSettings
+                  accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} sidebarColor={sidebarColor}
+                  textContrast={textContrast} textContrastMobile={textContrastMobile} bgSeparateDevices={bgSeparateDevices}
+                  darkMode={darkMode} panelBg={panelBg} panelOpacity={panelOpacity} bgImage={bgImage} bgImageMobile={bgImageMobile}
+                  bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax} isMobileDevice={isMobileDevice} lang={lang} useT={useT}
+                  savedThemes={onSavedThemes} computedPanelBg={computedPanelBg}
+                  onAccentChange={onAccentChange} onBgChange={onBgChange} onBgColorMobile={onBgColorMobile} onSidebarColor={onSidebarColor}
+                  onTextContrast={onTextContrast} onTextContrastMobile={onTextContrastMobile} onPanelBg={onPanelBg} onPanelOpacity={onPanelOpacity}
+                  onBgImage={onBgImage} onBgImageMobile={onBgImageMobile} onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
+                  onBgSeparateDevices={onBgSeparateDevices}
+                />
+              </>
+            )}
+            {settingsSection === "importar" && (<>
       {/* ── Import ── */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "IMPORT" : "IMPORTAR"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -848,6 +614,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
 
 
+            </>)}
+            {settingsSection === "apis" && (<>
       {/* API Status */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "API SETTINGS" : "CONFIGURAÇÕES API"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
       <div style={{ background: "#161b22", border: "1px solid #10b98133", borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -874,6 +642,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         </div>
       </div>
 
+            </>)}
+            {settingsSection === "geral" && (<>
       {/* ── Legal ── */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: darkMode ? "#8b949e" : "#475569", display: "flex", alignItems: "center", gap: 10 }}>
@@ -915,10 +685,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         </div>
       </div>
 
+            </>)}
+            {settingsSection === "perigo" && (<>
       {/* ── Zona de Perigo ── */}
       {(() => {
-        const [confirmDelete, setConfirmDelete] = useState(false);
-        const [deleting, setDeleting] = useState(false);
         const handleDeleteAccount = async () => {
           if (!confirmDelete) { setConfirmDelete(true); return; }
           setDeleting(true);
@@ -970,8 +740,11 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         );
       })()}
 
-            </div>
-      </div> {/* fim wrapper tab perfil */}
+            </>)}
+          </div>
+        </div>
+      )}
+
 
       {/* Tab Completos */}
       {profileTab === "completos" && (

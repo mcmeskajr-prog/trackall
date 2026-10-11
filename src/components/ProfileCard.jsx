@@ -10,7 +10,7 @@ import { TiltCard } from "./TiltCard";
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
 // Só aparece em modo de visualização; a edição continua no cabeçalho do ProfileView.
 export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onSignOut, onPickFeatured }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
+  const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang } = useLang();
 
   // Item em destaque: o escolhido; se não houver, o favorito mais bem avaliado.
@@ -35,7 +35,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
   return (
     <div style={{
       borderRadius: 26, padding: isMobileDevice ? 16 : 22, position: "relative", overflow: "hidden",
-      background: darkMode
+      background: panelBg ? panelBg : darkMode
         ? "linear-gradient(160deg, rgba(255,255,255,0.02), rgba(255,255,255,0.004)), rgba(9,11,15,0.84)"
         : "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))",
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.1)"}`,

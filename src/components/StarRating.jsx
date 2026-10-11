@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Avaliação 0–10 em passos de 0.5.
 //  · arrastar pelas estrelas (ou tocar) escolhe a nota; guarda ao largar
@@ -12,7 +12,22 @@ const GOLD = "#f59e0b";
 const fmt = (v) => (v <= 0 ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(1));
 const buzz = () => { try { if (navigator.vibrate) navigator.vibrate(8); } catch {} };
 
-export function StarRating({ value = 0, onChange, size = 16, readOnly = false, variant = "stars", showButtons = true }) {
+// Estilo escolhido nas Definições (estrelas ou barra); atualiza ao vivo
+const readStyle = () => { try { return localStorage.getItem("trackall_rating_style") || "stars"; } catch { return "stars"; } };
+function useRatingStyle() {
+  const [v, setV] = useState(readStyle);
+  useEffect(() => {
+    const h = () => setV(readStyle());
+    window.addEventListener("trackall-rating-style", h);
+    window.addEventListener("storage", h);
+    return () => { window.removeEventListener("trackall-rating-style", h); window.removeEventListener("storage", h); };
+  }, []);
+  return v;
+}
+
+export function StarRating({ value = 0, onChange, size = 16, readOnly = false, variant, showButtons = true }) {
+  const chosen = useRatingStyle();
+  variant = variant || chosen;
   const [live, setLive] = useState(null);   // valor durante o arrasto
   const drag = useRef({ on: false, start: 0, moved: false, last: 0 });
   const width = size * 10;

@@ -5,7 +5,7 @@ import { MEDIA_TYPES, STATUS_OPTIONS, TYPE_COLORS, mediaLabel, statusLabel } fro
 
 // ─── Estatísticas do perfil (Fase 2): números, barra por tipo, ratings e estados ───
 export function ProfileStats({ items, panelBg, stacked, onFilter }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
+  const { accent, darkMode, isMobileDevice, panelBg: ctxPanelBg } = useTheme();
   const { lang } = useLang();
 
   const data = useMemo(() => {
@@ -28,7 +28,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
   const muted = darkMode ? "#8b949e" : "#64748b";
   // Mesmo vidro do ProfileCard; só usa panelBg quando o utilizador personalizou os painéis
   const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
-  const card = { background: panelBg || glass, borderRadius: 18, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+  const card = { background: panelBg || ctxPanelBg || glass, borderRadius: 18, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
   const eyebrow = { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, marginBottom: 12 };
 
   // Cada número abre a Biblioteca já filtrada

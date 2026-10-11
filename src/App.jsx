@@ -2293,7 +2293,7 @@ export default function TrackAll() {
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice, panelBg: panelBg ? computedPanelBgCSS : null }}>
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
