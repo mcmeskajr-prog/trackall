@@ -57,38 +57,36 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <h3 style={{ fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{(lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>
-            {completados.length > 10 && (
+            {completados.length > (isMobileDevice ? 12 : 7) && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
               </button>
             )}
           </div>
           <div
-            onWheel={e => { if (!showAllCompleto) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
-            style={{
-              display: showAllCompleto ? "grid" : "flex",
-              gridTemplateColumns: showAllCompleto ? "repeat(auto-fill, minmax(160px, 1fr))" : undefined,
-              gap: 10, overflowX: showAllCompleto ? "visible" : "auto",
-              paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
-            }}>
-            {(showAllCompleto ? completados : completados.slice(0, 12)).map((item) => {
+            onWheel={e => { if (!showAllCompleto && isMobileDevice) { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; } }}
+            style={isMobileDevice && !showAllCompleto
+              ? { display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }
+              : { display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))", gap: isMobileDevice ? 10 : 14 }}>
+            {(showAllCompleto ? completados : completados.slice(0, isMobileDevice ? 12 : 7)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
+              const days = item.addedAt ? Math.floor((Date.now() - item.addedAt) / 86400000) : null;
+              const when = days === null ? "" : days <= 0 ? (lang === "en" ? "Today" : "Hoje") : days === 1 ? (lang === "en" ? "Yesterday" : "Ontem") : days < 14 ? (lang === "en" ? `${days} days ago` : `Há ${days} dias`) : days < 60 ? (lang === "en" ? `${Math.floor(days / 7)} weeks ago` : `Há ${Math.floor(days / 7)} semanas`) : new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
               return (
-                <div key={item.id} className="recent-card" style={{ flexShrink: 0, width: showAllCompleto ? undefined : (isMobileDevice ? "calc((100vw - 32px) / 4)" : 120), cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
-                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 4, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.5)", transition: "transform 0.18s" }}>
+                <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, width: (isMobileDevice && !showAllCompleto) ? 104 : undefined, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
                     {coverSrc
-                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                     }
-                    {/* Hover overlay: título + rating + data */}
+                    {item.userRating > 0 && (
+                      <div style={{ position: "absolute", top: 7, right: 7, padding: "2px 7px", borderRadius: 7, background: "rgba(0,0,0,0.62)", color: "white", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {item.userRating}</div>
+                    )}
                     <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.45) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
-                      <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 4 }}>{item.title}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {item.userRating > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating}</span>}
-                        {item.addedAt && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>}
-                      </div>
+                      <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
                     </div>
                   </div>
+                  {when && <div style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", marginTop: 6 }}>{when}</div>}
                 </div>
               );
             })}

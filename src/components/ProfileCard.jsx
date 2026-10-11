@@ -30,7 +30,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
   const coverSrc = featured ? (featured.customCover || featured.cover) : null;
   const count = (items || []).length;
 
-  const avatarSize = isMobileDevice ? 76 : 92;
+  const avatarSize = isMobileDevice ? 92 : 104;
 
   return (
     <div style={{
@@ -42,22 +42,20 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       boxShadow: "0 30px 50px -24px rgba(0,0,0,0.7)",
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
     }}>
-      {/* Identidade: avatar com presença + nome */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+      {/* Identidade: avatar com presença + nome, centrados */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 18 }}>
         <div style={{
           width: avatarSize, height: avatarSize, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
           background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
-          boxShadow: `0 0 0 3px ${accent}, 0 0 28px ${accent}77, 0 10px 28px rgba(0,0,0,0.55)`,
+          boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 7px ${accent}, 0 0 36px 2px ${accent}88, 0 14px 30px rgba(0,0,0,0.55)`,
           display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: avatarSize * 0.4, color: "white",
         }}>
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontSize: isMobileDevice ? 24 : 28, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</h2>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: sub, marginTop: 6 }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
-        </div>
+        <h2 style={{ fontSize: isMobileDevice ? 26 : 30, fontWeight: 800, lineHeight: 1.1, margin: "18px 0 0", overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</h2>
+        <div style={{ fontSize: 12, color: sub, marginTop: 4, letterSpacing: "0.04em" }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
+        {profile.bio && <p style={{ fontSize: 13, color: sub, margin: "8px 0 0", lineHeight: 1.5 }}>{profile.bio}</p>}
       </div>
-      {profile.bio && <p style={{ fontSize: 13, color: sub, margin: "0 0 14px", lineHeight: 1.5 }}>{profile.bio}</p>}
 
       {/* Item em destaque */}
       {featured ? (
