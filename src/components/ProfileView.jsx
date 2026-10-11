@@ -329,15 +329,15 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
               return (
                 <div
                   key={item.id}
-                  className="fav-card-wrap"
+                  className="hof-card"
                   onClick={() => onOpen && onOpen(item)}
                   title={item.title}
                   style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
                 >
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
                     position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
-                    background: `linear-gradient(160deg, ${tone}55, ${tone}22)`,
-                    border: `1px solid ${darkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}`,
+                    background: darkMode ? "#11151b" : "#e2e8f0",
+                    border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}`,
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
                     {coverSrc
@@ -346,12 +346,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
                       aria-label={lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame"}
-                      style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "none", alignItems: "center", justifyContent: "center", fontSize: 12, padding: 0 }}
+                      className="hof-rm" style={{ position: "absolute", top: 8, left: 8, width: 24, height: 24, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: isMobileDevice ? "none" : "flex", alignItems: "center", justifyContent: "center", fontSize: 13, padding: 0 }}
                     >
                       ×
                     </button>
                     {score > 0 && (
-                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
+                      <div className="hof-badge" style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", transition: "background 0.25s", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
                     )}
                   </TiltCard>
                 </div>

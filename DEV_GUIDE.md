@@ -48,7 +48,7 @@ TrackAll/
     - mediaIds.js (normalização de IDs)
     - consumptionTime.js (lógica "Quando Consumir?")
   - api/ (Fase 2 — anilist.js, tmdb.js, igdb.js, books.js, comicvine.js, details.js, recommendations.js, smartSearch.js)
-  - components/ (AuthScreen, CollectionCard, CollectionModal, CoverEditModal, CropModal, DetailModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileTabCompletos, ProfileTabDiario, ProfileView, RecentSection, StarRating, TierListCard, TiltCard, VirtualGrid)
+  - components/ (AuthScreen, CollectionCard, CollectionModal, CoverEditModal, CropModal, DetailModal, FeedTab, FeaturedPickerModal, FriendsView, LandingPage, LetterboxdImportModal, LibGroupedList, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileCard, ProfileStats, ProfileTabCompletos, ProfileTabDiario, ProfileView, RecentSection, RecoCarousel, StarRating, TierListCard, TiltCard, VirtualGrid)
   - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
   - lib/ (inclui utils.js e importParsers.js)
   - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
@@ -206,6 +206,33 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 
 ---
 
+### 👤 Perfil — redesign v2 (desktop concluído; telemóvel por afinar)
+Layout (separador Perfil, `ProfileView.jsx`):
+- Linha de cima: `ProfileCard` (330px, à esquerda) + coluna da direita com `ProfileStats` (4 números, "Por tipo" + estados, ratings) e o Hall of Fame.
+- Largura total, por esta ordem: barra de filtros partilhada → Recentes (`RecentSection`) → Favoritos → cartões Tier Lists / Minhas Listas → Top géneros → definições (temas, importações, legal, zona de perigo).
+- Mobile: mesma ordem numa só coluna; Hall of Fame e cada fila de Favoritos são filas com scroll horizontal.
+
+Componentes:
+- `ProfileCard.jsx`: identidade centrada (avatar 104px com aro duplo + glow), item em destaque (`TiltCard`, `hiRes()` com fallback no `onError`), botão discreto de trocar destaque, "Editar perfil" e terminar sessão. Sem destaque escolhido, usa o item com maior rating.
+- `FeaturedPickerModal.jsx`: escolher o destaque (portal, zIndex 170, pesquisa + chips por tipo + grelha).
+- `ProfileStats.jsx`: números, barra por tipo, estados e histograma. A prop `stacked` empilha os painéis (já não é usada pelo ProfileView atual).
+- `ProfileTabDiario.jsx` (v2): números do ano, atividade por mês, chips por tipo (filtro próprio do separador), entradas por mês e coluna lateral (ratings, por tipo, melhor do mês).
+- `Sakura` (função local no ProfileView): badge do Hall of Fame.
+
+Regras e dados:
+- O filtro (`favFilter`, estado do ProfileView) filtra **Recentes e Favoritos ao mesmo tempo**. Em "Tudo", cada tipo tem a sua fila (6 posters + "+N ver todos", expandido por `favExpanded[tipo]`); com um tipo escolhido, só aparece essa fila.
+- Limites: Hall of Fame 10 (`App.jsx` → `toggleHallOfFame` e `DetailModal`), Favoritos 30.
+- O item em destaque guarda-se em `library` na linha especial `__hall_of_fame__` como `{ hall, featured }`. Sem migração (a tabela `profiles` não tem coluna para isto). `toggleHallOfFame` preserva sempre o `featured`.
+- Sem barras de cor nos posters (decisão de design); a cor do tipo só aparece em gráficos.
+- Estilo: vidro escuro (`rgba(12,14,18,.6)` + gradiente leve + `backdrop-filter`), igual no cartão, estatísticas e Diário. Evitar brancos por cima do destaque (`brightness(.9)` + gradiente escuro).
+- O botão × de remover favorito é `.fav-rm` (opacity 0, visível no hover via CSS global em `App.jsx`); só no desktop.
+
+Desenhos de referência: artifact "TrackAll Perfil Redesign" (Claude Design), quadros "FINAL v2" (desktop, telemóvel, Diário) e "Hall of Fame · tamanhos".
+
+Backlog do perfil: afinar o telemóvel; estatísticas do topo interativas (clicar num tipo filtra); escolher o estilo do perfil por utilizador (Passaporte / Diário / Cartão); redesenhar Tier Lists e Listas; trocar o símbolo ou substituto das linhas de cor, se for preciso; remover `compressBanner` e restos do banner.
+
+---
+
 ## 🛠️ Como Adicionar Novo Conteúdo
 
 ### Adicionar novo tipo de media
@@ -253,6 +280,9 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 - Se um pedido a `trackall-proxy.mcmeskajr.workers.dev/...` (tmdb, books, igdb, anilist, comicvine) devolver **503** sem razao aparente e o resto da app estiver bem, e provavel um *cold start* do Worker (instancia inativa) ou instabilidade pontual na API de origem, nao um bug de codigo.
 - Para ver os logs do Worker em tempo real (o Cloudflare Dashboard tem os Workers Logs desativados por defeito): no terminal, dentro da pasta do projeto do Worker, correr `npx wrangler tail trackall-proxy`, autenticar via OAuth no browser quando pedido, e refazer o pedido que estava a falhar na app. O stream mostra os pedidos a chegar ao Worker em tempo real.
 - Muitas vezes, o simples facto de abrir o `wrangler tail` e repetir o pedido ja resolve (a instancia "acorda"). Se o 503 persistir mesmo com o tail aberto, ai sim o log mostra a causa real (erro na API de origem, variavel de ambiente em falta, etc.).
+
+
+**IGDB (token automático):** o Worker renova o token sozinho com `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` (secrets do Cloudflare; client_credentials, cache em `caches.default`, repete o pedido se der 401). `/health` mostra `igdbAutoRefresh`. Publicar com `npx wrangler deploy` na pasta `trackall-worker` (precisa de `wrangler.toml` com `name = "trackall-proxy"`).
 
 ### Erros de build (produção)
 - Correr `npm run build` localmente para testar
@@ -310,6 +340,7 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 
 ### ⏳ Fase 5 — Views (parcial)
 - [x] `FriendsView`, `ProfileView`, `AuthScreen`, `LandingPage`, `FeedTab`, `ProfileTabCompletos`, `ProfileTabDiario`
+- [x] Perfil v2: `ProfileCard`, `FeaturedPickerModal`, `ProfileStats`, Diário novo (ver secção "Perfil")
 - [x] `HomeView`, `LibraryView`, `SearchView` em `src/views/` (+ `LibGroupedList` e `RecoCarousel` em components/)
 - [ ] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer` (ainda no `App.jsx`)
 

@@ -68,7 +68,8 @@ const supa = {
   },
 
   async upsertLibraryItem(userId, mediaId, mediaData) {
-    await supabase.from('library').upsert({ user_id: userId, media_id: mediaId, data: mediaData, updated_at: new Date().toISOString() });
+    const { error } = await supabase.from('library').upsert({ user_id: userId, media_id: mediaId, data: mediaData, updated_at: new Date().toISOString() });
+    if (error) throw error; // antes falhava em silêncio e o item ficava por gravar
   },
 
   async deleteLibraryItem(userId, mediaId) {

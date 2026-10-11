@@ -851,7 +851,7 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearchQuery, 
           {useT("search")}
         </button>
       ) : (
-        <div ref={containerRef} style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 10, border: `1px solid ${accent}55`, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+        <div ref={containerRef} style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 42, background: darkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9", borderRadius: 12, border: `1px solid ${accent}66`, boxShadow: `0 0 0 3px ${accent}1f`, minWidth: 0, width: "calc(100% - 16px)", boxSizing: "border-box" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
@@ -862,8 +862,8 @@ function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearchQuery, 
               if (e.key === "Escape") { setOpen(false); setQ(""); }
             }}
             placeholder={useT("search") + "..."}
-            style={{ flex: 1, background: "transparent", border: "none", color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 13, outline: "none", padding: 0, minWidth: 0 }} />
-          <button onClick={() => { setOpen(false); setQ(""); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, padding: 0 }}>✕</button>
+            style={{ flex: 1, background: "transparent", border: "none", boxShadow: "none", borderRadius: 0, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 14, outline: "none", padding: 0, margin: 0, height: "auto", minWidth: 0, width: "100%" }} />
+          <button onClick={() => { setOpen(false); setQ(""); }} aria-label="Fechar" style={{ background: "none", border: "none", color: darkMode ? "#8b949e" : "#64748b", cursor: "pointer", fontSize: 15, lineHeight: 1, flexShrink: 0, padding: "6px 4px", margin: "-6px -4px" }}>✕</button>
         </div>
       )}
     </>
@@ -893,6 +893,10 @@ export default function TrackAll() {
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
+  // Cópia sempre atualizada da biblioteca: os handlers leem daqui para nunca gravarem por cima de alterações recentes (ex.: rating + completado seguidos)
+  const libraryRef = useRef({});
+  const saveQueueRef = useRef(Promise.resolve());
+  libraryRef.current = library;
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
@@ -1359,26 +1363,28 @@ export default function TrackAll() {
 
   const showNotif = (msg, color) => { setNotif({ msg, color }); setTimeout(() => setNotif(null), Math.max(2000, Math.min(msg.length * 60, 4500))); };
 
-  const saveLibrary = async (lib) => {
+  const saveLibrary = (lib) => {
+    const prev = libraryRef.current;
+    libraryRef.current = lib;
     setLibrary(lib);
-    // Guarda no Supabase em background
-    if (user) {
+    if (!user) return Promise.resolve();
+    // Escritas em fila: chegam ao Supabase pela mesma ordem em que foram feitas
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
       try {
-        const prev = library;
-        // Items novos ou atualizados
         for (const [id, item] of Object.entries(lib)) {
           if (JSON.stringify(prev[id]) !== JSON.stringify(item)) {
             await supa.upsertLibraryItem(user.id, id, item);
           }
         }
-        // Items removidos
         for (const id of Object.keys(prev)) {
           if (!lib[id]) await supa.deleteLibraryItem(user.id, id);
         }
       } catch (err) {
         console.error('[TrackAll] Erro ao guardar biblioteca:', err);
+        showNotif(lang === "en" ? "Could not sync — check your connection" : "Não foi possível sincronizar — verifica a ligação", "#ef4444");
       }
-    }
+    });
+    return saveQueueRef.current;
   };
 
   const getLibraryMatch = (id, type = "") => findLibraryEntry(library, id, type);
@@ -1872,29 +1878,29 @@ export default function TrackAll() {
   };
   const updateDuration = useCallback((id, type, dur) => {
     if (!dur.episodes && !dur.chapters && !dur.runtime) return;
-    const matched = findLibraryEntry(library, id, type);
+    const matched = findLibraryEntry(libraryRef.current, id, type);
     if (!matched) return;
     // Só actualiza se faltar algum campo
     if (matched.item.episodes || matched.item.chapters || matched.item.runtime) return;
     const canonicalId = normalizeMediaId(id, type);
-    const next = { ...library };
+    const next = { ...libraryRef.current };
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = { ...matched.item, id: canonicalId, episodes: dur.episodes || matched.item.episodes, chapters: dur.chapters || matched.item.chapters, runtime: dur.runtime || matched.item.runtime };
     saveLibrary(next);
   }, [library]);
 
   const updateNote = useCallback((id, note) => {
-    const matched = findLibraryEntry(library, id);
+    const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched) return;
     const canonicalId = normalizeMediaId(id, matched.item.type);
-    const next = { ...library };
+    const next = { ...libraryRef.current };
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = { ...matched.item, id: canonicalId, userNote: note };
     saveLibrary(next);
   }, [library]);
 
   const updateStatus = useCallback((id, status) => {
-    const matched = findLibraryEntry(library, id);
+    const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched) return;
     const canonicalId = normalizeMediaId(id, matched.item?.type);
     const update = { ...matched.item, id: canonicalId, userStatus: status };
@@ -1903,7 +1909,7 @@ export default function TrackAll() {
       update.addedAt = Date.now();
       if (!update.completedAt) update.completedAt = Date.now();
     }
-    const next = { ...library };
+    const next = { ...libraryRef.current };
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = update;
     saveLibrary(next);
@@ -1912,20 +1918,20 @@ export default function TrackAll() {
   }, [library, accent]);
 
   const updateLastChapter = useCallback((id, chapter) => {
-    const matched = findLibraryEntry(library, id);
+    const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched || !chapter) return;
     const canonicalId = normalizeMediaId(id, matched.item?.type);
-    const next = { ...library };
+    const next = { ...libraryRef.current };
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = { ...matched.item, id: canonicalId, lastChapter: chapter };
     saveLibrary(next);
     showNotif(`Capítulo: ${chapter} ✓`, accent);
   }, [library, accent]);
   const updateRating = (id, rating) => {
-   const matched = findLibraryEntry(library, id);
+   const matched = findLibraryEntry(libraryRef.current, id);
    if (!matched) return;
    const canonicalId = normalizeMediaId(id, matched.item?.type);
-   const next = { ...library };
+   const next = { ...libraryRef.current };
    if (matched.key !== canonicalId) delete next[matched.key];
    next[canonicalId] = { ...matched.item, id: canonicalId, userRating: rating };
    saveLibrary(next);
@@ -2519,6 +2525,15 @@ export default function TrackAll() {
           .fav-card-wrap > div { transition: transform 0.18s, box-shadow 0.18s; }
           .fav-card-wrap:hover .fav-hover-overlay { opacity: 1 !important; }
           .recent-card:hover .fav-rm { opacity: 1 !important; }
+          .hof-card > div:first-child { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+          .hof-badge svg { transition: transform 0.4s ease; }
+          .hof-rm { opacity: 0; transition: opacity 0.15s; }
+          @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .hof-card:hover > div:first-child { transform: translateY(-4px) scale(1.025); box-shadow: 0 0 0 1px rgba(249,168,212,0.55), 0 0 30px rgba(249,168,212,0.28), 0 22px 36px -14px rgba(0,0,0,0.85) !important; }
+            .hof-card:hover .hof-badge { background: rgba(190,24,93,0.55) !important; }
+            .hof-card:hover .hof-badge svg { transform: rotate(72deg) scale(1.2); }
+            .hof-card:hover .hof-rm { opacity: 1; }
+          }
           .media-grid .card { animation: cardIn 0.22s ease both; }
           .media-grid[data-key] .card { animation: cardIn 0.22s ease both; }
           .media-grid .card:nth-child(1)  { animation-delay: 0ms; }
