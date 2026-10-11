@@ -1,4 +1,5 @@
 import { useTheme } from "../contexts/ThemeContext";
+import { PosterGridSkeleton } from '../components/Skeleton';
 import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { MediaCard } from "../components/MediaCard";
@@ -22,12 +23,7 @@ export function SearchView({ view, activeTab, setActiveTab, searchQuery, setSear
                 </button>
               ))}
             </div>
-            {isSearching && (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#8b949e" }}>
-                <div className="spin" style={{ fontSize: 40, display: "block", marginBottom: 12 }}>◌</div>
-                <p>{lang === "en" ? "Searching" : "A pesquisar"}{activeTab !== "all" ? ` in ${mediaLabel(MEDIA_TYPES.find(t=>t.id===activeTab), lang)}` : (lang === "en" ? " across all types" : " em todos os tipos")}...</p>
-              </div>
-            )}
+            {isSearching && <div style={{ padding: "8px 0" }}><PosterGridSkeleton count={12} /></div>}
             {searchError && (
               <div style={{ textAlign: "center", padding: "40px 20px" }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>😶</div>

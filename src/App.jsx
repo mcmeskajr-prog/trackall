@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { flushSync, createPortal } from "react-dom";
 import { createClient } from '@supabase/supabase-js';
 import { StarRating } from './components/StarRating';
+import { AppSkeleton } from './components/Skeleton';
 import { Notification } from './components/Notification';
 import { MediaCard } from './components/MediaCard';
 import { VirtualGrid } from './components/VirtualGrid';
@@ -2235,17 +2236,7 @@ export default function TrackAll() {
   }, [items]);
 
   // Loading screen
-  if (authLoading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0d1117", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Outfit', sans-serif" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 16, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "white", fontWeight: 900, marginBottom: 16 }}>T</div>
-          <div className="spin" style={{ fontSize: 28, color: accent, display: "block" }}>◌</div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spin { animation: spin 0.7s linear infinite; display: inline-block; }`}</style>
-        </div>
-      </div>
-    );
-  }
+  if (authLoading) return <AppSkeleton accent={accent} />;
 
   // Auth screen
   if (!user && !demoMode) {
