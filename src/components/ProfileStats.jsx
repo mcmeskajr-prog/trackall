@@ -4,7 +4,7 @@ import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, STATUS_OPTIONS, TYPE_COLORS, mediaLabel, statusLabel } from "../config/constants";
 
 // ─── Estatísticas do perfil (Fase 2): números, barra por tipo, ratings e estados ───
-export function ProfileStats({ items, panelBg }) {
+export function ProfileStats({ items, panelBg, stacked }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang } = useLang();
 
@@ -38,8 +38,8 @@ export function ProfileStats({ items, panelBg }) {
   ];
 
   return (
-    <div style={{ margin: "0 16px 28px", display: "flex", flexDirection: "column", gap: 14, color: text }}>
-      <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: isMobileDevice ? 10 : 14 }}>
+    <div style={{ margin: stacked ? 0 : "0 16px 28px", display: "flex", flexDirection: "column", gap: 14, color: text }}>
+      <div style={{ display: "grid", gridTemplateColumns: (isMobileDevice || stacked) ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: isMobileDevice ? 10 : 14 }}>
         {tiles.map(t => (
           <div key={t.l} style={{ ...card, padding: isMobileDevice ? 14 : 18 }}>
             <div style={{ fontSize: isMobileDevice ? 24 : 28, fontWeight: 800, lineHeight: 1.1 }}>{t.n}</div>
@@ -48,7 +48,7 @@ export function ProfileStats({ items, panelBg }) {
         ))}
       </div>
 
-      <div style={{ display: "flex", flexDirection: isMobileDevice ? "column" : "row", gap: isMobileDevice ? 10 : 14 }}>
+      <div style={{ display: "flex", flexDirection: (isMobileDevice || stacked) ? "column" : "row", gap: isMobileDevice ? 10 : 14 }}>
         <div style={{ ...card, flex: 1, minWidth: 0 }}>
           <div style={eyebrow}>{lang === "en" ? "By type" : "Por tipo"}</div>
           <div style={{ display: "flex", height: 12, borderRadius: 6, overflow: "hidden", gap: 3 }}>
@@ -74,7 +74,7 @@ export function ProfileStats({ items, panelBg }) {
           </div>
         </div>
 
-        <div style={{ ...card, width: isMobileDevice ? "auto" : 270, flexShrink: 0 }}>
+        <div style={{ ...card, width: (isMobileDevice || stacked) ? "auto" : 270, flexShrink: 0 }}>
           <div style={eyebrow}>{lang === "en" ? "Ratings" : "Distribuição de ratings"}</div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 76 }}>
             {data.hist.map((n, i) => (

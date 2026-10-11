@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { gradientFor } from "../lib/utils";
-import { MEDIA_TYPES, TYPE_COLORS, mediaLabel } from "../config/constants";
+import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 
 // ─── Escolher item em destaque (Fase 1) ───
 // Portal para o body: o ProfileView vive dentro de um ancestral com transform,
@@ -62,7 +62,6 @@ export function FeaturedPickerModal({ items, currentId, onSelect, onClear, onClo
                   ? <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 8, fontSize: 11, fontWeight: 700, color: "white", textAlign: "left", lineHeight: 1.2 }}>{item.title}</span>}
                 {item.userRating > 0 && <span style={{ position: "absolute", top: 6, right: 6, padding: "2px 6px", borderRadius: 7, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 10, fontWeight: 800 }}>★ {item.userRating}</span>}
-                <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 4, background: TYPE_COLORS[item.type] || accent }} />
               </button>
             );
           })}

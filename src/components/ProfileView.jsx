@@ -29,6 +29,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [showStats, setShowStats] = useState(false);
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [favFilter, setFavFilter] = useState("all");
+  const [favExpanded, setFavExpanded] = useState({});
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
@@ -246,7 +247,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         : { padding: "16px 16px 0" }
       }>
       {!editing && (
-        <div style={ !isMobileDevice ? { width: 330, flexShrink: 0, position: "sticky", top: 16, alignSelf: "flex-start" } : { marginBottom: 20 } }>
+        <div style={ !isMobileDevice ? { width: 330, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 } : { marginBottom: 20 } }>
           <ProfileCard
             profile={profile}
             avatar={currentAvatar}
@@ -260,13 +261,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             onSignOut={onSignOut}
             onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null}
           />
+          {!isMobileDevice && <ProfileStats stacked items={items} panelBg={panelBg ? computedPanelBg : null} />}
         </div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
 
 
       {/* ── Estatísticas (Fase 2) ── */}
-      <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} />
+      {(isMobileDevice || editing) && <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} />}
 
       {/* ── Hall of Fame ── */}
       <div style={{ marginBottom: 28 }}>
@@ -310,7 +312,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                       ×
                     </button>
                     {score > 0 && (
-                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 11, fontWeight: 800 }}>★ {score}</div>
+                      <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbbf24", fontSize: 11, fontWeight: 800 }}>♛ {score}</div>
                     )}
                   </TiltCard>
                 </div>
@@ -326,6 +328,34 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         const activeFilter = typesWithFavs.some(t => t.id === favFilter) ? favFilter : "all";
         const shown = activeFilter === "all" ? favorites : favorites.filter(f => f.type === activeFilter);
         const border = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
+        const renderFav = (item) => {
+                  const coverSrc = item.customCover || item.cover;
+                  const t = MEDIA_TYPES.find(x => x.id === item.type);
+                  const currentRating = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
+                  return (
+                    <div key={item.id} className="recent-card fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
+                      <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` }}>
+                        {coverSrc
+                          ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t?.icon}</div>}
+                        <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
+                          <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
+                        </div>
+                        {currentRating > 0 && (
+                          <div style={{ position: "absolute", top: 7, right: 7, padding: "2px 7px", borderRadius: 7, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {currentRating}</div>
+                        )}
+                      </TiltCard>
+                      <button className="fav-rm" aria-label={lang === "en" ? "Remove from favorites" : "Remover dos favoritos"} onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
+                        style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 11, cursor: "pointer", display: isMobileDevice ? "none" : "flex", opacity: 0, transition: "opacity 0.15s", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2 }}>✕</button>
+                    </div>
+                  );
+};
+        const gridStyle = { display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))", gap: isMobileDevice ? 10 : 14 };
+        const LIMIT = 5;
+        const byRating = (a, b) => (b.userRating || 0) - (a.userRating || 0);
+        const groups = activeFilter === "all"
+          ? typesWithFavs.map(t => ({ t, list: favorites.filter(f => f.type === t.id).sort(byRating) }))
+          : [{ t: null, list: shown }];
 
         return (
           <div style={{ marginBottom: 28 }}>
@@ -354,29 +384,36 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito"}</p>
               </div>
             ) : (
-              <div style={{ margin: "0 16px", display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(130px, 1fr))", gap: isMobileDevice ? 10 : 14 }}>
-                {shown.map(item => {
-                  const coverSrc = item.customCover || item.cover;
-                  const t = MEDIA_TYPES.find(x => x.id === item.type);
-                  const currentRating = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
-                  return (
-                    <div key={item.id} className="recent-card fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
-                      <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` }}>
-                        {coverSrc
-                          ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t?.icon}</div>}
-                        <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
-                          <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
+              <div style={{ margin: "0 16px", display: "flex", flexDirection: "column", gap: 22 }}>
+                {groups.map(({ t, list }) => (
+                  <div key={t ? t.id : "one"}>
+                    {t && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: TYPE_COLORS[t.id] || accent, flexShrink: 0 }} />
+                        {mediaLabel(t, lang)}
+                        <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}</span>
+                        <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
+                      </div>
+                    )}
+                    {(() => {
+                      const key = t ? t.id : "one";
+                      const collapsible = !!t && list.length > LIMIT + 1;
+                      const open = !collapsible || favExpanded[key];
+                      const visible = open ? list : list.slice(0, LIMIT);
+                      return (
+                        <div style={gridStyle}>
+                          {visible.map(renderFav)}
+                          {collapsible && !open && (
+                            <button onClick={() => setFavExpanded(prev => ({ ...prev, [key]: true }))} style={{ aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, background: "transparent", color: darkMode ? "#aab4c0" : "#475569", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                              <span style={{ fontSize: 22, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a" }}>+{list.length - LIMIT}</span>
+                              <span style={{ fontSize: 11, fontWeight: 600 }}>{lang === "en" ? "see all" : "ver todos"}</span>
+                            </button>
+                          )}
                         </div>
-                        {currentRating > 0 && (
-                          <div style={{ position: "absolute", top: 7, right: 7, padding: "2px 7px", borderRadius: 7, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {currentRating}</div>
-                        )}
-                      </TiltCard>
-                      <button className="fav-rm" aria-label={lang === "en" ? "Remove from favorites" : "Remover dos favoritos"} onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                        style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 11, cursor: "pointer", display: isMobileDevice ? "none" : "flex", opacity: 0, transition: "opacity 0.15s", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2 }}>✕</button>
-                    </div>
-                  );
-                })}
+                      );
+                    })()}
+                  </div>
+                ))}
               </div>
             )}
           </div>
