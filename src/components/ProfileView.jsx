@@ -4,7 +4,7 @@ import { useLang } from "../contexts/LangContext";
 import { supa, supabase } from "../config/supabase";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor, compressImage } from "../lib/utils";
-import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
+import { MEDIA_TYPES, STATUS_OPTIONS, TYPE_COLORS, mediaLabel, statusLabel } from "../config/constants";
 import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
 import { CropModal } from "./CropModal";
@@ -125,90 +125,19 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
   return (
     <>
-    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
+    <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto", position: "relative", isolation: "isolate" }}>
 
-      {/* ── Banner + Avatar header ── */}
-      <div style={{ position: "relative", marginBottom: showHeaderIdentity ? 64 : 20 }}>
-        {/* Banner — escondido no mobile se hideBannerMobile */}
-        {(!isMobileDevice || !profile.hideBannerMobile) && (
-        <div style={{
-          height: 260, overflow: "hidden", position: "relative",
-          borderRadius: "20px 20px 0 0",
-          background: currentBanner
-            ? `url(${currentBanner}) center/cover no-repeat`
-            : darkMode ? "#0d1117" : "#f1f5f9",
-        }}>
-          {/* Multi-layer gradient overlay for impact */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 0%, transparent 65%, rgba(0,0,0,0.45) 100%)" }} />
-          {/* Banner fallback — hexágonos + partículas animadas */}
-          {!currentBanner && (
-            <>
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }} xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill="none" stroke={accent} strokeWidth="1">
-                      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                    <polygon points="28,4 52,16 52,32 28,44 4,32 4,16" fill={accent} fillOpacity="0.04">
-                      <animate attributeName="fill-opacity" values="0.02;0.08;0.02" dur="3s" repeatCount="indefinite"/>
-                    </polygon>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#hex)"/>
-                {/* Partículas flutuantes */}
-                {[
-                  { cx: "15%", cy: "30%", r: 2, dur: "4s" },
-                  { cx: "35%", cy: "60%", r: 1.5, dur: "5s" },
-                  { cx: "55%", cy: "25%", r: 2.5, dur: "3.5s" },
-                  { cx: "70%", cy: "70%", r: 1.5, dur: "6s" },
-                  { cx: "85%", cy: "40%", r: 2, dur: "4.5s" },
-                  { cx: "25%", cy: "80%", r: 1, dur: "5.5s" },
-                  { cx: "90%", cy: "20%", r: 1.5, dur: "4s" },
-                ].map((p, i) => (
-                  <circle key={i} cx={p.cx} cy={p.cy} r={p.r} fill={accent} opacity="0.6">
-                    <animate attributeName="cy" values={`${p.cy};calc(${p.cy} - 8%);${p.cy}`} dur={p.dur} repeatCount="indefinite"/>
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur={p.dur} repeatCount="indefinite"/>
-                  </circle>
-                ))}
-              </svg>
-              {/* Gradiente respirante */}
-              <div style={{ position: "absolute", inset: 0 }}>
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 50%, ${accent}30 0%, transparent 65%)`, animation: "breathe 4s ease-in-out infinite" }} />
-                <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, ${accentShade(accent, 60)}20 0%, transparent 55%)`, animation: "breathe 4s ease-in-out infinite 2s" }} />
-              </div>
-              <style>{`@keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }`}</style>
-            </>
-          )}
-          {editing && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)" }}>
-              <input type="file" accept="image/*" ref={bannerRef} onChange={handleBannerFile} style={{ display: "none" }} />
-              <button onClick={() => bannerRef.current?.click()} disabled={uploadingImage === "banner"} style={{
-                padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
-                background: "rgba(0,0,0,0.5)", color: "white", cursor: uploadingImage === "banner" ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, backdropFilter: "blur(4px)", opacity: uploadingImage === "banner" ? 0.6 : 1,
-              }}>{uploadingImage === "banner" ? (lang === "en" ? "⏳ Uploading..." : "⏳ A enviar...") : "🖼 Alterar Banner"}</button>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", textAlign: "center" }}>{lang === "en" ? "Recommended: 1200×400px · Mobile: 390×160px" : "Recomendado: 1200×400px · Telemóvel: 390×160px"}</p>
-              {uploadError && <p style={{ fontSize: 11, color: "#ff8a8a", textAlign: "center", maxWidth: 260 }}>{uploadError}</p>}
-              <input
-                placeholder="ou cola URL do banner..."
-                value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
-                onChange={(e) => { setBannerUrl(e.target.value); setBannerPreview(e.target.value); }}
-                style={{ padding: "7px 12px", fontSize: 12, width: "70%", maxWidth: 300, borderRadius: 8 }}
-              />
-              {bannerUrl && (
-                <button onClick={() => { setBannerUrl(""); setBannerPreview(""); }} style={{
-                  padding: "4px 10px", borderRadius: 6, border: "1px solid #ef444466",
-                  background: "rgba(239,68,68,0.15)", color: "#ef4444", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                }}>✕ Remover banner</button>
-              )}
-            </div>
-          )}
-        </div>
-        )} {/* fim hideBannerMobile */}
+      {/* Fundo ambiente translúcido (substitui o banner): usa a cor de destaque e deixa passar o fundo da app */}
+      <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: isMobileDevice ? 340 : 440, zIndex: -1, pointerEvents: "none",
+        background: `linear-gradient(120deg, ${accent}66 0%, ${accentVariant(accent, 2)}44 55%, ${accentVariant(accent, 4)}33 100%)`,
+        WebkitMaskImage: "linear-gradient(180deg, #000 0%, #000 35%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 0%, #000 35%, transparent 100%)" }} />
 
+      {/* ── Avatar (só a editar ou noutros separadores; no Perfil a identidade vive no ProfileCard) ── */}
+      <div style={{ position: "relative", display: "flex", justifyContent: "center", padding: showHeaderIdentity ? "28px 0 14px" : 0 }}>
         {showHeaderIdentity && (
         <>
         {/* Avatar — overlaps banner */}
-        <div style={{ position: "absolute", bottom: -48, left: "50%", transform: "translateX(-50%)" }}>
+        <div>
           <div style={{ position: "relative", display: "inline-block" }}>
             <div style={{
               width: 92, height: 92, borderRadius: 999, overflow: "hidden",
@@ -249,10 +178,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
               <input type="checkbox" checked={!!hideEmail} onChange={e => setHideEmail(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
               <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{useT("hideEmail")}</span>
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!hideBannerMobile} onChange={e => setHideBannerMobile(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "Hide banner on mobile" : "Esconder banner no mobile"}</span>
-            </label>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-accent" style={{ flex: 1, padding: "10px", opacity: uploadingImage ? 0.6 : 1 }} onClick={handleSave} disabled={!!uploadingImage}>{uploadingImage ? (lang === "en" ? "Uploading image..." : "A enviar imagem...") : useT("saveProfile")}</button>
               <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
@@ -290,15 +215,15 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       )}
 
       {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", borderBottom: "1px solid #21262d", scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? "8px 16px 0" : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none" }}>
         {["perfil","completos","tierlists","listas","diario"].map(tab => (
           <button key={tab} onClick={() => setProfileTab(tab)} style={{
-            flex: 1, padding: isMobileDevice ? "10px 4px" : "12px 20px",
+            flexShrink: 0, padding: "0 2px 14px", minHeight: 44,
             background: "none", border: "none",
             borderBottom: profileTab === tab ? `2px solid ${accent}` : "2px solid transparent",
-            color: profileTab === tab ? accent : "#484f58",
+            color: profileTab === tab ? accent : (darkMode ? "#6e7681" : "#64748b"),
             cursor: "pointer", fontFamily: "inherit",
-            fontSize: isMobileDevice ? 11 : 13,
+            fontSize: isMobileDevice ? 13 : 14,
             fontWeight: profileTab === tab ? 700 : 500,
             marginBottom: -1, whiteSpace: "nowrap",
           }}>
@@ -344,12 +269,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
 
       {/* ── Hall of Fame ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 0 0 16px" }}>
-          <h3 style={{ fontSize: 12, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0f172a", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 }}>
-            <span>{lang === "en" ? "Hall of Fame" : "Hall of Fame"}</span>
-          </h3>
-          <span style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700 }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
+          <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
+          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
         </div>
 
         {hallOfFame.length === 0 ? (
@@ -357,37 +280,47 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 5 titles from the item modal." : "Escolhe até 5 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: isMobileDevice ? 8 : 10 }}>
-              {hallOfFame.map((item, idx) => {
-                const coverSrc = item.customCover || item.cover;
-                const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
-                const tone = accentVariant(accent, idx);
-                return (
-                  <div
-                    key={item.id}
-                    className="fav-card-wrap"
-                    onClick={() => onOpen && onOpen(item)}
-                    style={{ cursor: "pointer", width: isMobileDevice ? 108 : 128, flexShrink: 0 }}
-                  >
-                    <TiltCard maxTilt={9} glare style={{ position: "relative", aspectRatio: "0.72", borderRadius: isMobileDevice ? 8 : 10, overflow: "hidden", background: `linear-gradient(180deg, ${tone}40 0%, ${tone}18 100%)`, boxShadow: darkMode ? "0 8px 18px rgba(0,0,0,0.28)" : "0 8px 18px rgba(15,23,42,0.08)" }}>
-                      {coverSrc
-                        ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => e.currentTarget.style.display = "none"} />
-                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
-                        style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "none", alignItems: "center", justifyContent: "center", fontSize: 10, padding: 0 }}
-                      >
-                        ×
-                      </button>
-                      <div style={{ position: "absolute", top: 6, right: 6, minWidth: 22, height: 22, borderRadius: 999, padding: "0 6px", background: "rgba(10,10,10,0.72)", border: "1px solid rgba(251,191,36,0.30)", color: "#fbbf24", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
-                        {score || "—"}
-                      </div>
-                    </TiltCard>
-                  </div>
-                );
-              })}
-            </div>
+          <div style={{ margin: "0 16px", ...(isMobileDevice
+            ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }
+            : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }) }}>
+            {hallOfFame.map((item, idx) => {
+              const coverSrc = item.customCover || item.cover;
+              const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
+              const tone = accentVariant(accent, idx);
+              const typeColor = TYPE_COLORS[item.type] || accent;
+              return (
+                <div
+                  key={item.id}
+                  className="fav-card-wrap"
+                  onClick={() => onOpen && onOpen(item)}
+                  style={{ cursor: "pointer", flexShrink: 0, ...(isMobileDevice ? { width: 150 } : {}) }}
+                >
+                  <TiltCard maxTilt={6} glare glareOpacity={0.12} style={{
+                    position: "relative", height: isMobileDevice ? 96 : 150, borderRadius: isMobileDevice ? 14 : 18, overflow: "hidden",
+                    background: `linear-gradient(160deg, ${tone}55, ${tone}22)`,
+                    border: `1px solid ${darkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}`,
+                    boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
+                  }}>
+                    {coverSrc
+                      ? <img src={coverSrc} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 22%", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "white" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.72) 100%)", pointerEvents: "none" }} />
+                    <div style={{ position: "absolute", left: isMobileDevice ? 10 : 16, right: isMobileDevice ? 10 : 16, bottom: isMobileDevice ? 10 : 14, color: "white", fontSize: isMobileDevice ? 13 : 16, fontWeight: 800, lineHeight: 1.2, pointerEvents: "none", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
+                      aria-label={lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame"}
+                      style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: "none", alignItems: "center", justifyContent: "center", fontSize: 12, padding: 0 }}
+                    >
+                      ×
+                    </button>
+                    {score > 0 && (
+                      <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 9px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 11, fontWeight: 800 }}>★ {score}</div>
+                    )}
+                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 4, background: typeColor }} />
+                  </TiltCard>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

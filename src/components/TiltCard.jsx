@@ -5,7 +5,7 @@ import { useRef } from "react";
 // e limita a 1 atualização por frame com requestAnimationFrame — não causa
 // re-renders do React nem sobrecarrega o browser, mesmo com o rato a mexer
 // muito rápido.
-export function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, style, className }) {
+export function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, glareOpacity = 0.4, style, className }) {
   const ref = useRef(null);
   const glareRef = useRef(null);
   const rafRef = useRef(null);
@@ -23,7 +23,7 @@ export function TiltCard({ children, maxTilt = 8, scale = 1.02, glare = false, s
       const rotateX = -(y - 0.5) * maxTilt * 2;
       el.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale},${scale},${scale})`;
       if (glare && glareRef.current) {
-        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.4), transparent 60%)`;
+        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,${glareOpacity}), transparent 60%)`;
         glareRef.current.style.opacity = "1";
       }
     });

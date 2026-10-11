@@ -50,7 +50,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       {/* Item em destaque */}
       {featured ? (
         <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
-          <TiltCard maxTilt={8} scale={1.02} glare style={{
+          <TiltCard maxTilt={8} scale={1.02} glare glareOpacity={0.1} style={{
             aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
             boxShadow: "0 0 0 1px rgba(255,255,255,0.16), 0 18px 30px -12px rgba(0,0,0,0.7)",
@@ -58,7 +58,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             {coverSrc
               ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 55%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 45%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.8 }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>
               <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
