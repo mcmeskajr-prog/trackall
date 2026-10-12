@@ -51,7 +51,7 @@ export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) =
           </div>
         </div>
         <div className="land-fade" style={{ animationDelay: "0.2s", opacity: 0 }}>
-          <h1 style={{ fontSize: "clamp(42px, 7vw, 80px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px", marginBottom: 24, background: `linear-gradient(135deg, #e6edf3 30%, ${accent} 70%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+          <h1 style={{ fontSize: "clamp(42px, 7vw, 80px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px", marginBottom: 24, backgroundImage: `linear-gradient(135deg, #e6edf3 30%, ${accent} 70%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
             Toda a tua mídia.<br/>Num só lugar.
           </h1>
         </div>
