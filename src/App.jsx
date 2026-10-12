@@ -781,33 +781,33 @@ function RatingOverlay({ item, library, onDone }) {
     return 0.2126*r+0.7152*g+0.0722*b > 0.45 ? "#111" : "#fff";
   })();
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={() => onDone(0)}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#161b22", border: `1px solid ${accent}44`, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, textAlign: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, textAlign: "left" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: darkMode ? `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), #0e1014` : "#ffffff", border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, borderRadius: 24, padding: 24, width: "100%", maxWidth: 400, textAlign: "center", boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22, textAlign: "left" }}>
           {(item.cover || item.thumbnailUrl)
-            ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 48, height: 68, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+            ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 56, height: 80, objectFit: "cover", borderRadius: 10, flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.5)" }} />
             : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
           }
           <div>
-            <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 4 }}>✓ Marcado como completo!</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3" }}>{item.title}</div>
+            <div style={{ display: "inline-block", fontSize: 11, color: "#34d399", fontWeight: 700, marginBottom: 6, padding: "3px 10px", borderRadius: 99, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {lang === "en" ? "Marked as complete" : "Marcado como completo"}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", lineHeight: 1.2 }}>{item.title}</div>
             <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}</div>
           </div>
         </div>
-        <p style={{ fontSize: 14, color: "#8b949e", marginBottom: 16 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8b949e", marginBottom: 8 }}>{lang === "en" ? "Want to rate it?" : "Queres dar uma avaliação?"}</p>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14, paddingTop: 34 }}>
             <StarRating value={rating} onChange={setRating} size={isMobileDevice ? 22 : 26} />
           </div>
           {rating > 0 && (
-            <button onClick={() => onDone(rating)} style={{ width: "100%", padding: "12px 0", borderRadius: 10, background: accent, border: "none", color: textColor, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>
-              Confirmar ★ {rating}
+            <button onClick={() => onDone(rating)} style={{ width: "100%", padding: "13px 0", borderRadius: 14, background: accent, border: "none", color: textColor, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 8px 24px ${accent}55` }}>
+              {lang === "en" ? "Confirm" : "Confirmar"} ★ {rating}
             </button>
           )}
         </div>
-        <button onClick={() => onDone(0)} style={{ width: "100%", padding: "10px", borderRadius: 10, background: "#21262d", border: "1px solid #30363d", color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-          Saltar avaliação
+        <button onClick={() => onDone(0)} style={{ width: "100%", padding: "11px", borderRadius: 14, background: "transparent", border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, color: "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>
+          {lang === "en" ? "Skip rating" : "Saltar avaliação"}
         </button>
       </div>
     </div>
@@ -2950,23 +2950,29 @@ export default function TrackAll() {
         {logOpen && (
           <>
             <div onClick={() => { setLogOpen(false); setLogQuery(""); setLogResults([]); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 90 }} />
-            <div style={{ position: "fixed", bottom: isMobileDevice ? 64 : "auto", top: isMobileDevice ? "auto" : "50%", left: isMobileDevice ? 0 : "50%", right: isMobileDevice ? 0 : "auto", transform: isMobileDevice ? "none" : "translate(-50%, -50%)", width: isMobileDevice ? "auto" : 480, zIndex: 100, background: darkMode ? "#161b22" : "#fff", borderRadius: isMobileDevice ? "20px 20px 0 0" : 16, borderTop: isMobileDevice ? `2px solid ${accent}55` : "none", border: isMobileDevice ? undefined : `1px solid ${accent}44`, padding: "16px 16px 8px", boxShadow: "0 -8px 40px rgba(0,0,0,0.4)", maxHeight: "70vh", overflowY: "auto" }}>
+            <div style={{ position: "fixed", bottom: isMobileDevice ? 64 : "auto", top: isMobileDevice ? "auto" : "50%", left: isMobileDevice ? 0 : "50%", right: isMobileDevice ? 0 : "auto", transform: isMobileDevice ? "none" : "translate(-50%, -50%)", width: isMobileDevice ? "auto" : 480, zIndex: 100, background: darkMode ? `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), #0e1014` : "#ffffff", borderRadius: isMobileDevice ? "24px 24px 0 0" : 24, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, borderBottom: isMobileDevice ? "none" : undefined, padding: isMobileDevice ? "12px 16px 12px" : "20px 20px 14px", boxShadow: "0 30px 80px rgba(0,0,0,0.6)", maxHeight: "70vh", overflowY: "auto" }}>
               {/* Handle */}
-              <div style={{ width: 36, height: 4, background: "#30363d", borderRadius: 99, margin: "0 auto 16px" }} />
+              {isMobileDevice && <div style={{ width: 36, height: 4, background: "rgba(255,255,255,0.18)", borderRadius: 99, margin: "0 auto 14px" }} />}
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8b949e", marginBottom: 12 }}>{lang === "en" ? "Quick log" : "Log rápido"}</div>
               {/* Type filter pills */}
               <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 10 }}>
                 {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
-                  <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 20, background: quickSearchType === t.id ? accent : (darkMode ? "#21262d" : "#f1f5f9"), border: `1px solid ${quickSearchType === t.id ? accent : "transparent"}`, color: quickSearchType === t.id ? "white" : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                  <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "7px 13px", borderRadius: 99, background: quickSearchType === t.id ? `${accent}26` : "transparent", border: `1px solid ${quickSearchType === t.id ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, color: quickSearchType === t.id ? (darkMode ? "#fca5a5" : accent) : (darkMode ? "#aab4c0" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
                     <span>{t.icon}</span> {mediaLabel(t, lang) || useT("all")}
                   </button>
                 ))}
               </div>
-              <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
-                style={{ width: "100%", padding: "12px 14px", borderRadius: 12, background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${accent}44`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" }} />
+              <div style={{ position: "relative" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={darkMode ? "#6e7681" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
+                  placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
+                  style={{ width: "100%", padding: "14px 16px 14px 42px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.05)" : "#f8fafc", border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box", transition: "border-color 0.15s, box-shadow 0.15s" }}
+                  onFocus={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}26`; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }} />
+              </div>
               {logSearching && <p style={{ fontSize: 12, color: "#484f58", marginTop: 10 }}>{useT("searching")}</p>}
               {!logQuery && !logSearching && (
-                <p style={{ fontSize: 12, color: "#484f58", marginTop: 10, textAlign: "center" }}>{lang === "en" ? "Type to search · tap to mark as complete" : "Escreve para pesquisar · toca para marcar como completo"}</p>
+                <p style={{ fontSize: 12, color: "#6e7681", marginTop: 12, textAlign: "center" }}>{lang === "en" ? "Type to search · tap to mark as complete" : "Escreve para pesquisar · toca para marcar como completo"}</p>
               )}
               {logResults.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -2975,16 +2981,16 @@ export default function TrackAll() {
                       if (findLibraryEntry(library, item.id, item.type)) updateStatus(item.id, "completo");
                       else addToLibrary(item, "completo");
                       setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
-                    }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: darkMode ? "#21262d" : "#f1f5f9", cursor: "pointer" }}>
+                    }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.04)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "transparent"}`, cursor: "pointer" }}>
                       {(item.cover || item.thumbnailUrl)
-                        ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
                         : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                         <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
                       </div>
-                      <span style={{ fontSize: 11, color: "#10b981", fontWeight: 700, flexShrink: 0 }}>✓</span>
+                      <span style={{ fontSize: 11, color: "#34d399", fontWeight: 700, flexShrink: 0, padding: "4px 10px", borderRadius: 99, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {lang === "en" ? "Complete" : "Completo"}</span>
                     </div>
                   ))}
                 </div>
