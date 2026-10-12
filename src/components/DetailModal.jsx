@@ -25,6 +25,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const [chapterInput, setChapterInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
+  const [barExtras, setBarExtras] = useState(false); // nota pessoal / capítulo na barra fixa
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
   const [personLoading, setPersonLoading] = useState(false);
@@ -306,7 +307,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   return (
     <>
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
-      <div ref={modalScrollRef} className="modal" style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto", padding: 0, animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
+      <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 880, maxHeight: "90vh", overflowY: "auto", padding: 0, animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
 
         {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
         {selectedPerson ? (
@@ -368,7 +369,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               const useBanner = !!heroBg;
               const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
               return (
-              <div style={{ height: useBanner ? 200 : 180, background: bgStyle, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
+              <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 250, background: bgStyle, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
                 <div style={{ position: "absolute", inset: 0, background: useBanner ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(22,27,34,0.97) 100%)" : "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
@@ -376,18 +377,18 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               );
             })()}
 
-            <div className="modal-bottom-pad" style={{ padding: "0 24px 24px" }}>
+            <div style={{ padding: isMobileDevice ? "0 20px 20px" : "0 32px 28px" }}>
               {/* Header: cover + title */}
-              <div style={{ display: "flex", gap: 16, marginTop: -60, position: "relative", zIndex: 2 }}>
+              <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? -60 : -110, position: "relative", zIndex: 2 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: 110, height: 160, borderRadius: 10, overflow: "hidden", border: "3px solid #161b22", background: gradientFor(currentItem.id), boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+                  <div style={{ width: isMobileDevice ? 110 : 190, height: isMobileDevice ? 160 : 285, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + (darkMode ? "#161b22" : "#ffffff"), background: gradientFor(currentItem.id), boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
                     {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = currentItem.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
                   </div>
                   {inLib && (
                     <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
                   )}
                 </div>
-                <div style={{ flex: 1, paddingTop: 40 }}>
+                <div style={{ flex: 1, minWidth: 0, paddingTop: isMobileDevice ? 40 : 118 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                     <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
                       {MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon} {MEDIA_TYPES.find((t) => t.id === currentItem.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === currentItem.type), lang) : ""}
@@ -408,7 +409,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       }).catch(() => {});
                     }}
                     title={isMobileDevice ? "Toque para copiar" : undefined}
-                    style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.25, marginBottom: 4, cursor: isMobileDevice ? "pointer" : "default" }}>
+                    style={{ fontSize: isMobileDevice ? 20 : 30, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, cursor: isMobileDevice ? "pointer" : "default" }}>
                     {currentItem.title}
                   </h2>
                   {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
@@ -803,80 +804,88 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                 </div>
               )}
 
-              {/* Library section */}
-              <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, border: "1px solid #21262d" }}>
-                {inLib ? (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b949e" }}>{useT("inLibrary").toUpperCase()}</span>
-                        {libItem.userStatus === "assistindo" && libItem.addedAt && (() => {
-                          const days = Math.floor((Date.now() - libItem.addedAt) / (1000 * 60 * 60 * 24));
-                          return <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>⏱ há {days === 0 ? "menos de 1 dia" : days === 1 ? "1 dia" : `${days} dias`}</span>;
-                        })()}
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {inLib && onToggleFavorite && (
-                          <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }} style={{ background: isFavorite ? "#f59e0b22" : "none", border: `1px solid ${isFavorite ? "#f59e0b" : "#30363d"}`, color: isFavorite ? "#f59e0b" : "#8b949e", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddFavorite && !isFavorite ? 0.4 : 1 }} title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
-                            {isFavorite ? "★ Favorito" : "☆ Favorito"}
-                          </button>
-                        )}
-                        {inLib && onToggleHallOfFame && (
-                          <button
-                            onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleHallOfFame(currentItem); }}
-                            style={{ background: isHallOfFame ? "#fbbf2422" : "none", border: `1px solid ${isHallOfFame ? "#fbbf24" : "#30363d"}`, color: isHallOfFame ? "#fbbf24" : "#8b949e", cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", fontWeight: 600, opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1 }}
-                            title={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
-                          >
-                            {isHallOfFame ? "★ Hall" : "☆ Hall"}
-                          </button>
-                        )}
-                        <button onClick={() => onRemove(currentItem.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, padding: "4px 8px" }}>🗑 Remover</button>
-                      </div>
-                    </div>
-                    <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={22} />
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-                      {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); onUpdateStatus(currentItem.id, s.id); }} style={{ padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", fontWeight: 600, fontSize: 12, cursor: "pointer", border: `1.5px solid ${libItem.userStatus === s.id ? s.color : s.color + "44"}`, background: libItem.userStatus === s.id ? `${s.color}25` : "transparent", color: libItem.userStatus === s.id ? s.color : "#8b949e" }}>
-                          {s.emoji} {statusLabel(s, lang)}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Nota pessoal */}
-                    <div style={{ marginTop: 12 }}>
+            </div>
+            {/* ── Barra fixa: estado, nota e ações (registo rápido) ── */}
+            <div style={{ position: "sticky", bottom: 0, zIndex: 5, padding: isMobileDevice ? "10px 14px calc(12px + env(safe-area-inset-bottom, 0px))" : "14px 20px 16px", background: darkMode ? "rgba(13,17,23,0.94)" : "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, display: "flex", flexDirection: "column", gap: 10 }}>
+              {inLib ? (
+                <>
+                  {barExtras && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingBottom: 4 }}>
                       <textarea
                         value={noteInput}
                         onChange={e => setNoteInput(e.target.value)}
                         onBlur={() => { if (onUpdateNote) onUpdateNote(currentItem.id, noteInput.trim()); }}
                         placeholder={lang === "en" ? "Your note..." : "A tua nota..."}
                         rows={2}
-                        style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${accent}30`, borderRadius: 0, padding: "4px 0", color: darkMode ? "#8b949e" : "#64748b", fontSize: 12, fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5, boxSizing: "border-box" }}
+                        style={{ width: "100%", background: darkMode ? "rgba(255,255,255,0.05)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, borderRadius: 10, padding: "8px 10px", color: darkMode ? "#c9d1d9" : "#334155", fontSize: 13, fontFamily: "inherit", outline: "none", resize: "none", lineHeight: 1.5, boxSizing: "border-box" }}
                       />
+                      {isChapterType && libItem.userStatus === "assistindo" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
+                          <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ flex: 1, minWidth: 0, background: darkMode ? "#21262d" : "#f1f5f9", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: darkMode ? "#e6edf3" : "#0f172a", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                          <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
+                        </div>
+                      )}
                     </div>
-                    {isChapterType && libItem.userStatus === "assistindo" && (
-                      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
-                        <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ flex: 1, background: "#21262d", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: "#e6edf3", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
-                        <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 12, fontWeight: 600 }}>{useT("addToLibrary").toUpperCase()}</p>
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 12, color: "#8b949e", marginBottom: 8 }}>{`${useT("rating")} (${lang === "en" ? "optional" : "opcional"})`}</div>
-                      <StarRating value={addRating} onChange={setAddRating} size={24} />
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {STATUS_OPTIONS.map((s) => (
-                        <button key={s.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); setTimeout(() => { onAdd(currentItem, s.id, addRating); onClose(); }, 180); }} style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${s.color}55`, background: `${s.color}15`, color: s.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13 }}>
-                          {s.emoji} {statusLabel(s, lang)}
+                  )}
+                  {/* Estado */}
+                  <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 12, background: darkMode ? "rgba(0,0,0,0.35)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
+                    {STATUS_OPTIONS.map((st) => {
+                      const on = libItem.userStatus === st.id;
+                      return (
+                        <button key={st.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); onUpdateStatus(currentItem.id, st.id); }}
+                          style={{ flex: "1 0 auto", padding: isMobileDevice ? "8px 10px" : "9px 12px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 12, whiteSpace: "nowrap", background: on ? (darkMode ? "rgba(255,255,255,0.1)" : "#ffffff") : "transparent", boxShadow: on && !darkMode ? "0 1px 3px rgba(0,0,0,0.12)" : "none", color: on ? st.color : "#8b949e", transition: "background 0.15s, color 0.15s" }}>
+                          {st.emoji} {statusLabel(st, lang)}
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+                  {/* Nota + ações */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
+                    <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={isMobileDevice ? 17 : 22} />
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      {onToggleFavorite && (
+                        <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", opacity: !canAddFavorite && !isFavorite ? 0.4 : 1, border: `1px solid ${isFavorite ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}
+                          title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                          <span style={{ fontSize: 14 }}>{isFavorite ? "♥" : "♡"}</span>{!isMobileDevice && "Favorito"}
+                        </button>
+                      )}
+                      {onToggleHallOfFame && (
+                        <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleHallOfFame(currentItem); }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1, border: `1px solid ${isHallOfFame ? "#fbbf24" : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isHallOfFame ? "#fbbf2422" : "transparent", color: isHallOfFame ? "#fbbf24" : "#8b949e" }}
+                          title={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}>
+                          <span style={{ fontSize: 14 }}>{isHallOfFame ? "★" : "☆"}</span>{!isMobileDevice && "Hall of Fame"}
+                        </button>
+                      )}
+                      <button onClick={() => setBarExtras(v => !v)} title={lang === "en" ? "Note" : "Nota pessoal"} aria-label={lang === "en" ? "Note" : "Nota pessoal"}
+                        style={{ position: "relative", width: 36, height: 36, borderRadius: 10, cursor: "pointer", fontSize: 14, border: `1px solid ${barExtras ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: barExtras ? `${accent}22` : "transparent", color: barExtras ? accent : "#8b949e" }}>
+                        ✎{(noteInput || libItem.userNote) && !barExtras && <span style={{ position: "absolute", top: 5, right: 5, width: 6, height: 6, borderRadius: 99, background: accent }} />}
+                      </button>
+                      <button onClick={() => onRemove(currentItem.id)} title={lang === "en" ? "Remove" : "Remover"} aria-label={lang === "en" ? "Remove" : "Remover"}
+                        style={{ width: 36, height: 36, borderRadius: 10, cursor: "pointer", fontSize: 14, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, background: "transparent", color: "#ef4444" }}>🗑</button>
                     </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{useT("addToLibrary")}</div>
+                      <div style={{ fontSize: 12, color: "#8b949e", marginTop: 2 }}>{lang === "en" ? "Pick a status to add it." : "Escolhe o estado para adicionar."}</div>
+                    </div>
+                    <StarRating value={addRating} onChange={setAddRating} size={isMobileDevice ? 16 : 20} />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+                    {STATUS_OPTIONS.map((st) => (
+                      <button key={st.id} onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-bounce"); void el.offsetWidth; el.classList.add("ta-bounce"); setTimeout(() => { onAdd(currentItem, st.id, addRating); onClose(); }, 180); }}
+                        style={{ flex: "1 0 auto", padding: "11px 14px", borderRadius: 12, border: `1px solid ${st.color}55`, background: `${st.color}18`, color: st.color, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>
+                        {st.emoji} {statusLabel(st, lang)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
