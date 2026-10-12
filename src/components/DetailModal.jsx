@@ -25,6 +25,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const [chapterInput, setChapterInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
+  const [synOpen, setSynOpen] = useState(false);
   const [barExtras, setBarExtras] = useState(false); // nota pessoal / capítulo na barra fixa
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
@@ -56,6 +57,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
 
   useEffect(() => {
     setModalTab("info");
+    setSynOpen(false);
     setSelectedPerson(null);
     setPersonData(null);
 
@@ -300,6 +302,17 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
   const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 10;
+  const modalSolid = darkMode ? "#0e1014" : "#ffffff";
+  const modalBorder = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0";
+  const synopsisText = detailExtra?.synopsis || currentItem.synopsis || "";
+  const statChips = [
+    (detailExtra?.episodes || currentItem.episodes) && `${detailExtra?.episodes || currentItem.episodes} ${useT("episodes")}`,
+    detailExtra?.seasons && `${detailExtra.seasons} ${useT("seasons")}`,
+    (detailExtra?.chapters || currentItem.chapters) && `${detailExtra?.chapters || currentItem.chapters} ${useT("chapters")}`,
+    (detailExtra?.volumes || currentItem.volumes) && `${detailExtra?.volumes || currentItem.volumes} ${useT("volumes")}`,
+    detailExtra?.runtime && String(detailExtra.runtime),
+    (detailExtra?.status || currentItem.status) && String(detailExtra?.status || currentItem.status),
+  ].filter(Boolean);
   const RELATION_LABELS = lang === "en"
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
     : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };
@@ -307,7 +320,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   return (
     <>
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
-      <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 880, maxHeight: "90vh", overflowY: "auto", padding: 0, animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
+      <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 900, maxHeight: "90vh", overflowY: "auto", padding: 0, background: `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), ${modalSolid}`, border: `1px solid ${modalBorder}`, borderRadius: isMobileDevice ? undefined : 24, boxShadow: "0 30px 80px rgba(0,0,0,0.6)", animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
 
         {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
         {selectedPerson ? (
@@ -369,26 +382,26 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               const useBanner = !!heroBg;
               const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
               return (
-              <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 250, background: bgStyle, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
-                <div style={{ position: "absolute", inset: 0, background: useBanner ? "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(22,27,34,0.97) 100%)" : "linear-gradient(to bottom, transparent 40%, rgba(22,27,34,0.95) 100%)" }} />
+              <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 210, background: bgStyle, position: "relative", borderRadius: isMobileDevice ? "16px 16px 0 0" : "24px 24px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
+                <div style={{ position: "absolute", inset: 0, background: useBanner ? `linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, ${modalSolid} 100%)` : `linear-gradient(to bottom, transparent 30%, ${modalSolid} 100%)` }} />
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
               </div>
               );
             })()}
 
-            <div style={{ padding: isMobileDevice ? "0 20px 20px" : "0 32px 28px" }}>
+            <div style={{ padding: isMobileDevice ? "0 20px 20px" : "0 32px 24px" }}>
               {/* Header: cover + title */}
-              <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? -60 : -110, position: "relative", zIndex: 2 }}>
+              <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? -60 : -90, position: "relative", zIndex: 2 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: isMobileDevice ? 110 : 190, height: isMobileDevice ? 160 : 285, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + (darkMode ? "#161b22" : "#ffffff"), background: gradientFor(currentItem.id), boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
+                  <div style={{ width: isMobileDevice ? 110 : 170, height: isMobileDevice ? 160 : 255, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + modalSolid, background: gradientFor(currentItem.id), boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
                     {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = currentItem.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
                   </div>
                   {inLib && (
                     <button onClick={() => setCoverEdit(true)} style={{ position: "absolute", bottom: 4, right: 4, width: 26, height: 26, borderRadius: 999, background: `${accent}`, border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }} title={useT("customCover")}>🖊</button>
                   )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0, paddingTop: isMobileDevice ? 40 : 118 }}>
+                <div style={{ flex: 1, minWidth: 0, paddingTop: isMobileDevice ? 40 : 96 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                     <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
                       {MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon} {MEDIA_TYPES.find((t) => t.id === currentItem.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === currentItem.type), lang) : ""}
@@ -396,6 +409,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     {currentItem.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{currentItem.year}</span>}
                     {currentItem.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {currentItem.score}</span>}
                     {currentItem.source && <span style={{ background: "#1a1f2e", color: "#6e9cf7", padding: "2px 8px", borderRadius: 6, fontSize: 10 }}>{currentItem.source}</span>}
+                    {!isMobileDevice && statChips.map(c => <span key={c} style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{c}</span>)}
                   </div>
                   <h2
                     onClick={(e) => {
@@ -409,11 +423,24 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       }).catch(() => {});
                     }}
                     title={isMobileDevice ? "Toque para copiar" : undefined}
-                    style={{ fontSize: isMobileDevice ? 20 : 30, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, cursor: isMobileDevice ? "pointer" : "default" }}>
+                    style={{ fontSize: isMobileDevice ? 20 : 28, fontWeight: 800, lineHeight: 1.15, marginBottom: 4, cursor: isMobileDevice ? "pointer" : "default" }}>
                     {currentItem.title}
                   </h2>
                   {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
                   {currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
+                  {!isMobileDevice && currentItem.genres?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {currentItem.genres.slice(0, 6).map((g) => (
+                        <button key={g} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(g); }, 150); }} style={{ background: `${accent}1a`, color: darkMode ? "#fca5a5" : accent, padding: "4px 11px", borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1px solid ${accent}40`, cursor: "pointer", fontFamily: "inherit" }}>{g}</button>
+                      ))}
+                    </div>
+                  )}
+                  {!isMobileDevice && synopsisText && (
+                    <div style={{ marginTop: 12 }}>
+                      <p style={{ color: darkMode ? "#aab4c0" : "#475569", fontSize: 14, lineHeight: 1.65, display: synOpen ? "block" : "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: synOpen ? "visible" : "hidden" }}>{synopsisText}</p>
+                      {synopsisText.length > 330 && <button onClick={() => setSynOpen(v => !v)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: "4px 0 0" }}>{synOpen ? (lang === "en" ? "Show less" : "Ver menos") : (lang === "en" ? "Read more" : "Ler mais")}</button>}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -431,6 +458,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               {/* Tab: Info */}
               {modalTab === "info" && (
                 <div>
+                  {isMobileDevice && (
                   <div style={{ display: "flex", gap: 16, marginTop: 16, padding: "12px 0", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexWrap: "wrap" }}>
                     {(detailExtra?.episodes || currentItem.episodes) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra?.episodes || currentItem.episodes}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("episodes")}</div></div>}
                     {detailExtra?.seasons && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.seasons}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("seasons")}</div></div>}
@@ -439,6 +467,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     {detailExtra?.runtime && <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700 }}>{detailExtra.runtime}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("runtime")}</div></div>}
                     {(detailExtra?.status || currentItem.status) && <div style={{ textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 600 }}>{detailExtra?.status || currentItem.status}</div><div style={{ fontSize: 11, color: "#8b949e" }}>{useT("status")}</div></div>}
                   </div>
+                  )}
 
                   {/* OMDb ratings */}
                   {omdbData?.Ratings?.length > 0 && (
@@ -459,6 +488,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     </div>
                   )}
 
+                  {isMobileDevice && (<>
                   {currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
                       {currentItem.genres.slice(0, 6).map((g) => (
@@ -475,6 +505,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {(detailExtra?.synopsis || currentItem.synopsis) && (
                     <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.7, marginTop: 16 }}>{detailExtra?.synopsis || currentItem.synopsis || ""}</p>
                   )}
+                  </>)}
 
                   {/* Tempo de jogo IGDB */}
 
@@ -806,7 +837,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
 
             </div>
             {/* ── Barra fixa: estado, nota e ações (registo rápido) ── */}
-            <div style={{ position: "sticky", bottom: 0, zIndex: 5, padding: isMobileDevice ? "10px 14px calc(12px + env(safe-area-inset-bottom, 0px))" : "14px 20px 16px", background: darkMode ? "rgba(13,17,23,0.94)" : "rgba(255,255,255,0.95)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ position: "sticky", bottom: 0, zIndex: 5, padding: isMobileDevice ? "10px 14px calc(12px + env(safe-area-inset-bottom, 0px))" : "12px 24px 14px", background: darkMode ? "#12151a" : "#f8fafc", borderTop: `1px solid ${modalBorder}`, boxShadow: "0 -12px 24px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", gap: 10 }}>
               {inLib ? (
                 <>
                   {barExtras && (
