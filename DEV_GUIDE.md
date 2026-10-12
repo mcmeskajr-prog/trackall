@@ -12,7 +12,7 @@
 - **Stack:** React + Vite + Supabase
 - **Deploy:** Vercel (via GitHub)
 - **Língua:** PT/EN (i18n via `translations.js`)
-- **Estado:** Single-file App.jsx (~9500 linhas → sendo refatorizado)
+- **Estado:** App.jsx ~2400 linhas (CollectionViewer, TierListEditor, TierListViewer, RatingOverlay e SidebarSearch já extraídos para components/)
 
 ---
 
@@ -206,30 +206,37 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 
 ---
 
-### 👤 Perfil — redesign v2 (desktop concluído; telemóvel por afinar)
-Layout (separador Perfil, `ProfileView.jsx`):
-- Linha de cima: `ProfileCard` (330px, à esquerda) + coluna da direita com `ProfileStats` (4 números, "Por tipo" + estados, ratings) e o Hall of Fame.
-- Largura total, por esta ordem: barra de filtros partilhada → Recentes (`RecentSection`) → Favoritos → cartões Tier Lists / Minhas Listas → Top géneros → definições (temas, importações, legal, zona de perigo).
-- Mobile: mesma ordem numa só coluna; Hall of Fame e cada fila de Favoritos são filas com scroll horizontal.
+### 👤 Perfil — redesign v2 (desktop e telemóvel concluídos)
+Layout desktop (separador Perfil, `ProfileView.jsx`):
+- Linha de cima: `ProfileCard` (330px, estica até ao fundo da 2.ª fila do Hall of Fame) + coluna da direita com `ProfileStats` e o Hall of Fame (5 por linha, 2 filas).
+- Largura total: filtros partilhados → Recentes → Favoritos (uma fila por tipo, 6 posters + "+N ver todos") → cartões Tier Lists / Minhas Listas → Top géneros.
+Layout telemóvel (só `isMobileDevice`; o PC não muda):
+- `ProfileCard` compacto numa linha (avatar, nome, editar, sair) → `ProfileStats` com 3 mosaicos + distribuição → Hall of Fame em grelha **5 por linha**, com o **item em destaque sempre em primeiro**, contorno na cor de destaque + estrela (mesmo que não esteja no Hall of Fame) → filtros → Recentes (4 por linha) → Favoritos (fila de scroll horizontal por tipo, posters leves de 82px, **máx. 24 por tipo**, sem `TiltCard`/sombras; imagens `loading="lazy"`) → Tier Lists / Listas (2 cartões).
+- Separadores: Perfil, Completos, Tier Lists, Listas, Diário, **Definições**.
 
 Componentes:
-- `ProfileCard.jsx`: identidade centrada (avatar 104px com aro duplo + glow), item em destaque (`TiltCard`, `hiRes()` com fallback no `onError`), botão discreto de trocar destaque, "Editar perfil" e terminar sessão. Sem destaque escolhido, usa o item com maior rating.
-- `FeaturedPickerModal.jsx`: escolher o destaque (portal, zIndex 170, pesquisa + chips por tipo + grelha).
-- `ProfileStats.jsx`: números, barra por tipo, estados e histograma. A prop `stacked` empilha os painéis (já não é usada pelo ProfileView atual).
-- `ProfileTabDiario.jsx` (v2): números do ano, atividade por mês, chips por tipo (filtro próprio do separador), entradas por mês e coluna lateral (ratings, por tipo, melhor do mês).
-- `Sakura` (função local no ProfileView): badge do Hall of Fame.
+- `ProfileCard.jsx`: desktop com item em destaque (`TiltCard`, `hiRes()`), troca de destaque, editar e sair; ramo próprio compacto no telemóvel.
+- `ProfileStats.jsx`: números, barra por tipo, estados e histograma de **20 barras (meias estrelas)**. **Interativo**: a prop `onFilter({type,status,rating,sort})` abre a Biblioteca já filtrada (`openLibraryFiltered` no `App.jsx`; `filterRating` = `null | "rated" | nota`; a Biblioteca mostra um chip "★ 8.5 ✕" para limpar).
+- `FeaturedPickerModal.jsx`, `ProfileTabDiario.jsx` (v2), `Sakura` (local do ProfileView).
+- `Skeleton.jsx`: `Skeleton`, `PosterGridSkeleton`, `AppSkeleton` (ecrã de arranque com barra lateral/inferior + forma da Home; respeita `prefers-reduced-motion`). Usado no arranque (`authLoading`) e na pesquisa.
+- `StarRating.jsx`: arrastar pelas estrelas (metade esquerda = meia estrela), botões − / +, tocar na nota atual limpa, vibração 8ms, guarda **ao largar**. `variant="stars"|"bar"`; se omitido, lê `localStorage.trackall_rating_style` (evento `trackall-rating-style` atualiza ao vivo).
+
+Definições (separador "Definições" do Perfil):
+- Navegação: Aparência · Importar · APIs · Geral · Zona de perigo (os modais de importação vivem fora do separador Perfil).
+- `AppearanceSettings.jsx`: 5 estilos prontos (Carmim, Meia-noite, Oceano, Floresta, Claro), cor de destaque, fundo (cor PC/mobile, imagem, escurecer, desfoque, parallax), painéis (cor + transparência), texto (contraste), barra lateral, dispositivos separados, estrelas/barra, temas guardados — com pré-visualização ao vivo. Todas as opções antigas foram mantidas.
+- **Painéis**: `ThemeContext` expõe `panelBg` (CSS pronto, ou `null` = automático). Aplicado em `ProfileCard`, `ProfileStats`, `ProfileTabDiario`, painéis da Home e `TierListCard`. Novos painéis devem usar `const { panelBg } = useTheme()` → `background: panelBg || <default>`.
 
 Regras e dados:
-- O filtro (`favFilter`, estado do ProfileView) filtra **Recentes e Favoritos ao mesmo tempo**. Em "Tudo", cada tipo tem a sua fila (6 posters + "+N ver todos", expandido por `favExpanded[tipo]`); com um tipo escolhido, só aparece essa fila.
-- Limites: Hall of Fame 10 (`App.jsx` → `toggleHallOfFame` e `DetailModal`), Favoritos 30.
-- O item em destaque guarda-se em `library` na linha especial `__hall_of_fame__` como `{ hall, featured }`. Sem migração (a tabela `profiles` não tem coluna para isto). `toggleHallOfFame` preserva sempre o `featured`.
-- Sem barras de cor nos posters (decisão de design); a cor do tipo só aparece em gráficos.
-- Estilo: vidro escuro (`rgba(12,14,18,.6)` + gradiente leve + `backdrop-filter`), igual no cartão, estatísticas e Diário. Evitar brancos por cima do destaque (`brightness(.9)` + gradiente escuro).
-- O botão × de remover favorito é `.fav-rm` (opacity 0, visível no hover via CSS global em `App.jsx`); só no desktop.
+- O filtro `favFilter` filtra Recentes e Favoritos ao mesmo tempo.
+- Limites: Hall of Fame 10, Favoritos 30.
+- **Persistência do Hall of Fame (importante):** guarda-se em `library` na linha `__hall_of_fame__` como `{ hall, featured }`, mais cópia local por utilizador (`trackall_hall_of_fame_<id>`, `trackall_featured_<id>`). `loadUserData` junta as fontes (BD, coluna `profiles`, localStorage) e fica com a lista **mais completa**; só se grava depois de carregado (`hallRef.loaded`) através de `persistHall` — nunca gravar `hall: []` por omissão. `saveLibrary` ignora ids que começam por `__`.
+- **Sincronização da biblioteca:** `saveLibrary` faz diff por item (`libraryRef`), escreve em fila (`saveQueueRef`) e mostra aviso se falhar. `upsertLibraryItem` tenta upsert por `(user_id, media_id)` e cai para update/insert; `deleteLibraryItem` lança erro.
+- Sem barras de cor nos posters (a cor do tipo só aparece em gráficos).
+- O botão × de remover favorito é `.fav-rm` (hover, só desktop).
 
-Desenhos de referência: artifact "TrackAll Perfil Redesign" (Claude Design), quadros "FINAL v2" (desktop, telemóvel, Diário) e "Hall of Fame · tamanhos".
+Desenhos de referência: artifact "TrackAll Perfil Redesign" (Claude Design): "FINAL v2", "Estrelas", "Definições · Aparência", "Perfil telemóvel · novo".
 
-Backlog do perfil: afinar o telemóvel; estatísticas do topo interativas (clicar num tipo filtra); escolher o estilo do perfil por utilizador (Passaporte / Diário / Cartão); redesenhar Tier Lists e Listas; trocar o símbolo ou substituto das linhas de cor, se for preciso; remover `compressBanner` e restos do banner.
+Backlog: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesenhar Tier Lists e Listas (personagens + itens manuais); redesenhar o modal de detalhe; skeleton dos posters individuais; extrair do `App.jsx` (SidebarSearch, TierListEditor/Viewer, CollectionViewer); remover `compressBanner` e restos do banner.
 
 ---
 
