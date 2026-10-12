@@ -316,10 +316,43 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
           <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
-          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{hallOfFame.length} {lang === "en" ? "titles" : "obras"}</span>
+          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
+            {isMobileDevice && featuredItem && <span style={{ width: 9, height: 9, borderRadius: 3, border: `2px solid ${accent}`, display: "inline-block" }} />}
+            {isMobileDevice && featuredItem ? (lang === "en" ? "featured · " : "em destaque · ") : ""}{hallOfFame.length} {lang === "en" ? "titles" : "obras"}
+          </span>
         </div>
 
-        {hallOfFame.length === 0 ? (
+        {isMobileDevice ? (() => {
+          // Destaque primeiro (mesmo que ainda não esteja no Hall of Fame), seguido das restantes obras
+          const sameItem = (a, b) => a.id === b.id || (findLibraryEntry(library, a.id, a.type)?.key && findLibraryEntry(library, a.id, a.type)?.key === findLibraryEntry(library, b.id, b.type)?.key);
+          const rest = featuredItem ? hallOfFame.filter(h => !sameItem(h, featuredItem)) : hallOfFame;
+          const list = featuredItem ? [{ ...featuredItem, _feat: true }, ...rest] : rest;
+          if (list.length === 0) return (
+            <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
+              <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
+            </div>
+          );
+          return (
+            <div style={{ margin: "0 16px", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 8 }}>
+              {list.map(item => {
+                const coverSrc = item.customCover || item.cover;
+                const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
+                return (
+                  <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
+                    style={{ position: "relative", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}, 0 0 14px ${accent}88` : "none" }}>
+                    {coverSrc && <img src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                    {score > 0 && <div style={{ position: "absolute", right: 3, top: 3, padding: "1px 4px", borderRadius: 6, background: "rgba(0,0,0,0.62)", color: "#fbcfe8", fontSize: 9, fontWeight: 800, pointerEvents: "none" }}>{score}</div>}
+                    {item._feat && (
+                      <div aria-label={lang === "en" ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 3, top: 3, width: 16, height: 16, borderRadius: 99, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z" /></svg>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })() : hallOfFame.length === 0 ? (
           <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
@@ -374,7 +407,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         const filterTypes = MEDIA_TYPES.slice(1).filter(t => items.some(i => i.type === t.id));
         const border = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
         return (
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", padding: "0 16px", marginBottom: 18, justifyContent: isMobileDevice ? "flex-start" : "flex-end" }}>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", padding: isMobileDevice ? 0 : "0 16px", marginBottom: 18, justifyContent: isMobileDevice ? "flex-start" : "flex-end" }}>
             {[{ id: "all" }, ...filterTypes].map(t => {
               const on = favFilter === t.id;
               return (
@@ -467,8 +500,18 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                         <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                       </div>
                       {isMobileDevice ? (
-                        <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 }}>
-                          {list.map(item => <div key={item.id} style={{ width: 104, flexShrink: 0 }}>{renderFav(item, false)}</div>)}
+                        <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 6px", overscrollBehaviorX: "contain", WebkitOverflowScrolling: "touch", contain: "layout paint" }}>
+                          {list.slice(0, 24).map(item => {
+                            const cs = item.customCover || item.cover;
+                            const r = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
+                            return (
+                              <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
+                                style={{ width: 82, flexShrink: 0, aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", position: "relative", cursor: "pointer", background: gradientFor(item.id) }}>
+                                {cs && <img src={cs} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                                {r > 0 && <div style={{ position: "absolute", left: 4, bottom: 4, padding: "1px 5px", borderRadius: 6, background: "rgba(0,0,0,0.7)", color: "#f59e0b", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {r}</div>}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div style={gridStyle}>
@@ -487,12 +530,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* ── Tier Lists e Listas ── */}
       {!editing && (
-        <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 14, margin: "0 16px 28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: isMobileDevice ? 10 : 14, margin: "0 16px 28px" }}>
           {[
             { tab: "tierlists", label: "Tier Lists", count: userTierlists.length, grad: "rgba(236,72,153,0.16)" },
             { tab: "listas", label: lang === "en" ? "My Lists" : "Minhas Listas", count: userCollections.length, grad: "rgba(59,130,246,0.16)" },
           ].map(c => (
-            <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 20, padding: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
+            <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: isMobileDevice ? 16 : 20, padding: isMobileDevice ? 16 : 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>{c.label}</div>
               <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>{c.count} {c.count === 1 ? (lang === "en" ? "list" : "lista") : (lang === "en" ? "lists" : "listas")}</div>
               <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#475569", marginTop: 2 }}>{lang === "en" ? "Open" : "Abrir"} →</div>
