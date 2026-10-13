@@ -1,217 +1,265 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { TIER_LEVELS } from "../config/constants";
+import { TIER_LEVELS, MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { fetchAniListSafe } from "../api/anilist";
 import { gradientFor } from "../lib/utils";
-import { t } from "../translations";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLang } from "../contexts/LangContext";
+import { TIER_NAMES } from "./TierListViewer";
+
+// Editor de tier lists: linhas à esquerda, painel de itens à direita (gaveta no telemóvel).
+// Colocar: escolhe um item e toca na letra do tier (ou arrasta, no PC).
+const EXT_TYPES = [{ id: "anime", label: "Anime" }, { id: "manga", label: "Manga" }, { id: "filmes", label: "Filmes" }, { id: "series", label: "Séries" }];
 
 export function TierListEditor({ initialData, library, onSave, onClose, workerUrl, tmdbKey }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
   const [title, setTitle] = useState(initialData?.title || "");
-  const [tiers, setTiers] = useState(initialData?.tiers || { S: [], A: [], B: [], C: [], D: [] });
+  const [tiers, setTiers] = useState(() => {
+    const base = { S: [], A: [], B: [], C: [], D: [] };
+    TIER_LEVELS.forEach(t => { base[t.id] = []; });
+    return { ...base, ...(initialData?.tiers || {}) };
+  });
+  const [poolTab, setPoolTab] = useState("biblioteca"); // biblioteca | pesquisar | personagens | manual
+  const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [poolTab, setPoolTab] = useState("biblioteca"); // biblioteca | pesquisar
   const [extSearch, setExtSearch] = useState("");
+  const [extType, setExtType] = useState("anime");
   const [extResults, setExtResults] = useState([]);
   const [extSearching, setExtSearching] = useState(false);
-  const [extType, setExtType] = useState("anime");
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualCover, setManualCover] = useState("");
+  const [selected, setSelected] = useState(null); // { item, from }  from = tierId | null
   const [dragItem, setDragItem] = useState(null);
-  const [dragFrom, setDragFrom] = useState(null);
+  const [overTier, setOverTier] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [pickingTierFor, setPickingTierFor] = useState(null); // item a adicionar via clique
 
-  const items = Object.values(library || {});
-  const rankedIds = new Set(Object.values(tiers).flat().map(i => i.id));
-  const unranked = items.filter(i =>
-    !rankedIds.has(i.id) &&
-    (search === "" || (i.title || "").toLowerCase().includes(search.toLowerCase()))
-  );
+  const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
+  const text = darkMode ? "#e6edf3" : "#0f172a";
+  const muted = darkMode ? "#8b949e" : "#64748b";
+  const line = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0";
+  const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.72)" : "#f8fafc";
+  const field = { width: "100%", boxSizing: "border-box", padding: "10px 14px", borderRadius: 12, background: darkMode ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${line}`, color: text, fontFamily: "inherit", fontSize: 13, outline: "none" };
+
+  const rankedIds = useMemo(() => new Set(Object.values(tiers).flat().map(i => i.id)), [tiers]);
+  const placed = rankedIds.size;
+  const libItems = useMemo(() => Object.values(library || {}), [library]);
+  const unranked = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return libItems.filter(i => !rankedIds.has(i.id) && (typeFilter === "all" || i.type === typeFilter) && (!q || (i.title || "").toLowerCase().includes(q)));
+  }, [libItems, rankedIds, typeFilter, search]);
+  const typeChips = useMemo(() => [{ id: "all", label: lang === "en" ? "All" : "Tudo" }, ...MEDIA_TYPES.filter(t => t.id !== "all" && libItems.some(i => i.type === t.id)).map(t => ({ id: t.id, label: mediaLabel(t, lang) }))], [libItems, lang]);
+
+  const place = (item, tierId) => {
+    setTiers(prev => {
+      const next = {};
+      Object.keys(prev).forEach(k => { next[k] = prev[k].filter(i => i.id !== item.id); });
+      next[tierId] = [...(next[tierId] || []), item];
+      return next;
+    });
+    setSelected(null);
+  };
+  const unplace = (item) => {
+    setTiers(prev => { const next = {}; Object.keys(prev).forEach(k => { next[k] = prev[k].filter(i => i.id !== item.id); }); return next; });
+    setSelected(null);
+  };
 
   const searchExternal = async () => {
-    if (!extSearch.trim()) return;
-    setExtSearching(true);
-    setExtResults([]);
+    const q = extSearch.trim();
+    if (!q) return;
+    setExtSearching(true); setExtResults([]);
     try {
       let results = [];
-      const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
-      if (extType === "anime" || extType === "manga") {
+      if (poolTab === "personagens") {
+        const gql = `{ Page(perPage:20) { characters(search:"${q.replace(/"/g, "'")}") { id name{full} image{large} } } }`;
+        const data = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrl}/anilist`], JSON.stringify({ query: gql }));
+        results = (data?.data?.Page?.characters || []).map(c => ({ id: `al-char-${c.id}`, title: c.name?.full || "", cover: c.image?.large || "", type: "personagem" }));
+      } else if (extType === "anime" || extType === "manga") {
         const aniType = extType === "anime" ? "ANIME" : "MANGA";
-        const q = `{ Page(perPage:15) { media(search:"${extSearch.trim().replace(/"/g,"'")}",type:${aniType}) { id title{romaji} coverImage{large} averageScore description(asHtml:false) } } }`;
-        const data = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrl}/anilist`], JSON.stringify({ query: q }));
-        results = (data?.data?.Page?.media || []).map(m => ({
-          id: `al-${extType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.large || "",
-          type: extType, score: m.averageScore || 0,
-          synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : ""
-        }));
-      } else if (extType === "filmes") {
-        const url = `${wUrl}/tmdb?endpoint=/search/movie&query=${encodeURIComponent(extSearch.trim())}&language=en-US`;
-        const res = await fetch(url);
+        const gql = `{ Page(perPage:20) { media(search:"${q.replace(/"/g, "'")}",type:${aniType}) { id title{romaji} coverImage{large} averageScore } } }`;
+        const data = await fetchAniListSafe(["https://graphql.anilist.co", `${wUrl}/anilist`], JSON.stringify({ query: gql }));
+        results = (data?.data?.Page?.media || []).map(m => ({ id: `al-${extType}-${m.id}`, title: m.title?.romaji || "", cover: m.coverImage?.large || "", type: extType, score: m.averageScore || 0 }));
+      } else {
+        const ep = extType === "filmes" ? "movie" : "tv";
+        const res = await fetch(`${wUrl}/tmdb?endpoint=/search/${ep}&query=${encodeURIComponent(q)}&language=en-US`);
         const data = await res.json();
-        results = (data?.results || []).slice(0, 15).map(m => ({
-          id: `tmdb-filmes-${m.id}`, title: m.title || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
-          type: "filmes", score: m.vote_average || 0
-        }));
-      } else if (extType === "series") {
-        const url = `${wUrl}/tmdb?endpoint=/search/tv&query=${encodeURIComponent(extSearch.trim())}&language=en-US`;
-        const res = await fetch(url);
-        const data = await res.json();
-        results = (data?.results || []).slice(0, 15).map(m => ({
-          id: `tmdb-series-${m.id}`, title: m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "",
-          type: "series", score: m.vote_average || 0
-        }));
+        results = (data?.results || []).slice(0, 20).map(m => ({ id: `tmdb-${extType}-${m.id}`, title: m.title || m.name || "", cover: m.poster_path ? `https://image.tmdb.org/t/p/w200${m.poster_path}` : "", type: extType, score: m.vote_average || 0 }));
       }
       setExtResults(results.filter(r => !rankedIds.has(r.id)));
     } catch (e) { console.error(e); }
     setExtSearching(false);
   };
 
-  const addToTier = (item, tierId) => {
-    setTiers(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(k => { next[k] = next[k].filter(i => i.id !== item.id); });
-      next[tierId] = [...next[tierId], item];
-      return next;
-    });
-  };
-
-  const removeFromTier = (item, tierId) => {
-    setTiers(prev => ({ ...prev, [tierId]: prev[tierId].filter(i => i.id !== item.id) }));
+  const addManual = () => {
+    const t = manualTitle.trim();
+    if (!t) return;
+    const item = { id: `manual-${Date.now()}`, title: t, cover: manualCover.trim(), type: "manual" };
+    setManualTitle(""); setManualCover("");
+    setSelected({ item, from: null });
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || saving) return;
     setSaving(true);
-    await onSave(title.trim(), tiers);
-    setSaving(false);
+    try { await onSave(title.trim(), tiers); } finally { setSaving(false); }
   };
 
-  return createPortal(
-    <div className="modal-bg" onClick={onClose}>
-      <div className="modal fade-in modal-glass" style={{ maxWidth: 660, maxHeight: "94vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "16px 20px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, position: "sticky", top: 0, background: darkMode ? "#161b22" : "#fff", zIndex: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117" }}>
-              {initialData ? "Editar Tier List" : "Nova Tier List"}
-            </h2>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 20 }}>✕</button>
-          </div>
-          <input
-            value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="Título da tier list..."
-            style={{ width: "100%", padding: "10px 14px", fontSize: 14, fontWeight: 700, borderRadius: 10, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1.5px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }}
-          />
+  const poster = (item, w, h, opts = {}) => {
+    const cover = item.customCover || item.cover || item.thumbnailUrl;
+    const isSel = selected?.item?.id === item.id;
+    return (
+      <div key={item.id} title={item.title} draggable={!isMobileDevice}
+        onDragStart={() => setDragItem(item)} onDragEnd={() => { setDragItem(null); setOverTier(null); }}
+        onClick={() => setSelected(isSel ? null : { item, from: opts.from || null })}
+        style={{ width: w, flexShrink: 0, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+        <div style={{ position: "relative", width: w, height: h, borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), boxShadow: isSel ? `0 0 0 2.5px ${accent}, 0 0 16px ${accent}99` : "0 3px 10px rgba(0,0,0,0.3)", transition: "box-shadow 0.12s" }}>
+          {cover ? <img src={cover} alt="" loading="lazy" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+            : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 4, fontSize: 10, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{item.title}</span>}
         </div>
+      </div>
+    );
+  };
 
-        {/* Tiers */}
-        <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 6 }}>
-          {TIER_LEVELS.map(tier => (
-            <div key={tier.id}
-              style={{ display: "flex", minHeight: 56, borderRadius: 10, overflow: "hidden", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); if (dragItem) { addToTier(dragItem, tier.id); setDragItem(null); setDragFrom(null); } }}
-            >
-              <div style={{ width: 44, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: "white" }}>{tier.id}</span>
-              </div>
-              <div style={{ flex: 1, background: darkMode ? "#0d1117" : "#f8fafc", display: "flex", flexWrap: "wrap", gap: 5, padding: 6, alignContent: "flex-start", minHeight: 56 }}>
-                {(tiers[tier.id] || []).map(item => {
-                  const cover = item.customCover || item.cover || item.thumbnailUrl;
-                  return (
-                    <div key={item.id} title={item.title}
-                      draggable
-                      onDragStart={() => { setDragItem(item); setDragFrom(tier.id); }}
-                      style={{ position: "relative", cursor: "grab" }}
-                    >
-                      <div style={{ width: 34, height: 50, borderRadius: 4, overflow: "hidden", background: gradientFor(item.id) }}>
-                        {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />}
-                      </div>
-                      <button onClick={() => removeFromTier(item, tier.id)} style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: "50%", background: "#ef4444", border: "none", color: "white", fontSize: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, lineHeight: 1 }}>✕</button>
-                    </div>
-                  );
-                })}
-                {(tiers[tier.id] || []).length === 0 && (
-                  <span style={{ fontSize: 11, color: "#484f58", alignSelf: "center", paddingLeft: 4 }}>Arrasta aqui</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+  const tierBtn = (t) => (
+    <button key={t.id} onClick={() => place(selected.item, t.id)} aria-label={`Colocar em ${t.id}`}
+      style={{ flex: 1, height: 38, borderRadius: 11, background: selected.from === t.id ? t.color : `${t.color}33`, border: `1.5px solid ${t.color}`, color: selected.from === t.id ? "#fff" : t.color, fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{t.id}</button>
+  );
 
-        {/* Pool */}
-        <div style={{ padding: "0 20px 16px" }}>
-          {/* Tabs do pool */}
-          <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-            <button onClick={() => setPoolTab("biblioteca")} style={{ flex: 1, padding: "8px", background: "none", border: "none", borderBottom: poolTab === "biblioteca" ? `2px solid ${accent}` : "2px solid transparent", color: poolTab === "biblioteca" ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, marginBottom: -1 }}>
-              📚 Biblioteca ({unranked.length})
-            </button>
-            <button onClick={() => setPoolTab("pesquisar")} style={{ flex: 1, padding: "8px", background: "none", border: "none", borderBottom: poolTab === "pesquisar" ? `2px solid ${accent}` : "2px solid transparent", color: poolTab === "pesquisar" ? accent : "#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, marginBottom: -1 }}>
-              🔍 Pesquisar
-            </button>
+  const rowsH = isMobileDevice ? 68 : 98, rowsW = isMobileDevice ? 46 : 66;
+  const tabs = [["biblioteca", lang === "en" ? "Library" : "Biblioteca"], ["pesquisar", lang === "en" ? "Search" : "Pesquisar"], ["personagens", isMobileDevice ? "Pers." : (lang === "en" ? "Characters" : "Personagens")], ["manual", "Manual"]];
+  const extList = poolTab === "biblioteca" ? unranked.slice(0, 150) : extResults;
+  const pw = isMobileDevice ? 64 : 62, ph = isMobileDevice ? 94 : 92;
+
+  const pool = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, minHeight: 0, flex: 1 }}>
+      <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 12, background: darkMode ? "rgba(0,0,0,0.35)" : "#e8ecf1", border: `1px solid ${line}`, flexShrink: 0 }}>
+        {tabs.map(([id, l]) => (
+          <button key={id} onClick={() => { setPoolTab(id); setExtResults([]); }} style={{ flex: 1, padding: "8px 4px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", background: poolTab === id ? (darkMode ? "rgba(255,255,255,0.1)" : "#fff") : "transparent", color: poolTab === id ? text : muted }}>{l}</button>
+        ))}
+      </div>
+
+      {selected && (
+        <div style={{ padding: "10px 12px", borderRadius: 14, background: `${accent}1a`, border: `1px solid ${accent}55`, display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 700, color: darkMode ? "#fca5a5" : accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selected.item.title} · {selected.from ? "mover para" : "colocar em"}</div>
+            {selected.from && <button onClick={() => unplace(selected.item)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Tirar</button>}
+            <button onClick={() => setSelected(null)} aria-label="Cancelar" style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: 14 }}>✕</button>
           </div>
+          <div style={{ display: "flex", gap: 6 }}>{TIER_LEVELS.map(tierBtn)}</div>
+        </div>
+      )}
 
-          {/* Tab biblioteca */}
-          {poolTab === "biblioteca" && (
-            <>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrar..." style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, marginBottom: 10, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }} />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-                {unranked.slice(0, 80).map(item => {
-                  const cover = item.customCover || item.cover || item.thumbnailUrl;
-                  return (
-                    <div key={item.id} title={item.title} draggable onDragStart={() => { setDragItem(item); setDragFrom(null); }} style={{ cursor: "grab" }}>
-                      <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                        {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      </div>
-                    </div>
-                  );
-                })}
-                {unranked.length === 0 && <p style={{ fontSize: 12, color: "#484f58" }}>Todos os itens completos já estão na lista!</p>}
-              </div>
-            </>
-          )}
+      {poolTab === "biblioteca" && (
+        <>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
+            {typeChips.map(c => (
+              <button key={c.id} onClick={() => setTypeFilter(c.id)} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 99, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${typeFilter === c.id ? accent : line}`, background: typeFilter === c.id ? `${accent}26` : "transparent", color: typeFilter === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
+            ))}
+          </div>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === "en" ? "Filter your library…" : "Filtrar a biblioteca…"} style={field} />
+        </>
+      )}
 
-          {/* Tab pesquisa externa */}
+      {(poolTab === "pesquisar" || poolTab === "personagens") && (
+        <>
           {poolTab === "pesquisar" && (
-            <>
-              <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none" }}>
-                {[{id:"anime",label:"Anime"},{id:"manga",label:"Manga"},{id:"filmes",label:"Filmes"},{id:"series",label:"Séries"}].map(t => (
-                  <button key={t.id} onClick={() => setExtType(t.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 20, border: `1px solid ${extType===t.id?accent:"#30363d"}`, background: extType===t.id?`${accent}22`:"transparent", color: extType===t.id?accent:"#484f58", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>{t.label}</button>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                <input value={extSearch} onChange={e => setExtSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchExternal()} placeholder="Pesquisar título..." style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, boxSizing: "border-box", background: darkMode ? "#0d1117" : "#f8fafc", border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit" }} />
-                <button onClick={searchExternal} disabled={extSearching} style={{ padding: "8px 14px", borderRadius: 8, background: accent, border: "none", color: "white", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                  {extSearching ? "..." : "🔍"}
-                </button>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-                {extResults.map(item => {
-                  const alreadyIn = rankedIds.has(item.id);
-                  return (
-                    <div key={item.id} title={item.title} draggable={!alreadyIn} onDragStart={() => { if (!alreadyIn) { setDragItem(item); setDragFrom(null); } }} style={{ cursor: alreadyIn ? "default" : "grab", opacity: alreadyIn ? 0.4 : 1 }}>
-                      <div style={{ width: 38, height: 55, borderRadius: 5, overflow: "hidden", background: gradientFor(item.id), border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
-                        {item.cover && <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
-                      </div>
-                    </div>
-                  );
-                })}
-                {!extSearching && extResults.length === 0 && extSearch && <p style={{ fontSize: 12, color: "#484f58" }}>Sem resultados.</p>}
-                {!extSearching && extResults.length === 0 && !extSearch && <p style={{ fontSize: 12, color: "#484f58" }}>Pesquisa qualquer título acima.</p>}
-              </div>
-            </>
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
+              {EXT_TYPES.map(c => (
+                <button key={c.id} onClick={() => { setExtType(c.id); setExtResults([]); }} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 99, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${extType === c.id ? accent : line}`, background: extType === c.id ? `${accent}26` : "transparent", color: extType === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <input value={extSearch} onChange={e => setExtSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchExternal()} placeholder={poolTab === "personagens" ? "Nome da personagem…" : "Pesquisar título…"} style={{ ...field, flex: 1, width: "auto" }} />
+            <button onClick={searchExternal} disabled={extSearching} style={{ padding: "0 16px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{extSearching ? "…" : "Ir"}</button>
+          </div>
+        </>
+      )}
+
+      {poolTab === "manual" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <p style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>Para qualquer coisa que não esteja nas pesquisas: um nome e, se quiseres, o endereço de uma imagem.</p>
+          <input value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="Nome" style={field} />
+          <input value={manualCover} onChange={e => setManualCover(e.target.value)} placeholder="Endereço da imagem (opcional)" style={field} />
+          <button onClick={addManual} disabled={!manualTitle.trim()} style={{ padding: "11px", borderRadius: 12, background: accent, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: manualTitle.trim() ? 1 : 0.5 }}>Criar e escolher tier</button>
+        </div>
+      ) : (
+        <div style={{ overflowY: "auto", minHeight: 0, flex: 1, display: "flex", flexWrap: "wrap", gap: 9, alignContent: "flex-start", paddingBottom: 4 }}>
+          {extList.map(item => poster(item, pw, ph))}
+          {extList.length === 0 && !extSearching && (
+            <p style={{ fontSize: 12, color: muted, width: "100%", textAlign: "center", padding: "16px 0" }}>
+              {poolTab === "biblioteca" ? (libItems.length ? "Todos os itens já estão colocados." : "A biblioteca está vazia.") : (extSearch ? "Sem resultados." : "Pesquisa acima.")}
+            </p>
           )}
         </div>
+      )}
+      {poolTab === "biblioteca" && unranked.length > 0 && <div style={{ fontSize: 11, color: muted, textAlign: "center", flexShrink: 0 }}>{unranked.length} por colocar · os já colocados ficam escondidos</div>}
+    </div>
+  );
 
-        {/* Footer */}
-        <div style={{ padding: "12px 20px 20px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10, position: "sticky", bottom: 0, background: darkMode ? "#161b22" : "#fff" }}>
-          <button onClick={handleSave} disabled={!title.trim() || saving} className="btn-accent" style={{ flex: 2, padding: "12px", fontSize: 14, opacity: !title.trim() ? 0.5 : 1 }}>
-            {saving ? "A guardar..." : "Guardar Tier List"}
-          </button>
-          <button onClick={onClose} style={{ flex: 1, padding: "12px", background: darkMode ? "#21262d" : "#f1f5f9", border: "none", borderRadius: 10, color: darkMode ? "#e6edf3" : "#0d1117", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 14 }}>
-            Cancelar
-          </button>
-        </div>
+  const rows = (
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobileDevice ? 8 : 10 }}>
+      {TIER_LEVELS.map(tier => {
+        const list = tiers[tier.id] || [];
+        const over = overTier === tier.id;
+        const canDrop = !!selected && !dragItem;
+        return (
+          <div key={tier.id}
+            onDragOver={e => { e.preventDefault(); setOverTier(tier.id); }}
+            onDragLeave={() => setOverTier(o => (o === tier.id ? null : o))}
+            onDrop={e => { e.preventDefault(); if (dragItem) place(dragItem, tier.id); setDragItem(null); setOverTier(null); }}
+            style={{ display: "flex", alignItems: "stretch", borderRadius: isMobileDevice ? 14 : 16, overflow: "hidden", background: glass, border: `1px solid ${over ? accent : line}`, boxShadow: over ? `0 0 0 2px ${accent}55` : "none", transition: "border-color 0.12s, box-shadow 0.12s" }}>
+            <div style={{ width: isMobileDevice ? 44 : 72, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: `linear-gradient(160deg, ${tier.color}, ${tier.color}99)` }}>
+              <div style={{ fontSize: isMobileDevice ? 22 : 30, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{tier.id}</div>
+              {!isMobileDevice && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", marginTop: 2 }}>{TIER_NAMES[tier.id]}</div>}
+            </div>
+            <div onClick={() => canDrop && place(selected.item, tier.id)} style={{ flex: 1, minWidth: 0, padding: isMobileDevice ? 8 : 12, display: "flex", flexWrap: "wrap", gap: isMobileDevice ? 6 : 8, alignItems: "center", cursor: canDrop ? "pointer" : "default" }}>
+              {list.map(item => poster(item, rowsW, rowsH, { from: tier.id }))}
+              {list.length === 0 && (
+                <div style={{ flex: 1, minHeight: rowsH, borderRadius: 12, border: `1.5px dashed ${canDrop ? accent : line}`, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 10px", fontSize: isMobileDevice ? 11.5 : 12.5, color: canDrop ? accent : muted }}>
+                  {canDrop ? `Toca para colocar em ${tier.id}` : (isMobileDevice ? `Escolhe um item e toca em ${tier.id}` : `Arrasta para aqui, ou escolhe um item e toca em ${tier.id}`)}
+                </div>
+              )}
+              {list.length > 0 && canDrop && <div style={{ width: rowsW, height: rowsH, borderRadius: 9, border: `1.5px dashed ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 20, flexShrink: 0 }}>＋</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: isMobileDevice ? "14px 16px" : "20px 28px", borderBottom: `1px solid ${line}`, flexShrink: 0 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", color: muted, marginBottom: 2 }}>{initialData ? "EDITAR TIER LIST" : "NOVA TIER LIST"}</div>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Dá um nome à tier list…" maxLength={80}
+          style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", outline: "none", color: text, fontFamily: "inherit", fontSize: isMobileDevice ? 17 : 26, fontWeight: 800, padding: 0 }} />
+      </div>
+      {!isMobileDevice && <span style={{ padding: "7px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, color: muted, border: `1px solid ${line}`, whiteSpace: "nowrap" }}>{placed} colocados</span>}
+      {!isMobileDevice && <button onClick={onClose} style={{ padding: "11px 18px", borderRadius: 12, background: "transparent", border: `1px solid ${line}`, color: text, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>Cancelar</button>}
+      <button onClick={handleSave} disabled={!title.trim() || saving} style={{ padding: "11px 18px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, opacity: !title.trim() ? 0.5 : 1, whiteSpace: "nowrap" }}>{saving ? "A guardar…" : "Guardar"}</button>
+      {isMobileDevice && <button onClick={onClose} aria-label="Fechar" style={{ width: 36, height: 36, borderRadius: 99, background: "transparent", border: `1px solid ${line}`, color: muted, cursor: "pointer", fontSize: 15 }}>✕</button>}
+    </div>
+  );
+
+  return createPortal(
+    <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
+      <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: isMobileDevice ? "100%" : 1180, width: "100%", height: isMobileDevice ? "92vh" : "90vh", maxHeight: "none", padding: 0, display: "flex", flexDirection: "column", overflow: "hidden", background: darkMode ? `radial-gradient(circle at 85% 0%, ${accent}24, transparent 45%), #0e1014` : "#ffffff", border: `1px solid ${line}`, borderRadius: isMobileDevice ? undefined : 24, boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}>
+        {header}
+        {isMobileDevice ? (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto", padding: 12 }}>{rows}</div>
+            <div style={{ flex: "0 0 48%", minHeight: 0, display: "flex", flexDirection: "column", borderRadius: "22px 22px 0 0", background: darkMode ? "#12151a" : "#f8fafc", borderTop: `1px solid ${line}`, boxShadow: "0 -14px 30px rgba(0,0,0,0.35)", padding: "10px 14px calc(14px + env(safe-area-inset-bottom, 0px))" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 9, background: "rgba(255,255,255,0.2)", margin: "0 auto 10px", flexShrink: 0 }} />
+              {pool}
+            </div>
+          </div>
+        ) : (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", gap: 20, padding: "20px 28px" }}>
+            <div style={{ flex: 1, minWidth: 0, overflowY: "auto", paddingRight: 4 }}>{rows}</div>
+            <div style={{ width: 370, flexShrink: 0, borderRadius: 20, padding: 16, background: glass, border: `1px solid ${line}`, display: "flex", flexDirection: "column", minHeight: 0 }}>{pool}</div>
+          </div>
+        )}
       </div>
     </div>,
     document.body

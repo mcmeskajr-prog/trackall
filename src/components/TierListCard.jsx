@@ -2,58 +2,43 @@ import { useTheme } from "../contexts/ThemeContext";
 import { gradientFor } from "../lib/utils";
 import { TIER_LEVELS } from "../config/constants";
 
+// Cartão da galeria: mosaico com os melhores itens + título, autor, itens e gostos
 export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode, panelBg } = useTheme();
-  const allItems = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []));
-
-  // Mosaico: grupos por tier, cada grupo com até 2 capas — separados por barra colorida
-  const mosaicGroups = TIER_LEVELS.map(t => ({
-    tier: t,
-    items: (tl.tiers[t.id] || []).slice(0, 2)
-  })).filter(g => g.items.length > 0);
+  const all = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []).map(i => ({ ...i, _tier: t })));
+  const top = all.slice(0, 4); // já vêm ordenados do melhor tier para o pior
+  const author = tl.profiles ? (tl.profiles.username || tl.profiles.name) : null;
+  const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
+  const border = darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0";
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: panelBg || (darkMode ? "rgba(22,27,34,0.35)" : "rgba(255,255,255,0.42)"), backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }}>
-
-      {/* Mosaico com grupos separados por cor do tier */}
-      <div style={{ display: "flex", height: 120, overflow: "hidden", background: darkMode ? "#0d1117" : "#e8e8e8", flexShrink: 0 }}>
-        {mosaicGroups.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 32 }}>🏆</span>
-          </div>
-        ) : mosaicGroups.map((group, gIdx) => (
-          <div key={group.tier.id} style={{ display: "flex", flex: group.items.length, minWidth: 0, position: "relative" }}>
-            {/* Barra colorida do tier no topo */}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: group.tier.color, zIndex: 2 }} />
-            {/* Label do tier */}
-            <div style={{ position: "absolute", top: 6, left: 4, zIndex: 3, background: group.tier.color, borderRadius: 3, padding: "1px 4px" }}>
-              <span style={{ fontSize: 8, fontWeight: 900, color: "white", lineHeight: 1 }}>{group.tier.id}</span>
+    <div onClick={() => onOpen(tl)} style={{ background: panelBg || glass, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `1px solid ${border}`, borderRadius: 20, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", transition: "transform 0.15s, border-color 0.15s" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = `${accent}88`; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = border; }}>
+      <div style={{ display: "flex", gap: 2, height: 140, background: darkMode ? "#0d1117" : "#e8e8e8" }}>
+        {top.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>🏆</div>
+        ) : top.map(item => {
+          const cover = item.customCover || item.cover || item.thumbnailUrl;
+          return (
+            <div key={item.id} style={{ flex: 1, minWidth: 0, position: "relative", background: gradientFor(item.id) }}>
+              {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+              <span style={{ position: "absolute", left: 6, top: 6, padding: "1px 7px", borderRadius: 7, background: item._tier.color, fontSize: 11, fontWeight: 800, color: "#fff" }}>{item._tier.id}</span>
             </div>
-            {/* Capas do grupo */}
-            {group.items.map((item, iIdx) => {
-              const cover = item.customCover || item.cover || item.thumbnailUrl;
-              return (
-                <div key={item.id} style={{ flex: 1, minWidth: 0, overflow: "hidden", background: gradientFor(item.id), borderLeft: (gIdx > 0 && iIdx === 0) ? `2px solid ${darkMode ? "#0d1117" : "#e0e0e0"}` : "none" }}>
-                  {cover && <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          );
+        })}
       </div>
-
-      {/* Rodapé */}
-      <div style={{ padding: "8px 12px 11px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 175 }}>{tl.title}</p>
-          <span style={{ fontSize: 10, color: "#6e7681" }}>{allItems.length} itens · {new Date(tl.created_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}</span>
-        </div>
-        <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 3, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : (darkMode ? "#30363d" : "#ddd")}`, borderRadius: 20, padding: "3px 9px", color: liked ? accent : "#6e7681", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", transition: "all 0.15s" }}>
-            ♥ {tl.likes_count || 0}
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
+        <p style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.2, color: darkMode ? "#e6edf3" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tl.title}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: darkMode ? "#8b949e" : "#64748b" }}>
+          {author && <><span style={{ width: 18, height: 18, borderRadius: 99, background: `linear-gradient(135deg, ${accent}, #3a1212)`, flexShrink: 0 }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{author}</span><span>·</span></>}
+          <span style={{ whiteSpace: "nowrap" }}>{all.length} itens</span>
+          <span style={{ flex: 1 }} />
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : border}`, borderRadius: 99, padding: "3px 9px", color: liked ? accent : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+            {liked ? "♥" : "♡"} {tl.likes_count || 0}
           </button>
           {currentUserId === tl.user_id && onDelete && (
-            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} style={{ background: "none", border: "none", color: "#484f58", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>🗑</button>
+            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} title="Apagar" aria-label="Apagar" style={{ background: "none", border: "none", color: "#6e7681", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>🗑</button>
           )}
         </div>
       </div>
