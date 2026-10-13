@@ -1793,7 +1793,7 @@ export default function TrackAll() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-          body { overscroll-behavior: none; }
+          body { overscroll-behavior: none; font-family: 'Outfit', 'Segoe UI', sans-serif; }
           :root { --tc: ${activeTextContrast / 100}; }
           ${(() => {
             if (activeTextContrast === 100) return '';
@@ -1837,7 +1837,7 @@ export default function TrackAll() {
           input, select, textarea { background: ${activeDarkMode ? "#0d1117" : "#ffffff"}; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
-          .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+          .modal-bg { font-family: 'Outfit', 'Segoe UI', sans-serif; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${activeDarkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
           .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.42)" : "rgba(255,255,255,0.5)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
