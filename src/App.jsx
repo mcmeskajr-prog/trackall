@@ -450,10 +450,10 @@ export default function TrackAll() {
         if (user) {
           setUser(user);
           try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
-          // se os dados demorarem, abre a app na mesma; o que chegar depois entra sozinho
+          // os dados são pesados (capas personalizadas): espera até 30s no skeleton; depois mostra erro e recupera sozinho se chegarem
           const loadP = loadUserData(user.id);
           let ok = false;
-          try { ok = await withTimeout(loadP, 12000); }
+          try { ok = await withTimeout(loadP, 30000); }
           catch (e) {
             console.warn("[TrackAll] carregamento lento:", e?.message);
             // se os dados chegarem mais tarde, a app recupera sozinha
