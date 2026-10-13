@@ -441,16 +441,30 @@ export default function TrackAll() {
 
   // ── Restaurar sessão ao arrancar ──
   useEffect(() => {
+    // Nunca fica preso no ecrã de arranque: cada passo tem limite de tempo.
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
     const restore = async () => {
       try {
-        const user = await supa.getSession();
+        const user = await withTimeout(supa.getSession(), 8000);
         if (user) {
           setUser(user);
-          await loadUserData(user.id);
+          try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
+          // se os dados demorarem, abre a app na mesma; o que chegar depois entra sozinho
+          try { await withTimeout(loadUserData(user.id), 12000); } catch (e) { console.warn("[TrackAll] carregamento lento:", e?.message); }
         } else {
+          try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
           setShowLanding(true);
         }
-      } catch { setShowLanding(true); }
+      } catch (e) {
+        // a sessão não respondeu (bloqueio do cliente de auth): tenta recarregar uma vez, como fazias à mão
+        let retry = false;
+        try {
+          const last = Number(sessionStorage.getItem("trackall_boot_retry") || 0);
+          if (e?.message === "timeout" && Date.now() - last > 60000) { sessionStorage.setItem("trackall_boot_retry", String(Date.now())); retry = true; }
+        } catch {}
+        if (retry) { window.location.reload(); return; }
+        setShowLanding(true);
+      }
       setAuthLoading(false);
     };
     restore();
@@ -458,9 +472,10 @@ export default function TrackAll() {
 
   const loadUserData = async (userId) => {
     try {
-      const [prof, lib] = await Promise.all([
+      const [prof, lib, hr] = await Promise.all([
         supa.getProfile(userId),
         supa.getLibrary(userId),
+        supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle().then(r => r, e => ({ error: e })),
       ]);
       if (prof) {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
@@ -470,8 +485,7 @@ export default function TrackAll() {
         const _cands = [];
         let _rowHall = null, _rowErr = false;
         try {
-          const hr = await supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle();
-          if (hr.error) _rowErr = true;
+          if (hr?.error) _rowErr = true;
           else if (hr.data?.data) { _rowHall = hr.data.data; if (_rowHall.featured) _featuredData = _rowHall.featured; }
         } catch { _rowErr = true; }
         if (Array.isArray(_rowHall?.hall)) _cands.push(_rowHall.hall);
