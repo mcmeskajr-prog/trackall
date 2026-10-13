@@ -419,6 +419,7 @@ export default function TrackAll() {
   const [userTierlists, setUserTierlists] = useState([]);
   const [userLikes, setUserLikes] = useState([]);
   const [viewingTierlist, setViewingTierlist] = useState(null);
+  const [tierReturn, setTierReturn] = useState(null); // tier list a reabrir quando o detalhe fechar
   const [editingTierlist, setEditingTierlist] = useState(null);
   const [showTierlistEditor, setShowTierlistEditor] = useState(false);
   const [userCollections, setUserCollections] = useState([]);
@@ -2088,7 +2089,7 @@ export default function TrackAll() {
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
             onChangeCover={updateCover}
-            onClose={() => setSelectedItem(null)}
+            onClose={() => { setSelectedItem(null); if (tierReturn) { setViewingTierlist(tierReturn); setTierReturn(null); } }}
             accent={accent}
             favorites={activeFavorites}
             onToggleFavorite={toggleFavorite}
@@ -2295,7 +2296,7 @@ export default function TrackAll() {
             liked={userLikes.includes(viewingTierlist.id)}
             currentUserId={user?.id}
             onEdit={(tl) => { setViewingTierlist(null); setEditingTierlist(tl); setShowTierlistEditor(true); }}
-            onOpenItem={(item) => setSelectedItem(item)}
+            onOpenItem={(item) => { setTierReturn(viewingTierlist); setViewingTierlist(null); setSelectedItem(item); }}
           />
         )}
 
