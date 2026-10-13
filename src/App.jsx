@@ -42,7 +42,8 @@ import { HomeView } from './views/HomeView';
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
 import { getConsumptionTime } from './lib/consumptionTime';
-import { shuffle, gradientFor, compressImage } from './lib/utils';
+import { shuffle, gradientFor, compressImage, shrinkDataUrl } from './lib/utils';
+import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
 
 // ─── API imports ──────────────────────────────────────────────────────────────
 import { searchAniList, fetchAniListSafe, fetchTrendingAnime, fetchTrendingManga } from './api/anilist';
@@ -431,6 +432,7 @@ export default function TrackAll() {
   // Auth state
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const libDirtyRef = useRef(false); // true se alteraste a biblioteca nesta sessão
   const [bootError, setBootError] = useState(false); // servidor não respondeu ao carregar os dados
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
@@ -452,6 +454,25 @@ export default function TrackAll() {
           setUser(user);
           try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
           // os dados são pesados (capas personalizadas): espera até 30s no skeleton; depois mostra erro e recupera sozinho se chegarem
+          // Com cópia local: abre logo (perfil do servidor, que é leve) e atualiza o resto por baixo
+          const cached = await cacheGet(`boot_${user.id}`);
+          if (cached?.lib && cached.v === 1) {
+            let prof = null;
+            try { prof = await withTimeout(fetchProfileRow(user.id), 8000); } catch {}
+            applyUserData(user.id, { prof: prof || cached.prof, lib: cached.lib, hr: cached.hr }, true);
+            setAuthLoading(false);
+            (async () => {
+              try {
+                const [freshProf, [freshLib, freshHr]] = await Promise.all([fetchProfileRow(user.id), fetchHeavyData(user.id)]);
+                if (freshProf || freshHr?.data) {
+                  // se mexeste na biblioteca entretanto, não a substitui (as tuas alterações já seguiram para o servidor)
+                  applyUserData(user.id, { prof: freshProf || prof || cached.prof, lib: libDirtyRef.current ? null : freshLib, hr: freshHr });
+                  if (!libDirtyRef.current) cacheSet(`boot_${user.id}`, { v: 1, ts: Date.now(), prof: bootCacheRef.current.prof, hr: bootCacheRef.current.hr, lib: freshLib });
+                }
+              } catch (e) { console.warn("[TrackAll] atualização em segundo plano falhou:", e?.message); }
+            })();
+            return;
+          }
           const loadP = loadUserData(user.id);
           let ok = false;
           try { ok = await withTimeout(loadP, 30000); }
@@ -480,13 +501,16 @@ export default function TrackAll() {
     restore();
   }, []);
 
-  const loadUserData = async (userId) => {
-    try {
-      const [prof, lib, hr] = await Promise.all([
-        supa.getProfile(userId),
-        supa.getLibrary(userId),
-        supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle().then(r => r, e => ({ error: e })),
-      ]);
+  // Pedidos ao servidor (separados da aplicação ao estado para poder usar a cópia local)
+  const fetchProfileRow = (userId) => supa.getProfile(userId);
+  const fetchHeavyData = (userId) => Promise.all([
+    supa.getLibrary(userId),
+    supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle().then(r => r, e => ({ error: e })),
+  ]);
+
+  // Aplica perfil + biblioteca + Hall of Fame ao estado. fromCache: não repara a BD com dados possivelmente antigos.
+  const applyUserData = (userId, { prof, lib, hr }, fromCache = false) => {
+    bootCacheRef.current = { prof: prof || bootCacheRef.current.prof, hr: hr ? { data: hr.data || null, error: null } : bootCacheRef.current.hr };
       if (prof) {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
         // Tentar ler Hall of Fame da library (mais fiável que coluna profiles)
@@ -508,7 +532,7 @@ export default function TrackAll() {
         hallRef.current = { loaded: !_rowErr || _hallData.length > 0, hall: _hallData, featured: _featuredData };
         try { localStorage.setItem(`trackall_hall_of_fame_${userId}`, JSON.stringify(_hallData)); if (_featuredData) localStorage.setItem(`trackall_featured_${userId}`, JSON.stringify(_featuredData)); } catch {}
         // auto-reparação: se a linha na BD está vazia/desatualizada mas há dados noutra fonte, volta a gravar
-        if (!_rowErr && _hallData.length > (_rowHall?.hall?.length || 0)) {
+        if (!fromCache && !_rowErr && _hallData.length > (_rowHall?.hall?.length || 0)) {
           supa.upsertLibraryItem(userId, "__hall_of_fame__", { hall: _hallData, featured: _featuredData || null }).catch(() => {});
         }
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData, featuredItem: _featuredData });
@@ -560,7 +584,27 @@ export default function TrackAll() {
           });
         }
       }
-      return !(!prof && hr?.error); // false = o servidor não respondeu (perfil em falta e pedido falhou)
+    return !(!prof && hr?.error); // false = o servidor não respondeu (perfil em falta e pedido falhou)
+  };
+
+  // Guarda a cópia local (com pequeno atraso para juntar várias alterações seguidas)
+  const bootCacheRef = useRef({ prof: null, hr: null });
+  const bootCacheTimerRef = useRef(null);
+  const scheduleBootCache = () => {
+    if (!user?.id) return;
+    clearTimeout(bootCacheTimerRef.current);
+    bootCacheTimerRef.current = setTimeout(() => {
+      cacheSet(`boot_${user.id}`, { v: 1, ts: Date.now(), prof: bootCacheRef.current.prof, hr: bootCacheRef.current.hr, lib: libraryRef.current });
+    }, 2000);
+  };
+
+  // Arranque sem cópia local: tudo do servidor, como antes
+  const loadUserData = async (userId) => {
+    try {
+      const [prof, [lib, hr]] = await Promise.all([fetchProfileRow(userId), fetchHeavyData(userId)]);
+      const ok = applyUserData(userId, { prof, lib, hr });
+      if (ok && prof) cacheSet(`boot_${userId}`, { v: 1, ts: Date.now(), prof, hr: { data: hr?.data || null, error: null }, lib });
+      return ok;
     } catch (err) {
       console.error('[TrackAll] Erro ao carregar dados do utilizador:', err);
       return false;
@@ -744,6 +788,9 @@ export default function TrackAll() {
 
   const handleSignOut = async () => {
     await supa.signOut();
+    cacheClearAll();
+    libDirtyRef.current = false;
+    bootCacheRef.current = { prof: null, hr: null };
     setUser(null);
     setLibrary({});
     hallRef.current = { loaded: false, hall: [], featured: null };
@@ -756,7 +803,9 @@ export default function TrackAll() {
   const saveLibrary = (lib) => {
     const prev = libraryRef.current;
     libraryRef.current = lib;
+    libDirtyRef.current = true;
     setLibrary(lib);
+    scheduleBootCache();
     if (!user) return Promise.resolve();
     // Escritas em fila: chegam ao Supabase pela mesma ordem em que foram feitas
     saveQueueRef.current = saveQueueRef.current.then(async () => {
@@ -775,6 +824,56 @@ export default function TrackAll() {
       }
     });
     return saveQueueRef.current;
+  };
+
+  // Reduz capas personalizadas gigantes (base64) na biblioteca, Hall of Fame, destaque e favoritos
+  const optimizeCovers = async () => {
+    const BIG = 60000;
+    const cache = new Map();
+    const shrink = async (v) => {
+      if (typeof v !== "string" || !v.startsWith("data:image") || v.length < BIG) return v;
+      if (!cache.has(v)) cache.set(v, await shrinkDataUrl(v));
+      return cache.get(v);
+    };
+    const shrinkObj = async (o) => {
+      if (!o || typeof o !== "object") return o;
+      const out = { ...o };
+      for (const k of ["customCover", "cover"]) out[k] = await shrink(o[k]);
+      return out;
+    };
+    let before = 0, after = 0;
+    const measure = (o) => { try { return JSON.stringify(o).length; } catch { return 0; } };
+    showNotif(lang === "en" ? "Optimizing covers…" : "A otimizar capas…", accent);
+    try {
+      const lib = libraryRef.current;
+      const nextLib = {};
+      for (const [id, item] of Object.entries(lib)) {
+        nextLib[id] = id.startsWith("__") ? item : await shrinkObj(item);
+      }
+      const hall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
+      const nextHall = [];
+      for (const h of hall) nextHall.push(await shrinkObj(h));
+      const feat = profile?.featuredItem ? await shrinkObj(profile.featuredItem) : null;
+      const favs = [];
+      for (const f of favorites) favs.push(await shrinkObj(f));
+      before = measure(lib) + measure(hall) + measure(profile?.featuredItem) + measure(favorites);
+      after = measure(nextLib) + measure(nextHall) + measure(feat) + measure(favs);
+      if (after >= before) { showNotif(lang === "en" ? "Covers already optimized" : "As capas já estão otimizadas", "#8b949e"); return; }
+      saveLibrary(nextLib);
+      if (hall.length || feat) {
+        setProfile(prev => ({ ...prev, hallOfFame: nextHall, featuredItem: feat }));
+        await persistHall(nextHall, feat);
+      }
+      if (favorites.length) {
+        setFavorites(favs);
+        if (user) try { await supa.updateFavorites(user.id, favs); } catch {}
+      }
+      const mb = (n) => (n / 1048576).toFixed(1);
+      showNotif(lang === "en" ? `Done: ${mb(before)} MB → ${mb(after)} MB` : `Feito: ${mb(before)} MB → ${mb(after)} MB`, "#22c55e");
+    } catch (err) {
+      console.error("[TrackAll] optimizeCovers:", err);
+      showNotif(lang === "en" ? "Could not optimize covers" : "Não foi possível otimizar as capas", "#ef4444");
+    }
   };
 
   const getLibraryMatch = (id, type = "") => findLibraryEntry(library, id, type);
@@ -804,6 +903,8 @@ export default function TrackAll() {
     const cur = hallRef.current;
     const next = { loaded: cur.loaded, hall: hall !== undefined ? hall : cur.hall, featured: featured !== undefined ? featured : cur.featured };
     hallRef.current = next;
+    bootCacheRef.current = { ...bootCacheRef.current, hr: { data: { data: { hall: next.hall, featured: next.featured || null } }, error: null } };
+    scheduleBootCache();
     if (user) try {
       localStorage.setItem(`trackall_hall_of_fame_${user.id}`, JSON.stringify(next.hall));
       if (next.featured) localStorage.setItem(`trackall_featured_${user.id}`, JSON.stringify(next.featured)); else localStorage.removeItem(`trackall_featured_${user.id}`);
@@ -2256,6 +2357,7 @@ export default function TrackAll() {
             featuredItem={activeProfile.featuredItem || null}
             onSetFeatured={demoMode ? null : saveFeatured}
             onToggleHallOfFame={toggleHallOfFame}
+            onOptimizeCovers={optimizeCovers}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}

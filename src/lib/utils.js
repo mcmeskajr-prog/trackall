@@ -22,7 +22,7 @@ export const gradientFor = (id) => {
 // ─── Compressão de imagens (canvas → base64 JPEG) ─────────────────────────────
 // Usado antes de enviar capas/avatares/banners — reduz o ficheiro no browser
 // antes do upload, tanto para o Supabase Storage como para pré-visualizações.
-export function compressImage(file, maxW = 600, maxH = 900, quality = 0.92) {
+export function compressImage(file, maxW = 400, maxH = 600, quality = 0.8) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -41,6 +41,31 @@ export function compressImage(file, maxW = 600, maxH = 900, quality = 0.92) {
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
+  });
+}
+
+// Reduz uma imagem já guardada (data URI) — devolve a original se não ficar mais pequena
+export function shrinkDataUrl(dataUrl, maxW = 400, maxH = 600, quality = 0.78) {
+  return new Promise((resolve) => {
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image")) return resolve(dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, w, h);
+        const out = canvas.toDataURL("image/jpeg", quality);
+        resolve(out.length < dataUrl.length * 0.9 ? out : dataUrl);
+      } catch { resolve(dataUrl); }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
   });
 }
 
