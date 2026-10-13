@@ -430,6 +430,7 @@ export default function TrackAll() {
   // Auth state
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [bootError, setBootError] = useState(false); // servidor não respondeu ao carregar os dados
   const [showLanding, setShowLanding] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const mainSwipeRef = useRef({ tracking: false, blocked: false, isHorizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
@@ -450,7 +451,15 @@ export default function TrackAll() {
           setUser(user);
           try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
           // se os dados demorarem, abre a app na mesma; o que chegar depois entra sozinho
-          try { await withTimeout(loadUserData(user.id), 12000); } catch (e) { console.warn("[TrackAll] carregamento lento:", e?.message); }
+          const loadP = loadUserData(user.id);
+          let ok = false;
+          try { ok = await withTimeout(loadP, 12000); }
+          catch (e) {
+            console.warn("[TrackAll] carregamento lento:", e?.message);
+            // se os dados chegarem mais tarde, a app recupera sozinha
+            loadP.then(r => { if (r) setBootError(false); }).catch(() => {});
+          }
+          if (!ok) setBootError(true);
         } else {
           try { sessionStorage.removeItem("trackall_boot_retry"); } catch {}
           setShowLanding(true);
@@ -550,8 +559,10 @@ export default function TrackAll() {
           });
         }
       }
+      return !(!prof && hr?.error); // false = o servidor não respondeu (perfil em falta e pedido falhou)
     } catch (err) {
       console.error('[TrackAll] Erro ao carregar dados do utilizador:', err);
+      return false;
     }
   };
 
@@ -1607,6 +1618,26 @@ export default function TrackAll() {
 
   // Loading screen
   if (authLoading) return <AppSkeleton accent={accent} />;
+
+  // Servidor não respondeu: não mostra uma app vazia (parece que perdeste os dados)
+  if (bootError && user) {
+    const hardLogout = async () => {
+      try { await Promise.race([supa.signOut(), new Promise(r => setTimeout(r, 3000))]); } catch {}
+      try { Object.keys(localStorage).filter(k => k.startsWith("sb-")).forEach(k => localStorage.removeItem(k)); } catch {}
+      window.location.reload();
+    };
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#0d1117", color: "#e6edf3", fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
+        <div style={{ maxWidth: 420, width: "100%", textAlign: "center", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ fontSize: 34 }}>📡</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800 }}>Não consegui ligar ao servidor</h2>
+          <p style={{ fontSize: 14, color: "#8b949e", lineHeight: 1.6 }}>Os teus dados estão seguros, mas não chegaram agora. Pode ser a ligação ou o serviço estar indisponível. Tenta outra vez dentro de instantes.</p>
+          <button onClick={() => window.location.reload()} style={{ padding: "13px", borderRadius: 12, background: accent, border: "none", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Tentar novamente</button>
+          <button onClick={hardLogout} style={{ padding: "11px", borderRadius: 12, background: "transparent", border: "1px solid rgba(255,255,255,0.14)", color: "#8b949e", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Terminar sessão e entrar de novo</button>
+        </div>
+      </div>
+    );
+  }
 
   // Auth screen
   if (!user && !demoMode) {
