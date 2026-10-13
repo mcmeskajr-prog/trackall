@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry, mediaIdCandidates } from "../lib/mediaIds";
@@ -317,7 +318,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
     ? { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Source", ALTERNATIVE: "Alternative", SIDE_STORY: "Side Story", PARENT: "Parent" }
     : { PREQUEL: "Prequel", SEQUEL: "Sequel", SOURCE: "Fonte", ALTERNATIVE: "Alternativo", SIDE_STORY: "História Paralela", PARENT: "Principal" };
 
-  return (
+  return createPortal(
     <>
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
       <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 900, maxHeight: "90vh", overflowY: "auto", padding: 0, background: `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), ${modalSolid}`, border: `1px solid ${modalBorder}`, borderRadius: isMobileDevice ? undefined : 24, boxShadow: "0 30px 80px rgba(0,0,0,0.6)", animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
@@ -929,6 +930,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
         onClose={() => setCoverEdit(false)}
       />
     )}
-    </>
+    </>,
+    document.body
   );
 }
