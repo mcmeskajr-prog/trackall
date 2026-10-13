@@ -456,7 +456,7 @@ export default function TrackAll() {
           // os dados são pesados (capas personalizadas): espera até 30s no skeleton; depois mostra erro e recupera sozinho se chegarem
           // Com cópia local: abre logo (perfil do servidor, que é leve) e atualiza o resto por baixo
           const cached = await cacheGet(`boot_${user.id}`);
-          if (cached?.lib && cached.v === 1) {
+          if (cached?.lib && cached.v === 1 && Object.keys(cached.lib).length > 0) {
             let prof = null;
             try { prof = await withTimeout(fetchProfileRow(user.id), 8000); } catch {}
             applyUserData(user.id, { prof: prof || cached.prof, lib: cached.lib, hr: cached.hr }, true);
@@ -503,13 +503,24 @@ export default function TrackAll() {
 
   // Pedidos ao servidor (separados da aplicação ao estado para poder usar a cópia local)
   const fetchProfileRow = (userId) => supa.getProfile(userId);
+  // Se o pedido falhar devolve null (nunca uma biblioteca vazia) — assim não se mostra nem se guarda "vazio" por engano
+  const fetchLibrary = async (userId) => {
+    const { data, error } = await supabase.from("library").select("media_id, data").eq("user_id", userId);
+    if (error) throw error;
+    const lib = {};
+    (data || []).forEach(row => {
+      if (row.media_id && row.media_id !== "__hall_of_fame__" && row.data) lib[row.media_id] = { ...row.data, id: row.media_id };
+    });
+    return lib;
+  };
   const fetchHeavyData = (userId) => Promise.all([
-    supa.getLibrary(userId),
+    fetchLibrary(userId).catch((e) => { console.warn("[TrackAll] biblioteca não carregou:", e?.message || e); return null; }),
     supabase.from("library").select("data").eq("user_id", userId).eq("media_id", "__hall_of_fame__").maybeSingle().then(r => r, e => ({ error: e })),
   ]);
 
   // Aplica perfil + biblioteca + Hall of Fame ao estado. fromCache: não repara a BD com dados possivelmente antigos.
   const applyUserData = (userId, { prof, lib, hr }, fromCache = false) => {
+    if (lib) setLibrary(lib); // primeiro: nada do que vem a seguir pode impedir a biblioteca de aparecer
     bootCacheRef.current = { prof: prof || bootCacheRef.current.prof, hr: hr ? { data: hr.data || null, error: null } : bootCacheRef.current.hr };
       if (prof) {
         const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
@@ -602,7 +613,7 @@ export default function TrackAll() {
   const loadUserData = async (userId) => {
     try {
       const [prof, [lib, hr]] = await Promise.all([fetchProfileRow(userId), fetchHeavyData(userId)]);
-      const ok = applyUserData(userId, { prof, lib, hr });
+      const ok = applyUserData(userId, { prof, lib, hr }) && !!lib;
       if (ok && prof) cacheSet(`boot_${userId}`, { v: 1, ts: Date.now(), prof, hr: { data: hr?.data || null, error: null }, lib });
       return ok;
     } catch (err) {
@@ -828,7 +839,7 @@ export default function TrackAll() {
 
   // Reduz capas personalizadas gigantes (base64) na biblioteca, Hall of Fame, destaque e favoritos
   const optimizeCovers = async () => {
-    const BIG = 60000;
+    const BIG = 120000;
     const cache = new Map();
     const shrink = async (v) => {
       if (typeof v !== "string" || !v.startsWith("data:image") || v.length < BIG) return v;
