@@ -42,7 +42,7 @@ import { HomeView } from './views/HomeView';
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
 import { getConsumptionTime } from './lib/consumptionTime';
-import { shuffle, gradientFor, compressImage, shrinkDataUrl } from './lib/utils';
+import { shuffle, gradientFor, compressImage } from './lib/utils';
 import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
 
 // ─── API imports ──────────────────────────────────────────────────────────────
@@ -835,56 +835,6 @@ export default function TrackAll() {
       }
     });
     return saveQueueRef.current;
-  };
-
-  // Reduz capas personalizadas gigantes (base64) na biblioteca, Hall of Fame, destaque e favoritos
-  const optimizeCovers = async () => {
-    const BIG = 120000;
-    const cache = new Map();
-    const shrink = async (v) => {
-      if (typeof v !== "string" || !v.startsWith("data:image") || v.length < BIG) return v;
-      if (!cache.has(v)) cache.set(v, await shrinkDataUrl(v));
-      return cache.get(v);
-    };
-    const shrinkObj = async (o) => {
-      if (!o || typeof o !== "object") return o;
-      const out = { ...o };
-      for (const k of ["customCover", "cover"]) out[k] = await shrink(o[k]);
-      return out;
-    };
-    let before = 0, after = 0;
-    const measure = (o) => { try { return JSON.stringify(o).length; } catch { return 0; } };
-    showNotif(lang === "en" ? "Optimizing covers…" : "A otimizar capas…", accent);
-    try {
-      const lib = libraryRef.current;
-      const nextLib = {};
-      for (const [id, item] of Object.entries(lib)) {
-        nextLib[id] = id.startsWith("__") ? item : await shrinkObj(item);
-      }
-      const hall = Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : [];
-      const nextHall = [];
-      for (const h of hall) nextHall.push(await shrinkObj(h));
-      const feat = profile?.featuredItem ? await shrinkObj(profile.featuredItem) : null;
-      const favs = [];
-      for (const f of favorites) favs.push(await shrinkObj(f));
-      before = measure(lib) + measure(hall) + measure(profile?.featuredItem) + measure(favorites);
-      after = measure(nextLib) + measure(nextHall) + measure(feat) + measure(favs);
-      if (after >= before) { showNotif(lang === "en" ? "Covers already optimized" : "As capas já estão otimizadas", "#8b949e"); return; }
-      saveLibrary(nextLib);
-      if (hall.length || feat) {
-        setProfile(prev => ({ ...prev, hallOfFame: nextHall, featuredItem: feat }));
-        await persistHall(nextHall, feat);
-      }
-      if (favorites.length) {
-        setFavorites(favs);
-        if (user) try { await supa.updateFavorites(user.id, favs); } catch {}
-      }
-      const mb = (n) => (n / 1048576).toFixed(1);
-      showNotif(lang === "en" ? `Done: ${mb(before)} MB → ${mb(after)} MB` : `Feito: ${mb(before)} MB → ${mb(after)} MB`, "#22c55e");
-    } catch (err) {
-      console.error("[TrackAll] optimizeCovers:", err);
-      showNotif(lang === "en" ? "Could not optimize covers" : "Não foi possível otimizar as capas", "#ef4444");
-    }
   };
 
   const getLibraryMatch = (id, type = "") => findLibraryEntry(library, id, type);
@@ -2368,7 +2318,6 @@ export default function TrackAll() {
             featuredItem={activeProfile.featuredItem || null}
             onSetFeatured={demoMode ? null : saveFeatured}
             onToggleHallOfFame={toggleHallOfFame}
-            onOptimizeCovers={optimizeCovers}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
