@@ -2092,10 +2092,10 @@ export default function TrackAll() {
             .hof-card:hover .hof-rm { opacity: 1; }
           }
           /* ── Hover unificado (capas): mesma elevação, brilho e duração em todo o lado ── */
-          .card, .recent-card > div, .fav-card-wrap > div, .hof-card > div:first-child, .ec-card { transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
+          .card, .recent-card > div:first-child, .fav-card-wrap > div:first-child, .hof-card > div:first-child, .ec-card { transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
           .ec-act { opacity: 0; transform: translateY(4px); transition: opacity 0.16s ease, transform 0.16s ease; }
           @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-            .card:hover, .recent-card:hover > div, .fav-card-wrap:hover > div, .hof-card:hover > div:first-child, .ec-card:hover {
+            .card:hover, .recent-card:hover > div:first-child, .fav-card-wrap:hover > div:first-child, .hof-card:hover > div:first-child, .ec-card:hover {
               transform: translateY(-4px) scale(1.03); position: relative; z-index: 2;
               box-shadow: 0 0 0 1px ${accent}88, 0 18px 30px -12px ${accent}80 !important;
               border-color: ${accent}88;
