@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES } from "../config/constants";
+import { TypeIcon } from "./TypeIcon";
 
 export function ProfileTabCompletos({ items, library, accent, darkMode, isMobileDevice, lang, onOpen }) {
   const completados = items.filter(i => i.userStatus === "completo").sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
@@ -22,7 +23,7 @@ export function ProfileTabCompletos({ items, library, accent, darkMode, isMobile
       <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
         {[{id:"all",label:lang==="en"?"All":"Todos"}, ...MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id))].map(t => (
           <button key={t.id} onClick={() => setTypeFilter(t.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${typeFilter===t.id?accent:"#30363d"}`, background: typeFilter===t.id?`${accent}22`:"transparent", color: typeFilter===t.id?accent:"#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-            {t.icon} {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
+            <TypeIcon id={t.id} /> {t.labelEn ? (lang==="en"?t.labelEn:t.label) : t.label}
           </button>
         ))}
       </div>
@@ -37,7 +38,7 @@ export function ProfileTabCompletos({ items, library, accent, darkMode, isMobile
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
               <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                <div className="ec-card" style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
                   {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
                   {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
                 </div>

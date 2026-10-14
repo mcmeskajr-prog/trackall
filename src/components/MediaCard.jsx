@@ -3,6 +3,7 @@ import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
+import { TypeIcon } from "./TypeIcon";
 
 export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
@@ -35,7 +36,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
           />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
-            <span style={{ fontSize: 28 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon}</span>
+            <span style={{ fontSize: 28 }}><TypeIcon id={item.type} /></span>
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{(item.title || "Sem título").slice(0, 40)}</span>
           </div>
         )}

@@ -7,6 +7,7 @@ import { getConsumptionTime } from "../lib/consumptionTime";
 import { MediaCard } from "../components/MediaCard";
 import { TiltCard } from "../components/TiltCard";
 import { RecoCarousel } from "../components/RecoCarousel";
+import { TypeIcon } from "../components/TypeIcon";
 
 // ─── Vista Home (dashboard) ───
 // O estado e os cálculos (stats, homeDashboard, recos...) vivem no TrackAll; esta vista só os mostra.
@@ -276,7 +277,7 @@ export function HomeView({ view, setView, profile, user, items, library, setLibr
                       <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", color: homeFilter.length === 1 ? (TYPE_COLORS[homeFilter[0]] || (darkMode ? "#8b949e" : "#64748b")) : (darkMode ? "#8b949e" : "#64748b"), textTransform: "uppercase" }}>{icon} {title}</h2>
                       {homeFilter.length > 0 && (
                         <span style={{ fontSize: 10, color: accent, background: `${accent}22`, padding: "2px 6px", borderRadius: 20, fontWeight: 700 }}>
-                          {homeFilter.map(f => MEDIA_TYPES.find(t => t.id === f)?.icon).join(" ")}
+                          {homeFilter.map(f => <TypeIcon key={f} id={f} style={{ marginRight: 3 }} />)}
                         </span>
                       )}
                     </div>

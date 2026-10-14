@@ -8,6 +8,7 @@ import { fetchMediaDetails } from "../api/details";
 import { fetchAniListSafe } from "../api/anilist";
 import { StarRating } from "./StarRating";
 import { CoverEditModal } from "./CoverEditModal";
+import { TypeIcon } from "./TypeIcon";
 
 export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -404,7 +405,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                 <div style={{ flex: 1, minWidth: 0, paddingTop: isMobileDevice ? 40 : 96 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                     <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                      {MEDIA_TYPES.find((t) => t.id === currentItem.type)?.icon} {MEDIA_TYPES.find((t) => t.id === currentItem.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === currentItem.type), lang) : ""}
+                      <TypeIcon id={currentItem.type} /> {MEDIA_TYPES.find((t) => t.id === currentItem.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === currentItem.type), lang) : ""}
                     </span>
                     {currentItem.year && <span style={{ background: "#21262d", color: "#8b949e", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{currentItem.year}</span>}
                     {currentItem.score && <span style={{ background: "#1a2e1a", color: "#10b981", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>⭐ {currentItem.score}</span>}

@@ -15,11 +15,13 @@ import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileStats } from "./ProfileStats";
+import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
+import { TypeIcon } from "./TypeIcon";
 
 // Flor de sakura (badge do Hall of Fame)
 function Sakura({ size = 11 }) {
@@ -286,7 +288,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "stretch" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
         : { padding: "16px 16px 0" }
       }>
       {!editing && (
@@ -439,7 +441,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                       <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` }}>
                         {coverSrc
                           ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{t?.icon}</div>}
+                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}><TypeIcon id={t.id} /></div>}
                         <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
                           <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
                         </div>
@@ -527,6 +529,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           </div>
         );
       })()}
+
+      {/* ── Estatísticas (PC): distribuição de ratings completa ── */}
+      {!editing && !isMobileDevice && <div style={{ margin: "0 16px 28px" }}><ProfileEstatisticas items={items} panelBg={panelBg ? computedPanelBg : null} /></div>}
 
       {/* ── Tier Lists e Listas ── */}
       {!editing && (

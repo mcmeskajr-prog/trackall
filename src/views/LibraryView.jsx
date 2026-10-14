@@ -6,6 +6,7 @@ import { gradientFor } from "../lib/utils";
 import { MediaCard } from "../components/MediaCard";
 import { VirtualGrid } from "../components/VirtualGrid";
 import { LibGroupedList } from "../components/LibGroupedList";
+import { TypeIcon } from "../components/TypeIcon";
 
 // ─── Vista da Biblioteca ───
 // Estado (filtros, ordenação, modo de vista) vive no TrackAll; items/filteredLib/sortedLib são calculados lá.
@@ -37,7 +38,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                   <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: "auto", scrollbarWidth: "none", flex: 1, minWidth: 0 }}>
                     {MEDIA_TYPES.slice(1).filter(t => filteredLib.some(i => i.type === t.id)).map(t => (
                       <span key={t.id} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
-                        <span style={{ fontSize: 13 }}>{t.icon}</span>
+                        <span style={{ fontSize: 13 }}><TypeIcon id={t.id} /></span>
                         <span style={{ color: darkMode ? "#8b949e" : "#64748b", fontWeight: 700, fontSize: 11 }}>{filteredLib.filter(i => i.type === t.id).length}</span>
                       </span>
                     ))}
@@ -61,7 +62,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                       setActiveTab(t.id);
                       if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id);
                     }}>
-                    {t.icon} {mediaLabel(t, lang)}
+                    <TypeIcon id={t.id} /> {mediaLabel(t, lang)}
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
                     </span>

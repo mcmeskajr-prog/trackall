@@ -3,6 +3,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { supa } from "../config/supabase";
 import { MEDIA_TYPES, TYPE_COLORS, mediaLabel } from "../config/constants";
+import { TypeIcon } from "./TypeIcon";
 
 export function FeedTab({ accepted, getFriendInfo }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -103,7 +104,7 @@ export function FeedTab({ accepted, getFriendInfo }) {
             <div style={{ width: 44, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0, border: `1.5px solid ${tc || accent}33`, background: "#161b22" }}>
               {coverSrc
                 ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
-                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{mt?.icon}</div>
+                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}><TypeIcon id={mt?.id} /></div>
               }
             </div>
           </div>

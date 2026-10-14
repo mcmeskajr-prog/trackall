@@ -4,6 +4,7 @@ import { MediaCard } from "./MediaCard";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES } from "../config/constants";
+import { TypeIcon } from "./TypeIcon";
 
 export function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -38,7 +39,7 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
             <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
               {item.cover
                 ? <img className="reco-img" src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s ease", pointerEvents: "none" }} onError={e => e.currentTarget.style.display="none"} />
-                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, pointerEvents: "none" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, pointerEvents: "none" }}><TypeIcon id={item.type} /></div>
               }
               <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 10, pointerEvents: "none" }}>
                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>

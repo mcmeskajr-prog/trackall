@@ -59,6 +59,7 @@ import { smartSearch, CACHE, cacheKey } from './api/smartSearch';
 // ─── Contexts ─────────────────────────────────────────────────────────────────
 import { ThemeContext, useTheme, useAccent, useDarkMode, useIsMobile } from './contexts/ThemeContext';
 import { LangContext, useLang } from './contexts/LangContext';
+import { TypeIcon } from "./components/TypeIcon";
 
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
@@ -1935,21 +1936,11 @@ export default function TrackAll() {
                   {MEDIA_TYPES.slice(1).filter(t => libByType.some(i => i.type === t.id)).map((t, tIdx) => {
                     const cnt = libByType.filter(i => i.type === t.id).length;
                     const isActive = view === "library" && activeTab === t.id;
-                    const typeIcons = {
-                      anime: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 9.5c.5-1 1.5-1.5 2.5-1s1.5 1.5 1 2.5L9 14h5"/><circle cx="16" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
-                      manga: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="3" width="11" height="18" rx="2"/><path d="M15 3l4 2v16l-4-2"/></svg>,
-                      series: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8M12 18v3"/></svg>,
-                      filmes: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20M9 4v5M15 4v5M2 14h20M9 14v6M15 14v6"/></svg>,
-                      jogos: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="7" width="20" height="12" rx="3"/><path d="M9 13h2m1 0h2M14 11v2M6 13h.01"/></svg>,
-                      livros: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4h7a2 2 0 012 2v13a1.5 1.5 0 00-1.5-1.5H4z"/><path d="M20 4h-7a2 2 0 00-2 2v13a1.5 1.5 0 011.5-1.5H20z"/></svg>,
-                      manhwa: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h4M7 12h6M7 16h3M15 12l3-4v8"/></svg>,
-                      lightnovels: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 3l1.5 5h5l-4 3 1.5 5L12 13l-4 3 1.5-5-4-3h5z"/></svg>,
-                      comics: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4h16a1 1 0 011 1v10a1 1 0 01-1 1H8l-4 4V5a1 1 0 011-1z"/></svg>,
-                    };
+                    
                     return (
                       <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
                         style={{ background: isActive ? `${accent}18` : undefined, borderRadius: 8, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>
-                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>{typeIcons[t.id] || t.icon}</span>
+                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}><TypeIcon id={t.id} size={16} /></span>
                         <span style={{ flex: 1, color: isActive ? accent : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{mediaLabel(t, lang)}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? accent : "#484f58" }}>{cnt}</span>
                       </div>
@@ -2010,7 +2001,6 @@ export default function TrackAll() {
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
           .card { background: ${activeDarkMode ? "rgba(22,27,34,0.4)" : "rgba(255,252,247,0.55)"}; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
-          .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-color: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
           .media-thumb .rating-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.52); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; border-radius: 10px; }
@@ -2087,24 +2077,30 @@ export default function TrackAll() {
           .fade-in { animation: fadeIn 0.2s ease; }
           .view-transition { animation: viewIn 0.18s ease both; }
           @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          .recent-card:hover > div { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.7) !important; }
           .qp-btn { transition: background 0.15s, border-color 0.15s, transform 0.1s; }
           .qp-btn:not(:disabled):hover { transform: translateY(-1px); }
           .qp-btn-primary:not(:disabled):hover { background: ${accent}35 !important; border-color: ${accent} !important; }
           .qp-btn-secondary:not(:disabled):hover { background: ${activeDarkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.08)"} !important; border-color: ${activeDarkMode ? "#484f58" : "#94a3b8"} !important; }
           .recent-card:hover .recent-hover-overlay { opacity: 1 !important; }
-          .fav-card-wrap:hover > div { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 28px rgba(0,0,0,0.65) !important; }
-          .fav-card-wrap > div { transition: transform 0.18s, box-shadow 0.18s; }
           .fav-card-wrap:hover .fav-hover-overlay { opacity: 1 !important; }
           .recent-card:hover .fav-rm { opacity: 1 !important; }
-          .hof-card > div:first-child { transition: transform 0.25s ease, box-shadow 0.25s ease; }
           .hof-badge svg { transition: transform 0.4s ease; }
           .hof-rm { opacity: 0; transition: opacity 0.15s; }
           @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-            .hof-card:hover > div:first-child { transform: translateY(-4px) scale(1.025); box-shadow: 0 0 0 1px rgba(249,168,212,0.55), 0 0 30px rgba(249,168,212,0.28), 0 22px 36px -14px rgba(0,0,0,0.85) !important; }
             .hof-card:hover .hof-badge { background: rgba(190,24,93,0.55) !important; }
             .hof-card:hover .hof-badge svg { transform: rotate(72deg) scale(1.2); }
             .hof-card:hover .hof-rm { opacity: 1; }
+          }
+          /* ── Hover unificado (capas): mesma elevação, brilho e duração em todo o lado ── */
+          .card, .recent-card > div, .fav-card-wrap > div, .hof-card > div:first-child, .ec-card { transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
+          .ec-act { opacity: 0; transform: translateY(4px); transition: opacity 0.16s ease, transform 0.16s ease; }
+          @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .card:hover, .recent-card:hover > div, .fav-card-wrap:hover > div, .hof-card:hover > div:first-child, .ec-card:hover {
+              transform: translateY(-4px) scale(1.03); position: relative; z-index: 2;
+              box-shadow: 0 0 0 1px ${accent}88, 0 18px 30px -12px ${accent}80 !important;
+              border-color: ${accent}88;
+            }
+            .ec-card:hover .ec-act { opacity: 1; transform: none; }
           }
           .media-grid .card { animation: cardIn 0.22s ease both; }
           .media-grid[data-key] .card { animation: cardIn 0.22s ease both; }
@@ -2502,7 +2498,7 @@ export default function TrackAll() {
               <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 10 }}>
                 {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
                   <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "7px 13px", borderRadius: 99, background: quickSearchType === t.id ? `${accent}26` : "transparent", border: `1px solid ${quickSearchType === t.id ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, color: quickSearchType === t.id ? (darkMode ? "#fca5a5" : accent) : (darkMode ? "#aab4c0" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
-                    <span>{t.icon}</span> {mediaLabel(t, lang) || useT("all")}
+                    <span><TypeIcon id={t.id} /></span> {mediaLabel(t, lang) || useT("all")}
                   </button>
                 ))}
               </div>
@@ -2528,7 +2524,7 @@ export default function TrackAll() {
                     }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.04)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "transparent"}`, cursor: "pointer" }}>
                       {(item.cover || item.thumbnailUrl)
                         ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
-                        : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+                        : <div style={{ width: 36, height: 50, borderRadius: 6, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><TypeIcon id={item.type} /></div>
                       }
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>

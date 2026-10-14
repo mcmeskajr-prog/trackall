@@ -5,6 +5,7 @@ import { gradientFor } from "../lib/utils";
 import { t } from "../translations";
 import { useLang } from "../contexts/LangContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { TypeIcon } from "./TypeIcon";
 
 export function RatingOverlay({ item, library, onDone }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -22,7 +23,7 @@ export function RatingOverlay({ item, library, onDone }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22, textAlign: "left" }}>
           {(item.cover || item.thumbnailUrl)
             ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 56, height: 80, objectFit: "cover", borderRadius: 10, flexShrink: 0, boxShadow: "0 8px 20px rgba(0,0,0,0.5)" }} />
-            : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>
+            : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}><TypeIcon id={item.type} /></div>
           }
           <div>
             <div style={{ display: "inline-block", fontSize: 11, color: "#34d399", fontWeight: 700, marginBottom: 6, padding: "3px 10px", borderRadius: 99, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {lang === "en" ? "Marked as complete" : "Marcado como completo"}</div>

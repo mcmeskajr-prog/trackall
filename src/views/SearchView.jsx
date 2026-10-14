@@ -3,6 +3,7 @@ import { PosterGridSkeleton } from '../components/Skeleton';
 import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { MediaCard } from "../components/MediaCard";
+import { TypeIcon } from "../components/TypeIcon";
 
 // ─── Vista de Pesquisa ───
 // O estado vive no TrackAll (a pesquisa tem de sobreviver à troca de separador);
@@ -19,7 +20,7 @@ export function SearchView({ view, activeTab, setActiveTab, searchQuery, setSear
                   setActiveTab(t.id);
                   if (searchQuery.trim()) doSearch(searchQuery, t.id);
                 }}>
-                  {t.icon} {mediaLabel(t, lang)}
+                  <TypeIcon id={t.id} /> {mediaLabel(t, lang)}
                 </button>
               ))}
             </div>

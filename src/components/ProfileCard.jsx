@@ -5,6 +5,7 @@ import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
+import { TypeIcon } from "./TypeIcon";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
@@ -31,6 +32,34 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
   const count = (items || []).length;
 
   const avatarSize = isMobileDevice ? 92 : 104;
+
+  // Telemóvel: cartão compacto numa linha (o destaque vive no Hall of Fame, ver ProfileView)
+  if (isMobileDevice) {
+    const iconBtn = { width: 44, height: 44, borderRadius: 12, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", color: text, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.18)"}` };
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, color: text, boxSizing: "border-box",
+        background: panelBg ? panelBg : (darkMode ? "rgba(12,12,16,0.7)" : "rgba(255,255,255,0.85)"),
+        border: `1px solid ${darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)"}` }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+          boxShadow: `0 0 0 3px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 5px ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 22, color: "white" }}>
+          {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
+          <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
+          {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 4, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
+        </div>
+        <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+        </button>
+        {onSignOut && (
+          <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -60,16 +89,16 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
 
       {/* Item em destaque */}
       {featured ? (
-        <div style={{ position: "relative", marginBottom: 14, ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }) }}>
-        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer", ...(isMobileDevice ? {} : { flex: 1, display: "flex", flexDirection: "column" }) }}>
+        <div style={{ position: "relative", marginBottom: 14 }}>
+        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer" }}>
           <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.03} style={{
-            ...(isMobileDevice ? { aspectRatio: "2/3" } : { flex: 1, minHeight: 400 }), borderRadius: 16, overflow: "hidden",
+            aspectRatio: "2/3", borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
             boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
               ? <img src={hiRes(coverSrc)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
-              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{typeDef?.icon}</div>}
+              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}><TypeIcon id={typeDef?.id} /></div>}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.8 }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>

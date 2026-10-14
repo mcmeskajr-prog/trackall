@@ -9,6 +9,7 @@ import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { isColorDark } from "../config/theme";
 import { TYPE_COLORS, MONTH_EN, MONTH_PT } from "../config/constants";
+import { TypeIcon } from "./TypeIcon";
 
 export function FriendsView({user, accent, darkMode = true, isMobileDevice = false, library = {} }) {
   const { lang, useT } = useLang();
@@ -119,7 +120,7 @@ export function FriendsView({user, accent, darkMode = true, isMobileDevice = fal
         <div style={{ flexShrink: 0, width: size }}>
           <div style={{ width: size, height: Math.round(size * 1.45), borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), position: "relative", border: `1px solid ${fAccent}22` }}>
             {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
-              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon}</div>}
+              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}><TypeIcon id={item.type} /></div>}
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "16px 6px 6px" }}>
               <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
             </div>
@@ -308,7 +309,7 @@ export function FriendsView({user, accent, darkMode = true, isMobileDevice = fal
                             <div key={item.id} style={{ position: "relative" }}>
                               <div style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: `2px solid ${tc}33`, boxShadow: "0 2px 8px rgba(0,0,0,0.35)", position: "relative" }}>
                                 {coverSrc ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />
-                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{t.icon}</div>}
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}><TypeIcon id={t.id} /></div>}
                                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.85))", padding: "16px 6px 6px" }}>
                                   <p style={{ fontSize: 10, color: "white", fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</p>
                                 </div>
