@@ -44,6 +44,7 @@ import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaIt
 import { getConsumptionTime } from './lib/consumptionTime';
 import { shuffle, gradientFor, compressImage } from './lib/utils';
 import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
+import { setImageUser, isDataUrl, uploadDataUrl } from './lib/imageStore';
 
 // ─── API imports ──────────────────────────────────────────────────────────────
 import { searchAniList, fetchAniListSafe, fetchTrendingAnime, fetchTrendingManga } from './api/anilist';
@@ -463,10 +464,12 @@ export default function TrackAll() {
             setAuthLoading(false);
             (async () => {
               try {
-                const [freshProf, [freshLib, freshHr]] = await Promise.all([fetchProfileRow(user.id), fetchHeavyData(user.id)]);
+                const freshProf = prof || await fetchProfileRow(user.id);
+                const [freshLib, freshHr] = await fetchHeavyData(user.id);
                 if (freshProf || freshHr?.data) {
                   // se mexeste na biblioteca entretanto, não a substitui (as tuas alterações já seguiram para o servidor)
                   applyUserData(user.id, { prof: freshProf || prof || cached.prof, lib: libDirtyRef.current ? null : freshLib, hr: freshHr });
+                  if (freshLib) setDataFresh(true);
                   if (!libDirtyRef.current) cacheSet(`boot_${user.id}`, { v: 1, ts: Date.now(), prof: bootCacheRef.current.prof, hr: bootCacheRef.current.hr, lib: freshLib });
                 }
               } catch (e) { console.warn("[TrackAll] atualização em segundo plano falhou:", e?.message); }
@@ -505,7 +508,7 @@ export default function TrackAll() {
   const fetchProfileRow = (userId) => supa.getProfile(userId);
   // Se o pedido falhar devolve null (nunca uma biblioteca vazia) — assim não se mostra nem se guarda "vazio" por engano
   const fetchLibrary = async (userId) => {
-    const { data, error } = await supabase.from("library").select("media_id, data").eq("user_id", userId);
+    const { data, error } = await supabase.from("library").select("media_id, data").eq("user_id", userId).neq("media_id", "__hall_of_fame__");
     if (error) throw error;
     const lib = {};
     (data || []).forEach(row => {
@@ -520,6 +523,7 @@ export default function TrackAll() {
 
   // Aplica perfil + biblioteca + Hall of Fame ao estado. fromCache: não repara a BD com dados possivelmente antigos.
   const applyUserData = (userId, { prof, lib, hr }, fromCache = false) => {
+    setImageUser(userId);
     if (lib) setLibrary(lib); // primeiro: nada do que vem a seguir pode impedir a biblioteca de aparecer
     bootCacheRef.current = { prof: prof || bootCacheRef.current.prof, hr: hr ? { data: hr.data || null, error: null } : bootCacheRef.current.hr };
       if (prof) {
@@ -614,6 +618,7 @@ export default function TrackAll() {
     try {
       const [prof, [lib, hr]] = await Promise.all([fetchProfileRow(userId), fetchHeavyData(userId)]);
       const ok = applyUserData(userId, { prof, lib, hr }) && !!lib;
+      if (ok) setDataFresh(true);
       if (ok && prof) cacheSet(`boot_${userId}`, { v: 1, ts: Date.now(), prof, hr: { data: hr?.data || null, error: null }, lib });
       return ok;
     } catch (err) {
@@ -801,6 +806,7 @@ export default function TrackAll() {
     await supa.signOut();
     cacheClearAll();
     libDirtyRef.current = false;
+    setDataFresh(false);
     bootCacheRef.current = { prof: null, hr: null };
     setUser(null);
     setLibrary({});
@@ -836,6 +842,92 @@ export default function TrackAll() {
     });
     return saveQueueRef.current;
   };
+
+  // ── Migração única: imagens base64 (capas personalizadas, fundos) → Supabase Storage ──
+  // Só corre com dados confirmados do servidor. Cada ficheiro é enviado e só depois substituído; se algo falhar, fica o original.
+  const [dataFresh, setDataFresh] = useState(false);
+  const migratingRef = useRef(false);
+  const favoritesRef = useRef([]);
+  favoritesRef.current = favorites;
+  const migrateImages = async () => {
+    if (!user || demoMode || migratingRef.current) return;
+    const flagKey = `trackall_img_migrated_${user.id}`;
+    try { if (localStorage.getItem(flagKey) === "2") return; } catch {}
+    const lib0 = libraryRef.current;
+    const prof0 = bootCacheRef.current.prof || {};
+    const hall0 = hallRef.current;
+    if (!hall0.loaded) return;
+    const profFields = ["bg_image", "bg_image_mobile", "bg_image_desktop", "stats_card_bg", "avatar", "banner"];
+    const found = new Set();
+    const collect = (o) => { if (!o || typeof o !== "object") return; for (const k of ["customCover", "cover"]) if (isDataUrl(o[k])) found.add(o[k]); };
+    Object.entries(lib0).forEach(([id, it]) => { if (!id.startsWith("__")) collect(it); });
+    (hall0.hall || []).forEach(collect); collect(hall0.featured);
+    favoritesRef.current.forEach(collect);
+    profFields.forEach(f => { if (isDataUrl(prof0[f])) found.add(prof0[f]); });
+    if (!found.size) { try { localStorage.setItem(flagKey, "2"); } catch {} return; }
+
+    migratingRef.current = true;
+    try {
+      // cópia de segurança local antes de mexer em qualquer coisa
+      try { await cacheSet(`backup_pre_storage_${user.id}`, { ts: Date.now(), lib: lib0, hall: hall0.hall, featured: hall0.featured, favorites: favoritesRef.current, prof: prof0 }); } catch {}
+      showNotif(lang === "en" ? "Moving images to cloud storage…" : "A mover imagens para o armazenamento…", accent);
+      const map = new Map(); let fails = 0;
+      for (const d of found) {
+        if (fails >= 3) break; // provavelmente permissões/rede: pára e tenta noutra sessão
+        try { map.set(d, await uploadDataUrl(d, user.id)); } catch (e) { fails++; console.warn("[TrackAll] migração: upload falhou:", e?.message || e); }
+      }
+      const sub = (v) => (isDataUrl(v) && map.has(v)) ? map.get(v) : v;
+      const subObj = (o) => { if (!o || typeof o !== "object") return o; const out = { ...o }; let ch = false; for (const k of ["customCover", "cover"]) { const n = sub(o[k]); if (n !== o[k]) { out[k] = n; ch = true; } } return ch ? out : o; };
+      let dbOk = true;
+      if (map.size) {
+        // biblioteca (sempre sobre o estado mais recente)
+        const curLib = libraryRef.current; const nextLib = {}; let libCh = false;
+        for (const [id, it] of Object.entries(curLib)) { const n = id.startsWith("__") ? it : subObj(it); if (n !== it) libCh = true; nextLib[id] = n; }
+        if (libCh) await saveLibrary(nextLib);
+        // Hall of Fame + destaque
+        const h = hallRef.current; const nh = (h.hall || []).map(subObj); const nf = h.featured ? subObj(h.featured) : h.featured;
+        if (nh.some((x, i) => x !== h.hall[i]) || nf !== h.featured) {
+          setProfile(prev => ({ ...prev, hallOfFame: nh, featuredItem: nf || null }));
+          await persistHall(nh, nf);
+        }
+        // favoritos
+        const favs = favoritesRef.current.map(subObj);
+        if (favs.some((x, i) => x !== favoritesRef.current[i])) {
+          setFavorites(favs);
+          const { error } = await supabase.from("profiles").update({ favorites: favs }).eq("id", user.id);
+          if (error) dbOk = false;
+        }
+        // campos do perfil (fundos, etc.)
+        const upd = {}; profFields.forEach(f => { const n = sub(prof0[f]); if (n !== prof0[f]) upd[f] = n; });
+        if (Object.keys(upd).length) {
+          const { error } = await supabase.from("profiles").update(upd).eq("id", user.id);
+          if (error) { dbOk = false; console.warn("[TrackAll] migração: perfil não gravou:", error.message); }
+          else {
+            if (upd.bg_image) setBgImage(upd.bg_image);
+            if (upd.bg_image_mobile) setBgImageMobile(upd.bg_image_mobile);
+            if (upd.avatar || upd.banner) setProfile(prev => ({ ...prev, ...(upd.avatar ? { avatar: upd.avatar } : {}), ...(upd.banner ? { banner: upd.banner } : {}) }));
+            bootCacheRef.current = { ...bootCacheRef.current, prof: { ...prof0, ...upd } };
+          }
+        }
+        scheduleBootCache();
+      }
+      if (map.size === found.size && dbOk) {
+        try { localStorage.setItem(flagKey, "2"); } catch {}
+        showNotif(lang === "en" ? `Done: ${map.size} images moved` : `Feito: ${map.size} imagens migradas`, "#22c55e");
+      } else {
+        showNotif(lang === "en" ? "Could not move all images — will retry next time" : "Nem todas as imagens foram migradas — tento de novo na próxima vez", "#f59e0b");
+      }
+    } catch (err) {
+      console.error("[TrackAll] migração de imagens:", err);
+    } finally { migratingRef.current = false; }
+  };
+  const migrateRef = useRef(migrateImages);
+  migrateRef.current = migrateImages;
+  useEffect(() => {
+    if (!user?.id || !dataFresh) return;
+    const t = setTimeout(() => { migrateRef.current(); }, 4000);
+    return () => clearTimeout(t);
+  }, [user?.id, dataFresh]);
 
   const getLibraryMatch = (id, type = "") => findLibraryEntry(library, id, type);
 

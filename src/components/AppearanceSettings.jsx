@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { compressImage } from "../lib/utils";
+import { persistImage } from "../lib/imageStore";
 
 // ─── Definições › Aparência ──────────────────────────────────────────────────
 // Estilos prontos + todas as opções de personalização (cor de destaque, fundo, imagem, painéis,
@@ -32,6 +33,7 @@ export function AppearanceSettings({
   onPanelBg, onPanelOpacity, onBgImage, onBgImageMobile, onBgOverlay, onBgBlur, onBgParallax, onBgSeparateDevices,
 }) {
   const [themeName, setThemeName] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [ratingStyle, setRatingStyleState] = useState(() => { try { return localStorage.getItem(RATING_STYLE_KEY) || "stars"; } catch { return "stars"; } });
   const setRatingStyle = (v) => {
     setRatingStyleState(v);
@@ -147,7 +149,7 @@ export function AppearanceSettings({
     <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
       <label style={{ width: 64, height: 64, borderRadius: 12, border: img ? `2px solid ${color}` : `2px dashed ${line}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: img ? `url(${img}) center/cover` : "transparent", overflow: "hidden", gap: 2 }}>
         {!img && <><span>{icon}</span><span style={{ fontSize: 10, color: sub }}>{label}</span></>}
-        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const c = await compressImage(f, w, h, q); if (c) onSet(c); }} />
+        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const c = await compressImage(f, w, h, q); if (c) onSet(await persistImage(c)); }} />
       </label>
       {img && <button type="button" onClick={() => onSet("")} style={{ fontSize: 11, padding: "2px 10px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
     </div>
@@ -319,11 +321,17 @@ export function AppearanceSettings({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: isMobileDevice ? "column-reverse" : "row", gap: 28, alignItems: "flex-start", color: text }}>
+    <div style={{ display: "flex", flexDirection: isMobileDevice ? "column-reverse" : "row", gap: isMobileDevice ? 16 : 28, alignItems: "flex-start", color: text }}>
       <div style={{ flex: 1, minWidth: 0, width: "100%" }}>{controls}</div>
-      <aside style={{ width: isMobileDevice ? "100%" : 380, flexShrink: 0, position: isMobileDevice ? "static" : "sticky", top: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={eyebrow}>{en ? "Live preview" : "Pré-visualização"}</div>
-        {preview}
+      <aside style={{ width: isMobileDevice ? "100%" : 380, flexShrink: 0, position: "sticky", top: isMobileDevice ? 8 : 16, zIndex: 5, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={eyebrow}>{en ? "Live preview" : "Pré-visualização"}</div>
+          {isMobileDevice && <button type="button" onClick={() => setPreviewOpen(o => !o)} style={{ ...chip(false), minHeight: 30, padding: "4px 12px", fontSize: 12 }}>{previewOpen ? (en ? "Collapse" : "Reduzir") : (en ? "Expand" : "Ver tudo")}</button>}
+        </div>
+        <div style={isMobileDevice ? { maxHeight: previewOpen ? 520 : 168, overflow: "hidden", borderRadius: 20, position: "relative", transition: "max-height .25s ease", boxShadow: "0 12px 28px -12px rgba(0,0,0,0.6)" } : undefined}>
+          {preview}
+          {isMobileDevice && !previewOpen && <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 36, background: `linear-gradient(to top, ${bgColor}, transparent)`, pointerEvents: "none" }} />}
+        </div>
       </aside>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { gradientFor, compressImage } from "../lib/utils";
+import { persistImage } from "../lib/imageStore";
 
 export function CoverEditModal({item, onSave, onClose }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -16,7 +17,7 @@ export function CoverEditModal({item, onSave, onClose }) {
     const file = e.target.files[0];
     if (!file) return;
     setLoading(true);
-    const compressed = await compressImage(file);
+    const compressed = await persistImage(await compressImage(file));
     setLoading(false);
     if (compressed) { setUrl(compressed); setPreview(compressed); }
   };
