@@ -7,6 +7,7 @@ import { MediaCard } from "../components/MediaCard";
 import { VirtualGrid } from "../components/VirtualGrid";
 import { LibGroupedList } from "../components/LibGroupedList";
 import { TypeIcon } from "../components/TypeIcon";
+import { CoverImg } from "../components/CoverImg";
 
 // ─── Vista da Biblioteca ───
 // Estado (filtros, ordenação, modo de vista) vive no TrackAll; items/filteredLib/sortedLib são calculados lá.
@@ -160,7 +161,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                       return (
                         <div key={item.id} className="recent-card" onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", position: "relative" }}>
                           <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", position: "relative", background: gradientFor(item.id) }}>
-                            {coverSrc && <img src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            {coverSrc && <CoverImg src={coverSrc} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                             {status && <span style={{ position: "absolute", top: 3, right: 3, fontSize: 9, background: `${status.color}cc`, color: "white", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>{status.emoji}</span>}
                             {libItem?.userRating > 0 && <span style={{ position: "absolute", bottom: 3, left: 3, fontSize: 9, background: "rgba(0,0,0,0.85)", color: "#f59e0b", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>★{libItem.userRating}</span>}
                             <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", alignItems: "flex-end", padding: "20px 5px 5px" }}>

@@ -2093,6 +2093,10 @@ export default function TrackAll() {
           }
           /* ── Hover unificado (capas): mesma elevação, brilho e duração em todo o lado ── */
           .card, .recent-card > div:first-child, .fav-card-wrap > div:first-child, .hof-card > div:first-child, .ec-card { transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
+          /* ── Esqueleto de capa (CoverImg): brilho enquanto a imagem carrega ── */
+          @keyframes skCover { 0% { background-position: -300px 0; } 100% { background-position: 300px 0; } }
+          .sk-cover { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.05) 65%); background-size: 600px 100%; animation: skCover 1.3s linear infinite; }
+          @media (prefers-reduced-motion: reduce) { .sk-cover { animation: none; } }
           .ec-act { opacity: 0; transform: translateY(4px); transition: opacity 0.16s ease, transform 0.16s ease; }
           @media (hover: hover) and (prefers-reduced-motion: no-preference) {
             .card:hover, .recent-card:hover > div:first-child, .fav-card-wrap:hover > div:first-child, .hof-card:hover > div:first-child, .ec-card:hover {

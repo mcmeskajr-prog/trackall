@@ -4,6 +4,7 @@ import { useLang } from "../contexts/LangContext";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, MONTH_PT, MONTH_EN } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
+import { CoverImg } from "./CoverImg";
 
 export function RecentSection({ items, onOpen, showDiary = true }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -31,7 +32,7 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
             <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ flexShrink: 0, width: showAll ? undefined : 72, cursor: "pointer" }}>
               <div className="ec-card" style={{ width: showAll ? "100%" : 72, height: 104, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), border: "none", marginBottom: 4, position: "relative" }}>
                 {coverSrc
-                  ? <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
+                  ? <CoverImg src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => e.currentTarget.style.display = "none"} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}><TypeIcon id={item.type} /></div>
                 }
                 {item.userRating > 0 && (
@@ -77,7 +78,7 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
                 <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
                   <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: "none", boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
                     {coverSrc
-                      ? <img src={coverSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      ? <CoverImg src={coverSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}><TypeIcon id={item.type} /></div>
                     }
                     {item.userRating > 0 && (

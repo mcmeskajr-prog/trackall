@@ -11,6 +11,18 @@ import { StarRating } from "./StarRating";
 import { CoverEditModal } from "./CoverEditModal";
 import { TypeIcon } from "./TypeIcon";
 
+// Ícone com um risco por cima: indica que a lista está cheia
+function Slash({ children }) {
+  return (
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      {children}
+      <svg width="20" height="20" viewBox="0 0 20 20" style={{ position: "absolute", inset: "50% auto auto 50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} aria-hidden="true">
+        <line x1="3.5" y1="16.5" x2="16.5" y2="3.5" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
 export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
@@ -28,6 +40,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const [noteInput, setNoteInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
   const [synOpen, setSynOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false); // mobile: abre as estrelas na barra compacta
   const [barExtras, setBarExtras] = useState(false); // nota pessoal / capítulo na barra fixa
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
@@ -304,6 +317,8 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const canAddFavorite = !isFavorite && favorites.length < 30;
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
   const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 10;
+  const favIcon = isFavorite ? "♥" : !canAddFavorite ? <Slash>♡</Slash> : "♡";
+  const hofIcon = isHallOfFame ? "★" : !canAddHallOfFame ? <Slash>☆</Slash> : "☆";
   const modalSolid = darkMode ? "#0e1014" : "#ffffff";
   const modalBorder = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0";
   const synopsisText = detailExtra?.synopsis || currentItem.synopsis || "";
@@ -874,6 +889,39 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     })}
                   </div>
                   {/* Nota + ações */}
+                  {isMobileDevice ? (
+                    <>
+                      {ratingOpen && (
+                        <div style={{ display: "flex", justifyContent: "center", padding: "2px 0 4px" }}>
+                          <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={17} />
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <button onClick={() => setRatingOpen(v => !v)} aria-expanded={ratingOpen}
+                          style={{ flex: 1, minWidth: 0, height: 40, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", borderRadius: 10, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${ratingOpen ? "#f59e0b" : (darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0")}`, background: ratingOpen ? "#f59e0b18" : "transparent", color: "#f59e0b", fontWeight: 800, fontSize: 15 }}>
+                          <span>★ {libItem.userRating > 0 ? libItem.userRating : "—"}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#8b949e", whiteSpace: "nowrap" }}>{ratingOpen ? (lang === "en" ? "Close" : "Fechar") : (lang === "en" ? "Change" : "Mudar nota")}</span>
+                        </button>
+                        {onToggleFavorite && (
+                          <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }}
+                            aria-label={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}
+                            style={{ width: 40, height: 40, flex: "none", borderRadius: 10, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${isFavorite ? accent : (darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0")}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}>{favIcon}</button>
+                        )}
+                        {onToggleHallOfFame && (
+                          <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleHallOfFame(currentItem); }}
+                            aria-label={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
+                            style={{ width: 40, height: 40, flex: "none", borderRadius: 10, cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${isHallOfFame ? "#fbbf24" : (darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0")}`, background: isHallOfFame ? "#fbbf2422" : "transparent", color: isHallOfFame ? "#fbbf24" : "#8b949e" }}>{hofIcon}</button>
+                        )}
+                        <button onClick={() => setBarExtras(v => !v)} aria-label={lang === "en" ? "Note" : "Nota pessoal"}
+                          style={{ position: "relative", width: 40, height: 40, flex: "none", borderRadius: 10, cursor: "pointer", fontSize: 15, border: `1px solid ${barExtras ? accent : (darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0")}`, background: barExtras ? `${accent}22` : "transparent", color: barExtras ? accent : "#8b949e" }}>
+                          ✎{(noteInput || libItem.userNote) && !barExtras && <span style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: 99, background: accent }} />}
+                        </button>
+                        <button onClick={() => onRemove(currentItem.id)} aria-label={lang === "en" ? "Remove" : "Remover"}
+                          style={{ width: 40, height: 40, flex: "none", borderRadius: 10, cursor: "pointer", fontSize: 15, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`, background: "transparent", color: "#ef4444" }}>🗑</button>
+                      </div>
+                    </>
+                  ) : (
+                  <>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
                     <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={isMobileDevice ? 17 : 22} />
                     <div style={{ display: "flex", gap: 6, alignItems: "center", ...(isMobileDevice ? { width: "100%" } : {}) }}>
@@ -881,14 +929,14 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                         <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", flex: isMobileDevice ? 1 : "none", minWidth: 0, borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", opacity: !canAddFavorite && !isFavorite ? 0.4 : 1, border: `1px solid ${isFavorite ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}
                           title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
-                          <span style={{ fontSize: 14 }}>{isFavorite ? "♥" : "♡"}</span><span style={{ whiteSpace: "nowrap" }}>Favorito</span>
+                          <span style={{ fontSize: 14 }}>{favIcon}</span><span style={{ whiteSpace: "nowrap" }}>Favorito</span>
                         </button>
                       )}
                       {onToggleHallOfFame && (
                         <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleHallOfFame(currentItem); }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", flex: isMobileDevice ? 1 : "none", minWidth: 0, borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1, border: `1px solid ${isHallOfFame ? "#fbbf24" : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isHallOfFame ? "#fbbf2422" : "transparent", color: isHallOfFame ? "#fbbf24" : "#8b949e" }}
                           title={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}>
-                          <span style={{ fontSize: 14 }}>{isHallOfFame ? "★" : "☆"}</span><span style={{ whiteSpace: "nowrap" }}>Hall of Fame</span>
+                          <span style={{ fontSize: 14 }}>{hofIcon}</span><span style={{ whiteSpace: "nowrap" }}>Hall of Fame</span>
                         </button>
                       )}
                       <button onClick={() => setBarExtras(v => !v)} title={lang === "en" ? "Note" : "Nota pessoal"} aria-label={lang === "en" ? "Note" : "Nota pessoal"}
@@ -899,6 +947,8 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                         style={{ width: 36, height: 36, borderRadius: 10, cursor: "pointer", fontSize: 14, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, background: "transparent", color: "#ef4444" }}>🗑</button>
                     </div>
                   </div>
+                  </>
+                  )}
                 </>
               ) : (
                 <>

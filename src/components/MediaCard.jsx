@@ -4,6 +4,7 @@ import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
+import { CoverImg } from "./CoverImg";
 
 export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
@@ -26,7 +27,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
     <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
       <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
         {coverSrc && !imgError ? (
-          <img
+          <CoverImg
             src={coverSrc}
             alt={item.title}
             loading="lazy"

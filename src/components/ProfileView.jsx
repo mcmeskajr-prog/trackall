@@ -22,6 +22,7 @@ import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
 import { TypeIcon } from "./TypeIcon";
+import { CoverImg } from "./CoverImg";
 
 // Flor de sakura (badge do Hall of Fame)
 function Sakura({ size = 11 }) {
@@ -342,7 +343,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 return (
                   <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
                     style={{ position: "relative", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}, 0 0 14px ${accent}88` : "none" }}>
-                    {coverSrc && <img src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                    {coverSrc && <CoverImg src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     {score > 0 && <div style={{ position: "absolute", right: 3, top: 3, padding: "1px 4px", borderRadius: 6, background: "rgba(0,0,0,0.62)", color: "#fbcfe8", fontSize: 9, fontWeight: 800, pointerEvents: "none" }}>{score}</div>}
                     {item._feat && (
                       <div aria-label={lang === "en" ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 3, top: 3, width: 16, height: 16, borderRadius: 99, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
@@ -379,7 +380,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
                     {coverSrc
-                      ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      ? <CoverImg src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
@@ -440,7 +441,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     <div key={item.id} className="recent-card fav-card-wrap" onClick={() => onOpen && onOpen(item)} style={{ position: "relative", cursor: "pointer" }}>
                       <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` }}>
                         {coverSrc
-                          ? <img src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                          ? <CoverImg src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}><TypeIcon id={t.id} /></div>}
                         <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
                           <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
@@ -509,7 +510,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                             return (
                               <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
                                 style={{ width: 82, flexShrink: 0, aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", position: "relative", cursor: "pointer", background: gradientFor(item.id) }}>
-                                {cs && <img src={cs} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                                {cs && <CoverImg src={cs} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                                 {r > 0 && <div style={{ position: "absolute", left: 4, bottom: 4, padding: "1px 5px", borderRadius: 6, background: "rgba(0,0,0,0.7)", color: "#f59e0b", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {r}</div>}
                               </div>
                             );
