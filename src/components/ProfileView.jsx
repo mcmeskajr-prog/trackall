@@ -334,13 +334,13 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             </div>
           );
           return (
-            <div className="hscroll" style={{ padding: "4px 16px 14px", gap: 12 }}>
+            <div className="hscroll" style={{ padding: "4px 16px 14px", gap: 10, display: "grid", gridTemplateRows: "repeat(2, auto)", gridAutoFlow: "column", gridAutoColumns: "clamp(104px, 29vw, 128px)" }}>
               {list.map(item => {
                 const coverSrc = item.customCover || item.cover;
                 const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                 return (
                   <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
-                    style={{ position: "relative", width: "clamp(124px, 36vw, 150px)", aspectRatio: "2/3", borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), border: `1px solid ${item._feat ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)")}`, boxShadow: item._feat ? `0 0 0 1px ${accent}88, 0 16px 28px -14px ${accent}99` : "0 16px 26px -14px rgba(0,0,0,0.85)" }}>
+                    style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), border: `1px solid ${item._feat ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)")}`, boxShadow: item._feat ? `0 0 0 1px ${accent}88, 0 16px 28px -14px ${accent}99` : "0 16px 26px -14px rgba(0,0,0,0.85)" }}>
                     {coverSrc && <CoverImg src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
                     <div style={{ position: "absolute", left: 10, right: 10, bottom: 9, fontSize: 12, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- ── Title & description ── -->
     <title>TrackAll — All your media in one place</title>
@@ -29,7 +29,8 @@
     <meta name="twitter:image" content="https://trackall-green.vercel.app/og-image.png" />
 
     <!-- ── PWA ── -->
-    <meta name="theme-color" content="#f97316" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="color-scheme" content="dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -44,6 +45,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- Fundo escuro desde o 1.º frame (evita barras brancas durante o arranque) -->
+    <style>
+      html, body, #root { margin: 0; min-height: 100%; background: #0d1117; }
+      html { color-scheme: dark; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
