@@ -188,6 +188,18 @@ const DEMO_LIBRARY = {
   "game-1": { id: "game-1", title: "Elden Ring", type: "jogos", userStatus: "completo", userRating: 10, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg", addedAt: Date.now() - 86400000 * 7 },
   "game-2": { id: "game-2", title: "Hollow Knight", type: "jogos", userStatus: "completo", userRating: 9, cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rgi.jpg", addedAt: Date.now() - 86400000 * 14 },
 };
+// Cor das barras de navegação (topo e fundo): mais escura que o fundo, perto do preto dos modais
+const mkNavBg = (dark, bg) => dark
+  ? `color-mix(in srgb, color-mix(in srgb, ${bg || "#0d1117"} 22%, #07090c) 96%, transparent)`
+  : "rgba(255,255,255,0.96)";
+const mixHex = (hex, base, amt) => {
+  try {
+    const p = (h) => { const x = h.replace("#", ""); const f = x.length === 3 ? x.split("").map(c => c + c).join("") : x; return [0, 2, 4].map(i => parseInt(f.slice(i, i + 2), 16)); };
+    const [a, b] = [p(hex), p(base)];
+    return "#" + a.map((v, i) => Math.round(v * amt + b[i] * (1 - amt)).toString(16).padStart(2, "0")).join("");
+  } catch { return base; }
+};
+
 const DEMO_PROFILE = { name: "Demo User", bio: "A explorar o TrackAll ✨", avatar: "", accent: "#f97316", favorites: [
   { id: "al-1", title: "Attack on Titan", type: "anime", cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg" },
   { id: "tmdb-2", title: "Breaking Bad", type: "series", cover: "https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg" },
@@ -272,13 +284,14 @@ export default function TrackAll() {
     const activeColor = (bgSeparateDevices && isMobile)
       ? (bgColorMobile || "#0d1117")  // mobile: usa cor mobile, nunca herda PC
       : bgColor;
+    const barColor = /^#[0-9a-f]{3,6}$/i.test(activeColor || "") ? mixHex(activeColor, "#07090c", 0.22) : activeColor;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-      themeMeta.content = activeColor;
+      themeMeta.content = barColor;
     } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = activeColor;
+      meta.content = barColor;
       document.head.appendChild(meta);
     }
     // Apple mobile web app
@@ -1052,6 +1065,7 @@ export default function TrackAll() {
     if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_parallax:", err); }
   };
   // isMobile check — calculado uma vez, estável entre renders
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   // Reativo à largura (só muda ao cruzar os 768px; o teclado do telemóvel não altera a largura).
   // Permite ver o layout de telemóvel no PC só redimensionando a janela / usando o simulador do browser.
@@ -2047,7 +2061,7 @@ export default function TrackAll() {
           @media (max-width: 480px) {
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
           }
-          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${activeDarkMode ? "rgba(22,27,34,0.96)" : "rgba(255,255,255,0.96)"}; backdrop-filter: blur(12px); border-top: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
+          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${mkNavBg(activeDarkMode, activeBgColor)}; backdrop-filter: blur(12px); border-top: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${activeDarkMode ? "#8b949e" : "#64748b"}; }
@@ -2103,6 +2117,21 @@ export default function TrackAll() {
           }
           /* ── Hover unificado (capas): mesma elevação, brilho e duração em todo o lado ── */
           .card, .recent-card > div:first-child, .fav-card-wrap > div:first-child, .hof-card > div:first-child, .ec-card { transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
+          /* ── Scroll lateral: suave, com encaixe e sem "arrastar" a página ── */
+          .hscroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+          .hscroll::-webkit-scrollbar, .recents-row::-webkit-scrollbar { display: none; }
+          .hscroll > * { flex: none; }
+          .recents-row { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+          @media (hover: hover) {
+            /* dentro de filas com scroll o brilho é mais curto, para não ser cortado nas margens */
+            .recents-row .card:hover { box-shadow: 0 0 0 1px ${accent}88, 0 12px 16px -10px ${accent}80 !important; }
+          }
+          @media (max-width: 767px) {
+            .hscroll, .recents-row { scroll-snap-type: x proximity; }
+            .hscroll { scroll-padding-inline: 16px; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); }
+            .recents-row { scroll-padding-inline: 8px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); }
+            .hscroll > *, .recents-row > * { scroll-snap-align: start; }
+          }
           /* ── Esqueleto de capa (CoverImg): brilho enquanto a imagem carrega ── */
           @keyframes skCover { 0% { background-position: -300px 0; } 100% { background-position: 300px 0; } }
           .sk-cover { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.05) 65%); background-size: 600px 100%; animation: skCover 1.3s linear infinite; }
@@ -2269,12 +2298,23 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: `${activeBgColor}ee`, backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
-          <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
-            <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
-          </button>
+        <nav className="top-nav-bar" style={{ background: mkNavBg(activeDarkMode, activeBgColor), backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+          {!(isMobileDevice && mobileSearchOpen) && (
+            <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
+              <span style={{ fontSize: 18, fontWeight: 900, color: activeDarkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
+            </button>
+          )}
 
+          {isMobileDevice && !mobileSearchOpen ? (
+            <>
+              <div style={{ flex: 1 }} />
+              <button onClick={() => setMobileSearchOpen(true)} aria-label={lang === "en" ? "Search" : "Pesquisar"}
+                style={{ width: 38, height: 38, borderRadius: 12, border: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.10)" : "#e2e8f0"}`, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "transparent", color: activeDarkMode ? "#c9d1d9" : "#334155", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              </button>
+            </>
+          ) : (
           <div style={{ flex: 1 }}>
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
@@ -2282,28 +2322,33 @@ export default function TrackAll() {
               </span>
               <input
                 value={searchQuery}
+                autoFocus={isMobileDevice && mobileSearchOpen}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); } }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); setMobileSearchOpen(false); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } else if (e.key === "Escape") setMobileSearchOpen(false); }}
                 placeholder="Pesquisar..."
                 style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }}
               />
               {searchQuery && (
                 <span
-                  onClick={() => doSearch(searchQuery, activeTab)}
+                  onClick={() => { doSearch(searchQuery, activeTab); setMobileSearchOpen(false); }}
                   style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8b949e", fontSize: 16, padding: "2px 6px", borderRadius: 6, background: "#21262d" }}
                 >⏎</span>
               )}
             </div>
           </div>
+          )}
+          {isMobileDevice && mobileSearchOpen && (
+            <button onClick={() => setMobileSearchOpen(false)} style={{ background: "none", border: "none", color: activeDarkMode ? "#aab4c0" : "#475569", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "6px 2px" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+          )}
 
           {/* Avatar */}
-          <button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
+          {!(isMobileDevice && mobileSearchOpen) && (<button onClick={() => setView("profile")} style={{ background: "none", border: "none", cursor: "pointer" }}>
             <div style={{ width: 34, height: 34, borderRadius: 999, overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {profile.avatar
                 ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <span style={{ fontSize: 16 }}>👤</span>}
             </div>
-          </button>
+          </button>)}
         </nav>
 
         <div

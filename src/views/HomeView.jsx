@@ -283,7 +283,7 @@ export function HomeView({ view, setView, profile, user, items, library, setLibr
                     </div>
                     {filterBtn}
                   </div>
-                  {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "12px 8px 20px", margin: "-8px -8px -10px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+                  {!collapsed && <div className="recents-row" style={{ display: "flex", gap: 8, overflowX: "auto", padding: "12px 12px 20px", margin: "-8px -12px -10px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
                     {rowItems.map((item) => (
                       <div key={item.id} style={{ flexShrink: 0, width: "clamp(90px, 26vw, 130px)" }}>
                         <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />
