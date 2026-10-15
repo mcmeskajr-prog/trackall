@@ -1052,7 +1052,17 @@ export default function TrackAll() {
     if (user) try { await supa.upsertProfile(user.id, { bg_parallax: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_parallax:", err); }
   };
   // isMobile check — calculado uma vez, estável entre renders
-  const [isMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  const [isMobileDevice, setIsMobileDevice] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  // Reativo à largura (só muda ao cruzar os 768px; o teclado do telemóvel não altera a largura).
+  // Permite ver o layout de telemóvel no PC só redimensionando a janela / usando o simulador do browser.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setIsMobileDevice(e.matches);
+    setIsMobileDevice(mq.matches);
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', onChange); else mq.removeListener(onChange); };
+  }, []);
 
   // Sincronizar refs com estados para o back handler
   useEffect(() => { selectedItemRef.current = selectedItem; }, [selectedItem]);
