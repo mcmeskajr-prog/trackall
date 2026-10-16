@@ -1144,31 +1144,34 @@ export default function TrackAll() {
   };
   const showPeek = (targetView, dir) => {
     const el = mainSwipePeekRef.current; if (!el) return;
-    const tabInfo = { home: ["⌂","Home"], library: ["▦","Library"], friends: ["⊙","Friends"], profile: ["◉","Perfil"] };
-    const [icon, label] = tabInfo[targetView] || ["",""];
+    mainSwipePeekState.current.dir = dir;
+    const tabInfo = { home: ["home", "Home"], library: ["library", lang === "en" ? "Library" : "Biblioteca"], friends: ["friends", lang === "en" ? "Friends" : "Amigos"], profile: ["profile", lang === "en" ? "Profile" : "Perfil"] };
+    const [icon, label] = tabInfo[targetView] || ["", ""];
     const icon_el = el.querySelector("[data-peek-icon]");
     const label_el = el.querySelector("[data-peek-label]");
-    if (icon_el) icon_el.textContent = icon;
-    if (label_el) { label_el.textContent = label; label_el.style.color = accent; }
-    // bg e text color baseados no tema actual
-    el.style.background = activeDarkMode ? "#0d1117" : "#f5f0e8";
-    el.style.opacity = "0";
-    el.style.transform = `translateX(${dir * -100}%)`;
-    el.style.transition = "none";
+    const glyph = { home: "⌂", library: "▤", friends: "◔", profile: "◉" }[icon] || "";
+    if (icon_el) icon_el.textContent = glyph;
+    if (label_el) { label_el.textContent = label; }
     el.style.display = "block";
-    // Slide in suave
-    requestAnimationFrame(() => {
-      el.style.transition = "opacity 180ms ease, transform 180ms ease";
-      el.style.opacity = "0.92";
-      el.style.transform = `translateX(${dir * -18}%)`;
-    });
+    el.style.opacity = "1";
   };
   const applyMainSwipeStyle = (offset = 0, transition = "none") => {
     const W = window.innerWidth || 360;
     const cur = mainSwipeContentRef.current; const peek = mainSwipePeekRef.current;
     const dir = mainSwipePeekState.current.dir;
-    if (cur) { cur.style.transition = transition; cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform" : "auto"; }
-    // peek é overlay fixo — não segue o offset do conteúdo
+    if (cur) {
+      cur.style.transition = transition === "none" ? "none" : transition.replace(/transform/g, "transform, opacity"); cur.style.transform = `translate3d(${offset}px,0,0)`; cur.style.willChange = offset !== 0 ? "transform, opacity" : "auto";
+      cur.style.opacity = offset === 0 ? "1" : String(1 - Math.min(Math.abs(offset) / W, 1) * 0.5);
+    }
+    const pill = peek && peek.querySelector("[data-peek-content]");
+    if (pill) {
+      const abs = Math.abs(offset);
+      const cx = dir > 0 ? W + offset / 2 : offset / 2;
+      const t = Math.min(1, abs / 90);
+      pill.style.transition = transition === "none" ? "none" : transition.replace(/transform/g, "transform, opacity");
+      pill.style.transform = `translate3d(${cx}px, -50%, 0) translateX(-50%) scale(${0.7 + 0.3 * t})`;
+      pill.style.opacity = String(t);
+    }
   };
   const animateMainSwipeToView = (nextView, direction) => {
     const W = window.innerWidth || 360;
@@ -1180,7 +1183,7 @@ export default function TrackAll() {
       flushSync(() => { setView(nextView); });
       hidePeek();
       const cur = mainSwipeContentRef.current;
-      if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.willChange = "auto"; }
+      if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.opacity = "1"; cur.style.willChange = "auto"; }
       mainSwipeAnimRef.current = null;
     }, 260);
   };
@@ -1189,7 +1192,7 @@ export default function TrackAll() {
     const touch = e.touches?.[0]; if (!touch) return;
     if (mainSwipeAnimRef.current) { clearTimeout(mainSwipeAnimRef.current); mainSwipeAnimRef.current = null; }
     hidePeek();
-    const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; }
+    const cur = mainSwipeContentRef.current; if (cur) { cur.style.transition = "none"; cur.style.transform = "translate3d(0,0,0)"; cur.style.opacity = "1"; }
     mainSwipeRef.current = { tracking: true, blocked: !!(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable="true"],.modal,.bottom-nav,.top-nav-bar')), startTarget: e.target, isHorizontal: false, peekShown: false, startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastY: touch.clientY };
   };
   const handleMainSwipeMove = (e) => {
@@ -2042,7 +2045,7 @@ export default function TrackAll() {
           .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.42)" : "rgba(255,255,255,0.5)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
-          .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+          .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: none; scroll-padding-inline: 12px; overscroll-behavior-x: contain; }
           .recents-row > * { scroll-snap-align: start; }
           img { will-change: auto; }
           .card { contain: layout style; }
@@ -2129,7 +2132,7 @@ export default function TrackAll() {
           @media (max-width: 767px) {
             .hscroll, .recents-row { scroll-snap-type: x proximity; }
             .hscroll { scroll-padding-inline: 16px; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%); }
-            .recents-row { scroll-padding-inline: 8px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); }
+            .recents-row { scroll-padding-inline: 12px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); }
             .hscroll > *, .recents-row > * { scroll-snap-align: start; }
           }
           /* ── Esqueleto de capa (CoverImg): brilho enquanto a imagem carrega ── */
@@ -2365,9 +2368,9 @@ export default function TrackAll() {
 
         {canUseMainSwipe && (
           <div ref={mainSwipePeekRef} style={{ display: "none", position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none", overflow: "hidden" }}>
-            <div data-peek-content style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-              <span data-peek-icon style={{ fontSize: 48, lineHeight: 1 }}></span>
-              <span data-peek-label style={{ fontSize: 18, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase" }}></span>
+            <div data-peek-content style={{ position: "absolute", top: "50%", left: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: 0, willChange: "transform, opacity" }}>
+              <span data-peek-icon style={{ width: 52, height: 52, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, lineHeight: 1, color: "#fff", background: "rgba(13,17,23,0.72)", border: "1px solid rgba(255,255,255,0.14)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: `0 8px 24px -8px ${accent}99` }}></span>
+              <span data-peek-label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.7)" }}></span>
             </div>
           </div>
         )}
