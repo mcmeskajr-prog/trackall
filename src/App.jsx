@@ -829,7 +829,12 @@ export default function TrackAll() {
     setView("home");
   };
 
-  const showNotif = (msg, color) => { setNotif({ msg, color }); setTimeout(() => setNotif(null), Math.max(2000, Math.min(msg.length * 60, 4500))); };
+  const notifTimerRef = useRef(null);
+  const showNotif = (msg, color, action) => {
+    clearTimeout(notifTimerRef.current);
+    setNotif({ msg, color, action });
+    notifTimerRef.current = setTimeout(() => setNotif(null), action ? 6500 : Math.max(2000, Math.min(msg.length * 60, 4500)));
+  };
 
   const saveLibrary = (lib) => {
     const prev = libraryRef.current;
@@ -1452,7 +1457,15 @@ export default function TrackAll() {
    const lib = { ...library };
    delete lib[matched.key];
    saveLibrary(lib);
-   showNotif("Removido da biblioteca", "#ef4444");
+   const removed = { key: matched.key, item: matched.item };
+   showNotif(lang === "en" ? "Removed from library" : "Removido da biblioteca", "#ef4444", {
+     label: lang === "en" ? "Undo" : "Desfazer",
+     onClick: () => {
+       if (libraryRef.current[removed.key]) return;
+       saveLibrary({ ...libraryRef.current, [removed.key]: removed.item });
+       showNotif(lang === "en" ? "Restored ✓" : "Reposto ✓", "#10b981");
+     },
+   });
 
   };
   const updateDuration = useCallback((id, type, dur) => {
@@ -2242,7 +2255,7 @@ export default function TrackAll() {
           .ds-type-item:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; }
         `}</style>
 
-        <Notification notif={notif} />
+        <Notification notif={notif} isMobile={isMobileDevice} onDismiss={() => setNotif(null)} />
 
 
 
