@@ -1,4 +1,5 @@
 import { useTheme } from "../contexts/ThemeContext";
+import { Skeleton, SkeletonStyles } from './Skeleton';
 import { useLang } from "../contexts/LangContext";
 import { MediaCard } from "./MediaCard";
 import { findLibraryEntry } from "../lib/mediaIds";
@@ -9,13 +10,17 @@ import { TypeIcon } from "./TypeIcon";
 export function RecoCarousel({ title, icon, items, library, onOpen, loading, isPersonal }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
-  // Skeleton só se loading E sem dados ainda — se já há dados, mostra mesmo durante refresh
-  if (loading && !isPersonal && (!items || items.length === 0)) return (
-    <div style={{ padding: "0 16px 28px" }}>
+  // Esqueleto só no primeiro carregamento (loading E ainda sem dados). Com dados já na lista, mostra-os mesmo durante um refresh.
+  if (loading && (!items || items.length === 0)) return (
+    <div style={{ padding: "0 16px 28px" }} aria-busy="true">
+      <SkeletonStyles />
       <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
-        {[1,2,3,4,5].map(i => (
-          <div key={i} style={{ flexShrink: 0, width: 100, height: 148, borderRadius: 10, background: "#161b22", animation: "pulse 1.5s ease-in-out infinite" }} />
+      <div style={{ display: "flex", gap: 10, overflow: "hidden" }}>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          <div key={i} style={{ flexShrink: 0, width: 100 }}>
+            <Skeleton width={100} height={148} radius={10} light={!darkMode} style={{ marginBottom: 6, opacity: Math.max(0.35, 1 - i * 0.09) }} />
+            <Skeleton width="75%" height={10} radius={5} light={!darkMode} style={{ opacity: Math.max(0.35, 1 - i * 0.09) }} />
+          </div>
         ))}
       </div>
     </div>

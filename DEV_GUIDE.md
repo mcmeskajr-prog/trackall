@@ -1,7 +1,7 @@
 # 📘 TrackAll — Developer Guide
 
-> **Última atualização:** 2026-10-10 (Fases 1–4 concluídas; Fase 5: Home/Biblioteca/Pesquisa extraídas; falta SidebarSearch, TierListEditor/Viewer, CollectionViewer)
-> **Estado:** Em refatorização ativa
+> **Última atualização:** 2026-10-16 (Fases 1–5 concluídas; fase atual: "pequenos detalhes" de UI/UX no PC e telemóvel; a seguir: parte social/amigos, Conquistas, preparação para partilhar)
+> **Estado:** App estável, em polimento visual. `App.jsx` ~2660 linhas.
 
 ---
 
@@ -12,7 +12,8 @@
 - **Stack:** React + Vite + Supabase
 - **Deploy:** Vercel (via GitHub)
 - **Língua:** PT/EN (i18n via `translations.js`)
-- **Estado:** App.jsx ~2400 linhas (CollectionViewer, TierListEditor, TierListViewer, RatingOverlay e SidebarSearch já extraídos para components/)
+- **PWA:** instalável, com service worker; fundo escuro desde o 1.º frame (ver secção PWA)
+- **Estado:** `App.jsx` ~2660 linhas (CollectionViewer, TierListEditor, TierListViewer, RatingOverlay e SidebarSearch já extraídos para `components/`)
 
 ---
 
@@ -25,6 +26,8 @@ A separação do `App.jsx` monolítico em `config/` e `lib/` introduziu 4 bugs e
 3. **Qualquer wrapper que leia uma tabela em forma de "biblioteca" (`library`, e no futuro semelhantes) tem de devolver exatamente a forma que o resto da app espera** — neste caso um objeto `{ [id]: item }`, nunca o array de linhas do Supabase. Verifica isso com `Object.entries`/`Object.values` nos consumidores antes de decidir a forma de retorno.
 4. **Se o `DEV_GUIDE.md` lista uma função que não está exportada** (aconteceu com `normalizeMediaItem`, documentada mas nunca implementada), trata isso como um bug a corrigir, não como documentação a ignorar — procura todos os usos antes de assumir que "não é preciso".
 5. **Depois de qualquer alteração a `config/supabase.js` ou `lib/mediaIds.js`, testar manualmente o fluxo completo**, não só o que motivou a alteração: login → biblioteca carrega com capas e tipos corretos → adicionar item → dar rating → remover item → pedidos de amizade. Estes 5 pontos cobrem quase todos os call sites críticos destes dois ficheiros.
+
+6. **Mudanças de UI: confirmar no telemóvel *e* no PC.** Várias correções falharam à primeira por só se testar um dos lados (hover cortado = snap + overflow; modal cortado = stacking context). Ver "Padrões de UI".
 
 ---
 
@@ -48,9 +51,9 @@ TrackAll/
     - mediaIds.js (normalização de IDs)
     - consumptionTime.js (lógica "Quando Consumir?")
   - api/ (Fase 2 — anilist.js, tmdb.js, igdb.js, books.js, comicvine.js, details.js, recommendations.js, smartSearch.js)
-  - components/ (AuthScreen, CollectionCard, CollectionModal, CoverEditModal, CropModal, DetailModal, FeedTab, FeaturedPickerModal, FriendsView, LandingPage, LetterboxdImportModal, LibGroupedList, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileCard, ProfileStats, ProfileTabCompletos, ProfileTabDiario, ProfileView, RecentSection, RecoCarousel, StarRating, TierListCard, TiltCard, VirtualGrid)
+  - components/ (ActionIcon, AppearanceSettings, AuthScreen, CollectionCard, CollectionModal, CollectionViewer, CoverEditModal, CoverImg, CropModal, DetailModal, FeaturedPickerModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, LibGroupedList, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileCard, ProfileEstatisticas, ProfileStats, ProfileTabCompletos, ProfileTabDiario, ProfileView, RatingOverlay, RecentSection, RecoCarousel, SidebarSearch, Skeleton, StarRating, TierListCard, TierListEditor, TierListViewer, TiltCard, TypeIcon, VirtualGrid)
   - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
-  - lib/ (inclui utils.js e importParsers.js)
+  - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**)
   - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
 
 ---
@@ -198,7 +201,7 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 - Todos os Contexts (Theme, Lang)
 - Lógica de routing/views
 - Modais e interações
-- **Estado atual:** ~8500 linhas (em refatorização)
+- **Estado atual:** ~2660 linhas (orquestração: estado global, auth/arranque, sincronização da biblioteca, navegação, gesto de deslizar entre separadores)
 
 **Quando editar:**
 - Só editar diretamente se for lógica de orquestração
@@ -211,7 +214,8 @@ Layout desktop (separador Perfil, `ProfileView.jsx`):
 - Linha de cima: `ProfileCard` (330px, estica até ao fundo da 2.ª fila do Hall of Fame) + coluna da direita com `ProfileStats` e o Hall of Fame (5 por linha, 2 filas).
 - Largura total: filtros partilhados → Recentes → Favoritos (uma fila por tipo, 6 posters + "+N ver todos") → cartões Tier Lists / Minhas Listas → Top géneros.
 Layout telemóvel (só `isMobileDevice`; o PC não muda):
-- `ProfileCard` compacto numa linha (avatar, nome, editar, sair) → `ProfileStats` com 3 mosaicos + distribuição → Hall of Fame em grelha **5 por linha**, com o **item em destaque sempre em primeiro**, contorno na cor de destaque + estrela (mesmo que não esteja no Hall of Fame) → filtros → Recentes (4 por linha) → Favoritos (fila de scroll horizontal por tipo, posters leves de 82px, **máx. 24 por tipo**, sem `TiltCard`/sombras; imagens `loading="lazy"`) → Tier Lists / Listas (2 cartões).
+- `ProfileCard` compacto numa linha (avatar, nome, editar, sair) → `ProfileStats` com 3 mosaicos + distribuição → **Hall of Fame** → filtros → Recentes (4 por linha) → Favoritos (fila de scroll horizontal por tipo, posters leves de 82px, **máx. 24 por tipo**, sem `TiltCard`/sombras; imagens `loading="lazy"`) → Tier Lists / Listas (2 cartões).
+- **Hall of Fame no telemóvel (2026-10):** carrossel de **2 filas** (`.hscroll` com `display:grid; grid-template-rows: repeat(2,auto); grid-auto-flow: column; grid-auto-columns: clamp(104px,29vw,128px)`), capas 2:3 com `CoverImg`, nota (★) no canto e título em gradiente por baixo; **máximo 10** (`hallOfFame.slice(0,10)`, contador "x/10"). Vêem-se ~6–8 sem scroll e a coluna seguinte espreita. Se o item em destaque estiver no Hall of Fame fica com contorno + etiqueta "DESTAQUE" (já **não** é antecipado/duplicado no início da lista — isso fazia passar de 10 itens).
 - Separadores: Perfil, Completos, Tier Lists, Listas, Diário, **Definições**.
 
 Componentes:
@@ -236,7 +240,90 @@ Regras e dados:
 
 Desenhos de referência: artifact "TrackAll Perfil Redesign" (Claude Design): "FINAL v2", "Estrelas", "Definições · Aparência", "Perfil telemóvel · novo".
 
-Backlog: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesenhar Tier Lists e Listas (personagens + itens manuais); redesenhar o modal de detalhe; skeleton dos posters individuais; extrair do `App.jsx` (SidebarSearch, TierListEditor/Viewer, CollectionViewer); remover `compressBanner` e restos do banner.
+Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesenhar Tier Lists e Listas (personagens + itens manuais); redesenhar o modal de detalhe; rever o Perfil inteiro no telemóvel (distribuição e estatísticas ainda pensadas para PC); faixa de **Conquistas** por baixo do Hall of Fame (ver secção Conquistas); remover `compressBanner` e restos do banner.
+
+---
+
+## 🚀 Arranque, dados e sincronização
+
+**Fluxo de arranque (`App.jsx`):**
+1. `authLoading === true` → mostra `AppSkeleton` (forma da Home, barra lateral/inferior).
+2. Com sessão: lê a **cópia local** `cacheGet("boot_<userId>")` (`lib/bootCache.js`, IndexedDB `trackall_cache`/`kv`, falha sempre em silêncio). Se existir `{v:1, lib}` com itens → abre **logo** com perfil (leve, do servidor, timeout 8 s) + biblioteca da cópia; em segundo plano `fetchHeavyData` traz biblioteca + Hall of Fame frescos e `applyUserData` atualiza por baixo (`setDataFresh(true)`).
+3. Sem cópia (1.º arranque / cache limpa) → `loadUserData` espera até 30 s no esqueleto; se falhar mostra erro e recupera sozinho se os dados chegarem.
+- A cópia é regravada depois de cada alteração (`scheduleBootCache`, debounced) e `cacheClearAll()` corre no logout. **Esqueletos só aparecem no 1.º carregamento sem cópia** — com cópia a app nunca mostra o ecrã de esqueleto.
+- `fetchLibrary` exclui a linha especial `__hall_of_fame__`; qualquer id que comece por `__` é ignorado pelo `saveLibrary`.
+- `dataFresh` = dados confirmados do servidor. Operações perigosas (migração de imagens, reparações) só correm com `dataFresh === true`, nunca com dados só vindos da cópia local.
+
+**`saveLibrary(lib)`:** atualiza `libraryRef` + estado, agenda cópia local e escreve no Supabase **em fila** (`saveQueueRef`) fazendo diff item a item contra o estado anterior (upsert dos alterados, delete dos removidos). Se falhar mostra aviso "Não foi possível sincronizar". Repor um item removido = `saveLibrary({ ...libraryRef.current, [key]: item })` (o diff volta a fazer o upsert).
+
+**Imagens (`lib/imageStore.js`):** capas personalizadas, fundos e avatar **nunca** ficam em base64 na BD. `persistImage(dataUrl)` envia para o bucket `profile-images` (nome = SHA-1 do conteúdo → a mesma imagem nunca é enviada duas vezes); se falhar mantém o base64 e a **migração única** (`migrateImages`, flag `trackall_img_migrated_<uid>` = `"2"`) tenta mais tarde. O bucket `covers` já não é usado (pode ser apagado).
+
+**Aviso com ação (`Notification.jsx`):** `showNotif(msg, cor, action?)` — `action = { label, onClick }` mostra um botão e prolonga o aviso para 6,5 s. Usado no **"Removido · Desfazer"** (`removeFromLibrary`): repõe o item na biblioteca (não repõe Hall of Fame/favoritos). No telemóvel o aviso fica em baixo, acima da barra de navegação; no PC no canto superior direito. Um temporizador único (`notifTimerRef`) evita que um aviso antigo apague o novo.
+
+---
+
+## 📱 Telemóvel e PWA
+
+**Detetar telemóvel:** `isMobileDevice` no `App.jsx` é **reativo** (`matchMedia('(max-width: 767px)')`), por isso muda ao redimensionar/rodar. Ainda há código que lê `window.innerWidth` uma só vez (gesto de deslizar, alguns handlers) — se mexeres nisso, passa para `isMobileDevice`.
+**Ver o telemóvel no PC:** Chrome/Edge → F12 → ícone "Toggle device toolbar" (Ctrl+Shift+M) → escolher um dispositivo. Para toque real (gestos) usar o modo de dispositivo, não só redimensionar a janela.
+
+**Barras (topo e fundo):** `mkNavBg(dark, bg)` (módulo, antes de `DEMO_PROFILE`) devolve um fundo quase preto derivado da cor de fundo do tema (`color-mix` com `#07090c`); `.bottom-nav` e a barra do topo usam-no, com linha fina `rgba(255,255,255,.07)`. `mixHex` calcula a cor da meta `theme-color` (a barra de estado do sistema) para bater com isto.
+**Pesquisa no topo (mobile):** `mobileSearchOpen` — por omissão só uma lupa 38×38; ao tocar, a barra abre por cima do logo/avatar com autoFocus, Enter pesquisa, Esc/"Cancelar" fecha. No PC/tablet a barra de pesquisa continua sempre visível.
+**Gesto de deslizar entre separadores** (`MAIN_SWIPE_VIEWS = home, library, friends, profile`, só `canUseMainSwipe`): o conteúdo (`mainSwipeContentRef`, `translate3d`) acompanha o dedo; o "peek" (`mainSwipePeekRef`) é agora um **indicador pequeno** (ícone + nome do destino) centrado no espaço revelado, que aparece/cresce com a distância; a página que sai perde até 50 % de opacidade. **Já não há cortina preta** a tapar o fundo. `applyMainSwipeStyle(offset, transition)` controla ambos; ao terminar repõe `opacity:1`. Scroll horizontal dentro da página (filas, chips) **bloqueia** o gesto (`isMainSwipeBlockedTarget`, `hasHorizontalScrollableParent`).
+
+**Filas de scroll horizontal (`.hscroll` e `.recents-row`):** `overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none`; no telemóvel `scroll-snap-type: x proximity` com `scroll-snap-align:start` nos filhos, `scroll-padding-inline` igual ao padding da fila e um esbatido (`mask-image`) nas pontas. Usar `className="hscroll"` em qualquer fila nova (os filhos não encolhem: `.hscroll > * { flex:none }`).
+
+**PWA — arranque sem barras brancas:** o `index.html` tem `<style>html,body,#root{background:#0d1117;min-height:100%}` e `color-scheme: dark` **inline no `<head>`**, para o fundo ser escuro desde o 1.º frame (antes do CSS do React). `theme-color` e `manifest.json` (`theme_color` e `background_color`) = `#0d1117`; `viewport-fit=cover`. O splash do Android usa `background_color` do manifest + ícone; se o ícone tiver margens claras, aparecem — usar um ícone **maskable** com fundo escuro até às bordas. Ao mudar manifest/ícones, a PWA instalada só apanha a alteração depois de **desinstalar e reinstalar** (ou limpar dados do site). Se uma correção não aparecer, suspeitar do **service worker** antes de tudo.
+
+---
+
+## 🎨 Padrões de UI (ler antes de mexer no visual)
+
+- **Hover de cartões (tokens únicos):** 180 ms, `cubic-bezier(.2,.8,.2,1)`, `translateY(-4px) scale(1.03)`, anel `0 0 0 1px ${accent}88, 0 18px 30px -12px ${accent}80`. Seletores usam `> div:first-child` em `.recent-card` / `.fav-card-wrap` (o hover é na capa, não no texto). Desligado em toque (`@media (hover:none)`) e com `prefers-reduced-motion`.
+- **Filas com `overflow-x:auto` cortam sombras/scale** (e `overflow-y` passa a `auto` também). Solução: padding à volta + margem negativa igual (`.recents-row` na Home: `padding:12px 12px 20px; margin:-8px -12px -10px`) e brilho mais curto dentro da fila. **Nunca** usar `scroll-snap-type: x mandatory` em filas com padding: o snap alinha o 1.º item à borda e **esconde o padding** (era a causa do "hover cortado junto à barra lateral"). Usar `proximity` + `scroll-padding-inline` = padding (no PC o snap está desligado para a roda do rato deslizar continuamente).
+- **Roda do rato → scroll horizontal:** o `useEffect` do `App.jsx` liga a todos os `.recents-row, .tabs-scroll, [style*="overflowX: auto"]` (e setas ← → quando o rato está por cima).
+- **Modais/overlays:** `createPortal(..., document.body)` sempre. `DetailModal` também passou a portal (z-index 160 tem de vencer `.bottom-nav` z 50; com o `transform` do conteúdo principal o `position:fixed` fica dentro de outro stacking context e a barra de ações ficava cortada pela navegação).
+- **Esqueletos:** `Skeleton` / `SkeletonStyles` (shimmer, respeita reduced-motion) em `Skeleton.jsx`; `CoverImg` (esqueleto por capa + fade; o pai tem `position:relative`; usa a classe `.sk-cover` definida no CSS do `App.jsx`) em MediaCard, ProfileView, RecentSection, ProfileTabCompletos, LibraryView; `RecoCarousel` mostra esqueleto de 8 capas **só quando `loading` e ainda sem itens** (1.º carregamento); com dados já na lista mostra-os mesmo durante um refresh.
+- **Ícones:** `TypeIcon` (SVG de linha por tipo de media, herda `currentColor` e `1em`) e `ActionIcon({name:'heart'|'star'|'note'|'trash', size, filled, slash, stroke})` (`slash` = risco por cima quando a ação está indisponível, ex.: Hall of Fame cheio). **Não usar emojis** em UI nova.
+- **Modal de detalhe no telemóvel:** barra A (classificação sempre visível para mudar na hora) + botões só-ícone `flex:1`, altura 42, `aria-label`/`aria-pressed`, animação `ta-pop` ao ativar; Favorito e Hall of Fame com o mesmo ícone do PC e risco quando cheio (10/30).
+- **Painéis:** `const { panelBg } = useTheme()` → `background: panelBg || <default>`.
+- **Estilo visual aceite:** limpo e bonito, **não** exagerado; acento único (vermelho/carmim por defeito); cantos 12–18 px; vidro fosco leve. Evitar cores por nível/tipo a mais.
+
+---
+
+## 🗺️ Estado atual e roadmap
+
+**Fase atual:** o Noé aponta pequenos detalhes de UI/UX um a um (PC e telemóvel). Feito em 2026-10: hover da Home sem corte, HoF mobile (2 filas, máx. 10), barras escuras, lupa de pesquisa, filas com scroll melhorado, gesto de deslizar sem cortina, arranque da PWA sem barras brancas, "Desfazer" ao remover, esqueletos por capa e nos carrosséis de recomendações.
+
+**Ordem acordada a seguir:**
+1. Rever o **Perfil no telemóvel** (distribuição/estatísticas).
+2. **Parte social / Amigos** — rever, corrigir e melhorar (`FriendsView`, `FeedTab`, pedidos de amizade, perfil de amigo, "em comum", feed).
+3. **Conquistas** (abaixo) e, no fim, "+1 ep".
+4. **Preparar para partilhar** (abaixo).
+
+**Conquistas (desenho feito, código por fazer):** 16 conquistas × 3 níveis, todas **calculadas a partir da biblioteca já carregada**; guardar só o nível mais alto atingido numa linha especial da `library` (id `__achievements__`, excluída do `fetchLibrary`, tal como `__hall_of_fame__`) e toast ao desbloquear. Faixa de 117 px por baixo do Hall of Fame alinhada com o fundo do cartão de perfil; galeria completa em modal (PC) / bottom sheet (telemóvel) com filtros. Símbolos de linha tipo Lucide fixos, **número do nível num badge** (a separação entre níveis é no símbolo, não em cores), acento único, nomes **em inglês** bons (a confirmar com o Noé). Desenhos no canvas Claude Design ("ConquistasFaixa/Galeria/Mobile").
+
+**"+1 ep" (opcional, no fim):** a app **não guarda progresso** por item (só `lastChapter` de texto vindo do Paperback). O AniList devolve `chapters` **só quando a obra terminou** (em publicação vem `null`); episódios de séries/animes também podem faltar. Se avançar: campo novo `progress`, mostrar só "Cap. 12 +" em itens "assistindo", **sem barra nem total**, e manter o modal leve.
+
+**Ideias guardadas:** importar do MAL/AniList/Letterboxd; aviso "nova versão disponível"; imagem "resumo do ano"; paleta Ctrl+K; code splitting (`React.lazy`); pequenos testes automáticos.
+
+**Antes de partilhar com outras pessoas (checklist):**
+- [ ] Exportar os meus dados (JSON).
+- [ ] Apagar conta + política de privacidade.
+- [ ] Limites de upload no Storage (tamanho/tipo por utilizador).
+- [ ] Verificar termos **comerciais** do TMDB (atribuição, uso não-comercial) e do plano **Vercel Hobby** (uso não-comercial) antes de aceitar doações/planos.
+- [ ] Monitorização de erros (ex.: Sentry free) e RLS revista no Supabase.
+- **Capacidade estimada** (free tier): ~50–200 utilizadores ativos; o gargalo é a instância gratuita do Supabase (CPU/ligações e cópias pesadas na BD); depois o Worker (100k pedidos/dia) e as APIs externas.
+
+---
+
+## 🧰 Workflow de trabalho com a IA
+
+- Edita-se uma cópia em `/home/claude/<pasta>/src`; cada ficheiro alterado é entregue **com o caminho de destino** relativo ao `src/` do projeto (ex.: `ProfileView.jsx → src/components/`, `index.html → raiz`, `manifest.json → public/`). O Noé substitui os ficheiros, faz `npm run build`, commit e push.
+- **Antes de entregar:** `npx esbuild <ficheiro> --loader:.jsx=jsx --log-level=error` (sintaxe) **e** `npx eslint --no-eslintrc -c .eslintrc.json --ext .jsx,.js <ficheiros>` (imports/variáveis em falta). Os dois, sempre.
+- **Memória e idioma:** responder sempre em português de Portugal.
+- **Desenhos:** propostas visuais no canvas Claude Design (artifact "TrackAll Perfil Redesign"); o Noé escolhe antes de se implementar.
+- **Testar o telemóvel:** DevTools do browser em modo dispositivo (ver secção Telemóvel). Para a PWA instalada, reinstalar.
 
 ---
 
@@ -349,7 +436,8 @@ Backlog: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesenhar Tier L
 - [x] `FriendsView`, `ProfileView`, `AuthScreen`, `LandingPage`, `FeedTab`, `ProfileTabCompletos`, `ProfileTabDiario`
 - [x] Perfil v2: `ProfileCard`, `FeaturedPickerModal`, `ProfileStats`, Diário novo (ver secção "Perfil")
 - [x] `HomeView`, `LibraryView`, `SearchView` em `src/views/` (+ `LibGroupedList` e `RecoCarousel` em components/)
-- [ ] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer` (ainda no `App.jsx`)
+- [x] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer`, `RatingOverlay` extraídos para `components/`
+- [ ] Custom hooks / dividir mais o `App.jsx` (arranque + sincronização da biblioteca seriam os próximos candidatos)
 
 ### 🧪 Verificação depois de extrair código
 O esbuild só valida sintaxe e NÃO deteta imports em falta (causou um ecrã branco após o login). Correr sempre:
