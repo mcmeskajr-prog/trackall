@@ -91,41 +91,124 @@ const supa = {
     await supabase.from('profiles').update({ favorites }).eq('id', userId);
   },
 
+  // ── Amigos ─────────────────────────────────────────────────────────────────
+  // Tabela única: friendships { id, requester_id, addressee_id, status: 'pending'|'accepted'|'declined' }.
+  // (As antigas funções em 'friend_requests' escreviam numa tabela que nada lia — pedidos nunca apareciam.)
+  // Perfil "leve" de uma pessoa (sem imagens de fundo): é o que as listas e o feed precisam.
+  async _lightProfiles(ids) {
+    const uniq = [...new Set((ids || []).filter(Boolean))];
+    if (!uniq.length) return {};
+    let { data, error } = await supabase.from('profiles').select('id, username, name, avatar, accent').in('id', uniq);
+    if (error) { // coluna em falta? tenta o mínimo
+      console.warn('profiles (leve) falhou, a tentar o mínimo:', error.message);
+      ({ data } = await supabase.from('profiles').select('id, username, name, avatar').in('id', uniq));
+    }
+    const map = {};
+    (data || []).forEach(p => { map[p.id] = p; });
+    return map;
+  },
+
   async searchUsers(query) {
-    const { data } = await supabase.from('profiles').select('id, username, avatar_url').ilike('username', `%${query}%`).limit(10);
-    return data;
-  },
-
-  async sendFriendRequest(fromUserId, toUserId) {
-    await supabase.from('friend_requests').insert({ from_user_id: fromUserId, to_user_id: toUserId, status: 'pending' });
-  },
-
-  async acceptFriendRequest(requestId) {
-    await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
-  },
-
-  async declineFriendRequest(requestId) {
-    await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', requestId);
-  },
-
-  async removeFriend(userId, friendId) {
-    await supabase.from('friendships').delete().or(`and(requester_id.eq.${userId},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${userId})`);
-  },
-
-  async getFriendships(userId) {
-    const { data, error } = await supabase.from('friendships').select('*').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-    if (error) { console.error('getFriendships error:', error); return []; }
+    const q = String(query || '').trim().replace(/[%,()]/g, ' ');
+    if (!q) return [];
+    const { data, error } = await supabase.from('profiles').select('id, username, name, avatar, accent')
+      .or(`username.ilike.%${q}%,name.ilike.%${q}%`).limit(12);
+    if (error) { console.error('searchUsers error:', error); throw new Error(error.message); }
     return data || [];
   },
 
+  async sendFriendRequest(fromUserId, toUserId) {
+    const { error } = await supabase.from('friendships').insert({ requester_id: fromUserId, addressee_id: toUserId, status: 'pending' });
+    if (error) throw new Error(error.message);
+  },
+
+  async acceptFriendRequest(requestId) {
+    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
+    if (error) throw new Error(error.message);
+  },
+
+  async declineFriendRequest(requestId) {
+    // recusar = apagar a linha (assim a pessoa pode voltar a pedir mais tarde)
+    const { error } = await supabase.from('friendships').delete().eq('id', requestId);
+    if (error) throw new Error(error.message);
+  },
+
+  async removeFriend(userId, friendId) {
+    const { error } = await supabase.from('friendships').delete().or(`and(requester_id.eq.${userId},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${userId})`);
+    if (error) throw new Error(error.message);
+  },
+
+  // Devolve as linhas de friendships já com { requester, addressee } (perfis leves) — mesma forma que o FriendsView espera.
+  async getFriendships(userId) {
+    const { data, error } = await supabase.from('friendships').select('*').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
+    if (error) { console.error('getFriendships error:', error); throw new Error(error.message); }
+    const rows = data || [];
+    const profs = await supa._lightProfiles(rows.flatMap(r => [r.requester_id, r.addressee_id]));
+    return rows.map(r => ({
+      ...r,
+      requester: profs[r.requester_id] || { id: r.requester_id },
+      addressee: profs[r.addressee_id] || { id: r.addressee_id },
+    }));
+  },
+
+  // Biblioteca de um amigo no MESMO formato da nossa: { [media_id]: item }. Nunca o array de linhas cru,
+  // e sem as linhas especiais (ids que começam por "__").
   async getFriendLibrary(friendId) {
-    const { data } = await supabase.from('library').select('media_id, data').eq('user_id', friendId);
-    return data;
+    const { data, error } = await supabase.from('library').select('media_id, data').eq('user_id', friendId);
+    if (error) { console.error('getFriendLibrary error:', error); throw new Error(error.message); }
+    const lib = {};
+    (data || []).forEach(row => { if (row.media_id && !row.media_id.startsWith('__') && row.data) lib[row.media_id] = { ...row.data, id: row.media_id }; });
+    return lib;
+  },
+
+  // Hall of Fame de um amigo: { hall: [], featured: item|null } (linha especial "__hall_of_fame__")
+  async getFriendHall(friendId) {
+    const { data } = await supabase.from('library').select('data').eq('user_id', friendId).eq('media_id', '__hall_of_fame__').maybeSingle();
+    const d = data?.data || {};
+    return { hall: Array.isArray(d.hall) ? d.hall : [], featured: d.featured || null };
   },
 
   async getFriendProfile(friendId) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', friendId).single();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', friendId).maybeSingle();
+    if (error) { console.error('getFriendProfile error:', error); throw new Error(error.message); }
     return data;
+  },
+
+  // Tudo o que o perfil de um amigo precisa, em paralelo
+  async getFriendData(friendId) {
+    const [profile, library, hallRow] = await Promise.all([
+      supa.getFriendProfile(friendId),
+      supa.getFriendLibrary(friendId),
+      supa.getFriendHall(friendId).catch(() => ({ hall: [], featured: null })),
+    ]);
+    const hall = hallRow.hall.length ? hallRow.hall : (Array.isArray(profile?.hall_of_fame) ? profile.hall_of_fame : []);
+    return { profile, library, hall, featured: hallRow.featured };
+  },
+
+  // Atividade recente de vários amigos numa só consulta (só campos leves, só "completo"/"assistindo",
+  // mais recentes primeiro). Se o servidor não aceitar a ordenação/filtro por JSON, faz um fallback simples.
+  async getFriendsActivity(friendIds, limit = 150) {
+    const ids = [...new Set(friendIds || [])];
+    if (!ids.length) return [];
+    const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+    const clean = (r) => ({
+      id: r.media_id, userId: r.user_id, title: r.title || '', type: r.type || '',
+      cover: r.cover || null, thumbnailUrl: r.thumb || null,
+      customCover: r.customCover && !String(r.customCover).startsWith('data:') ? r.customCover : null,
+      userStatus: r.userStatus || '', userRating: num(r.userRating), addedAt: num(r.addedAt),
+    });
+    const cols = "media_id, user_id, title:data->>title, type:data->>type, cover:data->>cover, thumb:data->>thumbnailUrl, customCover:data->>customCover, userStatus:data->>userStatus, userRating:data->>userRating, addedAt:data->>addedAt";
+    let { data, error } = await supabase.from('library').select(cols)
+      .in('user_id', ids).neq('media_id', '__hall_of_fame__')
+      .in('data->>userStatus', ['completo', 'assistindo'])
+      .order('data->>addedAt', { ascending: false }).limit(limit);
+    if (error) {
+      console.warn('getFriendsActivity: consulta otimizada falhou, a usar fallback —', error.message);
+      const res = await supabase.from('library').select(cols).in('user_id', ids).neq('media_id', '__hall_of_fame__').limit(1500);
+      if (res.error) throw new Error(res.error.message);
+      data = (res.data || []).filter(r => r.userStatus === 'completo' || r.userStatus === 'assistindo');
+    }
+    return (data || []).map(clean).filter(i => i.addedAt && i.title).sort((a, b) => b.addedAt - a.addedAt).slice(0, limit);
   },
 
   async getPopularTierlists() {

@@ -2412,7 +2412,7 @@ export default function TrackAll() {
               </button>
             </div>
           ) : (
-            <FriendsView user={user} accent={accent} darkMode={activeDarkMode} isMobileDevice={isMobileDevice} library={library} />
+            <FriendsView user={user} library={library} onOpenItem={setSelectedItem} />
           )}
         </div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>

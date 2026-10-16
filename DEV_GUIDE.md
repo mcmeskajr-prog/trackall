@@ -327,6 +327,20 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 ---
 
+## 👥 Amigos e Feed (reescrito em 2026-10-16)
+
+**Causa de "não funcionava há muito tempo":** `supa.getFriendLibrary` devolvia o **array de linhas cru** (`[{media_id,data}]`) em vez de `{ [id]: item }` — o feed e o perfil do amigo faziam `Object.values` e ficavam sempre vazios (é a regra 3 do contrato acima). Além disso `sendFriendRequest/accept/decline` escreviam numa tabela `friend_requests` que ninguém lia, e `getFriendships` não trazia os perfis (`requester`/`addressee`), por isso `getFriendInfo` dava `undefined`.
+
+**Modelo de dados:** tabela única `friendships { id, requester_id, addressee_id, status: 'pending'|'accepted' }`. Recusar/cancelar = **apagar a linha**. `getFriendships(userId)` devolve as linhas já com `requester`/`addressee` (perfis leves `id, username, name, avatar, accent`, numa 2.ª consulta `profiles.in(...)`, sem depender de FKs). `searchUsers` usa `username`/`name` (não `avatar_url`). Todas as funções **lançam erro** (a UI mostra aviso/retry em vez de falhar em silêncio).
+- `getFriendLibrary(id)` → `{ [media_id]: item }` sem linhas `__*`. `getFriendHall(id)` → `{hall, featured}` (linha `__hall_of_fame__`). `getFriendData(id)` junta perfil + biblioteca + Hall of Fame (fallback `profiles.hall_of_fame`).
+- `getFriendsActivity(ids)`: **uma só consulta** para todos os amigos, só campos leves (`data->>title`, …), só `completo`/`assistindo`, ordenada por `data->>addedAt` desc, limite 150; ignora `customCover` em base64. Se o servidor rejeitar filtro/ordem por JSON, cai para uma consulta simples + filtro no cliente.
+
+**UI:** `FriendsView` (separadores Feed · Amigos · Procurar · Pedidos com contagem; pesquisa com debounce; aceitar/recusar/cancelar; reatualiza ao voltar à app), `FeedTab` (filtros por estado e tipo, secções por dia — Hoje/Ontem/Esta semana…, vários títulos seguidos do mesmo amigo no mesmo dia = um cartão com capas, "também completaste" quando está na tua biblioteca, esqueletos, estados vazio/erro, cache em memória 90 s), `FriendProfile` (cartão com banner/avatar/bio + **afinidade** = 100 − diferença média das notas nos títulos avaliados por ambos (≥3), Estatísticas, Hall of Fame (2 filas no telemóvel), "Completos por ambos", Favoritos por tipo, Completados/Em curso, separadores Completos/Diário; usa a **cor de destaque do amigo** via `ThemeContext.Provider`), `FriendAvatar` (inicial se não houver imagem).
+- Ao abrir um título de um amigo no `DetailModal`, **retiram-se os campos pessoais dele** (`stripPersonal`: estado, nota, data…) para não aparecerem como teus.
+- Pendente: ponto/contagem de pedidos na navegação principal; reações/comentários no feed (precisam de tabela nova); privacidade por item (público/amigos).
+
+---
+
 ## 🛠️ Como Adicionar Novo Conteúdo
 
 ### Adicionar novo tipo de media
