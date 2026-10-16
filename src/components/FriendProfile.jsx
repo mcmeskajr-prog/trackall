@@ -146,31 +146,23 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           )}
         </div>
 
-        {/* Cartão principal */}
-        <div style={{ ...card, margin: `0 ${pad}px 18px`, overflow: "hidden", position: "relative" }}>
-          <div style={{ height: isMobileDevice ? 84 : 112, position: "relative", background: prof.banner ? `url(${prof.banner}) center/cover no-repeat` : `radial-gradient(ellipse at 30% 0%, ${accent}55, transparent 70%)` }}>
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, rgba(8,10,14,0.55))" }} />
-          </div>
-          <div style={{ padding: isMobileDevice ? "0 16px 14px" : "0 22px 16px", display: "flex" }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginTop: isMobileDevice ? -34 : -40, minWidth: 0, flex: 1 }}>
-              <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={isMobileDevice ? 72 : 88} ring={accent} ringWidth={3} style={{ border: `3px solid ${darkMode ? "#0d1117" : "#fff"}`, boxSizing: "content-box" }} />
-              <div style={{ minWidth: 0, paddingBottom: 4 }}>
-                <h2 style={{ fontSize: isMobileDevice ? 21 : 24, fontWeight: 800, lineHeight: 1.15, margin: 0, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h2>
-                {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 2 }}>@{prof.username}</div>}
+        {/* Cartão principal (sem banner — os banners já não existem no teu perfil) */}
+        <div style={{ ...card, margin: `0 ${pad}px 18px`, position: "relative", overflow: "hidden", padding: isMobileDevice ? "18px 16px" : "22px 24px" }}>
+          <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 0% 0%, ${accent}30, transparent 60%)`, pointerEvents: "none" }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: isMobileDevice ? 14 : 18, flexWrap: "wrap" }}>
+            <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={isMobileDevice ? 68 : 84} ring={accent} ringWidth={3} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h2 style={{ fontSize: isMobileDevice ? 21 : 25, fontWeight: 800, lineHeight: 1.15, margin: 0, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h2>
+              {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
+              {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}
+            </div>
+            {common.all.length > 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
+                {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
+                <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
               </div>
-            </div>
+            )}
           </div>
-          {(prof.bio || common.all.length > 0) && (
-            <div style={{ padding: isMobileDevice ? "0 16px 16px" : "0 22px 18px", marginTop: 0, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-              {prof.bio && <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569", flex: "1 1 260px" }}>{prof.bio}</p>}
-              {common.all.length > 0 && (
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "7px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
-                  {common.affinity != null && <span style={{ color: accent, fontSize: 18, fontWeight: 800 }}>{common.affinity}%</span>}
-                  <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Separadores */}
