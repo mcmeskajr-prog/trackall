@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { MONTH_PT, MONTH_EN } from "../config/constants";
 
 // Atividade (estilo GitHub): cada quadrado é um dia, a intensidade é o nº de obras completadas.
@@ -77,7 +78,9 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
 
   const openCell = (e, t, pinned) => {
     const r = e.currentTarget.getBoundingClientRect();
-    const x = Math.min(Math.max(r.left + r.width / 2, 150), window.innerWidth - 150);
+    // painel de 280px: centrado no quadrado, mas sempre dentro do ecrã (nas últimas semanas abre para a esquerda)
+    const w = Math.min(280, window.innerWidth - 24);
+    const x = Math.min(Math.max(r.left + r.width / 2 - w / 2, 12), window.innerWidth - w - 12);
     setSel({ t, x, y: r.top < 260 ? r.bottom : r.top, below: r.top < 260, pinned });
   };
   const fmtDay = (t) => { const f = new Date(t).toLocaleDateString(en ? "en-GB" : "pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); return f.charAt(0).toUpperCase() + f.slice(1); };
@@ -139,9 +142,9 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
       ...(isMobile ? {} : { display: "flex", alignItems: "center", gap: 22, flex: "1 1 auto" }),
     }}>
       {stats}{grid}
-      {sel && selItems.length > 0 && (
+      {sel && selItems.length > 0 && createPortal(
         <div ref={popRef} style={{
-          position: "fixed", left: sel.x, top: sel.y, transform: `translate(-50%, ${sel.below ? "8px" : "calc(-100% - 8px)"})`,
+          position: "fixed", left: sel.x, top: sel.y, transform: `translateY(${sel.below ? "8px" : "calc(-100% - 8px)"})`,
           zIndex: 300, width: 280, maxWidth: "calc(100vw - 24px)", borderRadius: 14, padding: 12,
           background: darkMode ? "rgba(18,18,22,0.97)" : "rgba(255,255,255,0.98)", color: text,
           border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.14)"}`, boxShadow: "0 18px 40px -10px rgba(0,0,0,0.7)",
@@ -167,7 +170,8 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
             })}
           </div>
           {!sel.pinned && !isMobile && <div style={{ fontSize: 10, color: muted, marginTop: 8 }}>{en ? "Click to open the list" : "Clica para abrir a lista"}</div>}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
