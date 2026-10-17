@@ -533,7 +533,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
 
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
-      {items.length > 0 && <div style={{ margin: "0 16px", ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column" }) }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} /></div>}
+      {items.length > 0 && <div style={{ margin: "0 16px", ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column" }) }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div>}
 
       </div>
       {diaryPanel}
