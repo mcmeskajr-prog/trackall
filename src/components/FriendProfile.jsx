@@ -24,7 +24,7 @@ function Poster({ item, onOpen, darkMode, outline, badge }) {
     <div className="recent-card" onClick={() => onOpen && onOpen(item)} title={item.title} style={{ minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", background: gradientFor(item.id),
         boxShadow: outline ? `0 0 0 2px ${outline}, 0 14px 24px -14px rgba(0,0,0,0.85)` : "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
-        {src ? <CoverImg src={src} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+        {src ? <CoverImg hi src={src} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#fff" }}><TypeIcon id={item.type} /></div>}
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", left: 8, right: 8, bottom: 7, fontSize: 11.5, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>

@@ -207,14 +207,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         <div key={item.id} className={mobile ? undefined : "recent-card fav-card-wrap"} onClick={() => onOpen && onOpen(item)} title={item.title} style={{ position: "relative", cursor: "pointer", ...(mobile ? { width: "clamp(96px, 27vw, 112px)", flexShrink: 0 } : {}) }}>
           {mobile ? (
             <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 22px -10px rgba(0,0,0,0.8)" }}>
-              {coverSrc && <CoverImg src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+              {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
               {r > 0 && <div style={{ position: "absolute", right: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 10.5, fontWeight: 800, pointerEvents: "none" }}>★ {r}</div>}
             </div>
           ) : (
             <>
               <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)" }}>
                 {coverSrc
-                  ? <CoverImg src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                  ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}><TypeIcon id={t?.id} /></div>}
                 <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px" }}>
                   <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
@@ -459,7 +459,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 return (
                   <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
                     style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}, 0 16px 28px -14px ${accent}99` : "0 16px 26px -14px rgba(0,0,0,0.85)" }}>
-                    {coverSrc && <CoverImg src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                    {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
                     <div style={{ position: "absolute", left: 10, right: 10, bottom: 9, fontSize: 12, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>
                     {score > 0 && (
@@ -500,7 +500,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
                     {coverSrc
-                      ? <CoverImg src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
                     <button
                       onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
