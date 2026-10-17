@@ -17,6 +17,7 @@ import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileStats } from "./ProfileStats";
+import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
@@ -518,6 +519,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           </div>
         )}
       </div>
+
+      {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
+      {items.length > 0 && <div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} /></div>}
 
       </div>
       {diaryPanel}
