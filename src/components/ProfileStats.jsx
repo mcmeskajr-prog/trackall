@@ -18,7 +18,8 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
     // 10 barras (notas inteiras; meias estrelas contam para a nota seguinte)
     const h10 = Array.from({ length: 10 }, () => 0);
     rated.forEach(i => { h10[Math.min(10, Math.max(1, Math.ceil(i.userRating))) - 1] += 1; });
-    return { total: list.length, rated: rated.length, avg, completed, hist, histMax: Math.max(1, ...hist), h10, h10Max: Math.max(1, ...h10) };
+    const inProgress = list.filter(i => i.userStatus === "assistindo").length;
+    return { total: list.length, rated: rated.length, avg, completed, inProgress, hist, histMax: Math.max(1, ...hist), h10, h10Max: Math.max(1, ...h10) };
   }, [items]);
 
   const text = darkMode ? "#e6edf3" : "#0f172a";
@@ -35,13 +36,13 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
     { n: data.total, l: lang === "en" ? "items" : "itens", f: {} },
     { n: data.completed, l: lang === "en" ? "completed" : "completados", f: { status: "completo" } },
     { n: data.avg, l: lang === "en" ? "average rating" : "média de rating", f: { rating: "rated", sort: "rating" }, mini: true },
-    { n: data.rated, l: lang === "en" ? "rated" : "avaliados", f: { rating: "rated" } },
+    { n: data.inProgress, l: lang === "en" ? "in progress" : "em curso", f: { status: "assistindo" } },
   ];
   const fmtR = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   const reset = { background: "none", border: "none", padding: 0, margin: 0, font: "inherit", color: "inherit", textAlign: "left", cursor: onFilter ? "pointer" : "default" };
 
   return (
-    <div style={{ margin: stacked ? 0 : (isMobileDevice ? "0 0 22px" : "0 16px 28px"), display: "flex", flexDirection: "column", gap: 14, color: text }}>
+    <div style={{ margin: stacked ? 0 : (isMobileDevice ? "0 0 22px" : "0 16px 18px"), display: "flex", flexDirection: "column", gap: 14, color: text }}>
       <style>{`
         .st-int { transition: transform .15s ease, background-color .15s ease, border-color .15s ease, filter .15s ease; }
         @media (hover:hover) { .st-tile:hover { transform: translateY(-2px); border-color: ${accent}88 !important; }
@@ -54,7 +55,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
       `}</style>
       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0,1fr))" : stacked ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: isMobileDevice ? 10 : 14 }}>
         {(isMobileDevice ? tiles.slice(0, 3) : tiles).map(t => (
-          <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)} style={{ ...reset, ...card, padding: isMobileDevice ? 12 : 18, borderRadius: isMobileDevice ? 14 : 18 }}>
+          <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)} style={{ ...reset, ...card, padding: isMobileDevice ? 12 : "14px 18px", borderRadius: isMobileDevice ? 14 : 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10 }}>
               <div>
                 <div style={{ fontSize: isMobileDevice ? 24 : 28, fontWeight: 800, lineHeight: 1.1 }}>{t.n}</div>

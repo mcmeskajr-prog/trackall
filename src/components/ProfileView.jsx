@@ -434,7 +434,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {!isMobileDevice && <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} />}
 
       {/* ── Hall of Fame ── */}
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: isMobileDevice ? 28 : 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
           <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
           <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
@@ -480,7 +480,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(150px, calc((100vh - 450px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }}>
+          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(200px, calc((100vh - 410px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }}>
             {hallOfFame.map((item, idx) => {
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
