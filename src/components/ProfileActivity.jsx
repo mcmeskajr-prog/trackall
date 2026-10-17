@@ -62,7 +62,7 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: muted, textTransform: "uppercase" }}>
           {isMobile ? (en ? "Last 6 months" : "Últimos 6 meses") : (en ? "Last 12 months" : "Últimos 12 meses")}
         </div>
-        <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 800, lineHeight: 1, marginTop: 8, color: text }}>
+        <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, lineHeight: 1, marginTop: isMobile ? 8 : 6, color: text }}>
           {data.total}<span style={{ fontSize: 13, color: muted, fontWeight: 700 }}> {en ? "completed" : "completados"}</span>
         </div>
       </div>
@@ -73,10 +73,10 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
   );
 
   const grid = (
-    <div style={{ flex: 1, minWidth: 0, ...(isMobile ? {} : { maxWidth: weeks * 17, marginLeft: "auto" }) }}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gap, marginBottom: 5, height: 12 }}>
+    <div style={{ flex: 1, minWidth: 0, ...(isMobile ? {} : { maxWidth: weeks * 12, marginLeft: "auto" }) }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gap, marginBottom: isMobile ? 5 : 4, height: isMobile ? 12 : 11 }}>
         {data.months.map(({ c, m }) => (
-          <span key={c} style={{ gridColumn: `${c + 1} / span 4`, fontSize: 9.5, color: muted, whiteSpace: "nowrap", overflow: "visible", lineHeight: "12px" }}>{MONTHS[m]}</span>
+          <span key={c} style={{ gridColumn: `${c + 1} / span 4`, fontSize: 9.5, color: muted, whiteSpace: "nowrap", overflow: "visible", lineHeight: isMobile ? "12px" : "11px" }}>{MONTHS[m]}</span>
         ))}
       </div>
       <div role="img" aria-label={en ? "Completed items per day" : "Obras completadas por dia"} style={{ display: "grid", gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gridTemplateRows: "repeat(7, auto)", gridAutoFlow: "column", gap }}>
@@ -85,17 +85,17 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
             style={{ aspectRatio: "1", borderRadius: 3, background: future ? "transparent" : level(n) }} />
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 8, fontSize: 10, color: muted }}>
+      {isMobile && <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 8, fontSize: 10, color: muted }}>
         {en ? "Less" : "Menos"}
         {[0, 1, 2, 4, 7].map(n => <span key={n} style={{ width: 10, height: 10, borderRadius: 2.5, background: level(n) }} />)}
         {en ? "More" : "Mais"}
-      </div>
+      </div>}
     </div>
   );
 
   return (
     <div style={{
-      marginBottom: 28, borderRadius: 20, padding: isMobile ? "16px 16px 14px" : "20px 22px",
+      marginBottom: isMobile ? 28 : 0, borderRadius: 20, padding: isMobile ? "16px 16px 14px" : "10px 22px",
       background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"),
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
       ...(isMobile ? {} : { display: "flex", alignItems: "center", gap: 22 }),
