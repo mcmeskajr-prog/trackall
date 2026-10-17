@@ -139,7 +139,10 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
             {coverSrc
-              ? <img src={hiRes(coverSrc)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
+              ? <>
+                {!isMobileDevice && <img src={coverSrc} alt="" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none", filter: "blur(22px) brightness(0.55)", transform: "scale(1.15)" }} />}
+                <img src={hiRes(coverSrc)} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: isMobileDevice ? "cover" : "contain", pointerEvents: "none", filter: "brightness(0.9)" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
+              </>
               : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}><TypeIcon id={typeDef?.id} /></div>}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 42%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
