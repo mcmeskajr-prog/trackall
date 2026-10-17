@@ -406,7 +406,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {/* Stats and settings — PC: flex row com diário à direita */}
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
-        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "flex-start" }
+        ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "stretch" }
         : { padding: "16px 16px 0" }
       }>
       {!editing && (
@@ -427,7 +427,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           />
         </div>
       )}
-      <div style={{ flex: 1, minWidth: 0, ...(isMobileDevice ? {} : { margin: "0 -16px" }) }}>
+      <div style={{ flex: 1, minWidth: 0, ...(isMobileDevice ? {} : { margin: "0 -16px", display: "flex", flexDirection: "column" }) }}>
 
 
       {/* ── Estatísticas (Fase 2) ── */}
@@ -521,7 +521,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
 
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
-      {items.length > 0 && <div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} /></div>}
+      {items.length > 0 && <div style={{ margin: "0 16px", ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column" }) }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} /></div>}
 
       </div>
       {diaryPanel}

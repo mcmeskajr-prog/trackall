@@ -98,7 +98,7 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
       marginBottom: isMobile ? 28 : 0, borderRadius: 20, padding: isMobile ? "16px 16px 14px" : "10px 22px",
       background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"),
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
-      ...(isMobile ? {} : { display: "flex", alignItems: "center", gap: 22 }),
+      ...(isMobile ? {} : { display: "flex", alignItems: "center", gap: 22, flex: "1 1 auto" }),
     }}>
       {stats}{grid}
     </div>
