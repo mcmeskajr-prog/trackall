@@ -10,7 +10,7 @@ import { TypeIcon } from "./TypeIcon";
 // ─── Cartão de perfil (Fase 1 do redesign) ───
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
 // Só aparece em modo de visualização; a edição continua no cabeçalho do ProfileView.
-export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onSignOut, onPickFeatured }) {
+export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onSignOut, onPickFeatured, onFilter }) {
   const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang } = useLang();
 
@@ -25,6 +25,20 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
     return [...rated].sort((a, b) => (b.userRating - a.userRating) || ((b.addedAt || 0) - (a.addedAt || 0)))[0];
   }, [featuredItem, items, library]);
 
+  // Números do cabeçalho compacto (telemóvel): itens, completados, média + mini-histograma de notas
+  const mini = useMemo(() => {
+    const list = items || [];
+    const rated = list.filter(i => i.userRating > 0);
+    const hist = Array.from({ length: 20 }, () => 0);
+    rated.forEach(i => { hist[Math.min(20, Math.max(1, Math.round(i.userRating * 2))) - 1] += 1; });
+    return {
+      total: list.length,
+      completed: list.filter(i => i.userStatus === "completo").length,
+      avg: rated.length ? (rated.reduce((a, i) => a + i.userRating, 0) / rated.length).toFixed(1) : "—",
+      hist, histMax: Math.max(1, ...hist), hasRatings: rated.length > 0,
+    };
+  }, [items]);
+
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const sub = darkMode ? "#aab4c0" : "#475569";
   const typeDef = featured ? MEDIA_TYPES.find(t => t.id === featured.type) : null;
@@ -36,26 +50,55 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
   // Telemóvel: cartão compacto numa linha (o destaque vive no Hall of Fame, ver ProfileView)
   if (isMobileDevice) {
     const iconBtn = { width: 44, height: 44, borderRadius: 12, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", color: text, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.18)"}` };
+    const divider = darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)";
+    const stats = [
+      { n: mini.total, l: lang === "en" ? "items" : "itens", f: {}, c: text },
+      { n: mini.completed, l: lang === "en" ? "completed" : "completados", f: { status: "completo" }, c: text },
+      { n: mini.avg, l: lang === "en" ? "average" : "média", f: { rating: "rated", sort: "rating" }, c: "#fbbf24" },
+    ];
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, color: text, boxSizing: "border-box",
+      <div style={{ padding: 16, borderRadius: 18, color: text, boxSizing: "border-box",
         background: panelBg ? panelBg : (darkMode ? "rgba(12,12,16,0.7)" : "rgba(255,255,255,0.85)"),
-        border: `1px solid ${darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)"}` }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
-          boxShadow: `0 0 0 3px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 5px ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 22, color: "white" }}>
-          {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
-          <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
-          {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 4, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
-        </div>
-        <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-        </button>
-        {onSignOut && (
-          <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+        border: `1px solid ${divider}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`,
+            boxShadow: `0 0 0 3px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 5px ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 22, color: "white" }}>
+            {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
+            {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 3, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
+          </div>
+          <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
           </button>
+          {onSignOut && (
+            <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+            </button>
+          )}
+        </div>
+
+        {/* Números (cada um abre a Biblioteca filtrada) */}
+        <div style={{ display: "flex", marginTop: 16, paddingTop: 14, borderTop: `1px solid ${divider}` }}>
+          {stats.map((st, i) => (
+            <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 44, textAlign: "center", background: "none", border: "none", borderLeft: i ? `1px solid ${divider}` : "none", padding: "2px 0", color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1, color: st.c }}>{st.n}</div>
+              <div style={{ fontSize: 11.5, color: sub, marginTop: 5 }}>{st.l}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Mini-histograma das notas */}
+        {mini.hasRatings && (
+          <div style={{ marginTop: 14 }} aria-label={lang === "en" ? "Ratings distribution" : "Distribuição de ratings"}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 34 }}>
+              {mini.hist.map((n, i) => (
+                <span key={i} style={{ flex: 1, height: `${Math.max(6, (n / mini.histMax) * 100)}%`, borderRadius: "2px 2px 0 0", background: accent, opacity: n ? 0.4 + 0.6 * (n / mini.histMax) : 0.15 }} />
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: darkMode ? "#8b949e" : "#64748b" }}><span>0,5</span><span>★ 5</span><span>10</span></div>
+          </div>
         )}
       </div>
     );

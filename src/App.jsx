@@ -33,6 +33,7 @@ import { parseMihonBackup, parsePaperbackBackup, parseLetterboxdCSV } from './li
 import { t, detectLang, saveLang } from './translations';
 // ─── Config imports ───────────────────────────────────────────────────────────
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
+import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
@@ -1564,7 +1565,12 @@ export default function TrackAll() {
       newFavs = favorites.filter(f => !favoriteIds.has(f.id));
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
-      if (favorites.length >= 30) { showNotif("Máximo de 30 favoritos!", "#ef4444"); return; }
+      const sameType = favorites.filter(f => f.type === normalizedItem.type).length;
+      if (sameType >= MAX_FAVORITES_PER_TYPE) {
+        const t = MEDIA_TYPES.find(x => x.id === normalizedItem.type);
+        showNotif(`Já tens ${MAX_FAVORITES_PER_TYPE} favoritos de ${t ? mediaLabel(t, lang) : "este tipo"}. Remove um para adicionar este.`, "#ef4444");
+        return;
+      }
       const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
       newFavs = [...favorites, { id: normalizedItem.id, title: normalizedItem.title, cover: normalizedItem.cover, customCover: libItem?.customCover || normalizedItem.customCover || "", type: normalizedItem.type }];
       showNotif(useT("addedToFavorites"), "#f59e0b");

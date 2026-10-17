@@ -23,7 +23,7 @@ function Poster({ item, onOpen, darkMode, outline, badge }) {
   return (
     <div className="recent-card" onClick={() => onOpen && onOpen(item)} title={item.title} style={{ minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", background: gradientFor(item.id),
-        border: `1px solid ${outline || (darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)")}`, boxShadow: "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
+        boxShadow: outline ? `0 0 0 2px ${outline}, 0 14px 24px -14px rgba(0,0,0,0.85)` : "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
         {src ? <CoverImg src={src} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#fff" }}><TypeIcon id={item.type} /></div>}
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />

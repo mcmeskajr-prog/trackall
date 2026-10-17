@@ -128,7 +128,7 @@ export function FeedTab({ accepted, getFriendInfo, library, onOpenFriend, onOpen
     const src = it.customCover || it.cover || it.thumbnailUrl;
     return (
       <div className="recent-card" style={{ width: w, height: h, flexShrink: 0 }}>
-        <div onClick={() => onOpenItem && onOpenItem(it)} title={it.title} style={{ position: "relative", width: "100%", height: "100%", borderRadius: radius, overflow: "hidden", background: gradientFor(it.id), cursor: onOpenItem ? "pointer" : "default", border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}` }}>
+        <div onClick={() => onOpenItem && onOpenItem(it)} title={it.title} style={{ position: "relative", width: "100%", height: "100%", borderRadius: radius, overflow: "hidden", background: gradientFor(it.id), cursor: onOpenItem ? "pointer" : "default" }}>
           {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
             : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#fff" }}><TypeIcon id={it.type} /></div>}
           <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.18s ease", display: "flex", alignItems: "flex-end", padding: "0 7px 7px", background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 50%, transparent 80%)", pointerEvents: "none" }}>
