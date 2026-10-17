@@ -132,10 +132,10 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
 
       {/* Item em destaque */}
       {featured ? (
-        <div style={{ position: "relative", marginBottom: 14, ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0 }) }}>
-        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer", ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: 0 }) }}>
+        <div style={{ position: "relative", marginBottom: 14, ...(isMobileDevice ? {} : { flex: "1 1 0", display: "flex", flexDirection: "column", minHeight: 280 }) }}>
+        <div onClick={() => onOpen && onOpen(featured)} style={{ cursor: "pointer", ...(isMobileDevice ? {} : { flex: "1 1 0", display: "flex", flexDirection: "column", minHeight: 0 }) }}>
           <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.03} style={{
-            aspectRatio: "2/3", ...(isMobileDevice ? {} : { flex: "1 1 auto" }), borderRadius: 16, overflow: "hidden",
+            ...(isMobileDevice ? { aspectRatio: "2/3" } : { flex: "1 1 0", minHeight: 0 }), borderRadius: 16, overflow: "hidden",
             background: gradientFor(featured.id),
             boxShadow: "0 0 0 1px rgba(255,255,255,0.07), 0 18px 30px -12px rgba(0,0,0,0.7)",
           }}>
