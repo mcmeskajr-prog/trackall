@@ -126,7 +126,6 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>
         <h2 style={{ fontSize: isMobileDevice ? 26 : 30, fontWeight: 800, lineHeight: 1.1, margin: "18px 0 0", overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</h2>
-        <div style={{ fontSize: 12, color: sub, marginTop: 4, letterSpacing: "0.04em" }}>TrackAll · {count} {lang === "en" ? "items" : "itens"}</div>
         {profile.bio && <p style={{ fontSize: 13, color: sub, margin: "8px 0 0", lineHeight: 1.5 }}>{profile.bio}</p>}
       </div>
 

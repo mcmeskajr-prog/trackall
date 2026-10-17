@@ -284,6 +284,28 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     );
   })();
 
+  // Separadores: ícone de linha + texto no PC (todos iguais); só texto no telemóvel, onde o espaço é curto
+  const TAB_ICONS = {
+    perfil: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    completos: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+    tierlists: '<path d="M4 6h16M4 12h10M4 18h6"/>',
+    listas: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+    diario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+    definicoes: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  };
+  const stripGlyph = (t) => String(t).replace(/^[^\p{L}\p{N}]+/u, "");
+  const renderTabLabel = (tab) => {
+    const text = stripGlyph(tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists")
+      : tab === "listas" ? (lang === "en" ? "Lists" : "Listas") : tab === "definicoes" ? (lang === "en" ? "Settings" : "Definições") : (lang === "en" ? "Diary" : "Diário"));
+    if (isMobileDevice) return text;
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: TAB_ICONS[tab] }} />
+        {text}
+      </span>
+    );
+  };
+
   return (
     <>
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto" }}>
@@ -387,17 +409,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             marginBottom: -1, whiteSpace: "nowrap",
             ...(isMobileDevice ? { flex: 1 } : {}),
           }}>
-            {isMore ? "⋯" : tab === "perfil" ? useT("tabPerfil") : tab === "completos" ? useT("tabCompletos") : tab === "tierlists" ? useT("tabTierLists") : tab === "listas" ? (
-              <span style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "center" }}>
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-                  <rect x="0" y="0" width="5" height="5" rx="1" fill="currentColor"/>
-                  <rect x="7" y="0" width="5" height="5" rx="1" fill="currentColor"/>
-                  <rect x="0" y="7" width="5" height="5" rx="1" fill="currentColor"/>
-                  <rect x="7" y="7" width="5" height="5" rx="1" fill="currentColor"/>
-                </svg>
-                {lang === "en" ? "Lists" : "Listas"}
-              </span>
-            ) : tab === "definicoes" ? (lang === "en" ? "⚙ Settings" : "⚙ Definições") : (lang === "en" ? "Diary" : "Diário")}
+            {isMore ? "⋯" : renderTabLabel(tab)}
           </button>
           );
         })}
