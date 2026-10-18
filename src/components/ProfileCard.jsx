@@ -6,6 +6,7 @@ import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 import { TypeIcon } from "./TypeIcon";
+import { BannerHero } from "./BannerHero";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
@@ -75,6 +76,40 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
         {lang === "en" ? "+ Choose your featured item" : "+ Escolhe o teu item em destaque"}
       </button>
     ) : null);
+    // Com banner: fundo tingido, avatar sobreposto, números soltos, botão "Editar perfil" contornado
+    if (profile.banner && !profile.hideBannerMobile) {
+      return (
+        <BannerHero banner={profile.banner} topBleed={16} style={{ color: text }}>
+          <div style={{ position: "relative", width: 92, height: 92 }}>
+            <div style={{ width: 92, height: 92, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 34, color: "white" }}>
+              {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
+            </div>
+            <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={{ position: "absolute", right: -2, bottom: 0, width: 28, height: 28, borderRadius: "50%", border: `2px solid ${darkMode ? "#0a0c10" : "#ffffff"}`, background: accent, color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+            </button>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, marginTop: 12, overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
+          {profile.bio && <div style={{ fontSize: 13.5, color: sub, marginTop: 5, lineHeight: 1.4 }}>{profile.bio}</div>}
+          <div style={{ display: "flex", marginTop: 18 }}>
+            {stats.map((st) => (
+              <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 44, textAlign: "left", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1, color: st.c }}>{st.n}</div>
+                <div style={{ fontSize: 11.5, color: sub, marginTop: 5 }}>{st.l}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <button onClick={onEdit} style={{ flex: 1, height: 44, borderRadius: 999, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: "transparent", color: text, border: `1.5px solid ${darkMode ? "rgba(255,255,255,0.35)" : "rgba(15,23,42,0.35)"}` }}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>
+            {onSignOut && (
+              <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, borderRadius: 999, color: sub }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+              </button>
+            )}
+          </div>
+          {featRow && <div style={{ paddingBottom: 14 }}>{featRow}</div>}
+        </BannerHero>
+      );
+    }
     return (
       <>
       <div style={{ padding: 16, borderRadius: 18, color: text, boxSizing: "border-box",

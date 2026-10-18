@@ -10,6 +10,8 @@ import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
 import { CropModal } from "./CropModal";
+import { BannerEditor } from "./BannerEditor";
+import { splitBanner, joinBanner } from "../lib/bannerColors";
 import { CollectionCard } from "./CollectionCard";
 import { TierListCard } from "./TierListCard";
 import { RecentSection } from "./RecentSection";
@@ -99,8 +101,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
   const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
-  const [bannerPreview, setBannerPreview] = useState(profile.banner || "");
-  const [bannerUrl, setBannerUrl] = useState(profile.banner || "");
+  const [bannerPreview, setBannerPreview] = useState(splitBanner(profile.banner).url);
+  const [bannerUrl, setBannerUrl] = useState(splitBanner(profile.banner).url);
+  const [bannerStyle, setBannerStyle] = useState(splitBanner(profile.banner).style);
+  const resetBanner = () => { const b = splitBanner(profile.banner); setBannerPreview(b.url); setBannerUrl(b.url); setBannerStyle(b.style); setHideBannerMobile(profile.hideBannerMobile || false); };
   const [cropSrc, setCropSrc] = useState(null);
   const [cropType, setCropType] = useState(null); // "avatar" | "banner"
   const avatarRef = useRef();
@@ -150,6 +154,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       if (type === "banner") { setBannerPreview(url); setBannerUrl(url); }
     } catch (e) {
       console.error("Upload falhou:", e);
+      if (type === "banner") resetBanner();
       setUploadError(lang === "en" ? "Image upload failed — try a smaller image or a direct link instead" : "O envio da imagem falhou — tenta uma imagem mais pequena ou um link direto");
     } finally {
       setUploadingImage(null);
@@ -157,14 +162,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   };
 
   const handleSave = async () => {
-    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: bannerUrl, hideEmail, hideBannerMobile });
+    await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: joinBanner(bannerUrl, bannerStyle), hideEmail, hideBannerMobile });
     setEditing(false);
   };
 
-  const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); };
+  const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); };
   // Na vista normal do separador Perfil, a identidade vive no ProfileCard; o cabeçalho antigo só aparece a editar ou noutros separadores.
   const showHeaderIdentity = editing || profileTab !== "perfil";
-  const currentBanner = editing ? bannerPreview : profile.banner;
+  const currentBanner = editing ? bannerPreview : splitBanner(profile.banner).url;
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
   const renderTopGenres = (panel) => {
@@ -372,7 +377,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {/* Name / bio / edit */}
       <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
         {editing ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, margin: "0 auto" }}>
+            <BannerEditor url={bannerPreview} style={bannerStyle} onStyle={setBannerStyle} onFile={handleBannerFile}
+              onRemove={() => { setBannerPreview(""); setBannerUrl(""); }} uploading={uploadingImage === "banner"}
+              hide={hideBannerMobile} onHide={setHideBannerMobile} lang={lang} avatar={avatarPreview} name={name} />
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
             <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
@@ -381,7 +389,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-accent" style={{ flex: 1, padding: "10px", opacity: uploadingImage ? 0.6 : 1 }} onClick={handleSave} disabled={!!uploadingImage}>{uploadingImage ? (lang === "en" ? "Uploading image..." : "A enviar imagem...") : useT("saveProfile")}</button>
-              <button onClick={() => { setEditing(false); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+              <button onClick={() => { setEditing(false); resetBanner(); setAvatarPreview(profile.avatar||""); }} style={{ flex: 1, padding: "10px", background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
             </div>
           </div>
         ) : (
@@ -391,7 +399,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             {userEmail && !hideEmail && <p style={{ color: "#484f58", fontSize: 12, marginTop: 4 }}>✉ {userEmail}</p>}
             <p style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>TrackAll · {items.length} {useT("inLibraryCount")}</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14, alignItems: "center" }}>
-              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); setBannerPreview(profile.banner||""); setBannerUrl(profile.banner||""); setEditing(true); }} style={{
+              <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
               }}>✏ Editar Perfil</button>
@@ -963,7 +971,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     {cropSrc && (
       <CropModal
         imageSrc={cropSrc}
-        aspectRatio={cropType === "banner" ? 800/280 : 1}
+        aspectRatio={cropType === "banner" ? 2 : 1}
+        outputWidth={cropType === "banner" ? 1600 : undefined}
         title={cropType === "banner" ? "Recortar Banner" : "Recortar Avatar"}
         onSave={handleCropSave}
         onClose={() => { setCropSrc(null); setCropType(null); }}

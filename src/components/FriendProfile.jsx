@@ -7,6 +7,7 @@ import { gradientFor } from "../lib/utils";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
+import { BannerHero } from "./BannerHero";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
@@ -146,24 +147,45 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           )}
         </div>
 
-        {/* Cartão principal (sem banner — os banners já não existem no teu perfil) */}
-        <div style={{ ...card, margin: `0 ${pad}px 18px`, position: "relative", overflow: "hidden", padding: isMobileDevice ? "18px 16px" : "22px 24px" }}>
-          <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 0% 0%, ${accent}30, transparent 60%)`, pointerEvents: "none" }} />
-          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: isMobileDevice ? 14 : 18, flexWrap: "wrap" }}>
-            <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={isMobileDevice ? 68 : 84} ring={accent} ringWidth={3} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h2 style={{ fontSize: isMobileDevice ? 21 : 25, fontWeight: 800, lineHeight: 1.15, margin: 0, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h2>
+        {/* Cartão principal: com banner (telemóvel) fundo tingido; senão cartão normal */}
+        {isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
+          <BannerHero banner={prof.banner} bleed={0} height={170} style={{ marginBottom: 18 }}>
+            <div style={{ padding: "0 16px" }}>
+              <div style={{ width: 88, height: 88, borderRadius: "50%", boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}`, overflow: "hidden" }}>
+                <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={88} ring="transparent" ringWidth={0} />
+              </div>
+              <h2 style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", color: text, overflowWrap: "anywhere" }}>{name}</h2>
               {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
               {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}
-            </div>
+              <div style={{ marginTop: 12, paddingBottom: 12 }}>
             {common.all.length > 0 && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
-                {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
-                <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
+      {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
+      <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+    </div>
+  )}
               </div>
-            )}
+            </div>
+          </BannerHero>
+        ) : (
+          <div style={{ ...card, margin: `0 ${pad}px 18px`, position: "relative", overflow: "hidden", padding: isMobileDevice ? "18px 16px" : "22px 24px" }}>
+            <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 0% 0%, ${accent}30, transparent 60%)`, pointerEvents: "none" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: isMobileDevice ? 14 : 18, flexWrap: "wrap" }}>
+              <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={isMobileDevice ? 68 : 84} ring={accent} ringWidth={3} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h2 style={{ fontSize: isMobileDevice ? 21 : 25, fontWeight: 800, lineHeight: 1.15, margin: 0, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h2>
+                {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
+                {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}
+              </div>
+              {common.all.length > 0 && (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
+                  {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
+                  <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Separadores */}
         <div style={{ display: "flex", gap: 4, margin: `0 ${pad}px 20px`, borderBottom: `1px solid ${line}` }}>

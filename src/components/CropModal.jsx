@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 
-export function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "Recortar imagem" }) {
+export function CropModal({imageSrc, aspectRatio = 1, outputWidth, onSave, onClose, title = "Recortar imagem" }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -15,7 +15,7 @@ export function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "
   const [startDrag, setStartDrag] = useState(null);
   const imgRef = useRef(null);
 
-  const CANVAS_W = aspectRatio > 1 ? 900 : 320;
+  const CANVAS_W = outputWidth || (aspectRatio > 1 ? 900 : 320);
   const CANVAS_H = Math.round(CANVAS_W / aspectRatio);
 
   const [loadError, setLoadError] = useState(false);
@@ -57,18 +57,19 @@ export function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "
     };
   };
 
-  const onMouseDown = (e) => { setDrag(true); setStartDrag({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
+  const kScale = () => { const r = canvasRef.current?.getBoundingClientRect(); return r && r.width ? CANVAS_W / r.width : 1; };
+  const onMouseDown = (e) => { const k = kScale(); setDrag(true); setStartDrag({ x: e.clientX * k - offset.x, y: e.clientY * k - offset.y }); };
   const onMouseMove = (e) => {
     if (!drag || !startDrag) return;
-    const newOff = clampOffset(e.clientX - startDrag.x, e.clientY - startDrag.y, scale);
+    const k = kScale(); const newOff = clampOffset(e.clientX * k - startDrag.x, e.clientY * k - startDrag.y, scale);
     setOffset(newOff);
   };
   const onMouseUp = () => { setDrag(false); setStartDrag(null); };
-  const onTouchStart = (e) => { const t = e.touches[0]; setDrag(true); setStartDrag({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
+  const onTouchStart = (e) => { const t = e.touches[0]; const k = kScale(); setDrag(true); setStartDrag({ x: t.clientX * k - offset.x, y: t.clientY * k - offset.y }); };
   const onTouchMove = (e) => {
     if (!drag || !startDrag) return;
     const t = e.touches[0];
-    const newOff = clampOffset(t.clientX - startDrag.x, t.clientY - startDrag.y, scale);
+    const k = kScale(); const newOff = clampOffset(t.clientX * k - startDrag.x, t.clientY * k - startDrag.y, scale);
     setOffset(newOff);
   };
 
@@ -84,8 +85,9 @@ export function CropModal({imageSrc, aspectRatio = 1, onSave, onClose, title = "
     const canvas = document.createElement("canvas");
     canvas.width = CANVAS_W; canvas.height = CANVAS_H;
     const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
-    onSave(canvas.toDataURL("image/jpeg", 0.95));
+    onSave(canvas.toDataURL("image/jpeg", outputWidth ? 0.97 : 0.95));
   };
 
   return createPortal(
