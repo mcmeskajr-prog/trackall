@@ -6,7 +6,8 @@ import { MEDIA_TYPES, MONTH_PT, MONTH_EN } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 
-export function RecentSection({ items, onOpen, showDiary = true }) {
+// part: "all" | "recent" | "curso" · bare: sem títulos (o telemóvel mostra-os num cabeçalho de secção)
+export function RecentSection({ items, onOpen, showDiary = true, part = "all", bare = false }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -58,10 +59,10 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
   return (
     <>
       {/* Completados — tamanho igual aos Favoritos */}
-      {completados.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={isMobileDevice ? { fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" } : { fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{isMobileDevice ? (lang === "en" ? "Recent" : "Recentes") : (lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>
+      {completados.length > 0 && part !== "curso" && (
+        <div style={{ marginBottom: bare ? 8 : 24 }}>
+          <div style={{ display: "flex", justifyContent: bare ? "flex-end" : "space-between", alignItems: "center", marginBottom: bare ? 4 : 12 }}>
+            {!bare && <h3 style={isMobileDevice ? { fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" } : { fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{isMobileDevice ? (lang === "en" ? "Recent" : "Recentes") : (lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>}
             {completados.length > (isMobileDevice ? 4 : 7) && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: isMobileDevice ? "none" : `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
@@ -175,10 +176,10 @@ export function RecentSection({ items, onOpen, showDiary = true }) {
       })()}
 
       {/* Em Curso — small cards with chapter info */}
-      {inCurso.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>
+      {inCurso.length > 0 && part !== "recent" && (
+        <div style={{ marginBottom: bare ? 8 : 24 }}>
+          <div style={{ display: "flex", justifyContent: bare ? "flex-end" : "space-between", alignItems: "center", marginBottom: bare ? 4 : 12 }}>
+            {!bare && <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>}
             {inCurso.length > 10 && (
               <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCurso ? "↑ Menos" : `Ver todos (${inCurso.length})`}

@@ -37,6 +37,25 @@ function Sakura({ size = 11 }) {
   );
 }
 
+// Secção que abre e fecha (telemóvel): cabeçalho com título, contagem e seta; o conteúdo mantém os seus próprios espaços laterais
+function SectionAccordion({ title, right, open, onToggle, darkMode, children }) {
+  const muted = darkMode ? "#aab4c0" : "#64748b";
+  return (
+    <div style={{ marginBottom: open ? 8 : 0 }}>
+      <button type="button" onClick={onToggle} aria-expanded={open}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 48, padding: "0 16px", background: "none", border: "none", borderBottom: open ? "none" : `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.1)"}`, color: "inherit", fontFamily: "inherit", cursor: "pointer", textAlign: "left", boxSizing: "border-box" }}>
+        <span style={{ fontSize: 18, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a" }}>{title}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: muted }}>
+          {right}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.2s" }}><path d="M6 9l6 6 6-6" /></svg>
+        </span>
+      </button>
+      {open && <div style={{ paddingTop: 4 }}>{children}</div>}
+    </div>
+  );
+}
+const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
+
 export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
@@ -48,6 +67,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [favFilter, setFavFilter] = useState("all");
   const [favTypeM, setFavTypeM] = useState(null); // telemóvel: tipo de favoritos visível
   const [moreOpen, setMoreOpen] = useState(false); // telemóvel: menu «⋯» dos separadores
+  const [secOpen, setSecOpen] = useState(() => { try { return { ...SECTION_DEFAULTS, ...JSON.parse(localStorage.getItem("trackall.profileSections") || "{}") }; } catch { return SECTION_DEFAULTS; } });
+  const toggleSec = (k) => setSecOpen(prev => { const next = { ...prev, [k]: !prev[k] }; try { localStorage.setItem("trackall.profileSections", JSON.stringify(next)); } catch { /* sem armazenamento: só nesta sessão */ } return next; });
   const [name, setName] = useState(profile.name || "");
   const [bio, setBio] = useState(profile.bio || "");
   const [hideEmail, setHideEmail] = useState(profile.hideEmail || false);
@@ -176,6 +197,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         );
   };
 
+  const nRecent = items.filter(i => i.userStatus === "completo" && i.addedAt).length;
+  const nCurso = items.filter(i => i.userStatus === "assistindo").length;
+
   // ── Favoritos: máx. MAX_FAVORITES_PER_TYPE por tipo (aplicado ao adicionar, ver toggleFavorite no App) ──
   const favoritesBlock = (() => {
     const typesWithFavs = MEDIA_TYPES.slice(1).filter(t => favorites.some(f => f.type === t.id));
@@ -195,7 +219,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
     );
     if (favorites.length === 0) return (
-      <div style={{ marginBottom: 28 }}>{heading}{empty(lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito")}</div>
+      <div style={{ marginBottom: isMobileDevice ? 8 : 28 }}>{!isMobileDevice && heading}{empty(lang === "en" ? "Open any item and click ☆ Favorite" : "Abre qualquer item e clica em ☆ Favorito")}</div>
     );
 
     // Capa de um favorito (sem borda: o gradiente de fundo aparecia por baixo de uma borda de 1px)
@@ -234,8 +258,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       const active = typesWithFavs.find(t => t.id === favTypeM) || typesWithFavs[0];
       const list = active ? sortedOf(active.id) : [];
       return (
-        <div style={{ marginBottom: 28 }}>
-          {heading}
+        <div>
           <div className="hscroll" style={{ display: "flex", gap: 8, padding: "0 16px 12px" }}>
             {typesWithFavs.map(t => {
               const on = active && t.id === active.id;
@@ -439,14 +462,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           />
         </div>
       )}
-      <div style={{ flex: 1, minWidth: 0, ...(isMobileDevice ? {} : { margin: "0 -16px", display: "flex", flexDirection: "column" }) }}>
+      <div style={{ flex: 1, minWidth: 0, margin: "0 -16px", ...(isMobileDevice ? {} : { display: "flex", flexDirection: "column" }) }}>
 
 
       {/* ── Estatísticas (Fase 2) ── */}
       {!isMobileDevice && <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} />}
 
       {/* ── Hall of Fame ── */}
-      <div style={{ marginBottom: isMobileDevice ? 28 : 20 }}>
+      <div style={{ marginBottom: isMobileDevice ? 20 : 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
           <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
           <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
@@ -464,23 +487,16 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             </div>
           );
           return (
-            <div className="hscroll" style={{ padding: "4px 16px 14px", gap: 10, display: "grid", gridTemplateRows: "repeat(2, auto)", gridAutoFlow: "column", gridAutoColumns: "clamp(104px, 29vw, 128px)" }}>
+            <div style={{ padding: "2px 16px 0", gap: 7, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
               {list.map(item => {
                 const coverSrc = item.customCover || item.cover;
                 const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
                 return (
                   <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
-                    style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}, 0 16px 28px -14px ${accent}99` : "0 16px 26px -14px rgba(0,0,0,0.85)" }}>
+                    style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}` : "0 8px 14px -8px rgba(0,0,0,0.85)" }}>
                     {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
-                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
-                    <div style={{ position: "absolute", left: 10, right: 10, bottom: 9, fontSize: 12, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>
                     {score > 0 && (
-                      <div style={{ position: "absolute", right: 7, top: 7, display: "flex", alignItems: "center", gap: 3, padding: "2px 7px 2px 5px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 10.5, fontWeight: 800, pointerEvents: "none" }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg>{score}
-                      </div>
-                    )}
-                    {item._feat && (
-                      <div aria-label={lang === "en" ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 7, top: 7, padding: "2px 7px", borderRadius: 8, background: accent, color: "#fff", fontSize: 9.5, fontWeight: 800, letterSpacing: "0.04em", pointerEvents: "none" }}>{lang === "en" ? "FEATURED" : "DESTAQUE"}</div>
+                      <div style={{ position: "absolute", right: 3, bottom: 3, padding: "1px 5px", borderRadius: 6, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 9.5, fontWeight: 800, pointerEvents: "none" }}>★ {score}</div>
                     )}
                   </div>
                 );
@@ -533,15 +549,17 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
 
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
-      {items.length > 0 && <div style={{ margin: "0 16px", ...(isMobileDevice ? {} : { flex: "1 1 auto", display: "flex", flexDirection: "column" }) }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div>}
+      {items.length > 0 && (isMobileDevice
+        ? <SectionAccordion title={lang === "en" ? "Activity" : "Atividade"} open={secOpen.atividade} onToggle={() => toggleSec("atividade")} darkMode={darkMode}><div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div></SectionAccordion>
+        : <div style={{ margin: "0 16px", flex: "1 1 auto", display: "flex", flexDirection: "column" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div>)}
 
       </div>
       {diaryPanel}
       </div>
 
-      <div style={{ padding: "0 16px", marginTop: isMobileDevice ? 8 : 28 }}>
+      <div style={{ padding: isMobileDevice ? 0 : "0 16px", marginTop: isMobileDevice ? 0 : 28 }}>
       {/* Telemóvel: Favoritos primeiro (com os seus chips de tipo), depois Recentes e Em curso */}
-      {isMobileDevice && favoritesBlock}
+      {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}
 
       {/* ── Filtro de tipo (só PC; no telemóvel os chips vivem dentro dos Favoritos) ── */}
       {!isMobileDevice && (() => {
@@ -563,7 +581,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       })()}
 
       {/* ── Recentes (+ Em curso) ── o Diário tem o seu próprio separador ── */}
-      {items.length > 0 && <div style={{ padding: "0 16px" }}><RecentSection items={(isMobileDevice || favFilter === "all") ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>}
+      {items.length > 0 && (isMobileDevice ? (<>
+        {nRecent > 0 && <SectionAccordion title={lang === "en" ? "Recent" : "Recentes"} right={nRecent} open={secOpen.recentes} onToggle={() => toggleSec("recentes")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" bare /></div></SectionAccordion>}
+        {nCurso > 0 && <SectionAccordion title={lang === "en" ? "In progress" : "Em curso"} right={nCurso} open={secOpen.curso} onToggle={() => toggleSec("curso")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="curso" bare /></div></SectionAccordion>}
+      </>) : <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>)}
 
       {isMobileDevice ? null : favoritesBlock}
 

@@ -35,6 +35,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       total: list.length,
       completed: list.filter(i => i.userStatus === "completo").length,
       avg: rated.length ? (rated.reduce((a, i) => a + i.userRating, 0) / rated.length).toFixed(1) : "—",
+      inProgress: list.filter(i => i.userStatus === "assistindo").length,
       hist, histMax: Math.max(1, ...hist), hasRatings: rated.length > 0,
     };
   }, [items]);
@@ -55,8 +56,27 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       { n: mini.total, l: lang === "en" ? "items" : "itens", f: {}, c: text },
       { n: mini.completed, l: lang === "en" ? "completed" : "completados", f: { status: "completo" }, c: text },
       { n: mini.avg, l: lang === "en" ? "average" : "média", f: { rating: "rated", sort: "rating" }, c: "#fbbf24" },
+      { n: mini.inProgress, l: lang === "en" ? "in progress" : "em curso", f: { status: "assistindo" }, c: text },
     ];
+    const featRow = featured ? (
+      <button type="button" onClick={() => onOpen && onOpen(featured)} style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 8, borderRadius: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: text, boxSizing: "border-box",
+        background: `linear-gradient(90deg, ${accent}22, ${darkMode ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.03)"})`, border: `1px solid ${accent}55` }}>
+        <div style={{ width: 48, height: 70, borderRadius: 9, overflow: "hidden", flexShrink: 0, position: "relative", background: gradientFor(featured.id) }}>
+          {coverSrc && <img src={hiRes(coverSrc)} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: accent }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{featured.title}</div>
+        </div>
+        {featured.userRating > 0 && <div style={{ fontSize: 12.5, color: "#fbbf24", fontWeight: 800, marginRight: 6, flexShrink: 0 }}>★ {featured.userRating}</div>}
+      </button>
+    ) : (onPickFeatured ? (
+      <button type="button" onClick={onPickFeatured} style={{ marginTop: 12, width: "100%", minHeight: 60, borderRadius: 16, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: sub, background: "transparent", border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.25)"}` }}>
+        {lang === "en" ? "+ Choose your featured item" : "+ Escolhe o teu item em destaque"}
+      </button>
+    ) : null);
     return (
+      <>
       <div style={{ padding: 16, borderRadius: 18, color: text, boxSizing: "border-box",
         background: panelBg ? panelBg : (darkMode ? "rgba(12,12,16,0.7)" : "rgba(255,255,255,0.85)"),
         border: `1px solid ${divider}` }}>
@@ -88,19 +108,9 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             </button>
           ))}
         </div>
-
-        {/* Mini-histograma das notas */}
-        {mini.hasRatings && (
-          <div style={{ marginTop: 14 }} aria-label={lang === "en" ? "Ratings distribution" : "Distribuição de ratings"}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 34 }}>
-              {mini.hist.map((n, i) => (
-                <span key={i} style={{ flex: 1, height: `${Math.max(6, (n / mini.histMax) * 100)}%`, borderRadius: "2px 2px 0 0", background: accent, opacity: n ? 0.4 + 0.6 * (n / mini.histMax) : 0.15 }} />
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: darkMode ? "#8b949e" : "#64748b" }}><span>0,5</span><span>★ 5</span><span>10</span></div>
-          </div>
-        )}
       </div>
+      {featRow}
+      </>
     );
   }
 
