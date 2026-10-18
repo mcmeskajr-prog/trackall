@@ -35,14 +35,14 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
         <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{ ...btn, width: "100%", padding: "22px 10px", borderStyle: "dashed", color: muted }}>{uploading ? (en ? "Uploading…" : "A enviar…") : (en ? "+ Add banner image" : "+ Adicionar imagem de banner")}</button>
       ) : (
         <>
-          <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${line}`, maxWidth: 360, margin: "0 auto" }}>
-            <BannerHero urlOverride={url} styleOverride={style} height={96} bleed={0}>
-              <div style={{ padding: "0 14px 14px" }}>
+          <div style={{ maxWidth: 360, margin: "0 auto" }}>
+            <BannerHero urlOverride={url} styleOverride={style} height={90} style={{ borderRadius: 18 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
                 <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, overflow: "hidden", boxShadow: `0 0 0 3px ${darkMode ? "#0a0c10" : "#fff"}` }}>
                   {avatar && <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 16, marginTop: 8, color: text }}>{name || (en ? "Your name" : "O teu nome")}</div>
-                <div style={{ display: "flex", gap: 18, marginTop: 8, fontSize: 11, color: muted }}>{["142", "98", "8.1", "6"].map((n, i) => <span key={i}><b style={{ color: text, fontSize: 15 }}>{n}</b></span>)}</div>
+                <div style={{ display: "flex", gap: 18, marginTop: 8, fontSize: 11, color: muted, justifyContent: "center" }}>{["142", "98", "8.1", "6"].map((n, i) => <span key={i}><b style={{ color: text, fontSize: 15 }}>{n}</b></span>)}</div>
               </div>
             </BannerHero>
           </div>
@@ -66,7 +66,11 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
           {slider("m", en ? "Tint strength" : "Mistura da cor", 0, 100, (v) => `${v}%`)}
           {slider("d", en ? "Darken towards the bottom" : "Escurecer ao descer", 0, 100, (v) => v === 0 ? (en ? "none" : "nada") : `${v}%`)}
           {slider("b", en ? "Brightness" : "Brilho", 60, 140, (v) => `${v}%`)}
-          <button type="button" onClick={() => onStyle({ c: "", m: 70, d: 55, b: 100 })} style={{ ...btn, marginTop: 12, fontSize: 11.5, padding: "6px 12px", color: muted }}>{en ? "Reset style" : "Repor estilo"}</button>
+          <button type="button" onClick={() => onStyle({ c: "", m: 70, d: 55, b: 100, a: 1 })} style={{ ...btn, marginTop: 12, fontSize: 11.5, padding: "6px 12px", color: muted }}>{en ? "Reset style" : "Repor estilo"}</button>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={style.a !== 0} onChange={(e) => set("a", e.target.checked ? 1 : 0)} style={{ width: 16, height: 16, accentColor: accent }} />
+            <span style={{ fontSize: 12.5, color: muted }}>{en ? "Use the banner colour as the profile accent" : "Usar a cor do banner como destaque do perfil"}</span>
+          </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={!hide} onChange={(e) => onHide(!e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
             <span style={{ fontSize: 12.5, color: muted }}>{en ? "Show banner on mobile" : "Mostrar banner no telemóvel"}</span>

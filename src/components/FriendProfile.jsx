@@ -8,6 +8,7 @@ import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
 import { BannerHero } from "./BannerHero";
+import { useBannerAccent } from "../lib/bannerColors";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
@@ -58,7 +59,8 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const { lang } = useLang();
   const en = lang === "en";
   const prof = data.profile || {};
-  const fAccent = isHex(prof.accent) ? prof.accent : theme.accent;
+  const _bAcc = useBannerAccent(prof.banner, !!theme.isMobileDevice && !prof.hide_banner_mobile);
+  const fAccent = _bAcc || (isHex(prof.accent) ? prof.accent : theme.accent);
   const accent = fAccent;
   const [tab, setTab] = useState("perfil");
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -130,7 +132,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
 
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
-      <div style={{ maxWidth: isMobileDevice ? 600 : 1100, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text }}>
+      <div style={{ maxWidth: isMobileDevice ? 600 : 1100, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
         {/* Barra de topo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${pad}px`, marginBottom: 14 }}>
           <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -149,11 +151,9 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
 
         {/* Cartão principal: com banner (telemóvel) fundo tingido; senão cartão normal */}
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
-          <BannerHero banner={prof.banner} bleed={0} height={170} style={{ marginBottom: 18 }}>
-            <div style={{ padding: "0 16px" }}>
-              <div style={{ width: 88, height: 88, borderRadius: "50%", boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}`, overflow: "hidden" }}>
-                <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={88} ring="transparent" ringWidth={0} />
-              </div>
+          <BannerHero banner={prof.banner} bleed={0} height={220} style={{ marginBottom: 18 }}>
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={92} ring={accent} ringWidth={3} />
               <h2 style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", color: text, overflowWrap: "anywhere" }}>{name}</h2>
               {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
               {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}

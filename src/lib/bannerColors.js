@@ -4,31 +4,32 @@
 // Assim não é preciso nenhuma coluna nova na BD e os amigos recebem tudo com o perfil.
 import { useEffect, useState } from "react";
 
-export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100 }; // c "" = automático
+export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100, a: 1 }; // c "" = automático; a 1 = a cor do banner passa a ser o destaque do perfil
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const isHex = (s) => /^[0-9a-f]{6}$/i.test(s || "");
 
 export function splitBanner(str) {
   if (!str || typeof str !== "string") return { url: "", style: { ...DEFAULT_BANNER_STYLE } };
-  const i = str.indexOf("#tc=") >= 0 ? str.indexOf("#tc=") : str.indexOf("#mx=");
+  const i = [str.indexOf("#tc="), str.indexOf("#mx=")].filter((x) => x >= 0).sort((a, b) => a - b)[0] ?? -1;
   if (i < 0 || str.startsWith("data:")) return { url: str, style: { ...DEFAULT_BANNER_STYLE } };
   const url = str.slice(0, i);
   const q = new URLSearchParams(str.slice(i + 1));
   const num = (k, def, a, b) => { const v = Number(q.get(k)); return q.has(k) && Number.isFinite(v) ? clamp(v, a, b) : def; };
   const tc = (q.get("tc") || "").replace("#", "");
-  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140) } };
+  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1 } };
 }
 
 export function joinBanner(url, style) {
   if (!url) return "";
   if (url.startsWith("data:")) return url; // base64 não leva fragmento (o upload tenta sempre devolver URL)
   const s = { ...DEFAULT_BANNER_STYLE, ...(style || {}) };
-  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100;
+  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0;
   if (isDefault) return url;
   const p = [];
   if (s.c) p.push(`tc=${s.c.replace("#", "")}`);
   p.push(`mx=${Math.round(s.m)}`, `dk=${Math.round(s.d)}`, `br=${Math.round(s.b)}`);
+  if (s.a === 0) p.push("ac=0");
   return `${url}#${p.join("&")}`;
 }
 
@@ -81,7 +82,7 @@ export function extractPalette(url) {
         const score = (b) => b.n * (0.4 + b.s) * (b.l > 0.08 && b.l < 0.92 ? 1 : 0.3);
         const dom = [...list].sort((a, b) => score(b) - score(a))[0];
         const vib = [...list].sort((a, b) => (b.s * Math.min(b.l, 1 - b.l) * Math.sqrt(b.n)) - (a.s * Math.min(a.l, 1 - a.l) * Math.sqrt(a.n)))[0];
-        const sat = (b) => Math.max(0.25, Math.min(0.9, b.s));
+        const sat = (b) => Math.max(0.4, Math.min(0.9, b.s * 1.15));
         resolve([
           { id: "dom", hex: hslToHex(dom.h, sat(dom), clamp(dom.l, 0.3, 0.55)) },
           { id: "vib", hex: hslToHex(vib.h, Math.max(0.55, sat(vib)), 0.5) },
@@ -117,17 +118,31 @@ export function baseColor(style, palette, accent) {
   return isHex(a) ? a : "f97316";
 }
 
-// Fundo em gradiente do bloco do perfil.
-// m = mistura (0-100), d = escurecer ao descer (0-100), dark = tema escuro
+// Fundo em gradiente que se dissolve no fundo real da página (sem bordas).
+// m = intensidade (0-100), d = escurecer ao descer (0-100). Tons escuros e pouco saturados para casar com a UI.
 export function backdropCss(baseHex, style, darkMode) {
   const [h, s, l] = hexHsl(baseHex);
   const m = clamp(style?.m ?? 70, 0, 100) / 100, d = clamp(style?.d ?? 55, 0, 100) / 100;
-  const sat = clamp(s, 0.25, 0.85);
-  const top = darkMode ? clamp(l, 0.26, 0.46) : clamp(l + 0.3, 0.7, 0.86);
-  const bottomL = darkMode ? top + (0.05 - top) * d : top + (0.97 - top) * d;
-  const c1 = hslToHex(h, sat, top), c2 = hslToHex(h, sat * (darkMode ? 0.8 : 0.6), bottomL);
-  const a = (x) => `${x}${Math.round(m * 255).toString(16).padStart(2, "0")}`;
-  return `linear-gradient(180deg, #${a(c1)} 0%, #${a(c2)} 88%, #${c2}00 100%)`;
+  const sat = clamp(s, 0.18, 0.5);
+  const top = darkMode ? clamp(l * 0.62, 0.15, 0.27) : clamp(0.9 - (0.5 - l) * 0.3, 0.8, 0.9);
+  const low = darkMode ? top + (0.06 - top) * d : top + (0.98 - top) * d;
+  const c1 = hslToHex(h, sat, top), c2 = hslToHex(h, sat * 0.8, low);
+  const al = (x, k) => `#${x}${Math.round(clamp(k, 0, 1) * 255).toString(16).padStart(2, "0")}`;
+  return `linear-gradient(180deg, ${al(c1, m)} 0%, ${al(c1, m * 0.92)} 22%, ${al(c2, m * 0.7)} 50%, ${al(c2, m * 0.3)} 78%, ${al(c2, 0)} 100%)`;
 }
 
 export const bannerFilter = (style) => { const b = clamp(style?.b ?? 100, 60, 140); return b === 100 ? undefined : `brightness(${b / 100})`; };
+
+// Cor de destaque tirada do banner (viva e legível sobre fundo escuro); null = usar a do tema
+export function bannerAccentHex(style, palette) {
+  if (style?.a === 0) return null;
+  const hex = style?.c && isHex(style.c) ? style.c : palette?.[0]?.hex;
+  if (!hex) return null;
+  const [h, s, l] = hexHsl(hex);
+  return `#${hslToHex(h, clamp(s, 0.5, 0.85), clamp(l, 0.58, 0.68))}`;
+}
+export function useBannerAccent(banner, enabled = true) {
+  const { url, style } = splitBanner(banner);
+  const pal = useBannerPalette(enabled ? url : "");
+  return enabled && url ? bannerAccentHex(style, pal) : null;
+}
