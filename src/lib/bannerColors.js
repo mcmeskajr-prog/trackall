@@ -131,6 +131,16 @@ export function backdropCss(baseHex, style, darkMode) {
   return `linear-gradient(180deg, ${al(c1, m)} 0%, ${al(c1, m * 0.92)} 22%, ${al(c2, m * 0.7)} 50%, ${al(c2, m * 0.3)} 78%, ${al(c2, 0)} 100%)`;
 }
 
+// Fundo OPACO da página inteira (substitui o fundo do tema enquanto o perfil com banner está aberto)
+export function pageTintCss(baseHex, style, darkMode) {
+  const [h, s] = hexHsl(baseHex);
+  const m = clamp(style?.m ?? 70, 0, 100) / 100, d = clamp(style?.d ?? 55, 0, 100) / 100;
+  const sat = clamp(s, 0.2, 0.55) * (0.35 + 0.65 * m);
+  const top = darkMode ? 0.05 + 0.13 * m : 0.97 - 0.1 * m;
+  const low = darkMode ? top + (0.03 - top) * d : top + (0.995 - top) * d;
+  return `linear-gradient(180deg, #${hslToHex(h, sat, top)} 0px, #${hslToHex(h, sat * 0.85, low)} 900px, #${hslToHex(h, sat * 0.85, low)} 100%)`;
+}
+
 export const bannerFilter = (style) => { const b = clamp(style?.b ?? 100, 60, 140); return b === 100 ? undefined : `brightness(${b / 100})`; };
 
 // Cor de destaque tirada do banner (viva e legível sobre fundo escuro); null = usar a do tema

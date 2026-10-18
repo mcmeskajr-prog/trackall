@@ -7,7 +7,7 @@ import { gradientFor } from "../lib/utils";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
-import { BannerHero } from "./BannerHero";
+import { BannerHero, BannerPageTint } from "./BannerHero";
 import { useBannerAccent } from "../lib/bannerColors";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
@@ -133,6 +133,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
       <div style={{ maxWidth: isMobileDevice ? 600 : 1100, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
+        {isMobileDevice && prof.banner && !prof.hide_banner_mobile && <BannerPageTint banner={prof.banner} />}
         {/* Barra de topo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${pad}px`, marginBottom: 14 }}>
           <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>

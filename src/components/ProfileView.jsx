@@ -11,6 +11,7 @@ import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../confi
 import { TiltCard } from "./TiltCard";
 import { CropModal } from "./CropModal";
 import { BannerEditor } from "./BannerEditor";
+import { BannerPageTint } from "./BannerHero";
 import { splitBanner, joinBanner, useBannerAccent } from "../lib/bannerColors";
 import { CollectionCard } from "./CollectionCard";
 import { TierListCard } from "./TierListCard";
@@ -337,6 +338,7 @@ function ProfileViewInner({ profile, library, accent, bgColor, bgColorMobile, bg
   return (
     <>
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto", position: "relative", isolation: "isolate" }}>
+      {isMobileDevice && !editing && profile.banner && !profile.hideBannerMobile && <BannerPageTint banner={profile.banner} />}
 
       {/* ── Avatar (só a editar ou noutros separadores; no Perfil a identidade vive no ProfileCard) ── */}
       <div style={{ position: "relative", display: "flex", justifyContent: "center", padding: showHeaderIdentity ? "28px 0 14px" : 0 }}>
