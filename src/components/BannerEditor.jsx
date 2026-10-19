@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { useTheme } from "../contexts/ThemeContext";
 import { BannerHero } from "./BannerHero";
 import { useBannerPalette, hexToRgb } from "../lib/bannerColors";
@@ -9,6 +10,7 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
   const { accent, darkMode, isMobileDevice } = useTheme();
   const en = lang === "en";
   const fileRef = useRef();
+  const [picker, setPicker] = useState(false);
   const palette = useBannerPalette(url);
   const line = darkMode ? "#30363d" : "#e2e8f0";
   const muted = darkMode ? "#8b949e" : "#64748b";
@@ -59,10 +61,13 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
                   background: sw.hex ? `#${sw.hex}` : "transparent", border: `2px solid ${on ? accent : line}`, boxShadow: on ? `0 0 0 2px ${accent}55` : "none" }}>{sw.hex ? "" : "A"}</button>
               );
             })}
-            <label title={en ? "Custom colour" : "Cor à escolha"} style={{ width: 36, height: 36, borderRadius: "50%", border: `2px dashed ${line}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: muted, fontSize: 16, position: "relative", overflow: "hidden" }}>
-              +<input type="color" value={`#${style.c || "808080"}`} onChange={(e) => set("c", e.target.value.replace("#", ""))} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-            </label>
+            {style.c && !swatches.some((sw) => sw.hex === style.c) && (
+              <button type="button" aria-label="Custom" onClick={() => setPicker(true)} style={{ width: 36, height: 36, borderRadius: "50%", cursor: "pointer", padding: 0, background: `#${style.c}`, border: `2px solid ${accent}`, boxShadow: `0 0 0 2px ${accent}55` }} />
+            )}
+            <button type="button" title={en ? "Custom colour" : "Cor à escolha"} aria-label={en ? "Custom colour" : "Cor à escolha"} onClick={() => setPicker((v) => !v)}
+              style={{ width: 36, height: 36, borderRadius: "50%", border: `2px dashed ${picker ? accent : line}`, background: "transparent", cursor: "pointer", color: picker ? accent : muted, fontSize: 18, lineHeight: 1, padding: 0 }}>{picker ? "×" : "+"}</button>
           </div>
+          {picker && <ColorPicker value={style.c || (palette?.[0]?.hex) || "808080"} onChange={(hex) => set("c", hex)} suggestions={PICKER_SUGGESTIONS} lang={lang} />}
           {slider("m", en ? "Tint strength" : "Mistura da cor", 0, 100, (v) => `${v}%`)}
           {slider("d", en ? "Darken towards the bottom" : "Escurecer ao descer", 0, 100, (v) => v === 0 ? (en ? "none" : "nada") : `${v}%`)}
           {slider("b", en ? "Brightness" : "Brilho", 60, 140, (v) => `${v}%`)}
