@@ -37,12 +37,12 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
         <>
           <div style={{ maxWidth: 360, margin: "0 auto" }}>
             <BannerHero urlOverride={url} styleOverride={style} height={90} style={{ borderRadius: 18 }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
                 <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, overflow: "hidden", boxShadow: `0 0 0 3px ${darkMode ? "#0a0c10" : "#fff"}` }}>
                   {avatar && <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 16, marginTop: 8, color: text }}>{name || (en ? "Your name" : "O teu nome")}</div>
-                <div style={{ display: "flex", gap: 18, marginTop: 8, fontSize: 11, color: muted, justifyContent: "flex-start" }}>{["142", "98", "8.1", "6"].map((n, i) => <span key={i}><b style={{ color: text, fontSize: 15 }}>{n}</b></span>)}</div>
+                <div style={{ display: "flex", gap: 18, marginTop: 8, fontSize: 11, color: muted, justifyContent: "center" }}>{["142", "98", "8.1", "6"].map((n, i) => <span key={i}><b style={{ color: text, fontSize: 15 }}>{n}</b></span>)}</div>
               </div>
             </BannerHero>
           </div>

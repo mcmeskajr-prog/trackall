@@ -76,20 +76,31 @@ export function extractPalette(url) {
           b.n++; b.s += s; b.l += l; b.sx += Math.cos(h * Math.PI / 180); b.sy += Math.sin(h * Math.PI / 180);
           buckets.set(key, b);
         }
+        const total = [...buckets.values()].reduce((a, b) => a + b.n, 0);
         const list = [...buckets.values()].map((b) => ({ n: b.n, s: b.s / b.n, l: b.l / b.n, h: (Math.atan2(b.sy, b.sx) * 180 / Math.PI + 360) % 360 }));
         if (!list.length) return resolve(null);
-        // dominante: mais pixéis, com bónus de saturação (evita cinzentos quando há cor)
+        // Preto/branco (ou quase): poucos pixéis com cor a sério → não inventar uma cor
+        const colourful = list.filter((b) => b.s > 0.28 && b.l > 0.12 && b.l < 0.9).reduce((a, b) => a + b.n, 0) / total;
+        const neutral = colourful < 0.08;
         const score = (b) => b.n * (0.4 + b.s) * (b.l > 0.08 && b.l < 0.92 ? 1 : 0.3);
         const dom = [...list].sort((a, b) => score(b) - score(a))[0];
         const vib = [...list].sort((a, b) => (b.s * Math.min(b.l, 1 - b.l) * Math.sqrt(b.n)) - (a.s * Math.min(a.l, 1 - a.l) * Math.sqrt(a.n)))[0];
-        const sat = (b) => Math.max(0.4, Math.min(0.9, b.s * 1.15));
-        resolve([
+        const sat = (b) => neutral ? Math.min(0.08, b.s) : Math.max(0.25, Math.min(0.9, b.s));
+        const pal = neutral ? [
+          { id: "dom", hex: hslToHex(dom.h, sat(dom), 0.55) },
+          { id: "vib", hex: hslToHex(dom.h, sat(dom), 0.75) },
+          { id: "mut", hex: hslToHex(dom.h, sat(dom), 0.38) },
+          { id: "drk", hex: hslToHex(dom.h, sat(dom), 0.2) },
+          { id: "dkk", hex: hslToHex(dom.h, sat(dom), 0.1) },
+        ] : [
           { id: "dom", hex: hslToHex(dom.h, sat(dom), clamp(dom.l, 0.3, 0.55)) },
           { id: "vib", hex: hslToHex(vib.h, Math.max(0.55, sat(vib)), 0.5) },
           { id: "mut", hex: hslToHex(dom.h, Math.min(0.3, dom.s), 0.38) },
           { id: "drk", hex: hslToHex(dom.h, sat(dom) * 0.8, 0.2) },
           { id: "dkk", hex: hslToHex(dom.h, sat(dom) * 0.6, 0.1) },
-        ]);
+        ];
+        pal.neutral = neutral;
+        resolve(pal);
       } catch { resolve(null); } // canvas "tainted" (sem CORS) → sem cores automáticas
     };
     img.onerror = () => resolve(null);
@@ -123,7 +134,7 @@ export function baseColor(style, palette, accent) {
 export function backdropCss(baseHex, style, darkMode) {
   const [h, s, l] = hexHsl(baseHex);
   const m = clamp(style?.m ?? 70, 0, 100) / 100, d = clamp(style?.d ?? 55, 0, 100) / 100;
-  const sat = clamp(s, 0.18, 0.5);
+  const sat = s < 0.12 ? s : clamp(s, 0.18, 0.5);
   const top = darkMode ? clamp(l * 0.62, 0.15, 0.27) : clamp(0.9 - (0.5 - l) * 0.3, 0.8, 0.9);
   const low = darkMode ? top + (0.06 - top) * d : top + (0.98 - top) * d;
   const c1 = hslToHex(h, sat, top), c2 = hslToHex(h, sat * 0.8, low);
@@ -135,7 +146,7 @@ export function backdropCss(baseHex, style, darkMode) {
 export function pageTintCss(baseHex, style, darkMode) {
   const [h, s] = hexHsl(baseHex);
   const m = clamp(style?.m ?? 70, 0, 100) / 100, d = clamp(style?.d ?? 55, 0, 100) / 100;
-  const sat = clamp(s, 0.2, 0.55) * (0.35 + 0.65 * m);
+  const sat = (s < 0.12 ? s : clamp(s, 0.2, 0.55)) * (0.35 + 0.65 * m);
   const top = darkMode ? 0.05 + 0.13 * m : 0.97 - 0.1 * m;
   const low = darkMode ? top + (0.03 - top) * d : top + (0.995 - top) * d;
   return `linear-gradient(180deg, #${hslToHex(h, sat, top)} 0px, #${hslToHex(h, sat * 0.85, low)} 900px, #${hslToHex(h, sat * 0.85, low)} 100%)`;
@@ -149,6 +160,7 @@ export function bannerAccentHex(style, palette) {
   const hex = style?.c && isHex(style.c) ? style.c : palette?.[0]?.hex;
   if (!hex) return null;
   const [h, s, l] = hexHsl(hex);
+  if (s < 0.12) return null; // cinzento: mantém a cor de destaque do tema
   return `#${hslToHex(h, clamp(s, 0.5, 0.85), clamp(l, 0.58, 0.68))}`;
 }
 export function useBannerAccent(banner, enabled = true) {
