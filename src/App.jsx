@@ -35,6 +35,8 @@ import { t, detectLang, saveLang } from './translations';
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
 import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
+import { imageLuminance, overlayAlpha, isDarkLum, onAccent as onAccentColor } from './lib/contrast';
+import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
 import { LibraryView } from './views/LibraryView';
@@ -251,6 +253,7 @@ export default function TrackAll() {
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
+  const [bgLum, setBgLum] = useState({ url: "", lum: null });
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
@@ -1113,6 +1116,15 @@ export default function TrackAll() {
     return () => window.removeEventListener("popstate", onPop);
   }, [isMobileDevice]);
 
+  // Luminância do wallpaper ativo → texto/ícones claros ou escuros automaticamente
+  const _wpUrl = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
+  useEffect(() => {
+    if (!_wpUrl) return;
+    let alive = true;
+    imageLuminance(_wpUrl).then((lum) => { if (alive) setBgLum({ url: _wpUrl, lum }); });
+    return () => { alive = false; };
+  }, [_wpUrl]);
+
   const canUseMainSwipe = isMobileDevice
     && MAIN_SWIPE_VIEWS.includes(view)
     && !selectedItem
@@ -1859,9 +1871,13 @@ export default function TrackAll() {
 
   // darkMode separado: PC usa bgColor, mobile usa bgColorMobile quando separado está ligado
   // Se bgSeparateDevices ligado e no mobile: usa bgColorMobile se tiver valor, senão mantém darkMode independente do PC
-  const activeDarkMode = (bgSeparateDevices && isMobileDevice)
+  const _colorDark = (bgSeparateDevices && isMobileDevice)
     ? (bgColorMobile ? isColorDark(bgColorMobile) : true)  // mobile sem cor definida = noturno por defeito
     : darkMode;
+  // Com wallpaper, o modo claro/escuro (texto e ícones) segue a luminância real da imagem já escurecida pela película
+  const _imgLum = activeBgImage && bgLum.url === activeBgImage ? bgLum.lum : null;
+  const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(bgOverlay))) : _colorDark;
+  const onAccentTxt = onAccentColor(accent);
 
   // Computed panel bg para uso no CSS global (lib-sidebar)
   const computedPanelBgCSS = (() => {
@@ -1888,7 +1904,7 @@ export default function TrackAll() {
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
-        background: activeBgColor,
+        background: activeBgColor, transition: "background-color 0.4s ease, color 0.3s ease",
         color: baseTextColor,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
@@ -1903,22 +1919,11 @@ export default function TrackAll() {
             <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>✕ Sair</button>
           </div>
         )}
-        {activeBgImage && (
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 0,
-            backgroundImage: `url(${activeBgImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center top",
-            backgroundAttachment: "scroll",
-            backgroundRepeat: "no-repeat",
-            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : "none",
-            transform: bgBlur > 0 ? "scale(1.05)" : "none",
-          }} />
-        )}
+        <WallpaperLayer src={activeBgImage} blur={bgBlur} />
         {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 1,
-            background: bgOverlay,
+            background: bgOverlay, transition: "background 0.4s ease",
           }} />
         )}
         {/* ── Desktop Sidebar ── */}
@@ -2044,7 +2049,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar { width: 5px; height: 5px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb { background: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
-          .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
+          .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: ${onAccentTxt}; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
           .card { background: ${activeDarkMode ? "rgba(22,27,34,0.4)" : "rgba(255,252,247,0.55)"}; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover .card-overlay { opacity: 1 !important; }
@@ -2097,6 +2102,7 @@ export default function TrackAll() {
             .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${computedPanelBgCSS}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
             .lib-mobile-controls { display: none; }
           }
+          .card, .lib-sidebar, .desktop-sidebar, .top-nav-bar { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.3s ease; }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 25%, ${activeDarkMode ? "#30363d" : "#f1f5f9"} 50%, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           :root {
@@ -2104,6 +2110,7 @@ export default function TrackAll() {
             --border2: ${activeDarkMode ? "#30363d" : "#d0d7de"};
             --card-bg: ${activeDarkMode ? "#161b22" : "rgba(255,252,247,0.95)"};
             --card-bg2: ${activeDarkMode ? "#0d1117" : "#f6f8fa"};
+            --on-accent: ${onAccentTxt};
             --text-primary: ${activeDarkMode ? "#e6edf3" : "#1a1a2e"};
             --text-secondary: ${activeDarkMode ? "#8b949e" : "#57606a"};
             --text-muted: ${activeDarkMode ? "#484f58" : "#8c959f"};

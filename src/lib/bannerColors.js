@@ -4,7 +4,7 @@
 // Assim não é preciso nenhuma coluna nova na BD e os amigos recebem tudo com o perfil.
 import { useEffect, useState } from "react";
 
-export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100, a: 1 }; // c "" = automático; a 1 = a cor do banner passa a ser o destaque do perfil
+export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100, a: 1, g: 1 }; // c "" = automático; a 1 = a cor do banner passa a ser o destaque do perfil
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const isHex = (s) => /^[0-9a-f]{6}$/i.test(s || "");
@@ -17,19 +17,20 @@ export function splitBanner(str) {
   const q = new URLSearchParams(str.slice(i + 1));
   const num = (k, def, a, b) => { const v = Number(q.get(k)); return q.has(k) && Number.isFinite(v) ? clamp(v, a, b) : def; };
   const tc = (q.get("tc") || "").replace("#", "");
-  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1 } };
+  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1, g: q.get("bg") === "0" ? 0 : 1 } };
 }
 
 export function joinBanner(url, style) {
   if (!url) return "";
   if (url.startsWith("data:")) return url; // base64 não leva fragmento (o upload tenta sempre devolver URL)
   const s = { ...DEFAULT_BANNER_STYLE, ...(style || {}) };
-  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0;
+  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0 && s.g !== 0;
   if (isDefault) return url;
   const p = [];
   if (s.c) p.push(`tc=${s.c.replace("#", "")}`);
   p.push(`mx=${Math.round(s.m)}`, `dk=${Math.round(s.d)}`, `br=${Math.round(s.b)}`);
   if (s.a === 0) p.push("ac=0");
+  if (s.g === 0) p.push("bg=0");
   return `${url}#${p.join("&")}`;
 }
 

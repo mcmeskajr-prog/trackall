@@ -23,6 +23,7 @@ import { ProfileStats } from "./ProfileStats";
 import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { PersonalizeMobile } from "./PersonalizeMobile";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
@@ -705,6 +706,15 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
               <>
                 <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 4px" }}>{lang === "en" ? "Appearance" : "Aparência"}</h2>
                 <p style={{ fontSize: 14, color: darkMode ? "#9aa6b2" : "#475569", margin: "0 0 22px" }}>{lang === "en" ? "Pick a style and fine-tune it. Everything shows live on the preview." : "Escolhe um estilo e afina por cima. Tudo se vê ao vivo na pré-visualização."}</p>
+                {isMobileDevice ? (
+                  <PersonalizeMobile
+                    profile={profile} currentUserId={currentUserId} onUpdateProfile={onUpdateProfile} lang={lang} savedThemes={onSavedThemes}
+                    accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} bgSeparateDevices={bgSeparateDevices} bgImage={bgImage} bgImageMobile={bgImageMobile}
+                    panelBg={panelBg} panelOpacity={panelOpacity}
+                    onAccentChange={onAccentChange} onBgChange={onBgChange} onBgColorMobile={onBgColorMobile} onBgImage={onBgImage} onBgImageMobile={onBgImageMobile}
+                    onPanelBg={onPanelBg} onBgSeparateDevices={onBgSeparateDevices} onPanelOpacity={onPanelOpacity}
+                  />
+                ) : (
                 <AppearanceSettings
                   accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} sidebarColor={sidebarColor}
                   textContrast={textContrast} textContrastMobile={textContrastMobile} bgSeparateDevices={bgSeparateDevices}
@@ -716,6 +726,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   onBgImage={onBgImage} onBgImageMobile={onBgImageMobile} onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
                   onBgSeparateDevices={onBgSeparateDevices}
                 />
+                )}
               </>
             )}
             {settingsSection === "importar" && (<>

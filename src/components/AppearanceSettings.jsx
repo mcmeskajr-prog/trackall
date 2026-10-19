@@ -10,7 +10,7 @@ import { persistImage } from "../lib/imageStore";
 export const RATING_STYLE_KEY = "trackall_rating_style";
 
 // Estilos prontos: afinam-se por cima com as opções abaixo
-const STYLE_PRESETS = [
+export const STYLE_PRESETS = [
   { id: "carmim",    name: "Carmim",     accent: "#dc2626", bg: "#120a0c", panel: "#0c0c10", opacity: 70 },
   { id: "meianoite", name: "Meia-noite", accent: "#8b5cf6", bg: "#0a0d12", panel: "#0e121a", opacity: 80 },
   { id: "oceano",    name: "Oceano",     accent: "#38bdf8", bg: "#08141c", panel: "#0a1822", opacity: 80 },
