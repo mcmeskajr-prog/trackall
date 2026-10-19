@@ -8,7 +8,8 @@ import { STYLE_PRESETS } from "./AppearanceSettings";
 import { CropModal } from "./CropModal";
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
-import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE } from "../lib/bannerColors";
+import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
+import { hexRgb } from "../lib/contrast";
 
 // ─── Personalizar (telemóvel): um só ecrã, quatro coisas ───
 // Banner · Foto · Cor · Fundo, mais temas prontos. Tudo é rascunho (vês ao vivo em cima) até carregares em Guardar.
@@ -53,6 +54,14 @@ export function PersonalizeMobile({
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
   const pick4 = (x) => JSON.stringify({ u: x.url, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity });
   const dirty = pick4(d) !== pick4(initial) || effAccent !== accent;
+  // Cores de fundo: neutras + tons escuros da cor de destaque atual + usadas recentemente. Escolher qualquer uma passa logo a "Uma cor".
+  const [recentBg, setRecentBg] = useState(() => { try { return JSON.parse(localStorage.getItem("ta_recent_bg") || "[]"); } catch { return []; } });
+  const accentTints = useMemo(() => { const [h, s0] = rgbToHsl(...(hexRgb(effAccent) || [90, 90, 90])); return [0.07, 0.11, 0.16].map((l) => `#${hslToHex(h, Math.min(0.5, s0 * 0.7), l)}`); }, [effAccent]);
+  const bgSwatches = [...new Set([...recentBg, ...accentTints, ...SUGGESTED_BG].map((c) => c.toLowerCase()))];
+  const pickBg = (c) => {
+    set({ bgColor: c, bgMode: "color" });
+    try { const n = [c, ...recentBg.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 6); setRecentBg(n); localStorage.setItem("ta_recent_bg", JSON.stringify(n)); } catch {}
+  };
   const set = (patch) => setD((p) => ({ ...p, ...patch }));
   const setStyle = (patch) => setD((p) => ({ ...p, style: { ...p.style, ...patch } }));
 
@@ -257,7 +266,7 @@ export function PersonalizeMobile({
       {sheet === "bg" && (
         renderSheet(en ? "Background" : "Fundo", <>
           {[
-            { id: "auto", t: en ? "Automatic" : "Automático", s: en ? "Follows your banner, blurred" : "Segue o teu banner, desfocado", disabled: !d.url },
+            { id: "auto", t: en ? "Automatic" : "Automático", s: en ? "Uses your banner colour" : "Usa a cor do teu banner", disabled: !d.url },
             { id: "color", t: en ? "A colour" : "Uma cor", s: en ? "Pick a plain colour" : "Escolhes uma cor lisa" },
             { id: "image", t: en ? "Image" : "Imagem", s: en ? "A wallpaper of your own" : "Um wallpaper teu" },
           ].map((o) => {
@@ -272,15 +281,15 @@ export function PersonalizeMobile({
           })}
           {d.bgMode === "color" && (
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-              {SUGGESTED_BG.map((c) => circle(c, d.bgColor === c, () => set({ bgColor: c })))}
-              <label style={{ width: 44, height: 44, borderRadius: "50%", border: `2px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, position: "relative", cursor: "pointer" }}>+<input type="color" value={d.bgColor} onChange={(e) => set({ bgColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} /></label>
+              {bgSwatches.map((c) => circle(c, (d.bgColor || "").toLowerCase() === c.toLowerCase(), () => pickBg(c)))}
+              <label style={{ width: 44, height: 44, borderRadius: "50%", border: `2px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, position: "relative", cursor: "pointer" }}>+<input type="color" value={d.bgColor} onChange={(e) => pickBg(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} /></label>
             </div>
           )}
           <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${line}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
-              <span>{en ? "Panel transparency" : "Transparência dos painéis"}</span><span style={{ color: muted }}>{Math.round((1 - d.opacity) * 100)}%</span>
+              <span>{en ? "Panel transparency" : "Transparência dos painéis"}</span><span style={{ color: muted }}>{Math.round(100 - d.opacity)}%</span>
             </div>
-            <input type="range" min={0.35} max={1} step={0.01} value={d.opacity} onChange={(e) => set({ opacity: parseFloat(e.target.value) })} style={{ width: "100%", accentColor: A }} aria-label={en ? "Panel transparency" : "Transparência dos painéis"} />
+            <input type="range" min={35} max={100} step={1} value={d.opacity} onChange={(e) => set({ opacity: parseInt(e.target.value, 10) })} style={{ width: "100%", accentColor: A }} aria-label={en ? "Panel transparency" : "Transparência dos painéis"} />
             <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "Text colour adjusts automatically." : "A cor do texto ajusta-se automaticamente."}</div>
           </div>
           {onBgSeparateDevices && (

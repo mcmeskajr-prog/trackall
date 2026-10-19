@@ -26,14 +26,11 @@ export function BannerHero({ banner, styleOverride, urlOverride, height = 150, c
 // Fundo da página: o próprio banner, muito desfocado e escurecido, atrás de tudo (o pai tem isolation: isolate).
 // O estilo "Escurecer" regula o quão escuro fica. Sem banner ou com fundo próprio (g=0), não desenha nada.
 export function BannerPageTint({ banner }) {
+  const { accent, darkMode } = useTheme();
   const { url, style } = splitBanner(banner);
+  const palette = useBannerPalette(url);
   if (!url || style.g === 0) return null;
-  const dark = Math.max(0, Math.min(100, style.d ?? 55)) / 100;
-  const bright = 0.8 - 0.45 * dark;
-  const fade = "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.85) 45%, transparent 100%)";
-  return (
-    <div aria-hidden="true" style={{ position: "absolute", top: 0, left: "50%", width: "100vw", marginLeft: "-50vw", height: 820, zIndex: -1, overflow: "hidden", pointerEvents: "none", WebkitMaskImage: fade, maskImage: fade }}>
-      <img src={url} alt="" decoding="async" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", filter: `blur(46px) saturate(1.5) brightness(${bright})`, transform: "scale(1.25)" }} />
-    </div>
-  );
+  // Fundo automático = a cor do banner, num tom fundo e suave (sem imagem desfocada)
+  const bg = pageTintCss(baseColor(style, palette, accent), style, darkMode);
+  return <div aria-hidden="true" style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: "100vw", marginLeft: "-50vw", zIndex: -1, pointerEvents: "none", background: bg, transition: "background 0.5s ease" }} />;
 }
