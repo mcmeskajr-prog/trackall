@@ -2320,7 +2320,7 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: mkNavBg(activeDarkMode, activeBgColor), backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40 }}>
+        <nav className="top-nav-bar" style={{ background: mkNavBg(activeDarkMode, activeBgColor), backdropFilter: "blur(14px)", borderBottom: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40, ...(isMobileDevice && view === "profile" && profile?.banner && !profile?.hideBannerMobile ? { display: "none" } : {}) }}>
           {!(isMobileDevice && mobileSearchOpen) && (
             <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>

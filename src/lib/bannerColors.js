@@ -160,7 +160,11 @@ export function bannerAccentHex(style, palette) {
   const hex = style?.c && isHex(style.c) ? style.c : palette?.[0]?.hex;
   if (!hex) return null;
   const [h, s, l] = hexHsl(hex);
-  if (s < 0.12) return null; // cinzento: mantém a cor de destaque do tema
+  if (s < 0.12) {
+    // Cinzento: só conta se foi escolhido de propósito; em automático mantém a cor do tema
+    if (!(style?.c && isHex(style.c))) return null;
+    return `#${hslToHex(h, s, clamp(l, 0.6, 0.72))}`;
+  }
   return `#${hslToHex(h, clamp(s, 0.5, 0.85), clamp(l, 0.58, 0.68))}`;
 }
 export function useBannerAccent(banner, enabled = true) {
