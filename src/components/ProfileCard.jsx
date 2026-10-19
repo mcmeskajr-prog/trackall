@@ -81,7 +81,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       const ring = darkMode ? "#0b0d12" : "#ffffff";
       return (
         <BannerHero banner={profile.banner} style={{ color: text }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
             <div style={{ position: "relative", width: 96, height: 96 }}>
               <div style={{ width: 96, height: 96, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 3px ${ring}, 0 0 0 5.5px ${accent}, 0 8px 28px ${accent}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 36, color: "white" }}>
                 {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
@@ -95,7 +95,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
           </div>
           <div style={{ display: "flex", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${divider}` }}>
             {stats.map((st) => (
-              <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 44, textAlign: "center", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
+              <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 44, textAlign: "left", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
                 <div style={{ fontSize: 23, fontWeight: 800, lineHeight: 1, color: st.l === "média" || st.l === "average" ? "#fbbf24" : text }}>{st.n}</div>
                 <div style={{ fontSize: 11, color: sub, marginTop: 5 }}>{st.l}</div>
               </button>

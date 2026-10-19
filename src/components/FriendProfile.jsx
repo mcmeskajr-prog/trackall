@@ -8,7 +8,6 @@ import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
 import { BannerHero, BannerPageTint } from "./BannerHero";
-import { useBannerAccent } from "../lib/bannerColors";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
@@ -59,8 +58,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const { lang } = useLang();
   const en = lang === "en";
   const prof = data.profile || {};
-  const _bAcc = useBannerAccent(prof.banner, !!theme.isMobileDevice && !prof.hide_banner_mobile);
-  const fAccent = _bAcc || (isHex(prof.accent) ? prof.accent : theme.accent);
+  const fAccent = isHex(prof.accent) ? prof.accent : theme.accent;
   const accent = fAccent;
   const [tab, setTab] = useState("perfil");
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -153,7 +151,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
         {/* Cartão principal: com banner (telemóvel) fundo tingido; senão cartão normal */}
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
           <BannerHero banner={prof.banner} bleed={0} height={220} style={{ marginBottom: 18 }}>
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ textAlign: "left", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
               <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={92} ring={accent} ringWidth={3} />
               <h2 style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", color: text, overflowWrap: "anywhere" }}>{name}</h2>
               {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}

@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ThemeContext, useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { supa, supabase } from "../config/supabase";
 import { findLibraryEntry } from "../lib/mediaIds";
@@ -12,7 +12,7 @@ import { TiltCard } from "./TiltCard";
 import { CropModal } from "./CropModal";
 import { BannerEditor } from "./BannerEditor";
 import { BannerPageTint } from "./BannerHero";
-import { splitBanner, joinBanner, useBannerAccent } from "../lib/bannerColors";
+import { splitBanner, joinBanner, extractPalette, bannerAccentHex } from "../lib/bannerColors";
 import { CollectionCard } from "./CollectionCard";
 import { TierListCard } from "./TierListCard";
 import { RecentSection } from "./RecentSection";
@@ -59,7 +59,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 }
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
-function ProfileViewInner({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null }) {
+export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -165,6 +165,10 @@ function ProfileViewInner({ profile, library, accent, bgColor, bgColorMobile, bg
   const handleSave = async () => {
     await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: joinBanner(bannerUrl, bannerStyle), hideEmail, hideBannerMobile });
     setEditing(false);
+    // Uma só cor para tudo: a cor do banner passa a ser a cor de destaque da app (e fica guardada no perfil)
+    if (bannerUrl && bannerStyle.a !== 0 && onAccentChange) {
+      try { const hex = bannerAccentHex(bannerStyle, await extractPalette(bannerUrl)); if (hex && hex.toLowerCase() !== String(accent).toLowerCase()) onAccentChange(hex); } catch {}
+    }
   };
 
   const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); };
@@ -984,14 +988,3 @@ function ProfileViewInner({ profile, library, accent, bgColor, bgColorMobile, bg
   );
 }
 
-// Com banner no telemóvel, a cor do banner passa a ser o destaque de todo o perfil
-export function ProfileView(props) {
-  const theme = useTheme();
-  const ba = useBannerAccent(props.profile?.banner, !!props.isMobileDevice && !props.profile?.hideBannerMobile);
-  if (!ba) return <ProfileViewInner {...props} />;
-  return (
-    <ThemeContext.Provider value={{ ...theme, accent: ba }}>
-      <ProfileViewInner {...props} accent={ba} />
-    </ThemeContext.Provider>
-  );
-}
