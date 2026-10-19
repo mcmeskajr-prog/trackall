@@ -9,10 +9,12 @@ import { CropModal } from "./CropModal";
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
 import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
-import { hexRgb } from "../lib/contrast";
+import { hexRgb, hexLum } from "../lib/contrast";
 
 // ─── Personalizar (telemóvel): um só ecrã, quatro coisas ───
 // Banner · Foto · Cor · Fundo, mais temas prontos. Tudo é rascunho (vês ao vivo em cima) até carregares em Guardar.
+// Fundo e painel com o tom da cor de destaque (é isto que faz o fundo acompanhar o tema)
+const tintFrom = (hex) => { const [h, s0] = rgbToHsl(...(hexRgb(hex) || [90, 90, 90])); return { bg: `#${hslToHex(h, Math.min(0.45, 0.2 + s0 * 0.3), 0.065)}`, panel: `#${hslToHex(h, Math.min(0.4, 0.15 + s0 * 0.25), 0.095)}` }; };
 const SUGGESTED_BG = ["#0a0c10", "#120a0c", "#0a0d12", "#08141c", "#0a130f", "#14090f", "#1a1410", "#f3f4f8"];
 
 export function PersonalizeMobile({
@@ -32,7 +34,7 @@ export function PersonalizeMobile({
   const curBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor;
   const curImg = bgSeparateDevices ? bgImageMobile : bgImage;
   const initial = useMemo(() => ({
-    url: saved.url, style: saved.style, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : "color"),
+    url: saved.url, style: saved.style, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : ((curBg || "").toLowerCase() === tintFrom(accent).bg ? "accent" : "color")),
     bgColor: curBg, bgImage: curImg || "", panel: panelBg, opacity: panelOpacity,
   }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity]); // eslint-disable-line
   const [d, setD] = useState(initial);
@@ -54,10 +56,13 @@ export function PersonalizeMobile({
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
   const pick4 = (x) => JSON.stringify({ u: x.url, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity });
   const dirty = pick4(d) !== pick4(initial) || effAccent !== accent;
+  const tint = tintFrom(effAccent);
+  const bgEff = d.bgMode === "accent" ? tint.bg : d.bgColor;
+  const panelEff = d.bgMode === "accent" ? tint.panel : d.panel;
   // Cores de fundo: neutras + tons escuros da cor de destaque atual + usadas recentemente. Escolher qualquer uma passa logo a "Uma cor".
   const [recentBg, setRecentBg] = useState(() => { try { return JSON.parse(localStorage.getItem("ta_recent_bg") || "[]"); } catch { return []; } });
-  const accentTints = useMemo(() => { const [h, s0] = rgbToHsl(...(hexRgb(effAccent) || [90, 90, 90])); return [0.07, 0.11, 0.16].map((l) => `#${hslToHex(h, Math.min(0.5, s0 * 0.7), l)}`); }, [effAccent]);
-  const bgSwatches = [...new Set([...recentBg, ...accentTints, ...SUGGESTED_BG].map((c) => c.toLowerCase()))];
+  const bgSwatches = [...new Set([...recentBg, ...SUGGESTED_BG].map((c) => c.toLowerCase()))].slice(0, 8);
+  const pickAccent = (hex) => setD((x) => ({ ...x, accent: `#${hex}`, bgMode: x.bgMode === "color" ? "accent" : x.bgMode, style: { ...x.style, a: 0 } }));
   const pickBg = (c) => {
     set({ bgColor: c, bgMode: "color" });
     try { const n = [c, ...recentBg.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 6); setRecentBg(n); localStorage.setItem("ta_recent_bg", JSON.stringify(n)); } catch {}
@@ -91,18 +96,22 @@ export function PersonalizeMobile({
   };
 
   // ── temas prontos (rascunho) ──
-  const applyPreset = (p) => setD((x) => ({ ...x, accent: p.accent, bgColor: p.bg, panel: p.panel, opacity: p.opacity, bgMode: "color", bgImage: "", style: { ...x.style, a: 0, g: 0 } }));
-  const themeOn = (p) => effAccent === p.accent && d.bgColor === p.bg && d.bgMode === "color";
+  const isLight = (hex) => hexLum(hex) > 0.5;
+  const applyPreset = (p) => setD((x) => ({ ...x, accent: p.accent, bgColor: p.bg, panel: p.panel, opacity: p.opacity, bgMode: isLight(p.bg) ? "color" : "accent", bgImage: "", style: { ...x.style, a: 0, g: 0 } }));
+  const themeOn = (p) => effAccent.toLowerCase() === p.accent && (d.bgMode === "accent" ? !isLight(p.bg) : d.bgColor === p.bg);
+  const bannerThemes = (d.url && palette ? palette.slice(0, 3) : []).map((c, i) => ({ id: `b${i}`, name: [en ? "Banner" : "Do banner", en ? "Vivid" : "Vivo", en ? "Soft" : "Suave"][i] || "Banner", accent: `#${String(c.hex).replace("#", "")}` }));
+  const applyBannerTheme = (t) => setD((x) => ({ ...x, accent: t.accent, bgMode: "accent", bgImage: "", opacity: x.opacity, style: { ...x.style, a: 0, g: 0 } }));
 
   // ── guardar / cancelar ──
   const commit = async () => {
     const before = { ...initial, accent };
     const bannerStr = joinBanner(d.url, { ...d.style, g: d.bgMode === "auto" ? 1 : 0 });
+    const toColor = d.bgMode === "color" || d.bgMode === "accent";
     if (bannerStr !== (profile.banner || "")) await onUpdateProfile({ ...profile, banner: bannerStr, hideBannerMobile: d.url ? false : profile.hideBannerMobile });
     if (effAccent !== accent) onAccentChange(effAccent);
-    if (d.bgMode === "color") { bgSeparateDevices ? onBgColorMobile(d.bgColor) : onBgChange(d.bgColor); bgSeparateDevices ? onBgImageMobile("") : onBgImage(""); }
+    if (toColor) { bgSeparateDevices ? onBgColorMobile(bgEff) : onBgChange(bgEff); bgSeparateDevices ? onBgImageMobile("") : onBgImage(""); }
     if (d.bgMode === "image") { bgSeparateDevices ? onBgImageMobile(d.bgImage) : onBgImage(d.bgImage); }
-    if (d.panel !== panelBg) onPanelBg(d.panel);
+    if (panelEff !== panelBg) onPanelBg(panelEff);
     if (d.opacity !== panelOpacity) onPanelOpacity(d.opacity);
     flash(en ? "Changes saved" : "Alterações guardadas", async () => {
       await onUpdateProfile({ ...profile, banner: profile.banner || "" });
@@ -155,6 +164,19 @@ export function PersonalizeMobile({
         {/* Temas */}
         <div style={lbl}>{en ? "Themes" : "Temas"}</div>
         <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "2px 16px" }}>
+          {bannerThemes.map((t) => {
+            const tt = tintFrom(t.accent), on = d.bgMode === "accent" && effAccent.toLowerCase() === t.accent.toLowerCase();
+            return (
+              <button key={t.id} type="button" onClick={() => applyBannerTheme(t)} style={{ flex: "none", width: 92, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: text }}>
+                <div style={{ height: 70, borderRadius: 14, background: tt.bg, border: `2px solid ${on ? t.accent : line}`, position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", left: 10, right: 10, top: 12, height: 8, borderRadius: 4, background: t.accent }} />
+                  <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 26, borderRadius: 8, background: tt.panel, border: `1px solid ${line}` }} />
+                  <span style={{ position: "absolute", right: 6, top: 22, fontSize: 10 }}>✦</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: on ? 800 : 600, marginTop: 6, textAlign: "center", color: on ? text : muted }}>{t.name}</div>
+              </button>
+            );
+          })}
           {STYLE_PRESETS.map((p) => {
             const on = themeOn(p);
             return (
@@ -190,9 +212,9 @@ export function PersonalizeMobile({
           <Tile title={en ? "Colour" : "Cor"} sub={en ? "App accent" : "Destaque da app"} onClick={() => setSheet("color")}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: A, boxShadow: `0 0 0 3px ${A}44` }} />
           </Tile>
-          <Tile title={en ? "Background" : "Fundo"} sub={d.bgMode === "auto" ? (en ? "Follows the banner" : "Segue o banner") : d.bgMode === "color" ? (en ? "Solid colour" : "Cor lisa") : (en ? "Your image" : "A tua imagem")} onClick={() => setSheet("bg")}>
+          <Tile title={en ? "Background" : "Fundo"} sub={d.bgMode === "auto" ? (en ? "Follows the banner" : "Segue o banner") : d.bgMode === "accent" ? (en ? "Theme colour" : "Cor do tema") : d.bgMode === "color" ? (en ? "Solid colour" : "Cor lisa") : (en ? "Your image" : "A tua imagem")} onClick={() => setSheet("bg")}>
             {d.bgMode === "auto" ? <div style={{ padding: "5px 10px", borderRadius: 99, background: "rgba(52,211,153,0.14)", color: "#34d399", fontSize: 11.5, fontWeight: 800, border: "1px solid #34d39955" }}>✦ {en ? "Auto" : "Automático"}</div>
-              : <div style={{ width: 36, height: 36, borderRadius: 10, background: d.bgMode === "image" && d.bgImage ? `center/cover url(${d.bgImage})` : d.bgColor, border: `1px solid ${line}` }} />}
+              : <div style={{ width: 36, height: 36, borderRadius: 10, background: d.bgMode === "image" && d.bgImage ? `center/cover url(${d.bgImage})` : bgEff, border: `1px solid ${line}` }} />}
           </Tile>
         </div>
       </div>
@@ -250,15 +272,15 @@ export function PersonalizeMobile({
           </>)}
           <div style={lbl}>{en ? "Suggested" : "Sugeridas"}</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {PICKER_SUGGESTIONS.map((c) => circle(`#${c}`, !follow && d.accent.toLowerCase() === `#${c}`, () => { setStyle({ a: 0 }); set({ accent: `#${c}` }); }))}
+            {PICKER_SUGGESTIONS.map((c) => circle(`#${c}`, !follow && d.accent.toLowerCase() === `#${c}`, () => pickAccent(c)))}
           </div>
           <button type="button" onClick={() => setSheet("picker")} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: `1.5px dashed ${muted}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ {en ? "Another colour" : "Outra cor"}</button>
-          <div style={{ marginTop: 10, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "The profile above changes live while you choose." : "O perfil em cima muda ao vivo enquanto escolhes."}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "The profile and the background tone change live while you choose." : "O perfil e o tom do fundo mudam ao vivo enquanto escolhes."}</div>
         </>)
       )}
       {sheet === "picker" && (
         renderSheet(en ? "Another colour" : "Outra cor", <>
-          <ColorPicker value={(follow ? effAccent : d.accent).replace("#", "")} onChange={(hex) => { setStyle({ a: 0 }); set({ accent: `#${hex}` }); }} suggestions={PICKER_SUGGESTIONS} lang={lang} />
+          <ColorPicker value={(follow ? effAccent : d.accent).replace("#", "")} onChange={pickAccent} suggestions={PICKER_SUGGESTIONS} lang={lang} />
         </>)
       )}
 
@@ -267,7 +289,8 @@ export function PersonalizeMobile({
         renderSheet(en ? "Background" : "Fundo", <>
           {[
             { id: "auto", t: en ? "Automatic" : "Automático", s: en ? "Uses your banner colour" : "Usa a cor do teu banner", disabled: !d.url },
-            { id: "color", t: en ? "A colour" : "Uma cor", s: en ? "Pick a plain colour" : "Escolhes uma cor lisa" },
+            { id: "accent", t: en ? "Theme colour" : "Cor do tema", s: en ? "Same tone as your accent colour" : "Mesmo tom da cor de destaque" },
+            { id: "color", t: en ? "Plain colour" : "Cor lisa", s: en ? "Pick any colour" : "Escolhes qualquer cor" },
             { id: "image", t: en ? "Image" : "Imagem", s: en ? "A wallpaper of your own" : "Um wallpaper teu" },
           ].map((o) => {
             const on = d.bgMode === o.id;
