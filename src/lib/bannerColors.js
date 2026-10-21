@@ -173,3 +173,14 @@ export function useBannerAccent(banner, enabled = true) {
   const pal = useBannerPalette(enabled ? url : "");
   return enabled && url ? bannerAccentHex(style, pal) : null;
 }
+
+// Fundo vivo da app: do tom da cor de destaque (em cima) até ao fundo base (cerca de 700 px abaixo).
+// Fica um degradê curto e suave, por isso o resto da app respira com a mesma cor do perfil.
+export function appBgPaint(bgHex, accentHex, darkMode) {
+  const a = String(accentHex || "").replace("#", "");
+  if (!isHex(a)) return "none";
+  const [h, s] = hexHsl(a);
+  const sat = s < 0.1 ? s : clamp(s * 0.8, 0.3, 0.6);
+  const top = darkMode ? hslToHex(h, sat, 0.17) : hslToHex(h, clamp(sat, 0.3, 0.7), 0.9);
+  return `linear-gradient(180deg, #${top} 0px, ${bgHex} 720px)`;
+}

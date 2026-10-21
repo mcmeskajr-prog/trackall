@@ -9,18 +9,16 @@ import { CropModal } from "./CropModal";
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
 import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
-import { hexRgb, hexLum } from "../lib/contrast";
+import { hexRgb, hexLum, overlayAlpha, onAccent as onAccentColor } from "../lib/contrast";
 
-// ─── Personalizar (telemóvel): um só ecrã, quatro coisas ───
-// Banner · Foto · Cor · Fundo, mais temas prontos. Tudo é rascunho (vês ao vivo em cima) até carregares em Guardar.
+// ─── Personalizar: três linhas (Banner, Foto, Cor) e "Mais opções" fechado ───
+// O fundo acompanha sempre a cor escolhida (ou o banner). Wallpaper, transparência e sincronização ficam em Mais opções. Tudo é rascunho (vês ao vivo em cima) até carregares em Guardar.
 // Fundo e painel com o tom da cor de destaque (é isto que faz o fundo acompanhar o tema)
 const tintFrom = (hex) => { const [h, s0] = rgbToHsl(...(hexRgb(hex) || [90, 90, 90])); return { bg: `#${hslToHex(h, Math.min(0.45, 0.2 + s0 * 0.3), 0.065)}`, panel: `#${hslToHex(h, Math.min(0.4, 0.15 + s0 * 0.25), 0.095)}` }; };
-const SUGGESTED_BG = ["#0a0c10", "#120a0c", "#0a0d12", "#08141c", "#0a130f", "#14090f", "#1a1410", "#f3f4f8"];
-
 export function PersonalizeMobile({
   profile, currentUserId, onUpdateProfile, lang, savedThemes,
-  accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity,
-  onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgSeparateDevices,
+  accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity, bgOverlay, bgBlur,
+  onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgSeparateDevices, onBgOverlay, onBgBlur,
 }) {
   const { darkMode } = useTheme();
   const theme = useTheme();
@@ -36,7 +34,8 @@ export function PersonalizeMobile({
   const initial = useMemo(() => ({
     url: saved.url, style: saved.style, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : ((curBg || "").toLowerCase() === tintFrom(accent).bg ? "accent" : "color")),
     bgColor: curBg, bgImage: curImg || "", panel: panelBg, opacity: panelOpacity,
-  }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity]); // eslint-disable-line
+    ov: Math.round(overlayAlpha(bgOverlay) * 100), blur: bgBlur || 0,
+  }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity, bgOverlay, bgBlur]); // eslint-disable-line
   const [d, setD] = useState(initial);
   const [sheet, setSheet] = useState(null); // "banner" | "color" | "bg" | "picker"
   const [crop, setCrop] = useState(null);   // { src, type }
@@ -54,19 +53,14 @@ export function PersonalizeMobile({
   const followChanged = d.style.a !== initial.style.a, urlChanged = d.url !== initial.url;
   // a cor do banner só entra quando o banner (ou a opção "acompanha") muda; senão mantém-se a cor da app
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
-  const pick4 = (x) => JSON.stringify({ u: x.url, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity });
+  const pick4 = (x) => JSON.stringify({ u: x.url, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity, v: x.ov, l: x.blur });
   const dirty = pick4(d) !== pick4(initial) || effAccent !== accent;
   const tint = tintFrom(effAccent);
   const bgEff = d.bgMode === "accent" ? tint.bg : d.bgColor;
   const panelEff = d.bgMode === "accent" ? tint.panel : d.panel;
-  // Cores de fundo: neutras + tons escuros da cor de destaque atual + usadas recentemente. Escolher qualquer uma passa logo a "Uma cor".
-  const [recentBg, setRecentBg] = useState(() => { try { return JSON.parse(localStorage.getItem("ta_recent_bg") || "[]"); } catch { return []; } });
-  const bgSwatches = [...new Set([...recentBg, ...SUGGESTED_BG].map((c) => c.toLowerCase()))].slice(0, 8);
-  const pickAccent = (hex) => setD((x) => ({ ...x, accent: `#${hex}`, bgMode: x.bgMode === "color" ? "accent" : x.bgMode, style: { ...x.style, a: 0 } }));
-  const pickBg = (c) => {
-    set({ bgColor: c, bgMode: "color" });
-    try { const n = [c, ...recentBg.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 6); setRecentBg(n); localStorage.setItem("ta_recent_bg", JSON.stringify(n)); } catch {}
-  };
+  const [more, setMore] = useState(false);
+  const pickAccent = (hex) => setD((x) => ({ ...x, accent: `#${hex}`, bgMode: x.bgMode === "image" ? "image" : "accent", style: { ...x.style, a: 0, g: 0 } }));
+  const pickBanner = () => setD((x) => ({ ...x, bgMode: x.bgImage && x.bgMode === "image" ? "image" : "auto", style: { ...x.style, a: 1, g: 1 } }));
   const set = (patch) => setD((p) => ({ ...p, ...patch }));
   const setStyle = (patch) => setD((p) => ({ ...p, style: { ...p.style, ...patch } }));
 
@@ -99,8 +93,26 @@ export function PersonalizeMobile({
   const isLight = (hex) => hexLum(hex) > 0.5;
   const applyPreset = (p) => setD((x) => ({ ...x, accent: p.accent, bgColor: p.bg, panel: p.panel, opacity: p.opacity, bgMode: isLight(p.bg) ? "color" : "accent", bgImage: "", style: { ...x.style, a: 0, g: 0 } }));
   const themeOn = (p) => effAccent.toLowerCase() === p.accent && (d.bgMode === "accent" ? !isLight(p.bg) : d.bgColor === p.bg);
-  const bannerThemes = (d.url && palette ? palette.slice(0, 3) : []).map((c, i) => ({ id: `b${i}`, name: [en ? "Banner" : "Do banner", en ? "Vivid" : "Vivo", en ? "Soft" : "Suave"][i] || "Banner", accent: `#${String(c.hex).replace("#", "")}` }));
-  const applyBannerTheme = (t) => setD((x) => ({ ...x, accent: t.accent, bgMode: "accent", bgImage: "", opacity: x.opacity, style: { ...x.style, a: 0, g: 0 } }));
+
+  // ── temas guardados (nome + definições atuais) ──
+  const [themeName, setThemeName] = useState("");
+  const themes = savedThemes?.themes || [];
+  const imgKey = (n) => `trackall_theme_${bgSeparateDevices ? "imgm" : "img"}_${n}`;
+  const saveCurrentTheme = () => {
+    const name = themeName.trim(); if (!name || !savedThemes?.save) return;
+    const hasImg = d.bgMode === "image" && !!d.bgImage;
+    try { if (hasImg) localStorage.setItem(imgKey(name), d.bgImage); } catch {}
+    const t = { name, accent: effAccent, bgColor: bgEff, panelBg: panelEff, panelOpacity: d.opacity, bgMode: d.bgMode, bgOverlay: `rgba(0,0,0,${d.ov / 100})`, bgBlur: d.blur, hasBgImage: hasImg && !bgSeparateDevices, hasBgImageMobile: hasImg && !!bgSeparateDevices };
+    savedThemes.save([...themes.filter((x) => x.name !== name), t]);
+    setThemeName(""); flash(en ? "Theme saved" : "Tema guardado", () => savedThemes.save(themes));
+  };
+  const applySaved = (t) => {
+    let img = ""; try { img = (t.hasBgImage || t.hasBgImageMobile) ? (localStorage.getItem(`trackall_theme_${t.hasBgImageMobile ? "imgm" : "img"}_${t.name}`) || "") : ""; } catch {}
+    setD((x) => ({ ...x, accent: t.accent || x.accent, bgColor: t.bgColor || x.bgColor, panel: t.panelBg ?? x.panel, opacity: t.panelOpacity ?? x.opacity,
+      bgMode: img ? "image" : (t.bgMode === "accent" || t.bgMode === "color" ? t.bgMode : "color"), bgImage: img || "", ov: t.bgOverlay ? Math.round(overlayAlpha(t.bgOverlay) * 100) : x.ov, blur: t.bgBlur ?? x.blur,
+      style: { ...x.style, a: 0, g: 0 } }));
+  };
+  const delTheme = (t) => { try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {} savedThemes?.save(themes.filter((x) => x.name !== t.name)); };
 
   // ── guardar / cancelar ──
   const commit = async () => {
@@ -109,34 +121,41 @@ export function PersonalizeMobile({
     const toColor = d.bgMode === "color" || d.bgMode === "accent";
     if (bannerStr !== (profile.banner || "")) await onUpdateProfile({ ...profile, banner: bannerStr, hideBannerMobile: d.url ? false : profile.hideBannerMobile });
     if (effAccent !== accent) onAccentChange(effAccent);
-    if (toColor) { bgSeparateDevices ? onBgColorMobile(bgEff) : onBgChange(bgEff); bgSeparateDevices ? onBgImageMobile("") : onBgImage(""); }
+    if (toColor) { bgSeparateDevices ? onBgColorMobile(bgEff) : onBgChange(bgEff); }
+    if (toColor || d.bgMode === "auto") { bgSeparateDevices ? onBgImageMobile("") : onBgImage(""); }
     if (d.bgMode === "image") { bgSeparateDevices ? onBgImageMobile(d.bgImage) : onBgImage(d.bgImage); }
     if (panelEff !== panelBg) onPanelBg(panelEff);
     if (d.opacity !== panelOpacity) onPanelOpacity(d.opacity);
+    if (d.ov !== initial.ov && onBgOverlay) onBgOverlay(`rgba(0,0,0,${d.ov / 100})`);
+    if (d.blur !== initial.blur && onBgBlur) onBgBlur(d.blur);
     flash(en ? "Changes saved" : "Alterações guardadas", async () => {
       await onUpdateProfile({ ...profile, banner: profile.banner || "" });
       onAccentChange(before.accent);
       bgSeparateDevices ? onBgColorMobile(before.bgColor) : onBgChange(before.bgColor);
       bgSeparateDevices ? onBgImageMobile(before.bgImage) : onBgImage(before.bgImage);
       onPanelBg(before.panel); onPanelOpacity(before.opacity);
+      if (onBgOverlay) onBgOverlay(`rgba(0,0,0,${before.ov / 100})`); if (onBgBlur) onBgBlur(before.blur);
     });
   };
 
   const prevTheme = { ...theme, accent: effAccent };
   const A = effAccent;
-  const Tile = ({ title, sub, onClick, children }) => (
-    <button type="button" onClick={onClick} style={{ textAlign: "left", fontFamily: "inherit", color: text, cursor: "pointer", borderRadius: 18, padding: 14, minHeight: 96, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10, background: darkMode ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.04)", border: `1px solid ${line}` }}>
-      <div style={{ height: 36, display: "flex", alignItems: "center" }}>{children}</div>
-      <div><div style={{ fontSize: 15, fontWeight: 800 }}>{title}</div><div style={{ fontSize: 11.5, color: muted, marginTop: 1 }}>{sub}</div></div>
+  const Row = ({ title, sub, onClick, children }) => (
+    <button type="button" onClick={onClick} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 0", background: "none", border: "none", borderBottom: `1px solid ${line}`, textAlign: "left", fontFamily: "inherit", color: text, cursor: "pointer" }}>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 800 }}>{title}</div><div style={{ fontSize: 11.5, color: muted, marginTop: 1 }}>{sub}</div></div>
+      {children}<span style={{ color: muted, fontSize: 16 }}>›</span>
     </button>
   );
+  const swBtn = { flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" };
+  const swLbl = (on) => ({ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? text : muted, whiteSpace: "nowrap" });
+  const linkBtn = { background: "none", border: "none", color: A, fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 6 };
   const renderSheet = (title, children) => createPortal(
     <div onClick={() => setSheet(null)} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end" }}>
       <div role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxHeight: "86vh", overflowY: "auto", boxSizing: "border-box", borderRadius: "28px 28px 0 0", background: sheetBg, borderTop: `1px solid ${line}`, padding: "12px 18px calc(22px + env(safe-area-inset-bottom))", color: text }}>
         <div style={{ width: 40, height: 4, borderRadius: 3, background: darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.2)", margin: "0 auto 14px" }} />
         <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12 }}>{title}</div>
         {children}
-        <button type="button" onClick={() => setSheet(null)} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: "none", background: A, color: "#fff", fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>{en ? "Done" : "Concluído"}</button>
+        <button type="button" onClick={() => setSheet(null)} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: "none", background: A, color: onAccentColor(A), fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>{en ? "Done" : "Concluído"}</button>
       </div>
     </div>, document.body);
   const lbl = { fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", color: muted, margin: "16px 0 8px", textTransform: "uppercase" };
@@ -161,61 +180,93 @@ export function PersonalizeMobile({
         <style>{`@keyframes tbar{from{margin-left:0}to{margin-left:60%}}`}</style>
         {err && <div role="alert" style={{ margin: "10px 0", padding: "10px 12px", borderRadius: 12, background: "#ef444418", border: "1px solid #ef444455", fontSize: 13, color: "#f87171" }}>{err}</div>}
 
-        {/* Temas */}
-        <div style={lbl}>{en ? "Themes" : "Temas"}</div>
-        <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "2px 16px" }}>
-          {bannerThemes.map((t) => {
-            const tt = tintFrom(t.accent), on = d.bgMode === "accent" && effAccent.toLowerCase() === t.accent.toLowerCase();
-            return (
-              <button key={t.id} type="button" onClick={() => applyBannerTheme(t)} style={{ flex: "none", width: 92, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: text }}>
-                <div style={{ height: 70, borderRadius: 14, background: tt.bg, border: `2px solid ${on ? t.accent : line}`, position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", left: 10, right: 10, top: 12, height: 8, borderRadius: 4, background: t.accent }} />
-                  <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 26, borderRadius: 8, background: tt.panel, border: `1px solid ${line}` }} />
-                  <span style={{ position: "absolute", right: 6, top: 22, fontSize: 10 }}>✦</span>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: on ? 800 : 600, marginTop: 6, textAlign: "center", color: on ? text : muted }}>{t.name}</div>
-              </button>
-            );
-          })}
-          {STYLE_PRESETS.map((p) => {
-            const on = themeOn(p);
-            return (
-              <button key={p.id} type="button" onClick={() => applyPreset(p)} style={{ flex: "none", width: 92, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: text }}>
-                <div style={{ height: 70, borderRadius: 14, background: p.bg, border: `2px solid ${on ? p.accent : line}`, position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", left: 10, right: 10, top: 12, height: 8, borderRadius: 4, background: p.accent }} />
-                  <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 26, borderRadius: 8, background: p.panel, border: `1px solid ${line}` }} />
-                </div>
-                <div style={{ fontSize: 12, fontWeight: on ? 800 : 600, marginTop: 6, textAlign: "center", color: on ? text : muted }}>{p.name}</div>
-              </button>
-            );
-          })}
-          {(savedThemes?.themes || []).map((t) => (
-            <button key={t.name} type="button" onClick={() => setD((x) => ({ ...x, accent: t.accent || x.accent, bgColor: t.bgColor || x.bgColor, panel: t.panelBg ?? x.panel, opacity: t.panelOpacity ?? x.opacity, bgMode: "color", style: { ...x.style, a: 0, g: 0 } }))} style={{ flex: "none", width: 92, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: text }}>
-              <div style={{ height: 70, borderRadius: 14, background: t.bgColor || "#111", border: `2px solid ${line}`, position: "relative" }}><div style={{ position: "absolute", left: 10, right: 10, top: 12, height: 8, borderRadius: 4, background: t.accent }} /></div>
-              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6, textAlign: "center", color: muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* Quatro blocos */}
-        <div style={lbl}>{en ? "Your profile" : "O teu perfil"}</div>
+        {/* Três linhas */}
         <input type="file" accept="image/*" ref={fileRef} onChange={pick("banner")} style={{ display: "none" }} />
         <input type="file" accept="image/*" ref={avatarRef} onChange={pick("avatar")} style={{ display: "none" }} />
         <input type="file" accept="image/*" ref={bgFileRef} onChange={onBgFile} style={{ display: "none" }} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Tile title="Banner" sub={en ? "Top image" : "Imagem do topo"} onClick={() => setSheet("banner")}>
-            {d.url ? <div style={{ width: 64, height: 36, borderRadius: 9, overflow: "hidden" }}><img src={d.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div> : <div style={{ width: 64, height: 36, borderRadius: 9, border: `1.5px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, fontSize: 18 }}>+</div>}
-          </Tile>
-          <Tile title={en ? "Photo" : "Foto"} sub={en ? "Your profile photo" : "A tua foto de perfil"} onClick={() => avatarRef.current?.click()}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${A}, #222)`, boxShadow: `0 0 0 2px ${A}` }}>{profile.avatar && <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div>
-          </Tile>
-          <Tile title={en ? "Colour" : "Cor"} sub={en ? "App accent" : "Destaque da app"} onClick={() => setSheet("color")}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: A, boxShadow: `0 0 0 3px ${A}44` }} />
-          </Tile>
-          <Tile title={en ? "Background" : "Fundo"} sub={d.bgMode === "auto" ? (en ? "Follows the banner" : "Segue o banner") : d.bgMode === "accent" ? (en ? "Theme colour" : "Cor do tema") : d.bgMode === "color" ? (en ? "Solid colour" : "Cor lisa") : (en ? "Your image" : "A tua imagem")} onClick={() => setSheet("bg")}>
-            {d.bgMode === "auto" ? <div style={{ padding: "5px 10px", borderRadius: 99, background: "rgba(52,211,153,0.14)", color: "#34d399", fontSize: 11.5, fontWeight: 800, border: "1px solid #34d39955" }}>✦ {en ? "Auto" : "Automático"}</div>
-              : <div style={{ width: 36, height: 36, borderRadius: 10, background: d.bgMode === "image" && d.bgImage ? `center/cover url(${d.bgImage})` : bgEff, border: `1px solid ${line}` }} />}
-          </Tile>
+        <div style={{ marginTop: 14, borderTop: `1px solid ${line}` }}>
+          <Row title="Banner" sub={d.url ? (en ? "Change or remove" : "Trocar ou remover") : (en ? "Add a top image" : "Adicionar imagem do topo")} onClick={() => setSheet("banner")}>
+            {d.url ? <div style={{ width: 56, height: 32, borderRadius: 8, overflow: "hidden" }}><img src={d.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div> : <div style={{ width: 56, height: 32, borderRadius: 8, border: `1.5px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted }}>+</div>}
+          </Row>
+          <Row title={en ? "Photo" : "Foto"} sub={en ? "Your profile photo" : "A tua foto de perfil"} onClick={() => avatarRef.current?.click()}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${A}, #222)`, boxShadow: `0 0 0 2px ${A}` }}>{profile.avatar && <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div>
+          </Row>
+          <div style={{ padding: "14px 0", borderBottom: `1px solid ${line}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>{en ? "Colour" : "Cor"}</div>
+              <div style={{ fontSize: 11.5, color: muted }}>{en ? "Accent and background follow it" : "Destaque e fundo acompanham"}</div>
+            </div>
+            <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", margin: "12px -16px 0", padding: "2px 16px 4px" }}>
+              {d.url && bannerAcc && (
+                <div onClick={pickBanner} style={swBtn}>
+                  {circle(bannerAcc, d.bgMode === "auto", pickBanner, "ban")}
+                  <span style={swLbl(d.bgMode === "auto")}>✦ {en ? "Banner" : "Banner"}</span>
+                </div>
+              )}
+              {STYLE_PRESETS.map((p) => {
+                const on = themeOn(p);
+                return (
+                  <div key={p.id} onClick={() => applyPreset(p)} style={swBtn}>
+                    {circle(isLight(p.bg) ? `linear-gradient(135deg, ${p.bg} 50%, ${p.accent} 50%)` : p.accent, on, () => applyPreset(p), p.id)}
+                    <span style={swLbl(on)}>{p.name}</span>
+                  </div>
+                );
+              })}
+              <div onClick={() => setSheet("picker")} style={swBtn}>
+                <span style={{ width: 44, height: 44, borderRadius: "50%", border: `2px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, fontSize: 20 }}>+</span>
+                <span style={swLbl(false)}>{en ? "Other" : "Outra"}</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", background: "none", border: "none", borderBottom: more ? "none" : `1px solid ${line}`, color: text, fontFamily: "inherit", cursor: "pointer" }}>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>{en ? "More options" : "Mais opções"}</span>
+            <span style={{ color: muted, fontSize: 16, transform: more ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
+          </button>
+          {more && (
+            <div style={{ paddingBottom: 14, borderBottom: `1px solid ${line}` }}>
+              {/* Wallpaper */}
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Wallpaper</div>
+              {d.bgMode === "image" && d.bgImage ? (<>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 12, background: `center/cover url(${d.bgImage})`, border: `1px solid ${line}`, flexShrink: 0 }} />
+                  <button type="button" onClick={() => bgFileRef.current?.click()} style={linkBtn}>{en ? "Change" : "Trocar"}</button>
+                  <button type="button" onClick={() => set({ bgImage: "", bgMode: d.url && follow ? "auto" : "accent" })} style={{ ...linkBtn, color: "#f87171" }}>{en ? "Remove" : "Remover"}</button>
+                </div>
+                {[[en ? "Darken" : "Escurecer", "ov", 0, 90], [en ? "Blur" : "Desfoque", "blur", 0, 20]].map(([l, k, mn, mx]) => (
+                  <div key={k} style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800 }}><span>{l}</span><span style={{ color: muted }}>{d[k]}{k === "ov" ? "%" : "px"}</span></div>
+                    <input type="range" min={mn} max={mx} step={1} value={d[k]} onChange={(e) => set({ [k]: parseInt(e.target.value, 10) })} style={{ width: "100%", accentColor: A }} />
+                  </div>))}
+              </>) : (
+                <button type="button" onClick={() => bgFileRef.current?.click()} style={{ width: "100%", height: 44, borderRadius: 12, border: `1.5px dashed ${muted}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ {en ? "Choose a wallpaper" : "Escolher wallpaper"}</button>
+              )}
+              {/* Transparência */}
+              <div style={{ marginTop: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
+                  <span>{en ? "Panel transparency" : "Transparência dos painéis"}</span><span style={{ color: muted }}>{Math.round(100 - d.opacity)}%</span>
+                </div>
+                <input type="range" min={35} max={100} step={1} value={d.opacity} onChange={(e) => set({ opacity: parseInt(e.target.value, 10) })} style={{ width: "100%", accentColor: A }} aria-label={en ? "Panel transparency" : "Transparência dos painéis"} />
+                <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "Text colour adjusts automatically." : "A cor do texto ajusta-se automaticamente."}</div>
+              </div>
+              {/* Sincronização */}
+              {onBgSeparateDevices && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{en ? "Apply background to" : "Aplicar o fundo a"}</div>
+                  <div style={{ display: "flex", gap: 6, padding: 4, borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)" }}>
+                    {[[false, en ? "PC and phone" : "PC e telemóvel"], [true, en ? "Only this device" : "Só este dispositivo"]].map(([v, l]) => (
+                      <button key={String(v)} type="button" onClick={() => onBgSeparateDevices(v)} style={{ flex: 1, height: 38, borderRadius: 10, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer", background: !!bgSeparateDevices === v ? A : "transparent", color: !!bgSeparateDevices === v ? onAccentColor(A) : text, transition: "background .25s" }}>{l}</button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: muted, marginTop: 6 }}>{en ? "Accent, name, photo and banner are always shared." : "Cor de destaque, nome, foto e banner são sempre partilhados."}</div>
+                </div>
+              )}
+              {/* Temas */}
+              <button type="button" onClick={() => setSheet("themes")} style={{ width: "100%", marginTop: 18, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 14, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", cursor: "pointer" }}>
+                <span style={{ fontSize: 14, fontWeight: 800 }}>{en ? "My themes" : "Os meus temas"}</span>
+                <span style={{ fontSize: 12, color: muted }}>{themes.length ? (en ? `${themes.length} saved` : `${themes.length} guardados`) : (en ? "Save the current look" : "Guardar o aspeto atual")} ›</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -223,7 +274,7 @@ export function PersonalizeMobile({
       {dirty && createPortal(
         <div style={{ position: "fixed", left: 16, right: 16, bottom: "calc(84px + env(safe-area-inset-bottom))", zIndex: 900, display: "flex", gap: 10, padding: 10, borderRadius: 18, background: darkMode ? "rgba(20,16,22,0.94)" : "rgba(255,255,255,0.96)", border: `1px solid ${line}`, backdropFilter: "blur(10px)", boxShadow: "0 10px 30px rgba(0,0,0,0.4)" }}>
           <button type="button" onClick={() => setD(initial)} style={{ flex: 1, height: 44, borderRadius: 12, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>{en ? "Cancel" : "Cancelar"}</button>
-          <button type="button" onClick={commit} disabled={!!busy} style={{ flex: 1.5, height: 44, borderRadius: 12, border: "none", background: A, color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>{en ? "Save" : "Guardar"}</button>
+          <button type="button" onClick={commit} disabled={!!busy} style={{ flex: 1.5, height: 44, borderRadius: 12, border: "none", background: A, color: onAccentColor(A), fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>{en ? "Save" : "Guardar"}</button>
         </div>, document.body)}
 
       {/* Aviso curto com Desfazer */}
@@ -284,49 +335,21 @@ export function PersonalizeMobile({
         </>)
       )}
 
-      {/* Folha: Fundo */}
-      {sheet === "bg" && (
-        renderSheet(en ? "Background" : "Fundo", <>
-          {[
-            { id: "auto", t: en ? "Automatic" : "Automático", s: en ? "Uses your banner colour" : "Usa a cor do teu banner", disabled: !d.url },
-            { id: "accent", t: en ? "Theme colour" : "Cor do tema", s: en ? "Same tone as your accent colour" : "Mesmo tom da cor de destaque" },
-            { id: "color", t: en ? "Plain colour" : "Cor lisa", s: en ? "Pick any colour" : "Escolhes qualquer cor" },
-            { id: "image", t: en ? "Image" : "Imagem", s: en ? "A wallpaper of your own" : "Um wallpaper teu" },
-          ].map((o) => {
-            const on = d.bgMode === o.id;
-            return (
-              <button key={o.id} type="button" disabled={o.disabled} onClick={() => { if (o.id === "image" && !d.bgImage) bgFileRef.current?.click(); else set({ bgMode: o.id }); }}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", borderRadius: 16, marginBottom: 8, textAlign: "left", fontFamily: "inherit", color: text, cursor: o.disabled ? "default" : "pointer", opacity: o.disabled ? 0.45 : 1, background: darkMode ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.04)", border: `1.5px solid ${on ? A : line}` }}>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 800 }}>{o.t}</div><div style={{ fontSize: 11.5, color: muted }}>{o.disabled ? (en ? "Add a banner first" : "Adiciona primeiro um banner") : o.s}</div></div>
-                <i style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${on ? A : muted}`, background: on ? A : "transparent", flexShrink: 0 }} />
-              </button>
-            );
-          })}
-          {d.bgMode === "color" && (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-              {bgSwatches.map((c) => circle(c, (d.bgColor || "").toLowerCase() === c.toLowerCase(), () => pickBg(c)))}
-              <label style={{ width: 44, height: 44, borderRadius: "50%", border: `2px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, position: "relative", cursor: "pointer" }}>+<input type="color" value={d.bgColor} onChange={(e) => pickBg(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} /></label>
-            </div>
-          )}
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${line}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
-              <span>{en ? "Panel transparency" : "Transparência dos painéis"}</span><span style={{ color: muted }}>{Math.round(100 - d.opacity)}%</span>
-            </div>
-            <input type="range" min={35} max={100} step={1} value={d.opacity} onChange={(e) => set({ opacity: parseInt(e.target.value, 10) })} style={{ width: "100%", accentColor: A }} aria-label={en ? "Panel transparency" : "Transparência dos painéis"} />
-            <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "Text colour adjusts automatically." : "A cor do texto ajusta-se automaticamente."}</div>
+      {/* Folha: Os meus temas */}
+      {sheet === "themes" && (
+        renderSheet(en ? "My themes" : "Os meus temas", <>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={themeName} onChange={(e) => setThemeName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveCurrentTheme()} placeholder={en ? "Theme name" : "Nome do tema"} style={{ flex: 1, minWidth: 0, height: 44, padding: "0 14px", borderRadius: 12, border: `1px solid ${line}`, background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)", color: text, fontFamily: "inherit", fontSize: 15 }} />
+            <button type="button" onClick={saveCurrentTheme} disabled={!themeName.trim()} style={{ padding: "0 16px", borderRadius: 12, border: "none", background: A, color: onAccentColor(A), fontFamily: "inherit", fontWeight: 800, fontSize: 14, cursor: "pointer", opacity: themeName.trim() ? 1 : 0.4 }}>{en ? "Save" : "Guardar"}</button>
           </div>
-          {onBgSeparateDevices && (
-            <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${line}` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{en ? "Apply background to" : "Aplicar o fundo a"}</div>
-              <div style={{ display: "flex", gap: 6, padding: 4, borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)" }}>
-                {[[false, en ? "PC and phone" : "PC e telemóvel"], [true, en ? "Only this device" : "Só este dispositivo"]].map(([v, l]) => (
-                  <button key={String(v)} type="button" onClick={() => onBgSeparateDevices(v)} style={{ flex: 1, height: 38, borderRadius: 10, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer", background: !!bgSeparateDevices === v ? A : "transparent", color: !!bgSeparateDevices === v ? "#fff" : text, transition: "background .25s" }}>{l}</button>
-                ))}
-              </div>
-              <div style={{ fontSize: 11.5, color: muted, marginTop: 6 }}>{en ? "Accent, name, photo and banner are always shared." : "Cor de destaque, nome, foto e banner são sempre partilhados."}</div>
+          <div style={{ fontSize: 11.5, color: muted, margin: "6px 0 4px" }}>{en ? "Saves colour, background, transparency and wallpaper as they are in the draft." : "Guarda cor, fundo, transparência e wallpaper como estão agora no rascunho."}</div>
+          {themes.map((t) => (
+            <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, marginTop: 8, border: `1px solid ${line}` }}>
+              <i style={{ width: 28, height: 28, borderRadius: 9, background: t.bgColor || "#111", boxShadow: `inset 0 0 0 5px ${t.bgColor || "#111"}, inset 0 0 0 20px ${t.accent}`, flexShrink: 0 }} />
+              <button type="button" onClick={() => { applySaved(t); setSheet(null); }} style={{ flex: 1, textAlign: "left", background: "none", border: "none", color: text, fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer", padding: 0 }}>{t.name}</button>
+              <button type="button" aria-label={en ? "Delete" : "Apagar"} onClick={() => delTheme(t)} style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: "transparent", color: muted, fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
-          )}
-          {d.bgMode === "image" && d.bgImage && <button type="button" onClick={() => bgFileRef.current?.click()} style={{ marginTop: 10, background: "none", border: "none", color: A, fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0 }}>{en ? "Change image" : "Trocar imagem"}</button>}
+          ))}
         </>)
       )}
 

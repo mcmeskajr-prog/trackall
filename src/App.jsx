@@ -36,6 +36,7 @@ import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_
 import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
 import { imageLuminance, overlayAlpha, isDarkLum, onAccent as onAccentColor } from './lib/contrast';
+import { appBgPaint } from './lib/bannerColors';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
@@ -1878,6 +1879,7 @@ export default function TrackAll() {
   const _imgLum = activeBgImage && bgLum.url === activeBgImage ? bgLum.lum : null;
   const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(bgOverlay))) : _colorDark;
   const onAccentTxt = onAccentColor(accent);
+  const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, accent, activeDarkMode);
 
   // Computed panel bg para uso no CSS global (lib-sidebar)
   const computedPanelBgCSS = (() => {
@@ -1904,7 +1906,7 @@ export default function TrackAll() {
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
-        background: activeBgColor, transition: "background-color 0.4s ease, color 0.3s ease",
+        backgroundColor: activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", transition: "background-color 0.4s ease, color 0.3s ease",
         color: baseTextColor,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 80,
@@ -2017,7 +2019,7 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: activeBgImage ? "transparent" : activeBgColor }}>
+        <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2429,7 +2431,7 @@ export default function TrackAll() {
           )}
         </div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>
-          <div className="profile-desktop-wrap" style={{ padding: 0, background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0, backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", minHeight: "100vh" }}>
           <ProfileView
             onOpenLibrary={openLibraryFiltered}
             profile={activeProfile}
@@ -2504,7 +2506,7 @@ export default function TrackAll() {
         </div>
         <div style={{ display: view === "collection" ? "block" : "none" }}>
           {viewingCollection && (
-            <div style={{ background: activeBgImage ? "transparent" : activeBgColor, minHeight: "100vh" }}>
+            <div style={{ backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", minHeight: "100vh" }}>
               <CollectionViewer
                 col={viewingCollection}
                 onClose={() => { setViewingCollection(null); setView("profile"); }}
