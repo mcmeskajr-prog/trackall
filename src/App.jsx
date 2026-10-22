@@ -1117,6 +1117,14 @@ export default function TrackAll() {
     return () => window.removeEventListener("popstate", onPop);
   }, [isMobileDevice]);
 
+  // Barra de topo: transparente no topo da página (mesmo fundo), vidro só depois de deslizar
+  const [navScrolled, setNavScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setNavScrolled((v) => { const n = window.scrollY > 6; return v === n ? v : n; });
+    on(); window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+
   // Luminância do wallpaper ativo → texto/ícones claros ou escuros automaticamente
   const _wpUrl = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
   useEffect(() => {
@@ -2019,7 +2027,7 @@ export default function TrackAll() {
           );
         })()}
 
-        <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat" }}>
+        <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: "transparent" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2195,11 +2203,11 @@ export default function TrackAll() {
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: transparent; border-bottom: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.04)" : "#e2e8f0"}; position: relative; }
+          .hero-gradient { background: transparent; border-bottom: 1px solid transparent; position: relative; }
           ${!activeDarkMode ? `
             .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
             .bottom-nav { background: rgba(255,255,255,0.97) !important; }
-            .top-nav-bar { background: rgba(255,255,255,0.97) !important; border-bottom: 1px solid #e2e8f0 !important; }
+            .top-nav-bar { }
             /* Corrigir texto muted/secondary no modo claro */
             .tc-zone span[style*="color: rgb(72, 79, 88)"],
             .tc-zone p[style*="color: rgb(72, 79, 88)"],
@@ -2328,7 +2336,7 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: activeBgImage ? mkNavBg(activeDarkMode, activeBgColor) : (activeDarkMode ? `color-mix(in srgb, ${activeBgColor} 45%, transparent)` : "rgba(255,255,255,0.7)"), backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderBottom: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.05)" : "#e2e8f0"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40, ...(isMobileDevice && view === "profile" && profile?.banner && !profile?.hideBannerMobile ? { display: "none" } : {}) }}>
+        <nav className="top-nav-bar" style={{ background: navScrolled ? (activeDarkMode ? `color-mix(in srgb, ${activeBgColor} 55%, transparent)` : "rgba(255,255,255,0.7)") : "transparent", backdropFilter: navScrolled ? "blur(16px)" : "none", WebkitBackdropFilter: navScrolled ? "blur(16px)" : "none", borderBottom: `1px solid ${navScrolled ? (activeDarkMode ? "rgba(255,255,255,0.05)" : "#e2e8f0") : "transparent"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40, ...(isMobileDevice && view === "profile" && profile?.banner && !profile?.hideBannerMobile ? { display: "none" } : {}) }}>
           {!(isMobileDevice && mobileSearchOpen) && (
             <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
@@ -2430,7 +2438,7 @@ export default function TrackAll() {
           )}
         </div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>
-          <div className="profile-desktop-wrap" style={{ padding: 0, backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", minHeight: "100vh" }}>
+          <div className="profile-desktop-wrap" style={{ padding: 0, background: "transparent", minHeight: "100vh" }}>
           <ProfileView
             onOpenLibrary={openLibraryFiltered}
             profile={activeProfile}
@@ -2505,7 +2513,7 @@ export default function TrackAll() {
         </div>
         <div style={{ display: view === "collection" ? "block" : "none" }}>
           {viewingCollection && (
-            <div style={{ backgroundColor: activeBgImage ? "transparent" : activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", minHeight: "100vh" }}>
+            <div style={{ background: "transparent", minHeight: "100vh" }}>
               <CollectionViewer
                 col={viewingCollection}
                 onClose={() => { setViewingCollection(null); setView("profile"); }}
