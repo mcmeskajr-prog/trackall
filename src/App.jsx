@@ -2061,7 +2061,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: ${onAccentTxt}; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${activeDarkMode ? "rgba(22,27,34,0.4)" : "rgba(255,252,247,0.55)"}; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card { background: ${activeDarkMode ? "rgba(22,27,34,0.4)" : "rgba(255,252,247,0.55)"}; backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; -webkit-backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
           .media-thumb .rating-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.52); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; border-radius: 10px; }
@@ -2112,7 +2112,7 @@ export default function TrackAll() {
             .lib-sidebar { display: block; width: 180px; flex-shrink: 0; background: ${computedPanelBgCSS}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e2e8f0"}; border-radius: 12px; padding: 14px 10px; position: sticky; top: 70px; }
             .lib-mobile-controls { display: none; }
           }
-          .card, .lib-sidebar, .desktop-sidebar, .top-nav-bar { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.3s ease; }
+          .lib-sidebar, .desktop-sidebar, .top-nav-bar { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.3s ease; }
           @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
           .shimmer { background: linear-gradient(90deg, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 25%, ${activeDarkMode ? "#30363d" : "#f1f5f9"} 50%, ${activeDarkMode ? "#21262d" : "#e2e8f0"} 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
           :root {
