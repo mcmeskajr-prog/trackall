@@ -2253,7 +2253,6 @@ export default function TrackAll() {
             flex-direction: column;
             background: ${sidebarColor || activeBgColor}f5;
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
-            backdrop-filter: blur(20px);
             padding: 0 0 16px 0;
             overflow-y: hidden;
           }
@@ -2336,7 +2335,7 @@ export default function TrackAll() {
         )}
 
         {/* NAV TOP */}
-        <nav className="top-nav-bar" style={{ background: navScrolled ? (activeDarkMode ? `color-mix(in srgb, ${activeBgColor} 55%, transparent)` : "rgba(255,255,255,0.7)") : "transparent", backdropFilter: navScrolled ? "blur(16px)" : "none", WebkitBackdropFilter: navScrolled ? "blur(16px)" : "none", borderBottom: `1px solid ${navScrolled ? (activeDarkMode ? "rgba(255,255,255,0.05)" : "#e2e8f0") : "transparent"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40, ...(isMobileDevice && view === "profile" && profile?.banner && !profile?.hideBannerMobile ? { display: "none" } : {}) }}>
+        <nav className="top-nav-bar" style={{ background: navScrolled ? (activeDarkMode ? `color-mix(in srgb, ${activeBgColor} ${activeBgImage ? 55 : 90}%, transparent)` : `rgba(255,255,255,${activeBgImage ? 0.7 : 0.92})`) : "transparent", backdropFilter: navScrolled && activeBgImage ? "blur(16px)" : "none", WebkitBackdropFilter: navScrolled && activeBgImage ? "blur(16px)" : "none", borderBottom: `1px solid ${navScrolled ? (activeDarkMode ? "rgba(255,255,255,0.05)" : "#e2e8f0") : "transparent"}`, padding: "0 16px", display: "flex", alignItems: "center", gap: 12, height: 56, position: "sticky", top: 0, zIndex: 40, ...(isMobileDevice && view === "profile" && profile?.banner && !profile?.hideBannerMobile ? { display: "none" } : {}) }}>
           {!(isMobileDevice && mobileSearchOpen) && (
             <button onClick={() => setView("home")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "white" }}>T</div>
