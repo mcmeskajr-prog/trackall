@@ -30,6 +30,7 @@ import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
+import { HofGridMobile, FavStacksMobile } from "./ProfileFavsMobile";
 
 // Flor de sakura (badge do Hall of Fame)
 function Sakura({ size = 11 }) {
@@ -60,7 +61,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 }
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
-export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null }) {
+export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null }) {
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -69,7 +70,6 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [showStats, setShowStats] = useState(false);
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [favFilter, setFavFilter] = useState("all");
-  const [favTypeM, setFavTypeM] = useState(null); // telemóvel: tipo de favoritos visível
   const [moreOpen, setMoreOpen] = useState(false); // telemóvel: menu «⋯» dos separadores
   const [secOpen, setSecOpen] = useState(() => { try { return { ...SECTION_DEFAULTS, ...JSON.parse(localStorage.getItem("trackall.profileSections") || "{}") }; } catch { return SECTION_DEFAULTS; } });
   const toggleSec = (k) => setSecOpen(prev => { const next = { ...prev, [k]: !prev[k] }; try { localStorage.setItem("trackall.profileSections", JSON.stringify(next)); } catch { /* sem armazenamento: só nesta sessão */ } return next; });
@@ -275,30 +275,11 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       );
     };
 
-    // ── Telemóvel: chips de tipo + uma só fila ──
-    if (isMobileDevice) {
-      const active = typesWithFavs.find(t => t.id === favTypeM) || typesWithFavs[0];
-      const list = active ? sortedOf(active.id) : [];
-      return (
-        <div>
-          <div className="hscroll" style={{ display: "flex", gap: 8, padding: "0 16px 12px" }}>
-            {typesWithFavs.map(t => {
-              const on = active && t.id === active.id;
-              const n = favorites.filter(f => f.type === t.id).length;
-              return (
-                <button key={t.id} onClick={() => setFavTypeM(t.id)} aria-pressed={on} style={{
-                  flexShrink: 0, minHeight: 40, padding: "0 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-                  border: `1px solid ${on ? accent : hair}`, background: on ? `${accent}33` : "transparent", color: on ? accent : (darkMode ? "#aab4c0" : "#475569"),
-                }}>{mediaLabel(t, lang)} <span style={{ opacity: 0.7, fontWeight: 600 }}>{n}</span></button>
-              );
-            })}
-          </div>
-          <div className="hscroll" style={{ display: "flex", gap: 10, padding: "2px 16px 8px" }}>
-            {list.map(item => renderFav(item, { mobile: true }))}
-          </div>
-        </div>
-      );
-    }
+    // ── Telemóvel: pilhas por tipo (toca para abrir a lista; toque longo para reordenar) ──
+    if (isMobileDevice) return (
+      <FavStacksMobile favorites={favorites} library={library} accent={accent} darkMode={darkMode} lang={lang} onOpen={onOpen}
+        onReorderFavorites={onReorderFavorites} onOpenLibrary={onOpenLibrary} />
+    );
 
     // ── PC: uma fila por tipo (7 colunas = o máximo por tipo, cabem todos) ──
     const groups = (favFilter === "all" ? typesWithFavs : typesWithFavs.filter(t => t.id === favFilter)).map(t => ({ t, list: sortedOf(t.id) }));
@@ -537,28 +518,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           // Máximo 10 obras. Se o destaque estiver no Hall of Fame, fica assinalado com o contorno de destaque.
           const sameItem = (a, b) => a.id === b.id || (findLibraryEntry(library, a.id, a.type)?.key && findLibraryEntry(library, a.id, a.type)?.key === findLibraryEntry(library, b.id, b.type)?.key);
           const list = hallOfFame.slice(0, 10).map(h => (featuredItem && sameItem(h, featuredItem)) ? { ...h, _feat: true } : h);
-          if (list.length === 0) return (
-            <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
-              <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
-            </div>
-          );
-          return (
-            <div style={{ padding: "2px 16px 0", gap: 7, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
-              {list.map(item => {
-                const coverSrc = item.customCover || item.cover;
-                const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
-                return (
-                  <div key={item.id} onClick={() => onOpen && onOpen(item)} title={item.title}
-                    style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}` : "0 8px 14px -8px rgba(0,0,0,0.85)" }}>
-                    {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
-                    {score > 0 && (
-                      <div style={{ position: "absolute", right: 3, bottom: 3, padding: "1px 5px", borderRadius: 6, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 9.5, fontWeight: 800, pointerEvents: "none" }}>★ {score}</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
+          return <HofGridMobile list={list} accent={accent} darkMode={darkMode} lang={lang} library={library} onOpen={onOpen} onReorder={onReorderHallOfFame} onAdd={onOpenLibrary ? () => onOpenLibrary() : undefined} />;
         })() : hallOfFame.length === 0 ? (
           <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>

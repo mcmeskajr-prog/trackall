@@ -1014,6 +1014,16 @@ export default function TrackAll() {
     await persistHall(nextHall, undefined);
   };
 
+  // Reordenar (toque longo): a ordem fica na própria lista, sem coluna nova
+  const reorderHallOfFame = async (nextHall) => {
+    setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
+    await persistHall(nextHall, undefined);
+  };
+  const reorderFavorites = async (newFavs) => {
+    setFavorites(newFavs);
+    if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
+  };
+
   // Item em destaque do cartão de perfil — guardado na mesma linha especial do Hall of Fame (não precisa de coluna nova)
   const saveFeatured = async (item) => {
     const featured = item ? (() => {
@@ -2502,6 +2512,8 @@ export default function TrackAll() {
             featuredItem={activeProfile.featuredItem || null}
             onSetFeatured={demoMode ? null : saveFeatured}
             onToggleHallOfFame={toggleHallOfFame}
+            onReorderHallOfFame={demoMode ? null : reorderHallOfFame}
+            onReorderFavorites={demoMode ? null : reorderFavorites}
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
