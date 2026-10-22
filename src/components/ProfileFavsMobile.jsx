@@ -189,6 +189,11 @@ export function FavStacksMobile({ favorites, library, accent, darkMode, lang, on
   const reorderTypes = (from, to) => { const o = moveItem(known.map((t) => t.id), from, to); onReorderFavorites && onReorderFavorites(flatten(o)); };
   const ref = useDragReorder(reorderTypes);
   const sheetType = openType && known.find((t) => t.id === openType);
+  useEffect(() => { // mudar de separador fecha a lista
+    const close = () => setOpenType(null);
+    window.addEventListener("trackall:nav", close);
+    return () => window.removeEventListener("trackall:nav", close);
+  }, []);
 
   return (
     <div style={{ padding: "0 16px" }}>

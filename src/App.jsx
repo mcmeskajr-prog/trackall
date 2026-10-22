@@ -1611,6 +1611,13 @@ export default function TrackAll() {
     if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
   };
 
+  // Mudar de separador pelas barras de navegação fecha o detalhe aberto e qualquer ecrã por cima (ex.: lista de uma pilha de favoritos)
+  const goTab = (id) => {
+    setSelectedItem(null);
+    try { window.dispatchEvent(new Event("trackall:nav")); } catch {}
+    setView(id);
+  };
+
   const doSearch = useCallback(async (q, type) => {
     if (!q.trim()) return;
     const mySeq = ++searchSeqRef.current;
@@ -1968,7 +1975,7 @@ export default function TrackAll() {
               <div style={{ padding: "4px 0" }}>
                 {navItems.map((n) => (
                   <button key={n.id} className={`ds-nav-btn${view === n.id ? " active" : ""}`}
-                    onClick={() => setView(n.id)}
+                    onClick={() => goTab(n.id)}
                     style={view === n.id ? { background: `${accent}1a`, color: accent } : {}}>
                     <span className="ds-icon" style={view === n.id ? { color: accent } : {}}>{n.icon}</span>
                     {n.label}
@@ -1976,7 +1983,7 @@ export default function TrackAll() {
                 ))}
                 {/* Amigos */}
                 <button className={`ds-nav-btn${view === "friends" ? " active" : ""}`}
-                  onClick={() => setView("friends")}
+                  onClick={() => goTab("friends")}
                   style={view === "friends" ? { background: `${accent}1a`, color: accent } : {}}>
                   <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -2655,14 +2662,14 @@ export default function TrackAll() {
             { id: "home", icon: "⌂", label: useT("home") },
             { id: "library", icon: "▤", label: useT("library") },
           ].map((n) => (
-            <button key={n.id} className={`nav-btn${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)} style={{ color: view === n.id ? accent : undefined }}>
+            <button key={n.id} className={`nav-btn${view === n.id ? " active" : ""}`} onClick={() => goTab(n.id)} style={{ color: view === n.id ? accent : undefined }}>
               <span style={{ fontSize: 22 }}>{n.icon}</span>
               {n.label}
             </button>
           ))}
 
           {/* Botão + central flutuante */}
-          <button className="nav-center-btn" onClick={() => { setLogOpen(v => !v); setView("home"); }}>
+          <button className="nav-center-btn" onClick={() => { setLogOpen(v => !v); goTab("home"); }}>
             <div style={{
               width: 52, height: 52,
               borderRadius: "50%",
@@ -2677,7 +2684,7 @@ export default function TrackAll() {
             </div>
           </button>
 
-          <button className={`nav-btn${view === "friends" ? " active" : ""}`} onClick={() => setView("friends")} style={{ color: view === "friends" ? accent : undefined }}>
+          <button className={`nav-btn${view === "friends" ? " active" : ""}`} onClick={() => goTab("friends")} style={{ color: view === "friends" ? accent : undefined }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
               <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : "#8b949e"} />
               <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : "#8b949e"} opacity="0.7" />
@@ -2686,7 +2693,7 @@ export default function TrackAll() {
             </svg>
             {useT("friends")}
           </button>
-          <button className={`nav-btn${view === "profile" ? " active" : ""}`} onClick={() => setView("profile")} style={{ color: view === "profile" ? accent : undefined }}>
+          <button className={`nav-btn${view === "profile" ? " active" : ""}`} onClick={() => goTab("profile")} style={{ color: view === "profile" ? accent : undefined }}>
             <span style={{ fontSize: 22 }}>◉</span>
             Perfil
           </button>
