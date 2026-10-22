@@ -109,7 +109,7 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
 
 // ── Favoritos: uma pilha por tipo (capas sobrepostas), duas colunas; se sobrar uma, ocupa a largura toda ──
 const STEP = 0.555; // avanço entre capas, em largura de capa
-function Stack({ items, wide, onOpen }) {
+function Stack({ items, wide }) {
   // O tamanho das capas é sempre o de uma pilha cheia (4, ou 5 na larga); com menos itens ficam centradas
   const N = wide ? 5 : 4;
   const n = Math.min(items.length, N);
@@ -120,8 +120,7 @@ function Stack({ items, wide, onOpen }) {
       {items.slice(0, n).map((it, j) => {
         const src = it.customCover || it.cover;
         return (
-          <div key={it.id} onClick={(e) => { e.stopPropagation(); onOpen && onOpen(it); }} title={it.title}
-            style={{ position: "absolute", left: `${off + j * w * STEP}%`, top: 0, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "3px 0 8px rgba(0,0,0,0.4)", cursor: "pointer" }}>
+          <div key={it.id} style={{ position: "absolute", left: `${off + j * w * STEP}%`, top: 0, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "3px 0 8px rgba(0,0,0,0.4)", pointerEvents: "none" }}>
             {src && <CoverImg hi src={src} alt={it.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
           </div>
         );
@@ -136,7 +135,7 @@ function TypeSheet({ t, list, accent, darkMode, lang, ratingOf, onOpen, onReorde
   const line = darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.1)";
   const ref = useDragReorder((from, to) => onReorder(moveItem(list, from, to)), { handle: "[data-handle]" });
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 800, overflowY: "auto", WebkitOverflowScrolling: "touch", background: darkMode ? "#0b0d12" : "#f3f4f8", color: text, paddingBottom: 120 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 45, overflowY: "auto", WebkitOverflowScrolling: "touch", background: darkMode ? "#0b0d12" : "#f3f4f8", color: text, paddingBottom: 120 }}>
       <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top)) 14px 10px", background: darkMode ? "#0b0d12" : "#f3f4f8" }}>
         <button type="button" onClick={onClose} aria-label={lang === "en" ? "Back" : "Voltar"} style={{ width: 40, height: 40, borderRadius: 12, border: "none", background: darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)", color: text, fontSize: 18, cursor: "pointer" }}>←</button>
         <div style={{ flex: 1, fontSize: 19, fontWeight: 800 }}>{mediaLabel(t, lang)}</div>
@@ -200,7 +199,7 @@ export function FavStacksMobile({ favorites, library, accent, darkMode, lang, on
           return (
             <div key={t.id} data-ridx={i} role="button" tabIndex={0} onClick={() => setOpenType(t.id)}
               style={{ gridColumn: wide ? "1 / -1" : undefined, boxSizing: "border-box", borderRadius: 18, padding: 12, background: tileBg, border: `1px solid ${tileBd}`, cursor: "pointer", transition: "transform .15s" }}>
-              <Stack items={list} wide={wide} onOpen={onOpen} />
+              <Stack items={list} wide={wide} />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13, fontWeight: 800, color: text }}>
                 {mediaLabel(t, lang)}<span style={{ color: muted, fontWeight: 700, fontSize: 12 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>
               </div>
