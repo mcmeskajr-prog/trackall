@@ -1917,9 +1917,9 @@ export default function TrackAll() {
         backgroundColor: activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", transition: "background-color 0.4s ease, color 0.3s ease",
         color: baseTextColor,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
-        paddingBottom: 80,
+        paddingBottom: 96,
         position: "relative",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}>
         {/* Demo mode banner */}
         {demoMode && (
@@ -2098,7 +2098,7 @@ export default function TrackAll() {
           @media (max-width: 480px) {
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
           }
-          .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: ${mkNavBg(activeDarkMode, activeBgColor)}; backdrop-filter: blur(12px); border-top: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0"}; display: flex; height: 64px; z-index: 50; }
+          .bottom-nav { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; right: 12px; background: ${activeDarkMode ? `color-mix(in srgb, ${activeBgColor} 62%, transparent)` : "rgba(255,255,255,0.72)"}; backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3); border: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}; border-radius: 26px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${activeDarkMode ? "#8b949e" : "#64748b"}; }
@@ -2206,7 +2206,7 @@ export default function TrackAll() {
           .hero-gradient { background: transparent; border-bottom: 1px solid transparent; position: relative; }
           ${!activeDarkMode ? `
             .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
-            .bottom-nav { background: rgba(255,255,255,0.97) !important; }
+            .bottom-nav { background: rgba(255,255,255,0.78) !important; }
             .top-nav-bar { }
             /* Corrigir texto muted/secondary no modo claro */
             .tc-zone span[style*="color: rgb(72, 79, 88)"],

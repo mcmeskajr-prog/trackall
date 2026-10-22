@@ -147,8 +147,8 @@ export function backdropCss(baseHex, style, darkMode) {
 export function pageTintCss(baseHex, style, darkMode) {
   const [h, s] = hexHsl(baseHex);
   const m = clamp(style?.m ?? 70, 0, 100) / 100, d = clamp(style?.d ?? 55, 0, 100) / 100;
-  const sat = (s < 0.12 ? s : clamp(s, 0.2, 0.55)) * (0.35 + 0.65 * m);
-  const top = darkMode ? 0.05 + 0.13 * m : 0.97 - 0.1 * m;
+  const sat = (s < 0.12 ? s : clamp(s, 0.25, 0.65)) * (0.45 + 0.55 * m);
+  const top = darkMode ? 0.05 + 0.17 * m : 0.97 - 0.1 * m;
   const low = darkMode ? top + (0.03 - top) * d : top + (0.995 - top) * d;
   return `linear-gradient(180deg, #${hslToHex(h, sat, top)} 0px, #${hslToHex(h, sat * 0.85, low)} 900px, #${hslToHex(h, sat * 0.85, low)} 100%)`;
 }

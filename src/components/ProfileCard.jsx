@@ -6,12 +6,12 @@ import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 import { TypeIcon } from "./TypeIcon";
-import { BannerHero } from "./BannerHero";
+import { splitBanner, bannerFilter } from "../lib/bannerColors";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
 // Só aparece em modo de visualização; a edição continua no cabeçalho do ProfileView.
-export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onSignOut, onPickFeatured, onFilter }) {
+export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onPersonalize, onSignOut, onPickFeatured, onFilter }) {
   const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang } = useLang();
 
@@ -76,41 +76,46 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
         {lang === "en" ? "+ Choose your featured item" : "+ Escolhe o teu item em destaque"}
       </button>
     ) : null);
-    // Com banner: cartão arredondado e centrado; a cor do banner é o destaque (anel, botão, separadores)
+    // Com banner: perfil sem moldura. Banner a toda a largura que se dissolve no fundo, faixas planas com linhas finas.
     if (profile.banner && !profile.hideBannerMobile) {
+      const { url: bUrl, style: bst } = splitBanner(profile.banner);
+      const filt = bannerFilter(bst);
+      const mask = "linear-gradient(180deg, #000 0%, #000 50%, rgba(0,0,0,0.65) 78%, transparent 100%)";
       const ring = darkMode ? "#0b0d12" : "#ffffff";
+      const outBtn = (c) => ({ flex: 1, height: 44, borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: c === accent ? `${accent}14` : "transparent", color: accent, border: `1.5px solid ${c}` });
       return (
-        <BannerHero banner={profile.banner} style={{ color: text }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div style={{ color: text }}>
+          <div style={{ position: "relative", height: 236 }}>
+            {bUrl && <img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
+          </div>
+          <div style={{ position: "relative", marginTop: -60, padding: "0 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
             <div style={{ position: "relative", width: 86, height: 86 }}>
-              <div style={{ width: 86, height: 86, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 3px ${ring}, 0 0 0 5.5px ${accent}, 0 8px 28px ${accent}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "white" }}>
+              <div style={{ width: 86, height: 86, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 3px ${ring}, 0 0 0 5.5px ${accent}, 0 8px 28px ${accent}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 34, color: "#fff" }}>
                 {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
               </div>
-              <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={{ position: "absolute", right: -4, bottom: 0, width: 28, height: 28, borderRadius: "50%", border: `2px solid ${ring}`, background: accent, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-              </button>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, marginTop: 14, overflowWrap: "anywhere" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
             {profile.bio && <div style={{ fontSize: 13.5, color: sub, marginTop: 5, lineHeight: 1.4 }}>{profile.bio}</div>}
           </div>
-          <div style={{ display: "flex", marginTop: 18, paddingTop: 16, borderTop: `1px solid ${divider}` }}>
-            {stats.map((st) => (
-              <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 44, textAlign: "center", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
-                <div style={{ fontSize: 23, fontWeight: 800, lineHeight: 1, color: st.l === "média" || st.l === "average" ? "#fbbf24" : text }}>{st.n}</div>
+          <div style={{ display: "flex", margin: "18px 0 0", borderTop: `1px solid ${divider}`, borderBottom: `1px solid ${divider}` }}>
+            {stats.map((st, i) => (
+              <button key={st.l} type="button" onClick={() => onFilter && onFilter(st.f)} style={{ flex: 1, minHeight: 60, textAlign: "center", background: "none", border: "none", borderLeft: i ? `1px solid ${divider}` : "none", padding: "10px 0", color: "inherit", font: "inherit", cursor: onFilter ? "pointer" : "default" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, color: st.l === "média" || st.l === "average" ? "#fbbf24" : text }}>{st.n}</div>
                 <div style={{ fontSize: 11, color: sub, marginTop: 5 }}>{st.l}</div>
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button onClick={onEdit} style={{ flex: 1, height: 44, borderRadius: 14, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: `${accent}14`, color: accent, border: `1.5px solid ${accent}` }}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>
+          <div style={{ display: "flex", gap: 8, padding: "14px 16px 0" }}>
+            <button onClick={onEdit} style={outBtn(accent)}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>
+            {onPersonalize && <button onClick={onPersonalize} style={outBtn(divider)}>{lang === "en" ? "Customise" : "Personalizar"}</button>}
             {onSignOut && (
               <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
               </button>
             )}
           </div>
-          {featRow}
-        </BannerHero>
+          {featRow && <div style={{ padding: "0 16px" }}>{featRow}</div>}
+        </div>
       );
     }
     return (

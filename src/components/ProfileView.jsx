@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
@@ -80,6 +80,16 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [shareCopied, setShareCopied] = useState(false);
   const [settingsSection, setSettingsSection] = useState("aparencia");
   const [personalizing, setPersonalizing] = useState(false);
+  // Separadores colantes (telemóvel): ficam em vidro quando chegam ao topo ao deslizar
+  const tabsSentinel = useRef(null);
+  const [tabsStuck, setTabsStuck] = useState(false);
+  useEffect(() => {
+    const el = tabsSentinel.current;
+    if (!isMobileDevice || !el || typeof IntersectionObserver === "undefined") { setTabsStuck(false); return; }
+    const io = new IntersectionObserver(([e]) => setTabsStuck(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isMobileDevice, profileTab, editing]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -347,6 +357,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgOverlay, onBgBlur, onBgSeparateDevices,
   };
   const pageBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor || "#0d1117";
+  const flatProfile = isMobileDevice && !editing && !!profile.banner && !profile.hideBannerMobile; // perfil sem moldura (banner a toda a largura)
+  const cardProps = {
+    profile, avatar: currentAvatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit: startEditing,
+    onPersonalize: isMobileDevice ? () => setPersonalizing(true) : null, onSignOut,
+    onPickFeatured: onSetFeatured ? () => setShowFeaturedPicker(true) : null, onFilter: onOpenLibrary,
+  };
 
   return (
     <>
@@ -448,8 +464,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </>
       )}
 
+      {/* Perfil sem moldura: banner a toda a largura, depois os separadores */}
+      {flatProfile && profileTab === "perfil" && <ProfileCard {...cardProps} />}
+      <div ref={tabsSentinel} aria-hidden="true" style={{ height: 1, marginBottom: -1 }} />
       {/* ── Profile Tabs ── */}
-      <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? "8px 16px 0" : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none", ...(isMobileDevice ? { justifyContent: "space-between" } : {}) }}>
+      <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? (tabsStuck ? "calc(8px + env(safe-area-inset-top)) 16px 0" : "8px 16px 0") : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none",
+        ...(isMobileDevice ? { justifyContent: "space-between", position: "sticky", top: 0, zIndex: 30, transition: "background-color .25s ease",
+          background: tabsStuck ? (darkMode ? `color-mix(in srgb, ${pageBg} 72%, transparent)` : "rgba(255,255,255,0.78)") : "transparent",
+          backdropFilter: tabsStuck ? "blur(16px)" : "none", WebkitBackdropFilter: tabsStuck ? "blur(16px)" : "none" } : {}) }}>
         {(isMobileDevice ? ["perfil","completos","listas","diario","mais"] : ["perfil","completos","tierlists","listas","diario","definicoes"]).map(tab => {
           const isMore = tab === "mais";
           const active = isMore ? (profileTab === "tierlists" || profileTab === "definicoes") : profileTab === tab;
@@ -477,7 +499,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "stretch" }
         : { padding: "16px 16px 0" }
       }>
-      {!editing && (
+      {!editing && !flatProfile && (
         <div style={ !isMobileDevice ? { width: 330, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 } : { marginBottom: 20 } }>
           <ProfileCard
             profile={profile}
