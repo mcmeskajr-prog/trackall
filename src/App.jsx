@@ -194,8 +194,8 @@ const DEMO_LIBRARY = {
 };
 // Cor das barras de navegação (topo e fundo): mais escura que o fundo, perto do preto dos modais
 const mkNavBg = (dark, bg) => dark
-  ? `color-mix(in srgb, color-mix(in srgb, ${bg || "#0d1117"} 22%, #07090c) 96%, transparent)`
-  : "rgba(255,255,255,0.96)";
+  ? `color-mix(in srgb, color-mix(in srgb, ${bg || "#0d1117"} 22%, #07090c) 68%, transparent)`
+  : "rgba(255,255,255,0.75)";
 const mixHex = (hex, base, amt) => {
   try {
     const p = (h) => { const x = h.replace("#", ""); const f = x.length === 3 ? x.split("").map(c => c + c).join("") : x; return [0, 2, 4].map(i => parseInt(f.slice(i, i + 2), 16)); };
@@ -2195,8 +2195,7 @@ export default function TrackAll() {
           }
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
-          .hero-gradient { background: transparent; border-bottom: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.06)" : "#e2e8f0"}; position: relative; }
-          .hero-gradient::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 80% at 50% 120%, ${accent}18 0%, transparent 70%); }
+          .hero-gradient { background: transparent; border-bottom: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.04)" : "#e2e8f0"}; position: relative; }
           ${!activeDarkMode ? `
             .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
             .bottom-nav { background: rgba(255,255,255,0.97) !important; }

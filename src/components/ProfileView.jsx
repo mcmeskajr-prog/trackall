@@ -79,6 +79,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [hideBannerMobile, setHideBannerMobile] = useState(profile.hideBannerMobile || false);
   const [shareCopied, setShareCopied] = useState(false);
   const [settingsSection, setSettingsSection] = useState("aparencia");
+  const [personalizing, setPersonalizing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -340,8 +341,23 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     );
   };
 
+  const personalizeProps = {
+    profile, currentUserId, onUpdateProfile, lang, savedThemes: onSavedThemes,
+    accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity, bgOverlay, bgBlur,
+    onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgOverlay, onBgBlur, onBgSeparateDevices,
+  };
+  const pageBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor || "#0d1117";
+
   return (
     <>
+    {isMobileDevice && personalizing && createPortal(
+      <div style={{ position: "fixed", inset: 0, zIndex: 800, background: pageBg, overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 170 }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top)) 12px 10px", background: pageBg }}>
+          <button type="button" onClick={() => setPersonalizing(false)} aria-label={lang === "en" ? "Back" : "Voltar"} style={{ width: 40, height: 40, borderRadius: 12, border: "none", background: darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.07)", color: darkMode ? "#e6edf3" : "#0f172a", fontSize: 20, cursor: "pointer" }}>←</button>
+          <div style={{ fontSize: 18, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a" }}>{lang === "en" ? "Customise" : "Personalizar"}</div>
+        </div>
+        <div style={{ padding: "0 16px", maxWidth: 600, margin: "0 auto" }}><PersonalizeMobile {...personalizeProps} /></div>
+      </div>, document.body)}
     <div style={{ paddingBottom: 32, maxWidth: isMobileDevice ? 600 : "100%", margin: "0 auto", position: "relative", isolation: "isolate" }}>
       {isMobileDevice && !editing && profile.banner && !profile.hideBannerMobile && <BannerPageTint banner={profile.banner} />}
 
@@ -385,9 +401,11 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       <div style={{ textAlign: "center", padding: "0 16px", marginBottom: 20 }}>
         {editing ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, margin: "0 auto" }}>
+            {!isMobileDevice && (
             <BannerEditor url={bannerPreview} style={bannerStyle} onStyle={setBannerStyle} onFile={handleBannerFile}
               onRemove={() => { setBannerPreview(""); setBannerUrl(""); }} uploading={uploadingImage === "banner"}
               hide={hideBannerMobile} onHide={setHideBannerMobile} lang={lang} avatar={avatarPreview} name={name} />
+            )}
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={useT("namePlaceholder")} style={{ padding: "10px 14px", textAlign: "center", fontSize: 16, fontWeight: 700 }} />
             <input value={bio} onChange={(e) => setBio(e.target.value)} placeholder={useT("bioPlaceholder")} style={{ padding: "10px 14px", fontSize: 13 }} />
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: darkMode ? "#0d1117" : "#f8fafc", borderRadius: 10, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, cursor: "pointer" }}>
@@ -471,6 +489,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             hideEmail={hideEmail}
             onOpen={onOpen}
             onEdit={startEditing}
+            onPersonalize={isMobileDevice ? () => setPersonalizing(true) : null}
             onSignOut={onSignOut}
             onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null}
             onFilter={onOpenLibrary}
@@ -707,13 +726,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 4px" }}>{lang === "en" ? "Appearance" : "Aparência"}</h2>
                 <p style={{ fontSize: 14, color: darkMode ? "#9aa6b2" : "#475569", margin: "0 0 22px" }}>{lang === "en" ? "Pick a style and fine-tune it. Everything shows live on the preview." : "Escolhe um estilo e afina por cima. Tudo se vê ao vivo na pré-visualização."}</p>
                 {isMobileDevice ? (
-                  <PersonalizeMobile
-                    profile={profile} currentUserId={currentUserId} onUpdateProfile={onUpdateProfile} lang={lang} savedThemes={onSavedThemes}
-                    accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} bgSeparateDevices={bgSeparateDevices} bgImage={bgImage} bgImageMobile={bgImageMobile}
-                    panelBg={panelBg} panelOpacity={panelOpacity}
-                    onAccentChange={onAccentChange} onBgChange={onBgChange} onBgColorMobile={onBgColorMobile} onBgImage={onBgImage} onBgImageMobile={onBgImageMobile}
-                    onPanelBg={onPanelBg} onBgSeparateDevices={onBgSeparateDevices} onPanelOpacity={onPanelOpacity}
-                  />
+                  <PersonalizeMobile {...personalizeProps} />
                 ) : (
                 <AppearanceSettings
                   accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} sidebarColor={sidebarColor}

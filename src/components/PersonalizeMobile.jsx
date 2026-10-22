@@ -50,6 +50,7 @@ export function PersonalizeMobile({
   const palette = useBannerPalette(d.url);
   const follow = d.style.a !== 0;
   const bannerAcc = bannerAccentHex(d.style, palette);
+  const bannerSwatch = d.url ? bannerAccentHex({ ...d.style, a: 1 }, palette) : null; // continua visível mesmo depois de escolheres outra cor
   const followChanged = d.style.a !== initial.style.a, urlChanged = d.url !== initial.url;
   // a cor do banner só entra quando o banner (ou a opção "acompanha") muda; senão mantém-se a cor da app
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
@@ -60,14 +61,14 @@ export function PersonalizeMobile({
   const panelEff = d.bgMode === "accent" ? tint.panel : d.panel;
   const [more, setMore] = useState(false);
   const pickAccent = (hex) => setD((x) => ({ ...x, accent: `#${hex}`, bgMode: x.bgMode === "image" ? "image" : "accent", style: { ...x.style, a: 0, g: 0 } }));
-  const pickBanner = () => setD((x) => ({ ...x, bgMode: x.bgImage && x.bgMode === "image" ? "image" : "auto", style: { ...x.style, a: 1, g: 1 } }));
+  const pickBanner = () => setD((x) => ({ ...x, accent: bannerSwatch || x.accent, bgMode: x.bgImage && x.bgMode === "image" ? "image" : "auto", style: { ...x.style, a: 1, g: 1 } }));
   const set = (patch) => setD((p) => ({ ...p, ...patch }));
   const setStyle = (patch) => setD((p) => ({ ...p, style: { ...p.style, ...patch } }));
 
   const flash = (label, restore) => { setUndo({ label, restore }); setTimeout(() => setUndo((u) => (u && u.label === label ? null : u)), 7000); };
 
   // ── enviar imagens (banner / foto) ──
-  const pick = (type) => (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setCrop({ src: URL.createObjectURL(f), type }); };
+  const pick = (type) => (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setSheet(null); if (f) setCrop({ src: URL.createObjectURL(f), type }); };
   const onCrop = async (dataUrl) => {
     const type = crop.type; setCrop(null); setErr("");
     const prevUrl = d.url, prevAvatar = profile.avatar;
@@ -197,10 +198,10 @@ export function PersonalizeMobile({
               <div style={{ fontSize: 11.5, color: muted }}>{en ? "Accent and background follow it" : "Destaque e fundo acompanham"}</div>
             </div>
             <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", margin: "12px -16px 0", padding: "2px 16px 4px" }}>
-              {d.url && bannerAcc && (
+              {d.url && bannerSwatch && (
                 <div onClick={pickBanner} style={swBtn}>
-                  {circle(bannerAcc, d.bgMode === "auto", pickBanner, "ban")}
-                  <span style={swLbl(d.bgMode === "auto")}>✦ {en ? "Banner" : "Banner"}</span>
+                  {circle(bannerSwatch, d.bgMode === "auto" && follow, pickBanner, "ban")}
+                  <span style={swLbl(d.bgMode === "auto" && follow)}>✦ {en ? "Banner" : "Banner"}</span>
                 </div>
               )}
               {STYLE_PRESETS.map((p) => {
