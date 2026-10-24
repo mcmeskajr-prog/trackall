@@ -540,9 +540,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
                     position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: darkMode ? "#11151b" : "#e2e8f0",
-                    border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}`,
-                    boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
+                    border: isMobileDevice ? `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}` : "none",
+                    boxShadow: isMobileDevice ? "0 18px 30px -16px rgba(0,0,0,0.8)" : `0 0 0 1px ${accent}e6, 0 0 0 4px ${accent}38, 0 16px 34px -8px ${accent}8c`,
                   }}>
+                    {!isMobileDevice && <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, zIndex: 3, pointerEvents: "none", background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />}
                     {coverSrc
                       ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}

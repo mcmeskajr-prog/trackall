@@ -1,6 +1,22 @@
 import { useMemo } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
+import dragon9 from "../assets/dragons/tribal-9.svg";
+import dragon31 from "../assets/dragons/tribal-31.svg";
+import dragon22 from "../assets/dragons/tribal-22.svg";
+import dragonWinged from "../assets/dragons/winged.svg";
+
+// Flor de sakura (a mesma do badge do Hall of Fame), na cor do cartão
+function Flower({ col, size, rot = 0, style }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "absolute", transform: `rotate(${rot}deg)`, ...style }} aria-hidden="true">
+      {[0, 72, 144, 216, 288].map(r => <ellipse key={r} cx="12" cy="6.2" rx="3.6" ry="5.6" transform={`rotate(${r} 12 12)`} fill={col} />)}
+      <circle cx="12" cy="12" r="2.3" fill="rgba(255,255,255,0.9)" />
+    </svg>
+  );
+}
+const MASK = (src) => ({ WebkitMaskImage: `url(${JSON.stringify(src)})`, maskImage: `url(${JSON.stringify(src)})`, WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "right center", maskPosition: "right center", WebkitMaskSize: "contain", maskSize: "contain" });
+const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
 
 // ─── Estatísticas do perfil: tiles de números (com mini-distribuição na média). No telemóvel mantém o cartão de ratings. ───
 export function ProfileStats({ items, panelBg, stacked, onFilter }) {
@@ -19,7 +35,11 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
     const h10 = Array.from({ length: 10 }, () => 0);
     rated.forEach(i => { h10[Math.min(10, Math.max(1, Math.ceil(i.userRating))) - 1] += 1; });
     const inProgress = list.filter(i => i.userStatus === "assistindo").length;
-    return { total: list.length, rated: rated.length, avg, completed, inProgress, hist, histMax: Math.max(1, ...hist), h10, h10Max: Math.max(1, ...h10) };
+    const now = new Date();
+    const newThisMonth = list.filter(i => { if (!i.addedAt) return false; const d = new Date(i.addedAt); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length;
+    const completedPct = list.length ? Math.round((completed / list.length) * 100) : 0;
+    const latest = list.filter(i => i.userStatus === "assistindo" && i.title).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))[0];
+    return { total: list.length, rated: rated.length, avg, completed, inProgress, hist, histMax: Math.max(1, ...hist), h10, h10Max: Math.max(1, ...h10), newThisMonth, completedPct, latestTitle: latest ? latest.title : "" };
   }, [items]);
 
   const text = darkMode ? "#e6edf3" : "#0f172a";
@@ -32,12 +52,19 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
 
   // Cada número abre a Biblioteca já filtrada
   const go = (f) => onFilter && onFilter(f);
+  const en = lang === "en";
   const tiles = [
-    { n: data.total, l: lang === "en" ? "items" : "itens", f: {} },
-    { n: data.completed, l: lang === "en" ? "completed" : "completados", f: { status: "completo" } },
-    { n: data.avg, l: lang === "en" ? "average rating" : "média de rating", f: { rating: "rated", sort: "rating" }, mini: true },
-    { n: data.inProgress, l: lang === "en" ? "in progress" : "em curso", f: { status: "assistindo" } },
+    { n: data.total, l: en ? "items" : "itens", f: {}, col: accent, icon: "grid", art: { src: dragon9, w: 78, h: 78, r: -14, t: -26, o: 0.5 }, chip: data.newThisMonth > 0 ? (en ? `+${data.newThisMonth} this month` : `+${data.newThisMonth} este mês`) : "" },
+    { n: data.completed, l: en ? "completed" : "completados", f: { status: "completo" }, col: "#34d399", icon: "check", art: { src: dragon31, w: 80, h: 69, r: -18, t: -14, o: 0.5 }, chip: data.total ? `${data.completedPct}% ${en ? "of library" : "da biblioteca"}` : "" },
+    { n: data.avg, l: en ? "average rating" : "média de rating", f: { rating: "rated", sort: "rating" }, mini: true, col: "#fbbf24", icon: "star", art: { src: dragon22, w: 69, h: 69, r: -14, t: -18, o: 0.5 }, chip: "" },
+    { n: data.inProgress, l: en ? "in progress" : "em curso", f: { status: "assistindo" }, col: "#60a5fa", icon: "play", art: { src: dragonWinged, w: 69, h: 85, r: -10, t: -34, o: 0.45 }, chip: data.latestTitle ? (data.latestTitle.length > 16 ? data.latestTitle.slice(0, 15) + "…" : data.latestTitle) : "" },
   ];
+  const ICONS = {
+    grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
+    check: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>,
+    star: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z" /></svg>,
+    play: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>,
+  };
   const fmtR = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   const reset = { background: "none", border: "none", padding: 0, margin: 0, font: "inherit", color: "inherit", textAlign: "left", cursor: onFilter ? "pointer" : "default" };
 
@@ -45,7 +72,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
     <div style={{ margin: stacked ? 0 : (isMobileDevice ? "0 0 22px" : "0 16px 18px"), display: "flex", flexDirection: "column", gap: 14, color: text }}>
       <style>{`
         .st-int { transition: transform .15s ease, background-color .15s ease, border-color .15s ease, filter .15s ease; }
-        @media (hover:hover) { .st-tile:hover { transform: translateY(-2px); border-color: ${accent}88 !important; }
+        @media (hover:hover) { .st-tile:hover { transform: translateY(-2px); }
           .st-chip:hover { color: ${text} !important; transform: translateY(-1px); }
           .st-seg:hover { filter: brightness(1.25); } .st-bar:hover { filter: brightness(1.35); } }
         .st-mb { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; }
@@ -54,27 +81,44 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
         .st-int:focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
       `}</style>
       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0,1fr))" : stacked ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: isMobileDevice ? 10 : 14 }}>
-        {(isMobileDevice ? tiles.slice(0, 3) : tiles).map(t => (
-          <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)} style={{ ...reset, ...card, padding: isMobileDevice ? 12 : "14px 18px", borderRadius: isMobileDevice ? 14 : 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10 }}>
-              <div>
-                <div style={{ fontSize: isMobileDevice ? 24 : 28, fontWeight: 800, lineHeight: 1.1 }}>{t.n}</div>
-                <div style={{ fontSize: isMobileDevice ? 11 : 12, color: sub, marginTop: 2 }}>{t.l}</div>
-              </div>
-              {t.mini && !isMobileDevice && data.rated > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
-                  <div style={{ display: "flex", gap: 3, width: 92, height: 36, alignItems: "flex-end" }}>
-                    {data.h10.map((n, i) => (
-                      <span key={i} className="st-mb">
-                        <span className="st-tip">{lang === "en" ? `Rating ${i + 1} · ${n} items · ${Math.round((n / data.rated) * 100)}%` : `Nota ${i + 1} · ${n} itens · ${Math.round((n / data.rated) * 100)}%`}</span>
-                        <span className="st-fill" style={{ width: "100%", height: `${Math.max(6, (n / data.h10Max) * 100)}%`, borderRadius: "2px 2px 0 0", background: accent, opacity: 0.38 + 0.6 * (n / data.h10Max) }} />
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", width: 92, fontSize: 9, color: muted }}><span>1</span><span>10</span></div>
-                </div>
-              )}
-            </div>
+        {isMobileDevice ? tiles.slice(0, 3).map(t => (
+          <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)} style={{ ...reset, ...card, padding: 12, borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.1 }}>{t.n}</div>
+            <div style={{ fontSize: 11, color: sub, marginTop: 2 }}>{t.l}</div>
+          </button>
+        )) : tiles.map(t => (
+          <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)}
+            style={{ ...reset, position: "relative", display: "block", containerType: "inline-size", minHeight: 112, boxSizing: "border-box", padding: "14px 16px", borderRadius: 18, margin: 4,
+              background: `linear-gradient(180deg, ${t.col}${darkMode ? "24" : "1c"}, ${darkMode ? "rgba(12,10,12,0.92)" : "rgba(255,255,255,0.7)"} 75%)`,
+              boxShadow: `0 0 0 1px ${t.col}cc, 0 0 0 4px ${t.col}2e, 0 14px 28px -10px ${t.col}80`, color: text }}>
+            <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, background: `linear-gradient(90deg, transparent, ${t.col}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
+            <span aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none", WebkitMaskImage: FADE, maskImage: FADE }}>
+              <span style={{ position: "absolute", right: `${t.art.r}cqw`, top: t.art.t, width: `${t.art.w}cqw`, height: `${t.art.h}cqw`, background: t.col, opacity: t.art.o, ...MASK(t.art.src) }} />
+              <Flower col={t.col} size={13} rot={14} style={{ right: "9cqw", top: 12, opacity: 0.9 }} />
+              <Flower col={t.col} size={9} rot={-20} style={{ right: "19cqw", top: 30, opacity: 0.75 }} />
+              <Flower col={t.col} size={7} rot={40} style={{ right: "6cqw", top: 44, opacity: 0.65 }} />
+            </span>
+            <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: `${t.col}38`, color: t.col, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ICONS[t.icon]}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 28, fontWeight: 800, lineHeight: 1.05, color: t.icon === "star" ? "#fbbf24" : text }}>{t.n}</span>
+                <span style={{ display: "block", fontSize: 12, color: sub, marginTop: 3 }}>{t.l}</span>
+              </span>
+            </span>
+            <span style={{ position: "relative", zIndex: 2, display: "block", marginTop: 12, minHeight: 22 }}>
+              {t.mini && data.rated > 0 ? (
+                <span style={{ display: "flex", gap: 3, width: 96, height: 24, alignItems: "flex-end" }}>
+                  {data.h10.map((n, i) => (
+                    <span key={i} className="st-mb">
+                      <span className="st-tip">{en ? `Rating ${i + 1} · ${n} items · ${Math.round((n / data.rated) * 100)}%` : `Nota ${i + 1} · ${n} itens · ${Math.round((n / data.rated) * 100)}%`}</span>
+                      <span className="st-fill" style={{ width: "100%", height: `${Math.max(8, (n / data.h10Max) * 100)}%`, borderRadius: "2px 2px 0 0", background: t.col, opacity: 0.38 + 0.6 * (n / data.h10Max) }} />
+                    </span>
+                  ))}
+                </span>
+              ) : t.chip ? (
+                <span style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, fontWeight: 700, color: t.col, background: `${t.col}29`, borderRadius: 99, padding: "2px 9px" }}>{t.chip}</span>
+              ) : null}
+            </span>
           </button>
         ))}
       </div>
