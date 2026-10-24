@@ -15,6 +15,24 @@ function Flower({ col, size, rot = 0, style }) {
     </svg>
   );
 }
+// Cores dos cartões: parte da cor de destaque e flutua um pouco à volta dela (matiz ±30°), para ficar sempre em harmonia com o tema
+function hexToHsl(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return [340, 0.7, 0.58];
+  const n = parseInt(m[1], 16), r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, s, l];
+}
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360; const a = s * Math.min(l, 1 - l);
+  const f = (n) => { const k = (n + h / 30) % 12; const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, "0"); };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+function tilePalette(accent) {
+  const [h, s0, l0] = hexToHsl(accent);
+  const s = Math.min(0.85, Math.max(0.5, s0)), l = Math.min(0.66, Math.max(0.58, l0));
+  return [accent, hslToHex(h + 30, s, l), hslToHex(h + 60, s, l), hslToHex(h - 30, s, l)];
+}
 const MASK = (src) => ({ WebkitMaskImage: `url(${JSON.stringify(src)})`, maskImage: `url(${JSON.stringify(src)})`, WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "right center", maskPosition: "right center", WebkitMaskSize: "contain", maskSize: "contain" });
 const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
 
@@ -53,11 +71,12 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
   // Cada número abre a Biblioteca já filtrada
   const go = (f) => onFilter && onFilter(f);
   const en = lang === "en";
+  const pal = useMemo(() => tilePalette(accent), [accent]);
   const tiles = [
-    { n: data.total, l: en ? "items" : "itens", f: {}, col: accent, icon: "grid", art: { src: dragon9, w: 78, h: 78, r: -14, t: -26, o: 0.5 }, chip: data.newThisMonth > 0 ? (en ? `+${data.newThisMonth} this month` : `+${data.newThisMonth} este mês`) : "" },
-    { n: data.completed, l: en ? "completed" : "completados", f: { status: "completo" }, col: "#34d399", icon: "check", art: { src: dragon31, w: 80, h: 69, r: -18, t: -14, o: 0.5 }, chip: data.total ? `${data.completedPct}% ${en ? "of library" : "da biblioteca"}` : "" },
-    { n: data.avg, l: en ? "average rating" : "média de rating", f: { rating: "rated", sort: "rating" }, mini: true, col: "#fbbf24", icon: "star", art: { src: dragon22, w: 69, h: 69, r: -14, t: -18, o: 0.5 }, chip: "" },
-    { n: data.inProgress, l: en ? "in progress" : "em curso", f: { status: "assistindo" }, col: "#60a5fa", icon: "play", art: { src: dragonWinged, w: 69, h: 85, r: -10, t: -34, o: 0.45 }, chip: data.latestTitle ? (data.latestTitle.length > 16 ? data.latestTitle.slice(0, 15) + "…" : data.latestTitle) : "" },
+    { n: data.total, l: en ? "items" : "itens", f: {}, col: pal[0], icon: "grid", art: { src: dragon9, w: 78, h: 78, r: -14, t: -26, o: 0.5 }, chip: data.newThisMonth > 0 ? (en ? `+${data.newThisMonth} this month` : `+${data.newThisMonth} este mês`) : "" },
+    { n: data.completed, l: en ? "completed" : "completados", f: { status: "completo" }, col: pal[1], icon: "check", art: { src: dragon31, w: 80, h: 69, r: -18, t: -14, o: 0.5 }, chip: data.total ? `${data.completedPct}% ${en ? "of library" : "da biblioteca"}` : "" },
+    { n: data.avg, l: en ? "average rating" : "média de rating", f: { rating: "rated", sort: "rating" }, mini: true, col: pal[2], icon: "star", art: { src: dragon22, w: 69, h: 69, r: -14, t: -18, o: 0.5 }, chip: "" },
+    { n: data.inProgress, l: en ? "in progress" : "em curso", f: { status: "assistindo" }, col: pal[3], icon: "play", art: { src: dragonWinged, w: 62, h: 76, r: -8, t: -4, o: 0.45 }, chip: data.latestTitle ? (data.latestTitle.length > 16 ? data.latestTitle.slice(0, 15) + "…" : data.latestTitle) : "" },
   ];
   const ICONS = {
     grid: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
@@ -101,7 +120,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
             <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ width: 38, height: 38, borderRadius: 12, background: `${t.col}38`, color: t.col, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ICONS[t.icon]}</span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 28, fontWeight: 800, lineHeight: 1.05, color: t.icon === "star" ? "#fbbf24" : text }}>{t.n}</span>
+                <span style={{ display: "block", fontSize: 28, fontWeight: 800, lineHeight: 1.05, color: text }}>{t.n}</span>
                 <span style={{ display: "block", fontSize: 12, color: sub, marginTop: 3 }}>{t.l}</span>
               </span>
             </span>

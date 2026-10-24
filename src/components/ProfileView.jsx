@@ -524,7 +524,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(200px, calc((100vh - 410px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }}>
+          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }}>
             {hallOfFame.map((item, idx) => {
               const coverSrc = item.customCover || item.cover;
               const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
@@ -541,9 +541,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: darkMode ? "#11151b" : "#e2e8f0",
                     border: isMobileDevice ? `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}` : "none",
-                    boxShadow: isMobileDevice ? "0 18px 30px -16px rgba(0,0,0,0.8)" : `0 0 0 1px ${accent}e6, 0 0 0 4px ${accent}38, 0 16px 34px -8px ${accent}8c`,
+                    boxShadow: isMobileDevice ? "0 18px 30px -16px rgba(0,0,0,0.8)" : `0 0 0 1px ${accent}8c, 0 12px 22px -12px ${accent}59`,
                   }}>
-                    {!isMobileDevice && <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, zIndex: 3, pointerEvents: "none", background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />}
+                    {!isMobileDevice && <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, zIndex: 3, pointerEvents: "none", background: `linear-gradient(90deg, transparent, ${accent}99, transparent)` }} />}
                     {coverSrc
                       ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
