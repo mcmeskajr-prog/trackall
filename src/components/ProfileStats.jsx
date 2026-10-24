@@ -15,7 +15,7 @@ function Flower({ col, size, rot = 0, style }) {
     </svg>
   );
 }
-// Cores dos cartões: parte da cor de destaque e flutua um pouco à volta dela (matiz ±30°), para ficar sempre em harmonia com o tema
+// Cores dos cartões: parte da cor de destaque e flutua um pouco à volta dela (matiz ±15–30°), para ficar sempre em harmonia com o tema
 function hexToHsl(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return [340, 0.7, 0.58];
   const n = parseInt(m[1], 16), r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
@@ -31,7 +31,7 @@ function hslToHex(h, s, l) {
 function tilePalette(accent) {
   const [h, s0, l0] = hexToHsl(accent);
   const s = Math.min(0.85, Math.max(0.5, s0)), l = Math.min(0.66, Math.max(0.58, l0));
-  return [accent, hslToHex(h + 30, s, l), hslToHex(h + 60, s, l), hslToHex(h - 30, s, l)];
+  return [accent, hslToHex(h + 15, s, l), hslToHex(h + 30, s, l), hslToHex(h - 15, s, l)];
 }
 const MASK = (src) => ({ WebkitMaskImage: `url(${JSON.stringify(src)})`, maskImage: `url(${JSON.stringify(src)})`, WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "right center", maskPosition: "right center", WebkitMaskSize: "contain", maskSize: "contain" });
 const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
