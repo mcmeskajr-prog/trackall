@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ThemeContext, useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
@@ -62,6 +62,23 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const fAccent = isHex(prof.accent) ? prof.accent : theme.accent;
   const accent = fAccent;
   const [tab, setTab] = useState("perfil");
+  // Enquanto o perfil do amigo está aberto, a app usa o tema dele (fundo, wallpaper no PC, painéis); ao sair volta ao teu
+  const { setFriendTheme } = theme;
+  const fBgColor = (prof.bg_separate_devices && isMobileDevice ? prof.bg_color_mobile : prof.bg_color);
+  useEffect(() => {
+    if (!setFriendTheme) return undefined;
+    setFriendTheme({
+      bgColor: isHex(fBgColor) ? fBgColor : "#0d1117",
+      bgImage: !isMobileDevice && typeof prof.bg_image === "string" ? prof.bg_image : "",
+      overlay: prof.bg_overlay || "rgba(0,0,0,0.55)",
+      blur: Number(prof.bg_blur) || 0,
+      panelBg: isHex(prof.panel_bg) ? prof.panel_bg : "",
+      panelOpacity: prof.panel_opacity ?? 100,
+      accent: isHex(prof.accent) ? prof.accent : null,
+    });
+    return () => setFriendTheme(null);
+    // eslint-disable-next-line
+  }, [fBgColor, prof.bg_image, prof.bg_overlay, prof.bg_blur, prof.panel_bg, prof.panel_opacity, prof.accent, isMobileDevice]);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const libItems = useMemo(() => Object.values(data.library || {}), [data.library]);

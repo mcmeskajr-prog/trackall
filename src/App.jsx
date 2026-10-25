@@ -255,6 +255,8 @@ export default function TrackAll() {
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [bgLum, setBgLum] = useState({ url: "", lum: null });
+  // Tema do amigo enquanto se vê o perfil dele ({ bgColor, bgImage, overlay, blur, panelBg, panelOpacity } | null)
+  const [friendTheme, setFriendTheme] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
@@ -1136,7 +1138,7 @@ export default function TrackAll() {
   }, []);
 
   // Luminância do wallpaper ativo → texto/ícones claros ou escuros automaticamente
-  const _wpUrl = bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage;
+  const _wpUrl = friendTheme ? (isMobileDevice ? "" : (friendTheme.bgImage || "")) : (bgSeparateDevices ? (isMobileDevice ? bgImageMobile : bgImage) : bgImage);
   useEffect(() => {
     if (!_wpUrl) return;
     let alive = true;
@@ -1886,44 +1888,51 @@ export default function TrackAll() {
   }
 
   // Which bg image to show based on device + separate setting
-  const activeBgImage = bgSeparateDevices
+  const ownBgImage = bgSeparateDevices
     ? (isMobileDevice ? bgImageMobile : bgImage)
     : bgImage;
+  // Ao ver o perfil de um amigo: no PC o wallpaper dele; no telemóvel só as cores (sem imagem, mais leve)
+  const activeBgImage = friendTheme ? (isMobileDevice ? "" : (friendTheme.bgImage || "")) : ownBgImage;
+  const activeOverlay = friendTheme ? (isMobileDevice ? "rgba(0,0,0,0)" : friendTheme.overlay) : bgOverlay;
+  const activeBlur = friendTheme ? (isMobileDevice ? 0 : friendTheme.blur) : bgBlur;
 
   // Active bg color: mobile can have different color when bgSeparateDevices is on
-  const activeBgColor = (bgSeparateDevices && isMobileDevice)
+  const ownBgColor = (bgSeparateDevices && isMobileDevice)
     ? (bgColorMobile || "#0d1117")  // mobile sem cor = noturno por defeito, nunca herda PC
     : bgColor;
+  const activeBgColor = friendTheme ? friendTheme.bgColor : ownBgColor;
 
   // darkMode separado: PC usa bgColor, mobile usa bgColorMobile quando separado está ligado
   // Se bgSeparateDevices ligado e no mobile: usa bgColorMobile se tiver valor, senão mantém darkMode independente do PC
-  const _colorDark = (bgSeparateDevices && isMobileDevice)
+  const _colorDark = friendTheme ? isColorDark(friendTheme.bgColor) : (bgSeparateDevices && isMobileDevice)
     ? (bgColorMobile ? isColorDark(bgColorMobile) : true)  // mobile sem cor definida = noturno por defeito
     : darkMode;
   // Com wallpaper, o modo claro/escuro (texto e ícones) segue a luminância real da imagem já escurecida pela película
   const _imgLum = activeBgImage && bgLum.url === activeBgImage ? bgLum.lum : null;
-  const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(bgOverlay))) : _colorDark;
+  const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(activeOverlay))) : _colorDark;
+  const activePanelBg = friendTheme ? friendTheme.panelBg : panelBg;
+  const activePanelOpacity = friendTheme ? friendTheme.panelOpacity : panelOpacity;
   // Modo claro/escuro DOS PAINÉIS: segue a cor real do painel (misturada com o fundo por baixo), não a do fundo da página.
   // Assim um painel escuro sobre fundo branco (ou o contrário) continua a ter texto legível.
   const panelDark = (() => {
-    if (!panelBg || !/^#[0-9a-f]{3,6}$/i.test(panelBg)) return activeDarkMode;
+    if (!activePanelBg || !/^#[0-9a-f]{3,6}$/i.test(activePanelBg)) return activeDarkMode;
     // mistura feita em sRGB (como o navegador faz), não em luminância linear
-    const pr = hexRgb(panelBg); if (!pr) return activeDarkMode;
-    const a = Math.max(0, Math.min(1, (panelOpacity ?? 100) / 100));
+    const pr = hexRgb(activePanelBg); if (!pr) return activeDarkMode;
+    const a = Math.max(0, Math.min(1, (activePanelOpacity ?? 100) / 100));
     let ur;
-    if (_imgLum != null) { const v = Math.round(255 * Math.pow(Math.max(0, _imgLum * (1 - overlayAlpha(bgOverlay))), 1 / 2.2)); ur = [v, v, v]; }
+    if (_imgLum != null) { const v = Math.round(255 * Math.pow(Math.max(0, _imgLum * (1 - overlayAlpha(activeOverlay))), 1 / 2.2)); ur = [v, v, v]; }
     else ur = hexRgb(activeBgColor) || [13, 17, 23];
     return isDarkLum(relLum([0, 1, 2].map(i => a * pr[i] + (1 - a) * ur[i])));
   })();
   const onAccentTxt = onAccentColor(accent);
-  const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, accent, activeDarkMode);
+  const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, friendTheme?.accent || accent, activeDarkMode);
 
   // Computed panel bg para uso no CSS global (lib-sidebar)
   const computedPanelBgCSS = (() => {
-    if (!panelBg) return activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)";
-    const op = (panelOpacity ?? 100) / 100;
+    if (!activePanelBg) return activeDarkMode ? "#161b22" : "rgba(255,255,255,0.7)";
+    const op = (activePanelOpacity ?? 100) / 100;
     try {
-      const hex = panelBg.replace("#", "");
+      const hex = activePanelBg.replace("#", "");
       if (hex.length === 6) {
         const r = parseInt(hex.slice(0,2),16);
         const g = parseInt(hex.slice(2,4),16);
@@ -1931,7 +1940,7 @@ export default function TrackAll() {
         return `rgba(${r},${g},${b},${op})`;
       }
     } catch {}
-    return panelBg;
+    return activePanelBg;
   })();
 
   // Active text contrast: mobile can have different value when bgSeparateDevices is on
@@ -1939,7 +1948,7 @@ export default function TrackAll() {
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, panelDark, isMobileDevice, panelBg: panelBg ? computedPanelBgCSS : null }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, panelDark, isMobileDevice, panelBg: activePanelBg ? computedPanelBgCSS : null, setFriendTheme }}>
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",
@@ -1958,11 +1967,11 @@ export default function TrackAll() {
             <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>✕ Sair</button>
           </div>
         )}
-        <WallpaperLayer src={activeBgImage} blur={bgBlur} />
+        <WallpaperLayer src={activeBgImage} blur={activeBlur} />
         {activeBgImage && (
           <div style={{
             position: "fixed", inset: 0, zIndex: 1,
-            background: bgOverlay, transition: "background 0.4s ease",
+            background: activeOverlay, transition: "background 0.4s ease",
           }} />
         )}
         {/* ── Desktop Sidebar ── */}
@@ -2007,7 +2016,7 @@ export default function TrackAll() {
                   </span>
                   {useT("friends")}
                 </button>
-                <SidebarSearch accent={accent} darkMode={activeDarkMode} activeTab={activeTab} doSearch={doSearch} setSearchQuery={setSearchQuery} setView={setView} useT={useT} />
+                <SidebarSearch accent={accent} darkMode={friendTheme ? darkMode : activeDarkMode} activeTab={activeTab} doSearch={doSearch} setSearchQuery={setSearchQuery} setView={setView} useT={useT} />
               </div>
 
               {/* Botão + Log Rápido */}
@@ -2280,7 +2289,7 @@ export default function TrackAll() {
             display: none;
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
-            background: ${sidebarColor || activeBgColor}f5;
+            background: ${sidebarColor || ownBgColor}f5;
             border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
             padding: 0 0 16px 0;
             overflow-y: hidden;
