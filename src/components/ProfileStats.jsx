@@ -39,7 +39,8 @@ const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
 // ─── Estatísticas do perfil: tiles de números (com mini-distribuição na média). No telemóvel mantém o cartão de ratings. ───
 export function ProfileStats({ items, panelBg, stacked, onFilter }) {
   const { accent, darkMode: pageDark, panelDark, isMobileDevice, panelBg: ctxPanelBg } = useTheme();
-  const darkMode = panelDark ?? pageDark;
+  const darkMode = pageDark; // os cartões de números têm gradiente próprio e seguem o fundo da página (brancos em fundo claro)
+  const panelDM = panelDark ?? pageDark;
   const { lang } = useLang();
 
   const data = useMemo(() => {
@@ -66,7 +67,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
   const muted = darkMode ? "#8b949e" : "#64748b";
   // Mesmo vidro do ProfileCard; só usa panelBg quando o utilizador personalizou os painéis
   const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
-  const card = { background: panelBg || ctxPanelBg || glass, borderRadius: 18, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+  const card = { background: panelBg || ctxPanelBg || glass, borderRadius: 18, border: `1px solid ${panelDM ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
   const eyebrow = { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, marginBottom: 12 };
 
   // Cada número abre a Biblioteca já filtrada
@@ -109,7 +110,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
         )) : tiles.map(t => (
           <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)}
             style={{ ...reset, position: "relative", display: "block", containerType: "inline-size", minHeight: 112, boxSizing: "border-box", padding: "14px 16px", borderRadius: 18, margin: 4,
-              background: `linear-gradient(180deg, ${t.col}${darkMode ? "24" : "1c"}, ${darkMode ? "rgba(12,10,12,0.92)" : "rgba(255,255,255,0.7)"} 75%), ${darkMode ? "#14121a" : "#ffffff"}`,
+              background: `linear-gradient(180deg, ${t.col}${darkMode ? "24" : "1c"}, ${darkMode ? "rgba(12,10,12,0.92)" : "rgba(255,255,255,0.7)"} 75%)`,
               boxShadow: `0 0 0 1px ${t.col}cc, 0 0 0 4px ${t.col}2e, 0 14px 28px -10px ${t.col}80`, color: text }}>
             <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, background: `linear-gradient(90deg, transparent, ${t.col}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
             <span aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none", WebkitMaskImage: FADE, maskImage: FADE }}>
