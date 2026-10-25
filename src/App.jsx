@@ -35,7 +35,7 @@ import { t, detectLang, saveLang } from './translations';
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
 import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
-import { imageLuminance, overlayAlpha, isDarkLum, hexLum, blendLum, onAccent as onAccentColor } from './lib/contrast';
+import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
@@ -1907,8 +1907,13 @@ export default function TrackAll() {
   // Assim um painel escuro sobre fundo branco (ou o contrário) continua a ter texto legível.
   const panelDark = (() => {
     if (!panelBg || !/^#[0-9a-f]{3,6}$/i.test(panelBg)) return activeDarkMode;
-    const under = _imgLum != null ? _imgLum * (1 - overlayAlpha(bgOverlay)) : hexLum(activeBgColor);
-    return isDarkLum(blendLum(panelBg, (panelOpacity ?? 100) / 100, under));
+    // mistura feita em sRGB (como o navegador faz), não em luminância linear
+    const pr = hexRgb(panelBg); if (!pr) return activeDarkMode;
+    const a = Math.max(0, Math.min(1, (panelOpacity ?? 100) / 100));
+    let ur;
+    if (_imgLum != null) { const v = Math.round(255 * Math.pow(Math.max(0, _imgLum * (1 - overlayAlpha(bgOverlay))), 1 / 2.2)); ur = [v, v, v]; }
+    else ur = hexRgb(activeBgColor) || [13, 17, 23];
+    return isDarkLum(relLum([0, 1, 2].map(i => a * pr[i] + (1 - a) * ur[i])));
   })();
   const onAccentTxt = onAccentColor(accent);
   const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, accent, activeDarkMode);

@@ -170,11 +170,11 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
       display: "flex", flexDirection: "column", boxSizing: "border-box", flex: isMobileDevice ? undefined : 1, isolation: "isolate",
     }}>
-      {/* Decoração: higanbana só em traço, na cor de destaque, por trás do conteúdo (canto superior direito) */}
+      {/* Decoração: higanbana só em traço, na cor de destaque, por trás do conteúdo (canto superior esquerdo) */}
       {!isMobileDevice && (
         <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: "inherit",
           WebkitMaskImage: "linear-gradient(180deg, #000 40%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 40%, transparent 100%)" }}>
-          <div style={{ position: "absolute", right: -30, top: -10, width: 210, height: 336, opacity: darkMode ? 0.55 : 0.5, background: accent,
+          <div style={{ position: "absolute", left: -30, top: -10, width: 210, height: 336, transform: "scaleX(-1)", opacity: darkMode ? 0.55 : 0.5, background: accent,
             WebkitMask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain`, mask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain` }} />
         </div>
       )}
