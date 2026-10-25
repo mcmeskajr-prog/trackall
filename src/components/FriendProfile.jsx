@@ -11,6 +11,7 @@ import { BannerHero, BannerPageTint } from "./BannerHero";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
+import higanLine from "../assets/higan-line.webp";
 
 const isHex = (c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
 
@@ -72,6 +73,13 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     return lib ? { ...h, userRating: lib.userRating ?? h.userRating } : h;
   }), [data.hall, data.library]);
   const featuredId = data.featured?.id;
+  // Item em destaque do amigo (para o cartão grande no PC): biblioteca > Hall of Fame > o próprio registo
+  const featuredItem = useMemo(() => {
+    if (!featuredId) return null;
+    const it = data.library?.[featuredId] || (data.hall || []).find(h => h.id === featuredId) || data.featured;
+    return it && it.title ? it : null;
+  }, [featuredId, data.library, data.hall, data.featured]);
+  const twoCol = !isMobileDevice && !!featuredItem;
   const favs = Array.isArray(prof.favorites) ? prof.favorites : [];
 
   // Em comum + afinidade (diferença média entre notas dadas ao mesmo título)
@@ -128,6 +136,41 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     { id: "diario", label: en ? "Diary" : "Diário" },
   ];
 
+  // PC com item em destaque: cartão à esquerda (avatar, nome, destaque em grande) como no perfil próprio
+  const adm = theme.panelDark ?? darkMode;
+  const aText = adm ? "#e6edf3" : "#0f172a";
+  const aSub = adm ? "#aab4c0" : "#475569";
+  const featType = featuredItem ? MEDIA_TYPES.find(t => t.id === featuredItem.type) : null;
+  const featSrc = featuredItem ? (featuredItem.customCover || featuredItem.cover || featuredItem.thumbnailUrl) : null;
+  const friendAside = twoCol ? (
+    <aside style={{ ...card, width: 320, flexShrink: 0, position: "relative", overflow: "hidden", isolation: "isolate", padding: 20, boxSizing: "border-box", color: aText, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: "inherit", WebkitMaskImage: "linear-gradient(180deg, #000 40%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 40%, transparent 100%)" }}>
+        <div style={{ position: "absolute", left: -30, top: -10, width: 190, height: 304, transform: "scaleX(-1)", opacity: adm ? 0.5 : 0.45, background: accent,
+          WebkitMask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain`, mask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain` }} />
+      </div>
+      <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={96} ring={accent} ringWidth={3} />
+      <h2 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", overflowWrap: "anywhere" }}>{name}</h2>
+      {prof.username && <div style={{ fontSize: 13, color: aSub, marginTop: 3 }}>@{prof.username}</div>}
+      {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: aSub }}>{prof.bio}</p>}
+      <div onClick={() => openItem(featuredItem)} style={{ position: "relative", width: "100%", aspectRatio: "2/3", marginTop: 16, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(featuredItem.id), boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)", textAlign: "left" }}>
+        {featSrc ? <CoverImg hi src={featSrc} alt={featuredItem.title} decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, color: "#fff" }}><TypeIcon id={featuredItem.type} /></div>}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "52%", background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: 14, right: 14, bottom: 14, color: "#fff" }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.85 }}>{en ? "Featured" : "Em destaque"}{featType ? ` · ${mediaLabel(featType, lang)}` : ""}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.15, marginTop: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{featuredItem.title}</div>
+        </div>
+        {featuredItem.userRating > 0 && <div style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {featuredItem.userRating}</div>}
+      </div>
+      {common.all.length > 0 && (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 14, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700 }}>
+          {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
+          <span style={{ color: aSub, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+        </div>
+      )}
+    </aside>
+  ) : null;
+
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
       <div style={{ maxWidth: isMobileDevice ? 600 : 1100, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
@@ -149,7 +192,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
         </div>
 
         {/* Cartão principal: com banner (telemóvel) fundo tingido; senão cartão normal */}
-        {isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
+        {twoCol ? null : isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
           <BannerHero banner={prof.banner} bleed={0} height={220} style={{ marginBottom: 18 }}>
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={86} ring={accent} ringWidth={3} />
@@ -186,6 +229,9 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           </div>
         )}
 
+        <div style={twoCol ? { display: "flex", gap: 24, alignItems: "flex-start" } : undefined}>
+        {twoCol && friendAside}
+        <div style={twoCol ? { flex: 1, minWidth: 0 } : undefined}>
         {/* Separadores */}
         <div style={{ display: "flex", gap: 4, margin: `0 ${pad}px 20px`, borderBottom: `1px solid ${line}` }}>
           {tabs.map(t => (
@@ -245,6 +291,8 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
         {tab === "diario" && (
           <ProfileTabDiario items={libItems} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} />
         )}
+        </div>
+        </div>
       </div>
     </ThemeContext.Provider>
   );
