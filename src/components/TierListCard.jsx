@@ -4,7 +4,8 @@ import { TIER_LEVELS } from "../config/constants";
 
 // Cartão da galeria: mosaico com os melhores itens + título, autor, itens e gostos
 export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
-  const { accent, darkMode, panelBg } = useTheme();
+  const { accent, darkMode: pageDark, panelDark, panelBg } = useTheme();
+  const darkMode = panelBg ? (panelDark ?? pageDark) : pageDark;
   const all = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []).map(i => ({ ...i, _tier: t })));
   const MAX = 12;
   const top = all.slice(0, MAX); // já vêm ordenados do melhor tier para o pior

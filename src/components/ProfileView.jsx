@@ -62,6 +62,8 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
 export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null }) {
+  const { panelDark } = useTheme() || {};
+  const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode; // texto dentro de painéis segue a cor do painel
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -567,8 +569,8 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
       {items.length > 0 && (isMobileDevice
-        ? <SectionAccordion title={lang === "en" ? "Activity" : "Atividade"} open={secOpen.atividade} onToggle={() => toggleSec("atividade")} darkMode={darkMode}><div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div></SectionAccordion>
-        : <div style={{ margin: "0 16px", flex: "1 1 auto", display: "flex", flexDirection: "column" }}><ProfileActivity items={items} accent={accent} darkMode={darkMode} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div>)}
+        ? <SectionAccordion title={lang === "en" ? "Activity" : "Atividade"} open={secOpen.atividade} onToggle={() => toggleSec("atividade")} darkMode={panelDM}><div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={panelDM} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div></SectionAccordion>
+        : <div style={{ margin: "0 16px", flex: "1 1 auto", display: "flex", flexDirection: "column" }}><ProfileActivity items={items} accent={accent} darkMode={panelDM} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div>)}
 
       </div>
       {diaryPanel}
@@ -714,7 +716,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                 <AppearanceSettings
                   accent={accent} bgColor={bgColor} bgColorMobile={bgColorMobile} sidebarColor={sidebarColor}
                   textContrast={textContrast} textContrastMobile={textContrastMobile} bgSeparateDevices={bgSeparateDevices}
-                  darkMode={darkMode} panelBg={panelBg} panelOpacity={panelOpacity} bgImage={bgImage} bgImageMobile={bgImageMobile}
+                  darkMode={panelDM} panelBg={panelBg} panelOpacity={panelOpacity} bgImage={bgImage} bgImageMobile={bgImageMobile}
                   bgOverlay={bgOverlay} bgBlur={bgBlur} bgParallax={bgParallax} isMobileDevice={isMobileDevice} lang={lang} useT={useT}
                   savedThemes={onSavedThemes} computedPanelBg={computedPanelBg}
                   onAccentChange={onAccentChange} onBgChange={onBgChange} onBgColorMobile={onBgColorMobile} onSidebarColor={onSidebarColor}
@@ -728,7 +730,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             {settingsSection === "importar" && (<>
       {/* ── Import ── */}
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#8b949e", display: "flex", alignItems: "center", gap: 10 }}>{lang === "en" ? "IMPORT" : "IMPORTAR"}<span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} /></h3>
-      <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: computedPanelBg, border: `1px solid ${panelDM ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: `${accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>📚</div>
           <div style={{ flex: 1 }}>
@@ -740,7 +742,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           </button>
         </div>
         {/* Divider */}
-        <div style={{ borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, margin: "10px 0" }} />
+        <div style={{ borderTop: `1px solid ${panelDM ? "#21262d" : "#e2e8f0"}`, margin: "10px 0" }} />
         {/* Paperback */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           <span style={{ fontSize: 20, width: 36, textAlign: "center" }}>📖</span>
@@ -796,10 +798,10 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           LEGAL
           <span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${darkMode ? "#30363d" : "#e2e8f0"}, transparent)` }} />
         </h3>
-        <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ background: computedPanelBg, border: `1px solid ${panelDM ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("language")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("language")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>PT / EN</p>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -811,20 +813,20 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             </div>
           </div>
         </div>
-        <div style={{ background: computedPanelBg, border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ background: computedPanelBg, border: `1px solid ${panelDM ? "#21262d" : "#e2e8f0"}`, borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
             </div>
             <a href="https://raw.githubusercontent.com/mcmeskajr-prog/trackall/main/public/privacy.pdf" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
               Ver PDF →
             </a>
           </div>
-          <div style={{ height: 1, background: darkMode ? "#21262d" : "#e8e0d5" }} />
+          <div style={{ height: 1, background: panelDM ? "#21262d" : "#e8e0d5" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
             </div>
           </div>
@@ -899,7 +901,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
       {/* Tab Diário */}
       {profileTab === "diario" && (
-        <ProfileTabDiario items={items} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
+        <ProfileTabDiario items={items} accent={accent} darkMode={panelDM} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
       )}
 
 

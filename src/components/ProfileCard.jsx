@@ -7,12 +7,14 @@ import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 import { TypeIcon } from "./TypeIcon";
 import { splitBanner, bannerFilter } from "../lib/bannerColors";
+import higanLine from "../assets/higan-line.webp";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
 // Cartão de vidro com o item em destaque (tilt + brilho que segue o rato), nome, bio e ações.
 // Só aparece em modo de visualização; a edição continua no cabeçalho do ProfileView.
 export function ProfileCard({ profile, avatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit, onPersonalize, onSignOut, onPickFeatured, onFilter }) {
-  const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
+  const { accent, darkMode: pageDark, panelDark, isMobileDevice, panelBg } = useTheme();
+  const darkMode = panelDark ?? pageDark; // o cartão é um painel: o texto segue a cor do painel
   const { lang } = useLang();
 
   // Item em destaque: o escolhido; se não houver, o favorito mais bem avaliado.
@@ -166,8 +168,16 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.1)"}`,
       boxShadow: "0 30px 50px -24px rgba(0,0,0,0.7)",
       backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", color: text,
-      display: "flex", flexDirection: "column", boxSizing: "border-box", flex: isMobileDevice ? undefined : 1,
+      display: "flex", flexDirection: "column", boxSizing: "border-box", flex: isMobileDevice ? undefined : 1, isolation: "isolate",
     }}>
+      {/* Decoração: higanbana só em traço, na cor de destaque, por trás do conteúdo (canto superior direito) */}
+      {!isMobileDevice && (
+        <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: "inherit",
+          WebkitMaskImage: "linear-gradient(180deg, #000 40%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 40%, transparent 100%)" }}>
+          <div style={{ position: "absolute", right: -30, top: -10, width: 210, height: 336, opacity: darkMode ? 0.55 : 0.5, background: accent,
+            WebkitMask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain`, mask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain` }} />
+        </div>
+      )}
       {/* Identidade: avatar com presença + nome, centrados */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 18 }}>
         <div style={{

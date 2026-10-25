@@ -35,7 +35,7 @@ import { t, detectLang, saveLang } from './translations';
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
 import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
-import { imageLuminance, overlayAlpha, isDarkLum, onAccent as onAccentColor } from './lib/contrast';
+import { imageLuminance, overlayAlpha, isDarkLum, hexLum, blendLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
@@ -1903,6 +1903,13 @@ export default function TrackAll() {
   // Com wallpaper, o modo claro/escuro (texto e ícones) segue a luminância real da imagem já escurecida pela película
   const _imgLum = activeBgImage && bgLum.url === activeBgImage ? bgLum.lum : null;
   const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(bgOverlay))) : _colorDark;
+  // Modo claro/escuro DOS PAINÉIS: segue a cor real do painel (misturada com o fundo por baixo), não a do fundo da página.
+  // Assim um painel escuro sobre fundo branco (ou o contrário) continua a ter texto legível.
+  const panelDark = (() => {
+    if (!panelBg || !/^#[0-9a-f]{3,6}$/i.test(panelBg)) return activeDarkMode;
+    const under = _imgLum != null ? _imgLum * (1 - overlayAlpha(bgOverlay)) : hexLum(activeBgColor);
+    return isDarkLum(blendLum(panelBg, (panelOpacity ?? 100) / 100, under));
+  })();
   const onAccentTxt = onAccentColor(accent);
   const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, accent, activeDarkMode);
 
@@ -1927,7 +1934,7 @@ export default function TrackAll() {
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, isMobileDevice, panelBg: panelBg ? computedPanelBgCSS : null }}>
+    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, panelDark, isMobileDevice, panelBg: panelBg ? computedPanelBgCSS : null }}>
       <LangContext.Provider value={{ lang, useT }}>
       <div style={{
         minHeight: "100vh",

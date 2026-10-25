@@ -4,7 +4,8 @@ import { useLang } from "../contexts/LangContext";
 
 // ─── Secção "Estatísticas" do perfil (PC): distribuição de ratings + números-chave ───
 export function ProfileEstatisticas({ items, panelBg }) {
-  const { accent, darkMode, panelBg: ctxPanelBg } = useTheme();
+  const { accent, darkMode: pageDark, panelDark, panelBg: ctxPanelBg } = useTheme();
+  const darkMode = panelDark ?? pageDark;
   const { lang } = useLang();
   const en = lang === "en";
 
