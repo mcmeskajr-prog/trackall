@@ -8,6 +8,7 @@ import { persistImage } from "../lib/imageStore";
 // texto, barra lateral, dispositivos separados, avaliação) com pré-visualização ao vivo.
 
 export const RATING_STYLE_KEY = "trackall_rating_style";
+export const TABS_BG_KEY = "trackall_tabs_bg"; // "" | "dark" | "light" | "panel" — fundo das abas do perfil sobre wallpaper (só PC)
 
 // Estilos prontos: afinam-se por cima com as opções abaixo
 export const STYLE_PRESETS = [
@@ -35,6 +36,11 @@ export function AppearanceSettings({
   const [themeName, setThemeName] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [ratingStyle, setRatingStyleState] = useState(() => { try { return localStorage.getItem(RATING_STYLE_KEY) || "stars"; } catch { return "stars"; } });
+  const [tabsBg, setTabsBgState] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
+  const setTabsBg = (v) => {
+    setTabsBgState(v);
+    try { localStorage.setItem(TABS_BG_KEY, v); window.dispatchEvent(new Event("trackall-tabs-bg")); } catch {}
+  };
   const setRatingStyle = (v) => {
     setRatingStyleState(v);
     try { localStorage.setItem(RATING_STYLE_KEY, v); window.dispatchEvent(new Event("trackall-rating-style")); } catch {}
@@ -252,6 +258,19 @@ export function AppearanceSettings({
         </div>
         {slider(useT("panelOpacity"), panelOpacity ?? 100, onPanelOpacity, 0, 100, 1)}
       </section>
+
+      {/* Fundo das abas (só PC e só com imagem de fundo) */}
+      {!isMobileDevice && !!bgImage && (
+        <section style={box}>
+          <div style={eyebrow}>{en ? "Tabs background" : "Fundo das abas"}</div>
+          <p style={{ fontSize: 12, color: sub, marginTop: -4 }}>{en ? "Helps read the profile tabs over grey or dark wallpapers." : "Ajuda a ler as abas do perfil em wallpapers cinzentos ou sombrios."}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[["", en ? "None" : "Nenhum"], ["dark", en ? "Dark glass" : "Vidro escuro"], ["light", en ? "Light glass" : "Vidro claro"], ["panel", en ? "Panel colour" : "Cor do painel"]].map(([v, l]) => (
+              <button key={v || "none"} type="button" onClick={() => setTabsBg(v)} style={chip(tabsBg === v)}>{l}</button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Texto */}
       <section style={box}>

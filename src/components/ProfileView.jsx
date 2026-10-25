@@ -22,7 +22,7 @@ import { ProfileCard } from "./ProfileCard";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
-import { AppearanceSettings } from "./AppearanceSettings";
+import { AppearanceSettings, TABS_BG_KEY } from "./AppearanceSettings";
 import { PersonalizeMobile } from "./PersonalizeMobile";
 import { FeaturedPickerModal } from "./FeaturedPickerModal";
 import { MihonImportModal } from "./MihonImportModal";
@@ -63,7 +63,13 @@ const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, cu
 
 export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null }) {
   const { panelDark } = useTheme() || {};
-  const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode; // texto dentro de painéis segue a cor do painel
+  const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode;
+  const [tabsBg, setTabsBg] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
+  useEffect(() => {
+    const h = () => { try { setTabsBg(localStorage.getItem(TABS_BG_KEY) || ""); } catch {} };
+    window.addEventListener("trackall-tabs-bg", h); window.addEventListener("storage", h);
+    return () => { window.removeEventListener("trackall-tabs-bg", h); window.removeEventListener("storage", h); };
+  }, []); // texto dentro de painéis segue a cor do painel
   const [editing, setEditing] = useState(false);
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
@@ -113,6 +119,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     } catch {}
     return base;
   })();
+  // Fundo opcional das abas sobre wallpaper (PC): "dark" | "light" | "panel"
+  const tabsGlass = !isMobileDevice && bgImage && tabsBg ? {
+    dark: { bg: "rgba(12,12,16,0.62)", dm: true },
+    light: { bg: "rgba(255,255,255,0.72)", dm: false },
+    panel: { bg: panelBg ? computedPanelBg : (darkMode ? "rgba(12,12,16,0.62)" : "rgba(255,255,255,0.72)"), dm: panelBg ? panelDM : darkMode },
+  }[tabsBg] : null;
   const [appearSections, setAppearSections] = useState({ cores: true, texto: false, fundo: false, sidebar: false, dispositivos: false, stats: false });
   const toggleAppear = (key) => setAppearSections(p => ({ ...p, [key]: !p[key] }));
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar || "");
@@ -452,6 +464,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       <div ref={tabsSentinel} aria-hidden="true" style={{ height: 1, marginBottom: -1 }} />
       {/* ── Profile Tabs ── */}
       <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? (tabsStuck ? "calc(8px + env(safe-area-inset-top)) 16px 0" : "8px 16px 0") : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none",
+        ...(tabsGlass ? { background: tabsGlass.bg, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRadius: 16, padding: "12px 24px 0", margin: "0 0 14px", borderBottom: "none" } : {}),
         ...(isMobileDevice ? { justifyContent: "space-between", position: "sticky", top: 0, zIndex: 30, transition: "background-color .25s ease",
           background: tabsStuck ? (darkMode ? `color-mix(in srgb, ${pageBg} 72%, transparent)` : "rgba(255,255,255,0.78)") : "transparent",
           backdropFilter: tabsStuck ? "blur(16px)" : "none", WebkitBackdropFilter: tabsStuck ? "blur(16px)" : "none" } : {}) }}>
@@ -463,7 +476,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             flexShrink: 0, padding: "0 2px 14px", minHeight: 44,
             background: "none", border: "none",
             borderBottom: active ? `2px solid ${accent}` : "2px solid transparent",
-            color: active ? accent : (darkMode ? "#6e7681" : "#64748b"),
+            color: active ? accent : (tabsGlass ? (tabsGlass.dm ? "#aab4c0" : "#475569") : (darkMode ? "#6e7681" : "#64748b")),
             cursor: "pointer", fontFamily: "inherit",
             fontSize: isMobileDevice ? 13 : 14,
             fontWeight: active ? 700 : 500,
