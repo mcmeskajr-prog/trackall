@@ -15,6 +15,9 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 // ─── Wrapper ─────────────────────────────────────────────────────────────────
+// Só as colunas que o perfil de um amigo precisa (nunca `select *`: ver profile_private)
+const FRIEND_PROFILE_COLS = 'id, name, bio, avatar, banner, accent, username, favorites, bg_color, bg_image, bg_overlay, bg_blur, bg_parallax, bg_separate_devices, bg_color_mobile, hide_banner_mobile, panel_bg, panel_opacity, sidebar_color';
+
 const supa = {
   _user: null,
 
@@ -46,13 +49,26 @@ const supa = {
     return null;
   },
 
+  // Campos privados (chaves/URLs pessoais) vivem em `profile_private` (RLS: só o próprio). `profiles` é legível por outros utilizadores.
   async getProfile(userId) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    return data;
+    const [{ data }, { data: priv }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('profile_private').select('tmdb_key, worker_url, drive_client_id').eq('id', userId).maybeSingle(),
+    ]);
+    return data ? { ...data, ...(priv || {}) } : data;
   },
 
   async upsertProfile(userId, profileData) {
-    await supabase.from('profiles').update({ ...profileData, updated_at: new Date().toISOString() }).eq('id', userId);
+    const PRIVATE = ['tmdb_key', 'worker_url', 'drive_client_id'];
+    const pub = {}, priv = {};
+    Object.keys(profileData || {}).forEach(k => { (PRIVATE.includes(k) ? priv : pub)[k] = profileData[k]; });
+    if (Object.keys(priv).length) {
+      const { error } = await supabase.from('profile_private').upsert({ id: userId, ...priv, updated_at: new Date().toISOString() });
+      if (error) throw error;
+    }
+    if (Object.keys(pub).length) {
+      await supabase.from('profiles').update({ ...pub, updated_at: new Date().toISOString() }).eq('id', userId);
+    }
   },
 
   async getLibrary(userId) {
@@ -169,7 +185,7 @@ const supa = {
   },
 
   async getFriendProfile(friendId) {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', friendId).maybeSingle();
+    const { data, error } = await supabase.from('profiles').select(FRIEND_PROFILE_COLS).eq('id', friendId).maybeSingle();
     if (error) { console.error('getFriendProfile error:', error); throw new Error(error.message); }
     return data;
   },
