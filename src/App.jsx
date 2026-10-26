@@ -68,6 +68,10 @@ import { TypeIcon } from "./components/TypeIcon";
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
 const DEFAULT_WORKER_URL = "https://trackall-proxy.mcmeskajr.workers.dev";
+// Tema da última sessão (cores apenas, ~200 bytes, leitura síncrona): evita o "flash" da cor por defeito antes do perfil chegar.
+// Escrito pelo efeito "bootTheme" abaixo; o index.html lê a mesma chave para pintar o fundo antes do React.
+const BOOT_THEME_KEY = "trackall_boot_theme";
+const _bt = (() => { try { return JSON.parse(localStorage.getItem(BOOT_THEME_KEY) || "null") || {}; } catch { return {}; } })();
 
 // Wrapper simples para manter compatibilidade com o resto do código
 
@@ -238,19 +242,19 @@ export default function TrackAll() {
   const [lang, setLang] = useState(() => detectLang());
   const useT = (key) => t(key, lang);
   const changeLang = (newLang) => { setLang(newLang); saveLang(newLang); };
-  const [accent, setAccent] = useState("#f97316");
-  const [bgColor, setBgColor] = useState("#0d1117");
-  const [bgColorMobile, setBgColorMobile] = useState(""); // "" = igual ao PC
-  const [sidebarColor, setSidebarColor] = useState(""); // "" = igual ao bgColor
+  const [accent, setAccent] = useState(_bt.accent || "#f97316");
+  const [bgColor, setBgColor] = useState(_bt.bgColor || "#0d1117");
+  const [bgColorMobile, setBgColorMobile] = useState(_bt.bgColorMobile || ""); // "" = igual ao PC
+  const [sidebarColor, setSidebarColor] = useState(_bt.sidebarColor || ""); // "" = igual ao bgColor
   const [textContrast, setTextContrast] = useState(100);
   const [textContrastMobile, setTextContrastMobile] = useState(100);
   const [savedThemes, setSavedThemes] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_themes") || "[]"); } catch { return []; } });
-  const [panelBg, setPanelBg] = useState("");
-  const [panelOpacity, setPanelOpacity] = useState(100);
+  const [panelBg, setPanelBg] = useState(_bt.panelBg || "");
+  const [panelOpacity, setPanelOpacity] = useState(_bt.panelOpacity ?? 100);
 
   const [bgImage, setBgImage] = useState("");
   const [bgImageMobile, setBgImageMobile] = useState("");
-  const [bgSeparateDevices, setBgSeparateDevices] = useState(false);
+  const [bgSeparateDevices, setBgSeparateDevices] = useState(!!_bt.bgSeparateDevices);
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
@@ -258,7 +262,7 @@ export default function TrackAll() {
   // Tema do amigo enquanto se vê o perfil dele ({ bgColor, bgImage, overlay, blur, panelBg, panelOpacity } | null)
   const [friendThemeRaw, setFriendTheme] = useState(null);
   const ownDarkRef = useRef(true); // modo claro/escuro do TEU tema (guardado para a barra lateral e a barra de baixo não mudarem com o tema do amigo)
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => isColorDark(_bt.bgColor || "#0d1117"));
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
   // Cópia sempre atualizada da biblioteca: os handlers leem daqui para nunca gravarem por cima de alterações recentes (ex.: rating + completado seguidos)
@@ -456,6 +460,13 @@ export default function TrackAll() {
 
   // Auth state
   const [user, setUser] = useState(null);
+  // bootTheme: guarda só as cores (com sessão iniciada) para o próximo arranque. Um setItem pequeno, só quando alguma muda.
+  useEffect(() => {
+    if (!user) return;
+    try {
+      localStorage.setItem(BOOT_THEME_KEY, JSON.stringify({ accent, bgColor, bgColorMobile, sidebarColor, panelBg, panelOpacity, bgSeparateDevices }));
+    } catch { /* quota/privado: ignora */ }
+  }, [user, accent, bgColor, bgColorMobile, sidebarColor, panelBg, panelOpacity, bgSeparateDevices]);
   const [authLoading, setAuthLoading] = useState(true);
   const libDirtyRef = useRef(false); // true se alteraste a biblioteca nesta sessão
   const [bootError, setBootError] = useState(false); // servidor não respondeu ao carregar os dados
@@ -829,6 +840,7 @@ export default function TrackAll() {
   const handleSignOut = async () => {
     await supa.signOut();
     cacheClearAll();
+    try { localStorage.removeItem(BOOT_THEME_KEY); } catch {}
     libDirtyRef.current = false;
     setDataFresh(false);
     bootCacheRef.current = { prof: null, hr: null };
