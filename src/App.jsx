@@ -48,6 +48,7 @@ import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaIt
 import { getConsumptionTime } from './lib/consumptionTime';
 import { shuffle, gradientFor, compressImage } from './lib/utils';
 import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
+import { diffLibrary } from './lib/libraryDiff';
 import { setImageUser, isDataUrl, uploadDataUrl } from './lib/imageStore';
 
 // ─── API imports ──────────────────────────────────────────────────────────────
@@ -868,14 +869,9 @@ export default function TrackAll() {
     // Escritas em fila: chegam ao Supabase pela mesma ordem em que foram feitas
     saveQueueRef.current = saveQueueRef.current.then(async () => {
       try {
-        for (const [id, item] of Object.entries(lib)) {
-          if (JSON.stringify(prev[id]) !== JSON.stringify(item)) {
-            await supa.upsertLibraryItem(user.id, id, item);
-          }
-        }
-        for (const id of Object.keys(prev)) {
-          if (!id.startsWith("__") && !lib[id]) await supa.deleteLibraryItem(user.id, id);
-        }
+        const { upserts, deletes } = diffLibrary(prev, lib);
+        for (const [id, item] of upserts) await supa.upsertLibraryItem(user.id, id, item);
+        for (const id of deletes) await supa.deleteLibraryItem(user.id, id);
       } catch (err) {
         console.error('[TrackAll] Erro ao guardar biblioteca:', err?.message || err, err?.details || '', err?.hint || '', err?.code || '');
         showNotif(lang === "en" ? "Could not sync — check your connection" : "Não foi possível sincronizar — verifica a ligação", "#ef4444");
