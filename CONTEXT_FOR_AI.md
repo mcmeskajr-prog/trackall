@@ -19,6 +19,15 @@
 4. **`toggleTierlistLike` não devolvia valor**
    Causava contagem de likes sempre a decrescer (mesmo ao dar like, não só ao tirar). Corrigido para devolver `true`/`false`, e o frontend agora bloqueia cliques sobrepostos enquanto um toggle está em curso (`likingTierlistRef`).
 
+5. **Vistas ficam montadas em segundo plano (`display:none`)**
+   `App.jsx` monta Home/Biblioteca/Amigos/Perfil em simultâneo e só esconde as inativas. Um `useEffect` com cleanup num componente de uma vista **não** corre ao mudares de página. Foi assim que o tema do amigo ficou "preso" ao ir para o teu Perfil. **Regra:** estado global que depende de uma vista ser a ativa tem de ser derivado de `view` (ex.: `friendTheme = view === "friends" ? friendThemeRaw : null`), não só de mount/unmount.
+
+6. **Barra lateral/inferior e tema temporário**
+   Qualquer tema temporário (ex.: o do amigo) não pode mexer na barra lateral nem na `.bottom-nav`: usar `ownDark`/`ownBgColor` (o teu tema), nunca `activeDarkMode`. A regra CSS `!activeDarkMode` força a barra a branco.
+
+7. **`darkMode` da página ≠ do painel**
+   Em fundos claros/wallpapers, o texto sobre painéis tem de usar `panelDark ?? darkMode` (ver DEV_GUIDE, "Legibilidade"). Misturar em luminância linear dá o resultado errado; usar sRGB (`lib/contrast.js`).
+
 5. **`mediaIds.js` e `config/supabase.js` já foram dessincronizados do `App.jsx` no passado**
    Antes de mudar a assinatura de qualquer função em `src/lib/` ou `src/config/`, correr `grep` no `App.jsx` por todos os call sites — já aconteceu mais do que uma vez uma função ser reescrita com uma assinatura diferente da que o resto do código espera.
 
