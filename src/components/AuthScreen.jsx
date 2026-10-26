@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase, supa } from "../config/supabase";
+import { supa } from "../config/supabase";
 
 export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => k }) {
   const [mode, setMode] = useState("login");
@@ -19,23 +19,11 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "register") {
-        // Verificar código de convite
-        const { data: codeData, error: codeError } = await supabase
-          .from("invite_codes")
-          .select("id, used_by")
-          .eq("code", inviteCode.trim().toUpperCase())
-          .single();
-        if (codeError || !codeData) { setError("Código de convite inválido."); setLoading(false); return; }
-        if (codeData.used_by) { setError("Este código de convite já foi utilizado."); setLoading(false); return; }
-        // Criar conta
-        const { user: u } = await supa.signUp(email.trim(), password);
-        // Marcar código como usado
+        // O código é validado e consumido no servidor (trigger enforce_invite); se for inválido o registo falha com erro
+        const { user: u } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase());
         if (u) {
-          await supabase.from("invite_codes").update({ used_by: u.id, used_at: new Date().toISOString() }).eq("id", codeData.id);
           onAuth(u);
         } else {
-          // Email verification pendente — marcar após verificação não é possível agora, mas o código fica reservado
-          await supabase.from("invite_codes").update({ used_at: new Date().toISOString() }).eq("id", codeData.id);
           setAwaitingVerification(true);
           setSuccess(`Email de confirmação enviado para ${email.trim()}.`);
         }

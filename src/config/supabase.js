@@ -21,9 +21,14 @@ const FRIEND_PROFILE_COLS = 'id, name, bio, avatar, banner, accent, username, fa
 const supa = {
   _user: null,
 
-  async signUp(email, password) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw new Error(error.message);
+  // O código de convite vai nos metadados: o trigger `enforce_invite` (auth.users) valida e consome-o no servidor.
+  async signUp(email, password, inviteCode = "") {
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { invite_code: inviteCode } } });
+    if (error) {
+      // O Supabase esconde a mensagem do trigger atrás de "Database error saving new user"
+      if (/database error/i.test(error.message)) throw new Error("Código de convite inválido ou já utilizado.");
+      throw new Error(error.message);
+    }
     supa._user = data.user;
     return data;
   },
