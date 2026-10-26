@@ -351,6 +351,17 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 ---
 
+## 🔐 Segurança e RLS (auditoria de 2026-10-26)
+
+Todas as tabelas de `public` têm RLS ligado. O que foi corrigido e as regras a manter:
+- **Chaves pessoais fora de `profiles`:** `tmdb_key`, `worker_url` e `drive_client_id` vivem em **`profile_private`** (RLS: só o próprio, `auth.uid() = id`). `supa.getProfile` junta as duas tabelas; `supa.upsertProfile` separa os campos privados (lista `PRIVATE`). As colunas antigas foram apagadas de `profiles`. **Regra:** `profiles` é legível por outros (política "Profiles are publicly readable"), por isso **nunca** pôr lá segredos; o perfil de amigo usa `FRIEND_PROFILE_COLS` (lista explícita), nunca `select *`.
+- **Amizades:** `friendships_insert_own` só deixa inserir com `status='pending'` e `requester_id = auth.uid()`; `friendships_update_own` só deixa o destinatário passar de `pending` para `accepted`; o trigger `friendships_freeze` impede alterar `requester_id`/`addressee_id`. Antes, dava para inserir já como `accepted` e ler a biblioteca de qualquer pessoa (a política `Friends can read library` confia em `status='accepted'`).
+- **Convites aplicados no servidor:** o `signUp` envia `options.data.invite_code`; o trigger `enforce_invite` (AFTER INSERT em `auth.users`, `security definer`) consome o código em `invite_codes` ou aborta o registo (o Supabase mostra "Database error saving new user", traduzido no `supa.signUp`). A tabela `invite_codes` já **não tem políticas** (ninguém a lê pelo browser). Códigos novos criam-se à mão no painel.
+- **Pendente:** login com Google criaria contas sem código (o trigger bloquearia; ajustar quando for feito); `profiles` ainda legível sem login (passar a `authenticated` depois de confirmar que o registo não precisa de a ler); `tierlists` legíveis por qualquer utilizador autenticado (intencional: partilháveis); privacidade por item (público/amigos).
+- **Antes de mexer em RLS:** ver as políticas com `select * from pg_policies where schemaname='public'` e confirmar que `relrowsecurity` está `true` na tabela.
+
+---
+
 ## 🛠️ Como Adicionar Novo Conteúdo
 
 ### Adicionar novo tipo de media
