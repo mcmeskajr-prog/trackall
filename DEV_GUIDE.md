@@ -362,6 +362,16 @@ Todas as tabelas de `public` têm RLS ligado. O que foi corrigido e as regras a 
 
 ---
 
+## 🧪 Testes (desde 2026-10-26)
+
+- **Vitest 0.34.6** (devDependency; é a versão compatível com o Vite 4 — o Vitest mais recente exige Vite ≥ 6; **não** usar `--force`). Correr: `npm test` (= `vitest run`). Os `.test.js` não entram no bundle.
+- Ficheiros em `src/lib/`: `libraryDiff.test.js` (o que escrever/apagar no Supabase), `mediaIds.test.js` (`findLibraryEntry`, normalização), `contrast.test.js` (cores/contraste), `importParsers.test.js` (Letterboxd). 29 testes.
+- `src/lib/libraryDiff.js`: `diffLibrary(prev, next) → { upserts, deletes }`, usado pelo `saveLibrary` do `App.jsx`. Nunca apaga ids que começam por `__`. **Regra:** lógica nova que se queira testar extrai-se para uma função pura em `src/lib/` (sem React, sem Supabase).
+- Correr `npm test` antes de cada push que mexa em `lib/`, sincronização ou importação. Ao corrigir um bug de lógica, escrever primeiro o teste que o reproduz.
+- `npm audit` mostra avisos nas dependências de desenvolvimento (Vitest/esbuild antigos); não correr `npm audit fix --force`. Resolvem-se ao subir o Vite.
+
+---
+
 ## 🛠️ Como Adicionar Novo Conteúdo
 
 ### Adicionar novo tipo de media

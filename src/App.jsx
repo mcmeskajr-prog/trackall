@@ -1426,6 +1426,29 @@ export default function TrackAll() {
     showNotif(`Letterboxd: ${added} filmes adicionados, ${updated} atualizados ✓`, "#00e054");
   };
 
+  // AniList: grava o que a pré-visualização aprovou. Os itens já vêm no formato da pesquisa (ids al-anime-N / al-manga-N), por isso
+  // ficam ligados às APIs (banner, descrição, personagens). Sem data de conclusão → sem addedAt (fora do Diário, nunca "hoje").
+  const importAniList = (alItems, { withDates = true, skipExisting = true } = {}) => {
+    const before = libraryRef.current || library;
+    const lib = { ...before };
+    let added = 0, updated = 0;
+    alItems.forEach(item => {
+      const { addedAt, ...rest } = item;
+      const date = withDates && addedAt ? { addedAt } : {};
+      const existing = findLibraryEntry(lib, item.id, item.type);
+      if (existing?.key) {
+        if (skipExisting) return;
+        lib[existing.key] = { ...existing.item, userStatus: item.userStatus, userRating: item.userRating || existing.item.userRating || 0, ...date };
+        updated++;
+      } else {
+        lib[item.id] = { ...rest, userRating: item.userRating || 0, ...date };
+        added++;
+      }
+    });
+    saveLibrary(lib);
+    showNotif(`AniList: ${added} adicionados${updated ? `, ${updated} atualizados` : ""} ✓`, "#2563eb", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+  };
+
   const importMihon = async (items) => {
     const lib = { ...library };
     let added = 0, updated = 0, skipped = 0;
@@ -2560,6 +2583,7 @@ export default function TrackAll() {
             onImportMihon={importMihon}
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
+            onImportAniList={importAniList}
             onOpen={setSelectedItem}
             diaryPanel={null}
           />
