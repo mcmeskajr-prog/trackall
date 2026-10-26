@@ -107,15 +107,15 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, padding: "14px 16px 0" }}>
-            <button onClick={onEdit} style={outBtn(accent)}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>
+          {(onEdit || onPersonalize || onSignOut) && <div style={{ display: "flex", gap: 8, padding: "14px 16px 0" }}>
+            {onEdit && <button onClick={onEdit} style={outBtn(accent)}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>}
             {onPersonalize && <button onClick={onPersonalize} style={outBtn(divider)}>{lang === "en" ? "Customise" : "Personalizar"}</button>}
             {onSignOut && (
               <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
               </button>
             )}
-          </div>
+          </div>}
           {featRow && <div style={{ padding: "0 16px" }}>{featRow}</div>}
         </div>
       );
@@ -134,9 +134,9 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
             {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 3, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
           </div>
-          <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
+          {onEdit && <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-          </button>
+          </button>}
           {onSignOut && (
             <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
@@ -223,7 +223,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
           </button>
         )}
         </div>
-      ) : (
+      ) : !onPickFeatured ? null : (
         <div onClick={onPickFeatured || undefined} style={{ cursor: onPickFeatured ? "pointer" : "default", aspectRatio: "2/3", borderRadius: 16, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"}`, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 20, color: sub, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>
           {lang === "en" ? "Pick a featured item to show on your profile" : "Escolhe um item em destaque para mostrar no teu perfil"}
         </div>
@@ -232,10 +232,10 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       {userEmail && !hideEmail && <p style={{ fontSize: 12, color: darkMode ? "#6e7681" : "#64748b", margin: "0 0 10px", overflowWrap: "anywhere", textAlign: "center" }}>✉ {userEmail}</p>}
 
       {/* Ações */}
-      <div style={{ display: "flex", gap: 10, marginTop: 0 }}>
-        <button onClick={onEdit} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: "none", background: accent, color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700 }}>
+      {(onEdit || onSignOut) && <div style={{ display: "flex", gap: 10, marginTop: 0 }}>
+        {onEdit && <button onClick={onEdit} style={{ flex: 1, minHeight: 44, borderRadius: 12, border: "none", background: accent, color: "white", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700 }}>
           {lang === "en" ? "Edit profile" : "Editar perfil"}
-        </button>
+        </button>}
         {onSignOut && (
           <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ width: 44, minHeight: 44, borderRadius: 12, border: `1px solid ${darkMode ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.2)"}`, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)", color: sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -245,7 +245,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             </svg>
           </button>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

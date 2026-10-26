@@ -7,11 +7,16 @@ import { gradientFor } from "../lib/utils";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
-import { BannerHero, BannerPageTint } from "./BannerHero";
+import { BannerPageTint } from "./BannerHero";
 import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
-import higanLine from "../assets/higan-line.webp";
+import { TiltCard } from "./TiltCard";
+import { ProfileCard } from "./ProfileCard";
+import { ProfileActivity } from "./ProfileActivity";
+import { ProfileEstatisticas } from "./ProfileEstatisticas";
+import { RecentSection } from "./RecentSection";
+import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 
 const isHex = (c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
 
@@ -96,7 +101,6 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     const it = data.library?.[featuredId] || (data.hall || []).find(h => h.id === featuredId) || data.featured;
     return it && it.title ? it : null;
   }, [featuredId, data.library, data.hall, data.featured]);
-  const twoCol = !isMobileDevice && !!featuredItem;
   const favs = Array.isArray(prof.favorites) ? prof.favorites : [];
 
   // Em comum + afinidade (diferença média entre notas dadas ao mesmo título)
@@ -135,7 +139,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${hall.length <= 6 ? Math.max(hall.length, 4) : hall.length <= 8 ? 4 : 5}, minmax(0, 1fr))`, gap: 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
           {hall.map(h => <Poster key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
@@ -153,44 +157,112 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     { id: "diario", label: en ? "Diary" : "Diário" },
   ];
 
-  // PC com item em destaque: cartão à esquerda (avatar, nome, destaque em grande) como no perfil próprio
-  const adm = theme.panelDark ?? darkMode;
-  const aText = adm ? "#e6edf3" : "#0f172a";
-  const aSub = adm ? "#aab4c0" : "#475569";
-  const featType = featuredItem ? MEDIA_TYPES.find(t => t.id === featuredItem.type) : null;
-  const featSrc = featuredItem ? (featuredItem.customCover || featuredItem.cover || featuredItem.thumbnailUrl) : null;
-  const friendAside = twoCol ? (
-    <aside style={{ ...card, width: 320, flexShrink: 0, position: "relative", overflow: "hidden", isolation: "isolate", padding: 20, boxSizing: "border-box", color: aText, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", overflow: "hidden", borderRadius: "inherit", WebkitMaskImage: "linear-gradient(180deg, #000 40%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 40%, transparent 100%)" }}>
-        <div style={{ position: "absolute", left: -30, top: -10, width: 190, height: 304, transform: "scaleX(-1)", opacity: adm ? 0.5 : 0.45, background: accent,
-          WebkitMask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain`, mask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain` }} />
+  const pdm = theme.panelDark ?? darkMode;
+  const cardProfile = { name, bio: prof.bio, banner: prof.banner, hideBannerMobile: prof.hide_banner_mobile };
+  const matchPill = common.all.length > 0 ? (
+    <div style={{ display: "inline-flex", alignSelf: isMobileDevice ? "center" : "flex-start", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
+      {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
+      <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+    </div>
+  ) : null;
+  const friendCard = (
+    <ProfileCard profile={cardProfile} avatar={prof.avatar || info?.avatar} items={libItems} library={data.library || {}} featuredItem={featuredItem} onOpen={openItem} />
+  );
+
+  // ── PC: o mesmo esqueleto do perfil próprio ──
+  const h3 = { fontSize: 20, fontWeight: 800, color: text, margin: 0 };
+  const hofPC = (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+        <h3 style={h3}>Hall of Fame</h3>
+        <span style={{ fontSize: 12, color: muted }}>{hall.length}/10 {en ? "titles" : "obras"}</span>
       </div>
-      <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={96} ring={accent} ringWidth={3} />
-      <h2 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", overflowWrap: "anywhere" }}>{name}</h2>
-      {prof.username && <div style={{ fontSize: 13, color: aSub, marginTop: 3 }}>@{prof.username}</div>}
-      {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: aSub }}>{prof.bio}</p>}
-      <div onClick={() => openItem(featuredItem)} style={{ position: "relative", width: "100%", aspectRatio: "2/3", marginTop: 16, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: gradientFor(featuredItem.id), boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)", textAlign: "left" }}>
-        {featSrc ? <CoverImg hi src={featSrc} alt={featuredItem.title} decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, color: "#fff" }}><TypeIcon id={featuredItem.type} /></div>}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "52%", background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: 14, right: 14, bottom: 14, color: "#fff" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.85 }}>{en ? "Featured" : "Em destaque"}{featType ? ` · ${mediaLabel(featType, lang)}` : ""}</div>
-          <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.15, marginTop: 3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{featuredItem.title}</div>
-        </div>
-        {featuredItem.userRating > 0 && <div style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {featuredItem.userRating}</div>}
-      </div>
-      {common.all.length > 0 && (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 14, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700 }}>
-          {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
-          <span style={{ color: aSub, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
+      {hall.length === 0 ? (
+        <div style={{ border: `1px dashed ${line}`, borderRadius: 12, padding: 16, textAlign: "center", color: muted, fontSize: 13 }}>{en ? "No titles in the Hall of Fame yet." : "Ainda sem obras no Hall of Fame."}</div>
+      ) : (
+        <div style={{ "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }}>
+          {hall.map(h => {
+            const src = h.customCover || h.cover;
+            const score = h.userRating ?? 0;
+            return (
+              <div key={h.id} className="hof-card" onClick={() => openItem(h)} title={h.title} style={{ cursor: "pointer", minWidth: 0 }}>
+                <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ position: "relative", aspectRatio: "5/7", borderRadius: 14, overflow: "hidden", background: darkMode ? "#11151b" : "#e2e8f0",
+                  boxShadow: `0 0 0 ${h.id === featuredId ? 2 : 1}px ${h.id === featuredId ? accent : accent + "8c"}, 0 18px 30px -16px rgba(0,0,0,0.8)` }}>
+                  {src ? <CoverImg hi src={src} alt={h.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                    : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{h.title}</div>}
+                  {score > 0 && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Star size={10} />{score}</div>}
+                </TiltCard>
+              </div>
+            );
+          })}
         </div>
       )}
-    </aside>
-  ) : null;
+    </div>
+  );
+  const favsPC = favTypes.length > 0 && (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+        <h3 style={h3}>{en ? "Favorites" : "Favoritos"}</h3>
+        <span style={{ fontSize: 12, color: muted }}>{favs.length}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {favTypes.map(t => (
+          <div key={t.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: muted }}>
+              {mediaLabel(t, lang)}<span style={{ fontWeight: 600, opacity: 0.7 }}>{favByType[t.id].length}/{MAX_FAVORITES_PER_TYPE}</span>
+              <span style={{ flex: 1, height: 1, background: line }} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
+              {favByType[t.id].slice(0, MAX_FAVORITES_PER_TYPE).map(f => <Poster key={f.id} item={{ ...f, userRating: data.library?.[f.id]?.userRating ?? f.userRating }} onOpen={openItem} darkMode={darkMode} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  const bothPC = common.both.length > 0 && (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+        <h3 style={h3}>{en ? "Completed by both" : "Completos por ambos"}</h3>
+        <span style={{ fontSize: 12, color: muted }}>{common.both.length}</span>
+      </div>
+      <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
+        {common.both.slice(0, 15).map(({ fi, m }) => (
+          <div key={fi.id} style={{ width: 124 }}>
+            <Poster item={fi} onOpen={openItem} darkMode={darkMode}
+              badge={m.userRating > 0 && fi.userRating > 0 && m.userRating !== fi.userRating ? (
+                <div style={{ position: "absolute", left: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>{en ? "you" : "tu"} ★{m.userRating}</div>
+              ) : null} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  const perfilPC = (
+    <>
+      <div style={{ display: "flex", flexDirection: "row", gap: 32, alignItems: "stretch" }}>
+        <div style={{ width: 330, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+          {friendCard}
+          {matchPill}
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <div style={{ margin: "0 -16px" }}><ProfileStats items={libItems} panelBg={panelBg} /></div>
+          {hofPC}
+          {libItems.length > 0 && <div style={{ flex: "1 1 auto", display: "flex", flexDirection: "column" }}><ProfileActivity items={libItems} accent={accent} darkMode={pdm} isMobile={false} lang={lang} panelBg={panelBg} onOpen={openItem} /></div>}
+        </div>
+      </div>
+      <div style={{ marginTop: 28 }}>
+        <RecentSection items={libItems} onOpen={openItem} showDiary={false} />
+        {favsPC}
+        {bothPC}
+        <div style={{ marginBottom: 28 }}><ProfileEstatisticas items={libItems} panelBg={panelBg} /></div>
+      </div>
+    </>
+  );
 
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
-      <div style={{ maxWidth: isMobileDevice ? 600 : 1100, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
+      <div style={{ maxWidth: isMobileDevice ? 600 : 1500, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile && <BannerPageTint banner={prof.banner} />}
         {/* Barra de topo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${pad}px`, marginBottom: 14 }}>
@@ -208,47 +280,9 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           )}
         </div>
 
-        {/* Cartão principal: com banner (telemóvel) fundo tingido; senão cartão normal */}
-        {twoCol ? null : isMobileDevice && prof.banner && !prof.hide_banner_mobile ? (
-          <BannerHero banner={prof.banner} bleed={0} height={220} style={{ marginBottom: 18 }}>
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={86} ring={accent} ringWidth={3} />
-              <h2 style={{ fontSize: 25, fontWeight: 800, lineHeight: 1.15, margin: "12px 0 0", color: text, overflowWrap: "anywhere" }}>{name}</h2>
-              {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
-              {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}
-              <div style={{ marginTop: 12, paddingBottom: 12 }}>
-            {common.all.length > 0 && (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
-      {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
-      <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
-    </div>
-  )}
-              </div>
-            </div>
-          </BannerHero>
-        ) : (
-          <div style={{ ...card, margin: `0 ${pad}px 18px`, position: "relative", overflow: "hidden", padding: isMobileDevice ? "18px 16px" : "22px 24px" }}>
-            <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 0% 0%, ${accent}30, transparent 60%)`, pointerEvents: "none" }} />
-            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: isMobileDevice ? 14 : 18, flexWrap: "wrap" }}>
-              <FriendAvatar src={prof.avatar || info?.avatar} name={name} size={isMobileDevice ? 68 : 84} ring={accent} ringWidth={3} />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <h2 style={{ fontSize: isMobileDevice ? 21 : 25, fontWeight: 800, lineHeight: 1.15, margin: 0, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</h2>
-                {prof.username && <div style={{ fontSize: 13, color: muted, marginTop: 3 }}>@{prof.username}</div>}
-                {prof.bio && <p style={{ margin: "8px 0 0", fontSize: 13.5, lineHeight: 1.5, color: darkMode ? "#aab4c0" : "#475569" }}>{prof.bio}</p>}
-              </div>
-              {common.all.length > 0 && (
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}44`, fontSize: 12.5, fontWeight: 700, color: text }}>
-                  {common.affinity != null && <span style={{ color: accent, fontSize: 20, fontWeight: 800 }}>{common.affinity}%</span>}
-                  <span style={{ color: muted, fontWeight: 600 }}>{common.affinity != null ? (en ? "taste match · " : "afinidade · ") : ""}{common.all.length} {en ? "in common" : "em comum"}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Telemóvel: o mesmo cartão do perfil próprio; no PC o cartão vive na coluna esquerda do separador Perfil */}
+        {isMobileDevice && tab === "perfil" && <div style={{ marginBottom: 14 }}>{friendCard}{matchPill && <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>{matchPill}</div>}</div>}
 
-        <div style={twoCol ? { display: "flex", gap: 24, alignItems: "flex-start" } : undefined}>
-        {twoCol && friendAside}
-        <div style={twoCol ? { flex: 1, minWidth: 0 } : undefined}>
         {/* Separadores */}
         <div style={{ display: "flex", gap: 4, margin: `0 ${pad}px 20px`, borderBottom: `1px solid ${line}` }}>
           {tabs.map(t => (
@@ -256,7 +290,12 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           ))}
         </div>
 
-        {tab === "perfil" && (
+        {tab === "perfil" && !isMobileDevice && (
+          libItems.length === 0
+            ? <div style={{ ...card, padding: "40px 20px", textAlign: "center", color: muted, fontSize: 14 }}>{en ? "This library is empty (or private)." : "Esta biblioteca está vazia (ou privada)."}</div>
+            : perfilPC
+        )}
+        {tab === "perfil" && isMobileDevice && (
           <div style={{ padding: `0 ${pad}px` }}>
             {libItems.length === 0 ? (
               <div style={{ ...card, padding: "40px 20px", textAlign: "center", color: muted, fontSize: 14 }}>{en ? "This library is empty (or private)." : "Esta biblioteca está vazia (ou privada)."}</div>
@@ -308,8 +347,6 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
         {tab === "diario" && (
           <ProfileTabDiario items={libItems} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} />
         )}
-        </div>
-        </div>
       </div>
     </ThemeContext.Provider>
   );

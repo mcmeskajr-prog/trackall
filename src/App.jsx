@@ -256,7 +256,8 @@ export default function TrackAll() {
   const [bgParallax, setBgParallax] = useState(true);
   const [bgLum, setBgLum] = useState({ url: "", lum: null });
   // Tema do amigo enquanto se vê o perfil dele ({ bgColor, bgImage, overlay, blur, panelBg, panelOpacity } | null)
-  const [friendTheme, setFriendTheme] = useState(null);
+  const [friendThemeRaw, setFriendTheme] = useState(null);
+  const ownDarkRef = useRef(true); // modo claro/escuro do TEU tema (guardado para a barra lateral e a barra de baixo não mudarem com o tema do amigo)
   const [darkMode, setDarkMode] = useState(true);
   const [profile, setProfile] = useState({ name: "", bio: "", avatar: "", hallOfFame: [] });
   const [library, setLibrary] = useState({});
@@ -269,6 +270,8 @@ export default function TrackAll() {
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
+  // O tema do amigo só vale enquanto a vista Amigos está ativa (as vistas ficam montadas em segundo plano)
+  const friendTheme = view === "friends" ? friendThemeRaw : null;
   const [activeTab, setActiveTab] = useState("all");
   const [homeFilter, setHomeFilter] = useState([]);
   const [homeCollapsedCurso, setHomeCollapsedCurso] = useState(false);
@@ -1924,6 +1927,8 @@ export default function TrackAll() {
     else ur = hexRgb(activeBgColor) || [13, 17, 23];
     return isDarkLum(relLum([0, 1, 2].map(i => a * pr[i] + (1 - a) * ur[i])));
   })();
+  if (!friendTheme) ownDarkRef.current = activeDarkMode;
+  const ownDark = ownDarkRef.current;
   const onAccentTxt = onAccentColor(accent);
   const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, friendTheme?.accent || accent, activeDarkMode);
 
@@ -2136,7 +2141,7 @@ export default function TrackAll() {
           @media (max-width: 480px) {
             .modal-bg { backdrop-filter: none !important; background: rgba(0,0,0,0.88) !important; }
           }
-          .bottom-nav { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; right: 12px; background: ${activeDarkMode ? `color-mix(in srgb, ${activeBgColor} 62%, transparent)` : "rgba(255,255,255,0.72)"}; backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3); border: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}; border-radius: 26px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; height: 64px; z-index: 50; }
+          .bottom-nav { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom)); left: 12px; right: 12px; background: ${ownDark ? `color-mix(in srgb, ${ownBgColor} 62%, transparent)` : "rgba(255,255,255,0.72)"}; backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3); border: 1px solid ${ownDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}; border-radius: 26px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; height: 64px; z-index: 50; }
           .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600; transition: color 0.15s; color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${activeDarkMode ? "#8b949e" : "#64748b"}; }
@@ -2242,9 +2247,11 @@ export default function TrackAll() {
           @keyframes spin { to { transform: rotate(360deg); } }
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: transparent; border-bottom: 1px solid transparent; position: relative; }
-          ${!activeDarkMode ? `
+          ${!ownDark ? `
             .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
             .bottom-nav { background: rgba(255,255,255,0.78) !important; }
+          ` : ""}
+          ${!activeDarkMode ? `
             .top-nav-bar { }
             /* Corrigir texto muted/secondary no modo claro */
             .tc-zone span[style*="color: rgb(72, 79, 88)"],
