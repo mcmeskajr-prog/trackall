@@ -3,7 +3,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry, normalizeMediaId } from "../lib/mediaIds";
 import { smartSearch } from "../api/smartSearch";
-import { parseNotes, resolveNotes, toLibraryItem } from "../lib/notesImport";
+import { parseNotes, resolveNotes, toLibraryItem, rankOptions, AUTO_TYPES } from "../lib/notesImport";
 
 const TYPES = [["auto", "Auto"], ["anime", "Anime"], ["manga", "Manga"], ["series", "Séries"], ["filmes", "Filmes"], ["jogos", "Jogos"], ["livros", "Livros"]];
 const TYPE_LABEL = { anime: "Anime", manga: "Manga", manhwa: "Manhwa", lightnovels: "Light novel", filmes: "Filme", series: "Série", jogos: "Jogo", livros: "Livro", comics: "Comic" };
@@ -23,6 +23,8 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
   const [results, setResults] = useState([]);
   const [picked, setPicked] = useState({});   // índice → candidato escolhido (linhas "ask")
   const [skipped, setSkipped] = useState({}); // índice → true (ignorar)
+  const [man, setMan] = useState({});       // índice → { open, q, type, busy, opts, done } (pesquisa manual por linha)
+  const [more, setMore] = useState({});     // índice → mostrar todas as opções
   const stopRef = useRef(false);
   const taRef = useRef(null);
   useEffect(() => { taRef.current?.focus(); return () => { stopRef.current = true; }; }, []);
@@ -59,12 +61,24 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
     setResults(res); setPicked({}); setSkipped({}); setStep("review");
   };
 
-  const chosenFor = (r, i) => (r.state === "ok" ? r.chosen : r.state === "ask" ? picked[i] : null);
+  const chosenFor = (r, i) => picked[i] || (r.state === "ok" ? r.chosen : null);
+  const optsFor = (r, i) => man[i]?.opts || r.options || [];
+  const openMan = (i) => setMan(m => ({ ...m, [i]: { q: results[i].entry.title, type: typeChoice, ...m[i], open: true } }));
+  const setManF = (i, patch) => setMan(m => ({ ...m, [i]: { ...m[i], ...patch } }));
+  const doMan = async (i) => {
+    const s = man[i]; const q = (s?.q || "").trim(); if (!q) return;
+    setManF(i, { busy: true });
+    const types = s.type && s.type !== "auto" ? [s.type] : AUTO_TYPES;
+    const found = await Promise.all(types.map(t => Promise.resolve().then(() => search(q, t)).catch(() => [])));
+    const cands = found.flatMap((l, k) => (l || []).slice(0, 8).map(c => ({ ...c, type: c.type || types[k] })));
+    setManF(i, { busy: false, done: true, opts: rankOptions({ title: q }, cands, { min: 0.25, limit: 12 }) });
+    setMore(m => ({ ...m, [i]: true })); setPicked(p => ({ ...p, [i]: undefined }));
+  };
   const stats = useMemo(() => {
     let ok = 0, ask = 0, none = 0, have = 0, go = 0;
     results.forEach((r, i) => {
-      if (r.state === "ok") ok++; else if (r.state === "ask") ask++; else none++;
       const c = chosenFor(r, i);
+      if (c) ok++; else if (r.state === "ask") ask++; else none++;
       if (c && owned(c)) have++; else if (c && !skipped[i]) go++;
     });
     return { ok, ask, none, have, go, pending: results.filter((r, i) => r.state === "ask" && !picked[i]).length };
@@ -151,23 +165,42 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
                 const extra = (<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>{chip(stLabel(e.status), STATE_COLOR[e.status] || muted)}{e.rating > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#fbbf24" }}>★ {e.rating}</span>}</div>);
                 return (
                   <div key={`${e.line}-${i}`} style={{ padding: "10px 14px", borderRadius: 14, background: tile, border: `1px solid ${border}`, opacity: off ? 0.5 : 1 }}>
-                    {r.state === "ask" ? (<>
+                    {(r.state === "ask" || man[i]?.open) ? (<>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 12.5, color: muted }}>{en ? "Several results for" : "Vários resultados para"} <b style={{ color: txt }}>“{e.title}”</b></span>
-                        {!picked[i] && chip(en ? "Pick one" : "Escolhe um", "#fbbf24")}
+                        <span style={{ fontSize: 12.5, color: muted }}>{r.state === "none" ? (en ? "Search for" : "Procurar") : (en ? "Several results for" : "Vários resultados para")} <b style={{ color: txt }}>“{e.title}”</b></span>
+                        {!picked[i] && r.state === "ask" && chip(en ? "Pick one" : "Escolhe um", "#fbbf24")}
                         {extra}
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-                        {r.options.map(o => {
-                          const on = picked[i]?.id === o.id;
-                          return (
-                            <button key={o.id} onClick={() => setPicked(p => ({ ...p, [i]: on ? undefined : o }))} style={{ display: "flex", gap: 9, alignItems: "center", padding: 8, borderRadius: 12, textAlign: "left", fontFamily: "inherit", color: txt, cursor: "pointer", border: `1.5px solid ${on ? accent : border}`, background: on ? accent + "14" : "transparent" }}>
-                              {cover(o, 30, 42)}
-                              <span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.title}</span><span style={{ display: "block", fontSize: 11, color: muted }}>{meta(o)}</span></span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {optsFor(r, i).length > 0 && (() => {
+                        const all = optsFor(r, i), shown = more[i] ? all : all.slice(0, 4);
+                        return (<>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, maxHeight: more[i] ? 280 : "none", overflowY: more[i] ? "auto" : "visible" }}>
+                            {shown.map(o => {
+                              const on = picked[i]?.id === o.id;
+                              return (
+                                <button key={o.id} onClick={() => setPicked(p => ({ ...p, [i]: on ? undefined : o }))} style={{ display: "flex", gap: 9, alignItems: "center", padding: 8, borderRadius: 12, textAlign: "left", fontFamily: "inherit", color: txt, cursor: "pointer", border: `1.5px solid ${on ? accent : border}`, background: on ? accent + "14" : "transparent" }}>
+                                  {cover(o, 30, 42)}
+                                  <span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.title}</span><span style={{ display: "block", fontSize: 11, color: muted }}>{meta(o)}</span></span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {all.length > 4 && !more[i] && <button onClick={() => setMore(m => ({ ...m, [i]: true }))} style={{ marginTop: 6, background: "none", border: "none", color: accent, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: "pointer", minHeight: 32 }}>{en ? `Show ${all.length - 4} more` : `Ver mais ${all.length - 4}`}</button>}
+                        </>);
+                      })()}
+                      {man[i]?.done && !optsFor(r, i).length && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{en ? "Nothing found. Try another spelling." : "Nada encontrado. Tenta outra grafia."}</div>}
+                      {man[i]?.open ? (
+                        <form onSubmit={ev => { ev.preventDefault(); doMan(i); }} style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                          <input value={man[i].q} onChange={ev => setManF(i, { q: ev.target.value })} placeholder={en ? "Type the correct title" : "Escreve o título certo"} style={{ flex: "1 1 180px", minWidth: 0, height: 38, padding: "0 12px", borderRadius: 10, border: `1px solid ${border}`, background: darkMode ? "#0d1117" : "#fff", color: txt, fontFamily: "inherit", fontSize: 13, outline: "none" }} />
+                          <select value={man[i].type} onChange={ev => setManF(i, { type: ev.target.value })} style={{ height: 38, borderRadius: 10, border: `1px solid ${border}`, background: darkMode ? "#0d1117" : "#fff", color: txt, fontFamily: "inherit", fontSize: 12, padding: "0 8px" }}>
+                            {TYPES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                          </select>
+                          <button type="submit" disabled={man[i].busy} className="btn-accent" style={{ height: 38, padding: "0 16px", borderRadius: 10, fontSize: 13 }}>{man[i].busy ? "…" : (en ? "Search" : "Procurar")}</button>
+                          {r.state !== "none" && <button type="button" onClick={() => setManF(i, { open: false, opts: null, done: false })} style={{ height: 38, background: "none", border: "none", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{en ? "Cancel" : "Cancelar"}</button>}
+                        </form>
+                      ) : (
+                        <button onClick={() => openMan(i)} style={{ marginTop: 6, background: "none", border: "none", color: accent, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: "pointer", minHeight: 32 }}>{en ? "Not it? Search another title" : "Não é este? Procurar outro título"}</button>
+                      )}
                     </>) : r.state === "ok" ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         {cover(c)}
@@ -176,9 +209,12 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
                           <div style={{ fontSize: 12, color: muted }}>{meta(c)}</div>
                           {extra}
                         </div>
-                        {has ? chip(en ? "Already yours" : "Já tens", muted) : (
-                          <button onClick={() => setSkipped(s => ({ ...s, [i]: !s[i] }))} style={{ background: "none", border: "none", color: skipped[i] ? accent : muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 36 }}>{skipped[i] ? (en ? "Include" : "Incluir") : (en ? "Skip" : "Ignorar")}</button>
-                        )}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                          {has ? chip(en ? "Already yours" : "Já tens", muted) : (
+                            <button onClick={() => setSkipped(s => ({ ...s, [i]: !s[i] }))} style={{ background: "none", border: "none", color: skipped[i] ? accent : muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 32 }}>{skipped[i] ? (en ? "Include" : "Incluir") : (en ? "Skip" : "Ignorar")}</button>
+                          )}
+                          <button onClick={() => { setMore(m => ({ ...m, [i]: false })); openMan(i); }} style={{ background: "none", border: "none", color: accent, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 32 }}>{en ? "Change" : "Mudar"}</button>
+                        </div>
                       </div>
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -188,6 +224,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
                           <div style={{ fontSize: 12, color: muted }}>{en ? "Nothing found with this name." : "Não encontrei nada com este nome."}</div>
                         </div>
                         {chip(en ? "Not found" : "Não encontrado", "#f87171")}
+                        <button onClick={() => openMan(i)} style={{ background: "none", border: "none", color: accent, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: "pointer", minHeight: 36 }}>{en ? "Search" : "Procurar"}</button>
                       </div>
                     )}
                   </div>

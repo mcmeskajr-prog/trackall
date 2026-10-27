@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseNotes, parseRating, similarity, pickMatch, resolveNotes, toLibraryItem, norm } from "./notesImport";
+import { parseNotes, parseRating, similarity, pickMatch, resolveNotes, toLibraryItem, norm , rankOptions } from "./notesImport";
 
 describe("parseRating", () => {
   it("formatos comuns", () => {
@@ -158,4 +158,21 @@ describe("toLibraryItem", () => {
     expect(it).toMatchObject({ id: "tmdb-filmes-1", userStatus: "completo", userRating: 9 });
     expect("addedAt" in it).toBe(false);
   });
+});
+
+describe("rankOptions", () => {
+  const e = { title: "Highschool DxD" };
+  const cands = [
+    { id: "b1", type: "livros", title: "HighSchool DxD 05" },
+    { id: "b2", type: "livros", title: "HighSchool DxD 08" },
+    { id: "b3", type: "livros", title: "HighSchool DxD, Band 10" },
+    { id: "b4", type: "livros", title: "HighSchool DxD 11" },
+    { id: "al-anime-1", type: "anime", title: "High School DxD" },
+  ];
+  it("o melhor de cada tipo aparece à frente (o anime não fica escondido)", () => {
+    const o = rankOptions(e, cands);
+    expect(o.slice(0, 2).map(x => x.type).sort()).toEqual(["anime", "livros"]);
+  });
+  it("devolve mais de 3 opções", () => { expect(rankOptions(e, cands).length).toBe(5); });
+  it("respeita o limite", () => { expect(rankOptions(e, cands, { limit: 2 }).length).toBe(2); });
 });

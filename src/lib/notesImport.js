@@ -106,17 +106,30 @@ export function similarity(q, t) {
 }
 
 // Escolhe o melhor candidato. state: "ok" (certo) | "ask" (vários bons: escolhe) | "none"
-export function pickMatch(entry, candidates) {
+function scoreCandidates(entry, candidates) {
   const scored = (candidates || []).filter(c => c && c.id && c.title).map((c, i) => {
     let s = Math.max(similarity(entry.title, c.title), c.titleEn ? similarity(entry.title, c.titleEn) : 0);
     if (entry.year && c.year) s += String(c.year) === String(entry.year) ? 0.15 : -0.2;
     return { c, s, i };
   }).sort((x, y) => (y.s - x.s) || (x.i - y.i));
   const seen = new Set();
-  const uniq = scored.filter(x => (seen.has(x.c.id) ? false : (seen.add(x.c.id), true)));
+  return scored.filter(x => (seen.has(x.c.id) ? false : (seen.add(x.c.id), true)));
+}
+
+// Opções para o utilizador escolher: o melhor de CADA tipo primeiro (assim o anime não fica escondido
+// atrás de 3 livros), depois o resto por pontuação.
+export function rankOptions(entry, candidates, { min = 0.4, limit = 10 } = {}) {
+  const good = scoreCandidates(entry, candidates).filter(x => x.s >= min);
+  const seenType = new Set(), lead = [], rest = [];
+  good.forEach(x => { if (!seenType.has(x.c.type)) { seenType.add(x.c.type); lead.push(x); } else rest.push(x); });
+  return [...lead, ...rest].slice(0, limit).map(x => x.c);
+}
+
+export function pickMatch(entry, candidates) {
+  const uniq = scoreCandidates(entry, candidates);
   if (!uniq.length || uniq[0].s < 0.5) return { state: "none", options: [] };
   const top = uniq[0], next = uniq[1];
-  const options = uniq.filter(x => x.s >= 0.4).slice(0, 3).map(x => x.c);
+  const options = rankOptions(entry, candidates);
   if (top.s >= 0.9 && (!next || top.s - next.s >= 0.1)) return { state: "ok", chosen: top.c, options };
   return { state: "ask", options };
 }
@@ -134,7 +147,7 @@ export async function resolveNotes(entries, { search, typeChoice = "auto", concu
       const entry = entries[idx];
       const types = entry.type ? [entry.type] : (typeChoice && typeChoice !== "auto" ? [typeChoice] : AUTO_TYPES);
       const found = await Promise.all(types.map(t => Promise.resolve().then(() => search(entry.title, t)).catch(() => [])));
-      const cands = found.flatMap((list, k) => (list || []).slice(0, 6).map(c => ({ ...c, type: c.type || types[k] })));
+      const cands = found.flatMap((list, k) => (list || []).slice(0, 8).map(c => ({ ...c, type: c.type || types[k] })));
       results[idx] = { entry, ...pickMatch(entry, cands) };
       done++;
       onProgress && onProgress(done, entries.length);
