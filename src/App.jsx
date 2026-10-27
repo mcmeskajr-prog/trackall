@@ -1465,6 +1465,22 @@ export default function TrackAll() {
     showNotif(`Notas: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`, "#ea580c", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
   };
 
+  // Goodreads: livros já ligados ao Google Books (ids gb-…). Só "completo" com data de leitura leva addedAt (entra no Diário).
+  const importGoodreads = (gItems) => {
+    const before = libraryRef.current || library;
+    const lib = { ...before };
+    let added = 0, had = 0;
+    gItems.forEach(item => {
+      const n = normalizeMediaItem(item);
+      const canon = normalizeMediaId(n.id, n.type);
+      if (findLibraryEntry(lib, canon, n.type)) { had++; return; }
+      lib[canon] = { ...n, id: canon, importedFrom: "goodreads", importedAt: Date.now() };
+      added++;
+    });
+    saveLibrary(lib);
+    showNotif(`Goodreads: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`, "#7c5a3a", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+  };
+
   const importMihon = async (items) => {
     const lib = { ...library };
     let added = 0, updated = 0, skipped = 0;
@@ -2601,6 +2617,7 @@ export default function TrackAll() {
             onImportLetterboxd={importLetterboxd}
             onImportAniList={importAniList}
             onImportNotes={importNotes}
+            onImportGoodreads={importGoodreads}
             onOpen={setSelectedItem}
             diaryPanel={null}
           />

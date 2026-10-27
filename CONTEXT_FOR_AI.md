@@ -52,6 +52,12 @@
 12. **APIs: `chapters` só vem em obras terminadas**
    AniList devolve `chapters: null` para mangás/manhwas em publicação. Nunca assumir um total para barras de progresso.
 
+13. **Importações: ligar às APIs, nunca inventar datas**
+   Itens importados têm de usar ids das APIs (`al-anime-N`, `gb-…`, `tmdb-…`) — ids próprios (`pb-`, `mihon-`, `lb-`) deixam o item sem banner/descrição/personagens. Sem data de conclusão **não** se põe `addedAt` (o Diário mostra `completo` + `addedAt`; nunca usar `Date.now()` como data). Todo o lote leva `importedFrom`/`importedAt` e o toast tem "Desfazer" (`saveLibrary(before)`). Detalhes no DEV_GUIDE ("Importações").
+
+14. **Pesquisa por nome: mostrar o melhor de cada tipo**
+   Ordenar só por semelhança escondia o anime atrás de 3 livros ("Highschool DxD"). `rankOptions` põe o melhor de cada tipo à frente. E o utilizador tem de poder corrigir à mão (procurar outro título), nunca ficar preso ao palpite.
+
 ---
 
 ## ✅ Trabalho recente concluído
@@ -63,6 +69,10 @@
 - **3 traduções corrigidas** em `translations.js`: `favorites`, `diary`, `password` (estavam em inglês dentro do bloco `pt:`).
 - **Visual**: efeito "vidro fosco" (`backdrop-filter: blur` + fundo translúcido) nos cards de pesquisa e nos modais/cartões de Listas e Tier Lists (`.modal-glass`); hover consistente (título + rating no gradiente escuro) em Favoritos/Completados/Biblioteca, incluindo o modo Compacto; modo de tamanho "Grande" novo na Biblioteca e nas Listas (P/M/G); cabeçalhos sem ícone onde pedido ("Recentes", "Para Hoje", etc.); componente `TiltCard` reutilizável — inclinação 3D + brilho a seguir o rato no hover, sem custo de performance (mexe direto no DOM via `ref`, throttled a 1x por frame com `requestAnimationFrame`, nunca usa `useState` para a posição do rato). Aplicado no "Melhor para Hoje", Hall of Fame e Favoritos.
 - **Tier Lists / Listas**: lista de itens do "Editar Coleção" passou de texto empilhado para grelha de mini-capas com hover; `TierListViewer` passou a ter filas tipo "prateleira" com scroll horizontal e contador por tier; itens da Tier List agora clicáveis (abrem o `DetailModal` por cima, usando o portal).
+
+**Outubro de 2026 (segurança, testes, importações):** RLS revisto (amizades, segredos em `profile_private`, convites por trigger); Vitest (90 testes em `src/lib`); arranque sem flash (`trackall_boot_theme`); perfil de amigo com o mesmo layout do próprio; importadores **AniList**, **Colar uma lista** e **Goodreads (CSV)** com pré-visualização e Desfazer.
+
+**Por fazer nas importações:** função "Ligar" para itens antigos (`pb-`/`mihon-`/`lb-`) → registo da API; fazer Letterboxd/Mihon/Paperback resolverem para ids de API; MyAnimeList (XML/Jikan); possível limpeza de lotes por `importedFrom`.
 
 ## 🧭 Ideias discutidas mas NÃO implementadas ainda
 

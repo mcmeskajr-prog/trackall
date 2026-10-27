@@ -24,6 +24,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
   const [picked, setPicked] = useState({});   // índice → candidato escolhido (linhas "ask")
   const [skipped, setSkipped] = useState({}); // índice → true (ignorar)
   const [man, setMan] = useState({});       // índice → { open, q, type, busy, opts, done } (pesquisa manual por linha)
+  const [statusOv, setStatusOv] = useState({}); // índice → estado escolhido na revisão
   const [more, setMore] = useState({});     // índice → mostrar todas as opções
   const stopRef = useRef(false);
   const taRef = useRef(null);
@@ -48,7 +49,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
   const start = async () => {
     const res = await run(entries);
     if (!res) return;
-    setResults(res); setPicked({}); setSkipped({}); setStep("review");
+    setResults(res); setPicked({}); setSkipped({}); setStatusOv({}); setStep("review");
   };
   const retryMissing = async () => {
     const miss = results.filter(r => r.state === "none").map(r => r.entry);
@@ -58,9 +59,11 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
     if (!res) return;
     // mantém a ordem original das linhas
     res.sort((a, b) => a.entry.line - b.entry.line);
-    setResults(res); setPicked({}); setSkipped({}); setStep("review");
+    setResults(res); setPicked({}); setSkipped({}); setStatusOv({}); setStep("review");
   };
 
+  const statusOf = (r, i) => statusOv[i] || r.entry.status || "planejado";
+  const setAllStatus = (st) => setStatusOv(Object.fromEntries(results.map((_, i) => [i, st])));
   const chosenFor = (r, i) => picked[i] || (r.state === "ok" ? r.chosen : null);
   const optsFor = (r, i) => man[i]?.opts || r.options || [];
   const openMan = (i) => setMan(m => ({ ...m, [i]: { q: results[i].entry.title, type: typeChoice, ...m[i], open: true } }));
@@ -87,7 +90,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
 
   const doImport = () => {
     const out = [];
-    results.forEach((r, i) => { const c = chosenFor(r, i); if (c && !owned(c) && !skipped[i]) out.push(toLibraryItem(r, c)); });
+    results.forEach((r, i) => { const c = chosenFor(r, i); if (c && !owned(c) && !skipped[i]) out.push(toLibraryItem({ ...r, entry: { ...r.entry, status: statusOf(r, i) } }, c)); });
     onImport(out);
   };
 
@@ -154,6 +157,11 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
               {stats.ask > 0 && chip(`${stats.ask} ${en ? "to confirm" : "por confirmar"}`, "#fbbf24")}
               {stats.none > 0 && chip(`${stats.none} ${en ? "not found" : "não encontrados"}`, "#f87171")}
               {stats.have > 0 && chip(`${stats.have} ${en ? "already yours" : "já tens"}`, muted)}
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: muted }}>{en ? "Set all to" : "Estado de todos"}
+                <select value="" onChange={ev => ev.target.value && setAllStatus(ev.target.value)} style={{ height: 28, borderRadius: 8, border: `1px solid ${border}`, background: "transparent", color: txt, fontFamily: "inherit", fontSize: 12, padding: "0 6px" }}>
+                  <option value="">—</option>
+                  {Object.keys(STATE_PT).map(k => <option key={k} value={k} style={{ color: "#000" }}>{stLabel(k)}</option>)}
+                </select></label>
               {stats.none > 0 && <button onClick={retryMissing} style={{ marginLeft: "auto", background: "none", border: "none", color: accent, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: "pointer", minHeight: 36 }}>{en ? "Retry the missing" : "Tentar outra vez os que faltam"}</button>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -162,7 +170,12 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
                 const has = owned(c);
                 const off = skipped[i] || has;
                 const e = r.entry;
-                const extra = (<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>{chip(stLabel(e.status), STATE_COLOR[e.status] || muted)}{e.rating > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#fbbf24" }}>★ {e.rating}</span>}</div>);
+                const st = statusOf(r, i);
+                const extra = (<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
+                  <select value={st} onClick={ev => ev.stopPropagation()} onChange={ev => setStatusOv(o => ({ ...o, [i]: ev.target.value }))} aria-label={en ? "Status" : "Estado"} style={{ height: 26, padding: "0 6px", borderRadius: 999, fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: STATE_COLOR[st] || muted, background: (STATE_COLOR[st] || muted) + "22", border: `1px solid ${(STATE_COLOR[st] || muted)}55`, cursor: "pointer", outline: "none" }}>
+                    {Object.keys(STATE_PT).map(k => <option key={k} value={k} style={{ color: "#000" }}>{stLabel(k)}</option>)}
+                  </select>
+                  {e.rating > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#fbbf24" }}>★ {e.rating}</span>}</div>);
                 return (
                   <div key={`${e.line}-${i}`} style={{ padding: "10px 14px", borderRadius: 14, background: tile, border: `1px solid ${border}`, opacity: off ? 0.5 : 1 }}>
                     {(r.state === "ask" || man[i]?.open) ? (<>
@@ -233,7 +246,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 22px", borderTop: `1px solid ${border}`, flexShrink: 0, flexWrap: "wrap" }}>
-            <div style={{ fontSize: 12, color: muted, flex: 1, minWidth: 180 }}>{en ? "Without a completion date: they stay out of the Diary." : "Sem data de conclusão: ficam fora do Diário."}</div>
+            <div style={{ fontSize: 12, color: muted, flex: 1, minWidth: 180 }}>{en ? "Change the status per title or for all. Without a completion date they stay out of the Diary." : "Muda o estado em cada título ou em todos. Sem data de conclusão ficam fora do Diário."}</div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setStep("input")} style={{ height: 44, padding: "0 18px", borderRadius: 12, border: `1px solid ${border}`, background: "transparent", color: txt, fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{en ? "Back" : "Voltar"}</button>
               <button onClick={doImport} disabled={!stats.go} className="btn-accent" style={{ height: 44, padding: "0 22px", borderRadius: 12, fontSize: 14, opacity: stats.go ? 1 : 0.5 }}>

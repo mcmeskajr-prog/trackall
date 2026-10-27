@@ -53,7 +53,7 @@ TrackAll/
   - api/ (Fase 2 — anilist.js, tmdb.js, igdb.js, books.js, comicvine.js, details.js, recommendations.js, smartSearch.js)
   - components/ (ActionIcon, AppearanceSettings, AuthScreen, CollectionCard, CollectionModal, CollectionViewer, CoverEditModal, CoverImg, CropModal, DetailModal, FeaturedPickerModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, LibGroupedList, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileCard, ProfileEstatisticas, ProfileStats, ProfileTabCompletos, ProfileTabDiario, ProfileView, RatingOverlay, RecentSection, RecoCarousel, SidebarSearch, Skeleton, StarRating, TierListCard, TierListEditor, TierListViewer, TiltCard, TypeIcon, VirtualGrid)
   - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
-  - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**)
+  - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**, **libraryDiff.js**, **anilistImport.js**, **notesImport.js**, **goodreadsImport.js**)
   - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
 
 ---
@@ -312,7 +312,7 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 **"+1 ep" (opcional, no fim):** a app **não guarda progresso** por item (só `lastChapter` de texto vindo do Paperback). O AniList devolve `chapters` **só quando a obra terminou** (em publicação vem `null`); episódios de séries/animes também podem faltar. Se avançar: campo novo `progress`, mostrar só "Cap. 12 +" em itens "assistindo", **sem barra nem total**, e manter o modal leve.
 
-**Ideias guardadas:** importar do MAL/AniList/Letterboxd; aviso "nova versão disponível"; imagem "resumo do ano"; paleta Ctrl+K; code splitting (`React.lazy`); pequenos testes automáticos.
+**Ideias guardadas:** importar do MAL (XML/Jikan) e função "Ligar" itens antigos às APIs; aviso "nova versão disponível"; imagem "resumo do ano"; paleta Ctrl+K; code splitting (`React.lazy`); pequenos testes automáticos.
 
 **Antes de partilhar com outras pessoas (checklist):**
 - [ ] Exportar os meus dados (JSON).
@@ -365,10 +365,29 @@ Todas as tabelas de `public` têm RLS ligado. O que foi corrigido e as regras a 
 ## 🧪 Testes (desde 2026-10-26)
 
 - **Vitest 0.34.6** (devDependency; é a versão compatível com o Vite 4 — o Vitest mais recente exige Vite ≥ 6; **não** usar `--force`). Correr: `npm test` (= `vitest run`). Os `.test.js` não entram no bundle.
-- Ficheiros em `src/lib/`: `libraryDiff.test.js` (o que escrever/apagar no Supabase), `mediaIds.test.js` (`findLibraryEntry`, normalização), `contrast.test.js` (cores/contraste), `importParsers.test.js` (Letterboxd). 29 testes.
+- Ficheiros em `src/lib/`: `libraryDiff.test.js` (o que escrever/apagar no Supabase), `mediaIds.test.js` (`findLibraryEntry`, normalização), `contrast.test.js` (cores/contraste), `importParsers.test.js` (Letterboxd), `anilistImport.test.js`, `notesImport.test.js`, `goodreadsImport.test.js`. 90 testes.
 - `src/lib/libraryDiff.js`: `diffLibrary(prev, next) → { upserts, deletes }`, usado pelo `saveLibrary` do `App.jsx`. Nunca apaga ids que começam por `__`. **Regra:** lógica nova que se queira testar extrai-se para uma função pura em `src/lib/` (sem React, sem Supabase).
 - Correr `npm test` antes de cada push que mexa em `lib/`, sincronização ou importação. Ao corrigir um bug de lógica, escrever primeiro o teste que o reproduz.
 - `npm audit` mostra avisos nas dependências de desenvolvimento (Vitest/esbuild antigos); não correr `npm audit fix --force`. Resolvem-se ao subir o Vite.
+
+---
+
+## 📥 Importações (desde 2026-10-27)
+
+Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas, sem IA), **Goodreads** (CSV), Letterboxd (CSV), Mihon e Paperback (backups). Menu: Perfil → Definições → Importar.
+
+**Regra de ouro:** um item importado deve ficar **ligado às APIs** (ids `al-anime-N`, `tmdb-…`, `gb-…`, …), para ter banner, descrição e personagens. Os ids `pb-`, `mihon-`, `lb-` (importações antigas) ficam isolados — nada disso se repete nas importações novas. Plano futuro: função "Ligar" para os itens antigos e fazer o Letterboxd/Mihon/Paperback resolverem para ids de API.
+
+- **Sem data não há Diário:** o Diário mostra `completo` + `addedAt`. Itens importados sem data de conclusão ficam **sem `addedAt`** (nunca a data de hoje). Datas parciais contam como sem data.
+- **Marca do lote:** cada item novo leva `importedFrom` (`anilist:<utilizador>`, `notas`, `goodreads`) e `importedAt`. Permite limpar/auditar um lote mais tarde. Os importadores antigos não têm marca.
+- **Desfazer:** `importAniList` / `importNotes` / `importGoodreads` (em `App.jsx`) guardam `before = libraryRef.current` e a notificação chama `saveLibrary(before)`. Ignoram o que já existe (`findLibraryEntry`). Nada é gravado antes de o utilizador confirmar na pré-visualização.
+- **Funções puras em `src/lib/`** (testadas), com a pesquisa **injetada** (`search`) para não depender de rede nos testes:
+  - `anilistImport.js` — `toAppRating` (nota 0–10 → meias estrelas), `fuzzyDateToMs`, `mapAniListEntry/Lists`, pedido GraphQL.
+  - `notesImport.js` — `parseNotes` (`Título - 9 - completo`, cabeçalhos de secção, checkboxes), `similarity`, `pickMatch` (`ok` se ≥0.9 e folga ≥0.1; `none` se <0.5; senão `ask`), `rankOptions` (melhor de **cada tipo** primeiro, para o anime não ficar escondido atrás de livros), `resolveNotes`, `toLibraryItem`.
+  - `goodreadsImport.js` — `parseCSV` (aspas/quebras de linha), `cleanIsbn` (`="978…"`), `cleanTitle` (tira "(Série, #1)"), prateleira → estado (`read`→completo, `currently-reading`→assistindo, `to-read`→planejado), nota ×2, `Date Read` → `addedAt` **só em completo**. `resolveGoodreads`: ISBN no Google Books (validado com a semelhança do título; se devolver outro livro cai para título+autor), depois `pickMatch`.
+- **Modais:** `AniListImportModal`, `NotesImportModal`, `GoodreadsImportModal` (passos entrada → a procurar com barra de progresso → revisão). Na revisão das notas: estado editável por linha e "Estado de todos", "Procurar outro título" por linha, "Ver mais" para as opções. No Goodreads: ligados entram por defeito; **incertos/não encontrados ficam de fora** (opção "Incluir" nos incertos).
+- **Limites conhecidos:** a pesquisa do AniList tem rate-limit (concorrência 2 + "Tentar outra vez os que faltam"); importações grandes sincronizam com o Supabase **uma a uma** (podem levar minutos); pré-visualização mostra 80 linhas (as restantes seguem as mesmas regras).
+- **Armadilha:** `smartSearch` guarda resultados em cache por `tipo::pesquisa`; o `Auto` das notas pesquisa em 6 tipos por linha — preferir escolher o tipo em listas grandes.
 
 ---
 
