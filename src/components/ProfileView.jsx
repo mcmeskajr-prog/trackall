@@ -29,6 +29,7 @@ import { MihonImportModal } from "./MihonImportModal";
 import { PaperbackImportModal } from "./PaperbackImportModal";
 import { LetterboxdImportModal } from "./LetterboxdImportModal";
 import { AniListImportModal } from "./AniListImportModal";
+import { NotesImportModal } from "./NotesImportModal";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { HofGridMobile, FavStacksMobile } from "./ProfileFavsMobile";
@@ -62,7 +63,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 }
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
-export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null }) {
+export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportNotes, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null }) {
   const { panelDark } = useTheme() || {};
   const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode;
   const [tabsBg, setTabsBg] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -77,6 +78,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showAniList, setShowAniList] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [favFilter, setFavFilter] = useState("all");
@@ -684,6 +686,15 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
         />
       )}
+      {showNotes && (
+        <NotesImportModal
+          library={library}
+          tmdbKey={tmdbKey}
+          workerUrl={workerUrl}
+          onClose={() => setShowNotes(false)}
+          onImport={(items) => { onImportNotes && onImportNotes(items); setShowNotes(false); }}
+        />
+      )}
       {showAniList && (
         <AniListImportModal
           library={library}
@@ -773,6 +784,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
             <p style={{ fontSize: 13, fontWeight: 700 }}>Paperback <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>— iOS manga e comics</span></p>
           </div>
           <button onClick={() => setShowPaperback(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{lang === "en" ? "Import" : "Importar"}</button>
+        </div>
+        {/* Colar uma lista (notas) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+          <span style={{ fontSize: 20, width: 36, textAlign: "center" }}>✎</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700 }}>{lang === "en" ? "Paste a list" : "Colar uma lista"} <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>{lang === "en" ? "— titles from your notes" : "— títulos das tuas notas"}</span></p>
+          </div>
+          <button onClick={() => setShowNotes(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{lang === "en" ? "Import" : "Importar"}</button>
         </div>
         {/* AniList */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>

@@ -1428,7 +1428,7 @@ export default function TrackAll() {
 
   // AniList: grava o que a pré-visualização aprovou. Os itens já vêm no formato da pesquisa (ids al-anime-N / al-manga-N), por isso
   // ficam ligados às APIs (banner, descrição, personagens). Sem data de conclusão → sem addedAt (fora do Diário, nunca "hoje").
-  const importAniList = (alItems, { withDates = true, skipExisting = true } = {}) => {
+  const importAniList = (alItems, { withDates = true, skipExisting = true, username = "" } = {}) => {
     const before = libraryRef.current || library;
     const lib = { ...before };
     let added = 0, updated = 0;
@@ -1441,12 +1441,28 @@ export default function TrackAll() {
         lib[existing.key] = { ...existing.item, userStatus: item.userStatus, userRating: item.userRating || existing.item.userRating || 0, ...date };
         updated++;
       } else {
-        lib[item.id] = { ...rest, userRating: item.userRating || 0, ...date };
+        lib[item.id] = { ...rest, userRating: item.userRating || 0, ...date, importedFrom: `anilist:${username}`, importedAt: Date.now() }; // marca o lote (permite desfazer/limpar mais tarde)
         added++;
       }
     });
     saveLibrary(lib);
     showNotif(`AniList: ${added} adicionados${updated ? `, ${updated} atualizados` : ""} ✓`, "#2563eb", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+  };
+
+  // Notas: itens já resolvidos pela pesquisa (ids das APIs → ligados). Sem data de conclusão: fora do Diário.
+  const importNotes = (nItems) => {
+    const before = libraryRef.current || library;
+    const lib = { ...before };
+    let added = 0, had = 0;
+    nItems.forEach(item => {
+      const n = normalizeMediaItem(item);
+      const canon = normalizeMediaId(n.id, n.type);
+      if (findLibraryEntry(lib, canon, n.type)) { had++; return; }
+      lib[canon] = { ...n, id: canon, importedFrom: "notas", importedAt: Date.now() };
+      added++;
+    });
+    saveLibrary(lib);
+    showNotif(`Notas: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`, "#ea580c", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
   };
 
   const importMihon = async (items) => {
@@ -2584,6 +2600,7 @@ export default function TrackAll() {
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
             onImportAniList={importAniList}
+            onImportNotes={importNotes}
             onOpen={setSelectedItem}
             diaryPanel={null}
           />
