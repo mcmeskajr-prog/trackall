@@ -1020,7 +1020,13 @@ export default function TrackAll() {
       }
       const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
       nextHall = [...currentHall, { id: normalizedItem.id, title: normalizedItem.title, cover: normalizedItem.cover, customCover: libItem?.customCover || normalizedItem.customCover || "", type: normalizedItem.type }];
-      showNotif(lang === "en" ? "Added to Hall of Fame" : "Adicionado ao Hall of Fame", "#fbbf24");
+      const wasFav = favorites.some(f => hallIds.has(f.id));
+      showNotif(wasFav ? (lang === "en" ? "Added to Hall of Fame (moved out of favorites)" : "Adicionado ao Hall of Fame (saiu dos favoritos)") : (lang === "en" ? "Added to Hall of Fame" : "Adicionado ao Hall of Fame"), "#fbbf24");
+      if (wasFav) { // passa de favorito a Hall of Fame: nunca nos dois
+        const newFavs = favorites.filter(f => !hallIds.has(f.id));
+        setFavorites(newFavs);
+        if (user) try { await supa.updateFavorites(user.id, newFavs); } catch {}
+      }
       if (navigator.vibrate) navigator.vibrate(40);
     }
     setProfile(prev => ({ ...prev, hallOfFame: nextHall }));
@@ -1664,6 +1670,12 @@ export default function TrackAll() {
       newFavs = favorites.filter(f => !favoriteIds.has(f.id));
       showNotif("Removido dos favoritos", "#8b949e");
     } else {
+      // O Hall of Fame e os favoritos não se repetem: o que está no Hall of Fame não entra nos favoritos
+      const hallNow = hallRef.current.loaded ? hallRef.current.hall : (Array.isArray(profile?.hallOfFame) ? profile.hallOfFame : []);
+      if (hallNow.some(h => favoriteIds.has(h.id))) {
+        showNotif(lang === "en" ? "Already in your Hall of Fame, so it can't also be a favorite" : "Já está no Hall of Fame, por isso não pode ser também favorito", "#fbbf24");
+        return;
+      }
       const sameType = favorites.filter(f => f.type === normalizedItem.type).length;
       if (sameType >= MAX_FAVORITES_PER_TYPE) {
         const t = MEDIA_TYPES.find(x => x.id === normalizedItem.type);

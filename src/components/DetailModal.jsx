@@ -302,8 +302,9 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
   const isFavorite = favorites.some(f => f.id === currentItem.id);
-  const canAddFavorite = !isFavorite && favorites.length < 30;
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
+  const canAddFavorite = !isFavorite && !isHallOfFame && favorites.length < 30; // o que está no Hall of Fame não é favorito
+  const favBlockedLabel = isHallOfFame ? (lang === "en" ? "Already in Hall of Fame" : "Já está no Hall of Fame") : useT("favoritesFull");
   const canAddHallOfFame = !isHallOfFame && hallOfFame.length < 10;
   const favIcon = <ActionIcon name="heart" size={17} filled={isFavorite} slash={!isFavorite && !canAddFavorite} />;
   const hofIcon = <ActionIcon name="star" size={17} filled={isHallOfFame} slash={!isHallOfFame && !canAddHallOfFame} />;
@@ -888,7 +889,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                           return (<>
                             {onToggleFavorite && (
                               <button onClick={pop(() => onToggleFavorite(currentItem))}
-                                aria-label={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}
+                                aria-label={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : favBlockedLabel}
                                 aria-pressed={isFavorite}
                                 style={{ ...base, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", border: `1px solid ${isFavorite ? accent : idle}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}>{favIcon}</button>
                             )}
@@ -917,7 +918,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       {onToggleFavorite && (
                         <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", flex: isMobileDevice ? 1 : "none", minWidth: 0, borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", opacity: !canAddFavorite && !isFavorite ? 0.4 : 1, border: `1px solid ${isFavorite ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}
-                          title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : useT("favoritesFull")}>
+                          title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : favBlockedLabel}>
                           {favIcon}<span style={{ whiteSpace: "nowrap" }}>Favorito</span>
                         </button>
                       )}

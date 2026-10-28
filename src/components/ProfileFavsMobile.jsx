@@ -142,28 +142,59 @@ function TypeSheet({ t, list, accent, darkMode, lang, ratingOf, onOpen, onReorde
         <div style={{ fontSize: 12, fontWeight: 700, color: muted }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</div>
       </div>
       <div ref={ref} style={{ padding: "0 14px", "--reorder-c": accent, ...noSelect }}>
-        {list.map((it, i) => {
-          const src = it.customCover || it.cover, r = ratingOf(it);
-          return (
-            <div key={it.id} data-ridx={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", marginTop: 8, borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.05)", border: `1px solid ${line}`, transition: "transform .15s" }}>
-              <div data-handle aria-label={lang === "en" ? "Drag to reorder" : "Arrastar para reordenar"} style={{ width: 34, alignSelf: "stretch", display: "flex", alignItems: "center", justifyContent: "center", color: muted, fontSize: 20, touchAction: "none", cursor: "grab" }}>≡</div>
-              <div onClick={() => onOpen && onOpen(it)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, cursor: "pointer" }}>
-                <div style={{ position: "relative", width: 44, height: 66, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
-                  {src && <CoverImg hi src={src} alt="" loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</div>
-                  <div style={{ fontSize: 11.5, color: muted, marginTop: 3, display: "flex", alignItems: "center", gap: 8 }}>
-                    {mediaLabel(t, lang)}
-                    {i === 0 && <span style={{ fontSize: 10, fontWeight: 800, color: accent, border: `1px solid ${accent}99`, borderRadius: 8, padding: "1px 7px" }}>{lang === "en" ? "Top pick" : "Destaque"}</span>}
+        {(() => {
+          const handleBtn = <div data-handle aria-label={lang === "en" ? "Drag to reorder" : "Arrastar para reordenar"} style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#e6edf3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, touchAction: "none", cursor: "grab", flexShrink: 0 }}>≡</div>;
+          const cover = (it, style) => { const src = it.customCover || it.cover; return (
+            <div style={{ position: "relative", background: gradientFor(it.id), overflow: "hidden", ...style }}>
+              {src && <CoverImg hi src={src} alt="" loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+            </div>); };
+          const first = list[0], rest = list.slice(1);
+          const fr = first ? ratingOf(first) : 0;
+          return (<>
+            {first && (
+              <div data-ridx={0} style={{ position: "relative", borderRadius: 22, overflow: "hidden", padding: 16, background: darkMode ? `linear-gradient(135deg, ${accent}33, #161020 70%)` : `linear-gradient(135deg, ${accent}2e, #ffffff 75%)`, border: `1px solid ${accent}66`, transition: "transform .15s" }}>
+                <div style={{ position: "relative", display: "flex", gap: 16 }}>
+                  <div onClick={() => onOpen && onOpen(first)} style={{ cursor: "pointer", flexShrink: 0 }}>
+                    {cover(first, { width: 132, height: 198, borderRadius: 14, boxShadow: `0 0 0 2px ${accent}, 0 16px 30px -10px rgba(0,0,0,0.6)` })}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: "#1a0f18", background: accent }}>★ {lang === "en" ? "TOP PICK" : "DESTAQUE"}</span>
+                      {handleBtn}
+                    </div>
+                    <div onClick={() => onOpen && onOpen(first)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+                      <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.12, marginTop: 12, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{first.title}</div>
+                      <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>{mediaLabel(t, lang)}</div>
+                      {fr > 0 && <div style={{ marginTop: "auto", fontSize: 18, fontWeight: 800, color: "#fbbf24" }}>★ {fr}</div>}
+                    </div>
                   </div>
                 </div>
-                {r > 0 && <div style={{ fontSize: 12.5, fontWeight: 800, color: "#fbbf24", flexShrink: 0 }}>★ {r}</div>}
               </div>
-            </div>
-          );
-        })}
-        <div style={{ fontSize: 11.5, color: muted, marginTop: 12 }}>{lang === "en" ? "Drag ≡ to change the order; the first one is the top pick." : "Arrasta o ≡ para mudar a ordem; a primeira é o destaque."}</div>
+            )}
+            {rest.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginTop: 12 }}>
+                {rest.map((it, k) => {
+                  const i = k + 1, r = ratingOf(it);
+                  const lone = rest.length % 2 === 1 && k === rest.length - 1; // sem fila órfã: a última fica centrada
+                  return (
+                    <div key={it.id} data-ridx={i} style={{ position: "relative", aspectRatio: "2/3", borderRadius: 16, overflow: "hidden", background: gradientFor(it.id), boxShadow: "0 10px 20px -12px rgba(0,0,0,0.8)", transition: "transform .15s", ...(lone ? { gridColumn: "1 / -1", width: "calc(50% - 5px)", justifySelf: "center" } : null) }}>
+                      <div onClick={() => onOpen && onOpen(it)} style={{ position: "absolute", inset: 0, cursor: "pointer" }}>
+                        {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+                        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "36px 12px 11px", background: "linear-gradient(transparent, rgba(0,0,0,0.85))", color: "#fff", pointerEvents: "none" }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.15, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{it.title}</div>
+                          {r > 0 && <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color: "#fbbf24" }}>★ {r}</div>}
+                        </div>
+                      </div>
+                      <div style={{ position: "absolute", left: 8, top: 8, minWidth: 24, height: 24, padding: "0 6px", borderRadius: 12, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>{i + 1}</div>
+                      <div style={{ position: "absolute", right: 8, top: 8 }}>{handleBtn}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: muted, marginTop: 14 }}>{lang === "en" ? "Drag ≡ onto another cover to change the order; the first one is the top pick." : "Arrasta o ≡ para cima de outra capa para mudar a ordem; a primeira é o destaque."}</div>
+          </>);
+        })()}
       </div>
     </div>, document.body);
 }
