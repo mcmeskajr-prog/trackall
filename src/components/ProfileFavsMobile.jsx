@@ -5,6 +5,7 @@ import { findLibraryEntry } from "../lib/mediaIds";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 import { CoverImg } from "./CoverImg";
+import { Sakura } from "./Sakura";
 
 // ─── Hall of Fame 2×5 e favoritos em pilhas (telemóvel) ───
 // Leve de propósito: sem desfoques, sem sombras pesadas, imagens preguiçosas, e o arrastar mexe direto no DOM (não re-renderiza a cada dedo).
@@ -99,7 +100,7 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
           <div key={item.id} data-ridx={i} onClick={() => onOpen && onOpen(item)} title={item.title}
             style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}` : "0 4px 10px -6px rgba(0,0,0,0.8)", transition: "transform .15s" }}>
             {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
-            {score > 0 && <div style={{ position: "absolute", right: 3, bottom: 3, padding: "1px 5px", borderRadius: 6, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 9.5, fontWeight: 800, pointerEvents: "none" }}>★ {score}</div>}
+            {score > 0 && <div style={{ position: "absolute", right: 3, top: 3, padding: "1px 4px 1px 3px", borderRadius: 6, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, lineHeight: 1.3, pointerEvents: "none" }}><Sakura size={8} />{score}</div>}
           </div>
         );
       })}
