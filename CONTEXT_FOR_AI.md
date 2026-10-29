@@ -58,6 +58,18 @@
 14. **Pesquisa por nome: mostrar o melhor de cada tipo**
    Ordenar só por semelhança escondia o anime atrás de 3 livros ("Highschool DxD"). `rankOptions` põe o melhor de cada tipo à frente. E o utilizador tem de poder corrigir à mão (procurar outro título), nunca ficar preso ao palpite.
 
+15. **`React.lazy`: o `Suspense` é local, nunca global**
+   Os modais/ecrãs pesados usam `lazyNamed` (`src/lib/lazyNamed.js`) e cada um tem o seu `<Suspense fallback={null}>` colado ao componente. Um `Suspense` à volta da app inteira esconderia tudo (display:none) ao carregar um pedaço novo. Não pôr `lazy` em coisas visíveis no arranque.
+
+16. **Hall of Fame ≠ favoritos, e o limite não apaga**
+   Um item não está nos dois ao mesmo tempo (ver DEV_GUIDE). O Hall of Fame tem 10 (5 × 2), literal no código; não há constante de limite.
+
+15. **Hall of Fame e favoritos não se repetem**
+   Regra aplicada em `App.jsx` (`toggleFavorite` recusa; `toggleHallOfFame` move o item dos favoritos) e no `DetailModal` (botão desativado). Ao mexer num dos dois, manter a regra nos três sítios.
+
+16. **Arrastar para reordenar em grelha**
+   `useDragReorder` usa `data-ridx` nos filhos e `elementFromPoint`; com `handle` arrasta logo pela pega (≡). Funciona em listas e grelhas, mas cada elemento arrastável precisa de `data-ridx`.
+
 ---
 
 ## ✅ Trabalho recente concluído
@@ -72,7 +84,13 @@
 
 **Outubro de 2026 (segurança, testes, importações):** RLS revisto (amizades, segredos em `profile_private`, convites por trigger); Vitest (90 testes em `src/lib`); arranque sem flash (`trackall_boot_theme`); perfil de amigo com o mesmo layout do próprio; importadores **AniList**, **Colar uma lista** e **Goodreads (CSV)** com pré-visualização e Desfazer.
 
+**2026-10-28:** ecrã da pilha de favoritos no telemóvel (cartão de destaque + grelha); Hall of Fame e favoritos sem repetição; flor `Sakura` na nota do HoF do telemóvel; maquetes no canvas para HoF com 10/8/6.
+
+**Próximos passos combinados (2026-10-28):** testar no telemóvel → **desempenho/fluidez** (medir primeiro) → checklist para partilhar → HoF 8 ou 6 (decidir após testes) → ligar itens antigos/MAL → Conquistas por último. Pendente pequeno: limpeza única de itens que estão no HoF e nos favoritos.
+
 **Por fazer nas importações:** função "Ligar" para itens antigos (`pb-`/`mihon-`/`lb-`) → registo da API; fazer Letterboxd/Mihon/Paperback resolverem para ids de API; MyAnimeList (XML/Jikan); possível limpeza de lotes por `importedFrom`.
+
+**28 de outubro de 2026:** Hall of Fame mantém 10 (8 e 6 estudados no canvas, não adotados) e flor de sakura mais pequena nas notas do telemóvel; ecrã da pilha de favoritos redesenhado (destaque grande + grelha); Hall of Fame e favoritos sem repetição; importador do Goodreads; primeira passagem de desempenho (code splitting). **Prioridades do Noé a seguir:** desempenho e otimização o máximo possível → checklist para partilhar → Conquistas no fim.
 
 ## 🧭 Ideias discutidas mas NÃO implementadas ainda
 

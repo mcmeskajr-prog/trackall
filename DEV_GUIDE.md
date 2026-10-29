@@ -53,7 +53,8 @@ TrackAll/
   - api/ (Fase 2 — anilist.js, tmdb.js, igdb.js, books.js, comicvine.js, details.js, recommendations.js, smartSearch.js)
   - components/ (ActionIcon, AppearanceSettings, AuthScreen, CollectionCard, CollectionModal, CollectionViewer, CoverEditModal, CoverImg, CropModal, DetailModal, FeaturedPickerModal, FeedTab, FriendsView, LandingPage, LetterboxdImportModal, LibGroupedList, MediaCard, MihonImportModal, Notification, PaperbackImportModal, ProfileCard, ProfileEstatisticas, ProfileStats, ProfileTabCompletos, ProfileTabDiario, ProfileView, RatingOverlay, RecentSection, RecoCarousel, SidebarSearch, Skeleton, StarRating, TierListCard, TierListEditor, TierListViewer, TiltCard, TypeIcon, VirtualGrid)
   - contexts/ (ThemeContext: useTheme/useAccent/useDarkMode/useIsMobile; LangContext: useLang)
-  - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**, **libraryDiff.js**, **anilistImport.js**, **notesImport.js**, **goodreadsImport.js**)
+  - components/ novos: GoodreadsImportModal, NotesImportModal, AniListImportModal, Sakura, ProfileFavsMobile
+  - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**, **libraryDiff.js**, **anilistImport.js**, **notesImport.js**, **goodreadsImport.js**, **lazyNamed.js**)
   - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
 
 ---
@@ -250,6 +251,12 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 ---
 
+### 🧡 Hall of Fame × Favoritos (2026-10-28)
+- **Nunca repetidos:** um item no Hall of Fame não pode ser favorito. `toggleFavorite` recusa (aviso) se o item está no HoF; `toggleHallOfFame` **move** o item: se era favorito, sai dos favoritos ao entrar no HoF. `DetailModal` desativa o botão de favorito ("Já está no Hall of Fame"). Itens que já estavam nos dois **não** são limpos automaticamente (pendente: limpeza única).
+- **Ecrã da pilha de favoritos (telemóvel)** — `TypeSheet` em `ProfileFavsMobile.jsx`: 1.º item em cartão grande ("DESTAQUE", capa 132×198) + grelha de 2 colunas com as restantes (número, título, nota); se o nº de capas da grelha é ímpar, a última fica centrada (sem fila órfã). Reordenar: arrastar o ≡ (`useDragReorder` com `handle`, usa `elementFromPoint`, por isso funciona em grelha).
+- **Nota no HoF do telemóvel:** pílula pequena (9 px) com a flor `Sakura` (`components/Sakura.jsx`, partilhada com o PC), canto superior direito.
+- **Limite do Hall of Fame:** 10 (5 × 2), escrito diretamente no código (`toggleHallOfFame`, `HofGridMobile`, `ProfileView`, `FriendProfile`, `DetailModal`). Sem ficheiro de limites para o Hall of Fame; só `MAX_FAVORITES_PER_TYPE` está em `config/limits.js`. 8 e 6 foram estudados no canvas e **não adotados**.
+
 ## 🚀 Arranque, dados e sincronização
 
 **Fluxo de arranque (`App.jsx`):**
@@ -302,15 +309,21 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 **Fase atual:** o Noé aponta pequenos detalhes de UI/UX um a um (PC e telemóvel). Feito em 2026-10: hover da Home sem corte, HoF mobile (2 filas, máx. 10), barras escuras, lupa de pesquisa, filas com scroll melhorado, gesto de deslizar sem cortina, arranque da PWA sem barras brancas, "Desfazer" ao remover, esqueletos por capa e nos carrosséis de recomendações.
 
-**Ordem acordada a seguir:**
-1. Rever o **Perfil no telemóvel** (distribuição/estatísticas).
-2. **Parte social / Amigos** — rever, corrigir e melhorar (`FriendsView`, `FeedTab`, pedidos de amizade, perfil de amigo, "em comum", feed).
-3. **Conquistas** (abaixo) e, no fim, "+1 ep".
-4. **Preparar para partilhar** (abaixo).
+**Ordem acordada a seguir (atualizada em 2026-10-28):**
+1. **Testar no telemóvel** o que foi entregue (importadores, ecrã da pilha de favoritos, regra Hall of Fame/favoritos, flor no HoF).
+2. **Desempenho e fluidez** (PC e telemóvel): medir primeiro (Lighthouse/Performance do Chrome, perfil de re-renders), depois otimizar — ver "Ideias de desempenho" abaixo.
+3. **Checklist para partilhar** (abaixo).
+4. **Hall of Fame com 8 ou 6 itens** — maquete no canvas ("HofTamanho"); decidir depois de testar. Hoje é 10 (5×2).
+5. **Ligar itens antigos** (`pb-`/`mihon-`/`lb-`) às APIs e, depois, MyAnimeList.
+6. **Conquistas** (por último; vão demorar).
+
+**Ideias de desempenho (por medir):** extrair `ThemeProvider` do `App.jsx` (menos re-renders globais); `React.lazy` para vistas/modais pesados; `saveLibrary` em lote (importações grandes gravam uma a uma no Supabase); virtualização/`content-visibility` nas listas grandes; imagens (tamanho/`loading=lazy`/cache); medir o telemóvel real, não só o PC.
 
 **Conquistas (desenho feito, código por fazer):** 16 conquistas × 3 níveis, todas **calculadas a partir da biblioteca já carregada**; guardar só o nível mais alto atingido numa linha especial da `library` (id `__achievements__`, excluída do `fetchLibrary`, tal como `__hall_of_fame__`) e toast ao desbloquear. Faixa de 117 px por baixo do Hall of Fame alinhada com o fundo do cartão de perfil; galeria completa em modal (PC) / bottom sheet (telemóvel) com filtros. Símbolos de linha tipo Lucide fixos, **número do nível num badge** (a separação entre níveis é no símbolo, não em cores), acento único, nomes **em inglês** bons (a confirmar com o Noé). Desenhos no canvas Claude Design ("ConquistasFaixa/Galeria/Mobile").
 
 **"+1 ep" (opcional, no fim):** a app **não guarda progresso** por item (só `lastChapter` de texto vindo do Paperback). O AniList devolve `chapters` **só quando a obra terminou** (em publicação vem `null`); episódios de séries/animes também podem faltar. Se avançar: campo novo `progress`, mostrar só "Cap. 12 +" em itens "assistindo", **sem barra nem total**, e manter o modal leve.
+
+**Próximos passos combinados (2026-10-28):** desempenho/otimização (ver «Desempenho e carregamento») → checklist para partilhar → Conquistas por último. Hall of Fame fica com 10 (8 e 6 estudados e guardados como alternativa).
 
 **Ideias guardadas:** importar do MAL (XML/Jikan) e função "Ligar" itens antigos às APIs; aviso "nova versão disponível"; imagem "resumo do ano"; paleta Ctrl+K; code splitting (`React.lazy`); pequenos testes automáticos.
 
@@ -388,6 +401,26 @@ Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas,
 - **Modais:** `AniListImportModal`, `NotesImportModal`, `GoodreadsImportModal` (passos entrada → a procurar com barra de progresso → revisão). Na revisão das notas: estado editável por linha e "Estado de todos", "Procurar outro título" por linha, "Ver mais" para as opções. No Goodreads: ligados entram por defeito; **incertos/não encontrados ficam de fora** (opção "Incluir" nos incertos).
 - **Limites conhecidos:** a pesquisa do AniList tem rate-limit (concorrência 2 + "Tentar outra vez os que faltam"); importações grandes sincronizam com o Supabase **uma a uma** (podem levar minutos); pré-visualização mostra 80 linhas (as restantes seguem as mesmas regras).
 - **Armadilha:** `smartSearch` guarda resultados em cache por `tipo::pesquisa`; o `Auto` das notas pesquisa em 6 tipos por linha — preferir escolher o tipo em listas grandes.
+
+---
+
+## ⚡ Desempenho e carregamento (desde 2026-10-28)
+
+- **Code splitting (`React.lazy`):** `src/lib/lazyNamed.js` → `lazyNamed(() => import("./X"), "X")` (os nossos componentes são exports nomeados) e `prefetchIdle(...)`. Carregados só quando são precisos: no `App.jsx` — `DetailModal`, `TierListEditor/Viewer`, `CollectionViewer/Modal`, `FriendsView`, `RatingOverlay`, `LandingPage`, `AuthScreen`; no `ProfileView.jsx` — `CropModal`, `FeaturedPickerModal` e os 6 modais de importação.
+- **Regra:** cada uso tem de estar dentro de `<Suspense fallback={null}>` **local** (junto ao componente). Nunca pôr um `Suspense` à volta da app inteira: ao carregar um pedaço novo o React esconderia a app toda. Landing/Auth usam um fundo escuro simples como fallback (sem flash branco).
+- Depois do login, `prefetchIdle` descarrega o `DetailModal` em segundo plano (browser parado) para o primeiro clique num item ser instantâneo.
+- **Para um componente novo pesado e condicional (modal, editor, ecrã raro):** usar `lazyNamed` + `Suspense`. Não usar em coisas que aparecem logo no arranque (a Home, o menu, o cartão de perfil).
+- **Medir antes e depois:** `npm run build` mostra o tamanho de cada pedaço (JS). Registar aqui os números quando forem medidos. Ainda por medir: tamanho do pedaço principal antes/depois, e fluidez no telemóvel (Chrome → Performance, CPU 4× mais lento).
+- **Ideias de desempenho por fazer (por ordem de retorno):** (1) medir o bundle com `npx vite-bundle-visualizer`; (2) extrair o `ThemeProvider` do `App.jsx` (cada mudança de tema re-renderiza muita coisa); (3) `memo` nos cartões das grelhas e `content-visibility: auto` nas secções longas; (4) importações grandes: gravar no Supabase em lotes em vez de uma a uma; (5) imagens: tamanhos certos (`srcset`) e `loading="lazy"` em todas.
+
+---
+
+## 🧩 Hall of Fame, favoritos e ecrã da pilha (2026-10-28)
+
+- **Limite do Hall of Fame:** 10 (5 × 2), escrito diretamente no código (`toggleHallOfFame`, `HofGridMobile`, `ProfileView`, `FriendProfile`, `DetailModal`). Sem ficheiro de limites para o Hall of Fame; só `MAX_FAVORITES_PER_TYPE` está em `config/limits.js`. 8 e 6 foram estudados no canvas e **não adotados**.
+- **Hall of Fame e favoritos nunca se repetem:** `toggleFavorite` recusa um item que está no Hall of Fame; `toggleHallOfFame` ao adicionar um favorito **move-o** (sai dos favoritos). No `DetailModal` o botão de favorito fica desativado ("Já está no Hall of Fame"). Itens que já estavam nos dois antes desta regra não são mexidos.
+- **Nota do Hall of Fame:** pílula com a flor `Sakura` (`components/Sakura.jsx`, partilhada PC/telemóvel); no telemóvel é pequena (9 px) e fica no canto superior direito.
+- **Ecrã da pilha de favoritos (telemóvel, `TypeSheet` em `ProfileFavsMobile.jsx`):** o 1.º é um cartão grande ("DESTAQUE", capa 132×198) e os restantes uma grelha de 2 colunas (capas ~170 px) com posição e nota sobre a capa. Número ímpar na grelha → a última fica centrada (sem fila órfã). Reordenar: arrastar o ≡ (`useDragReorder` com `handle`) para cima de outra capa; funciona em grelha porque usa `elementFromPoint`.
 
 ---
 

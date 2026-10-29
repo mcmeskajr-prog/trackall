@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
@@ -9,7 +9,6 @@ import { MEDIA_TYPES, STATUS_OPTIONS, TYPE_COLORS, mediaLabel, statusLabel } fro
 import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
-import { CropModal } from "./CropModal";
 import { BannerEditor } from "./BannerEditor";
 import { BannerPageTint } from "./BannerHero";
 import { splitBanner, joinBanner, extractPalette, bannerAccentHex } from "../lib/bannerColors";
@@ -24,17 +23,21 @@ import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { AppearanceSettings, TABS_BG_KEY } from "./AppearanceSettings";
 import { PersonalizeMobile } from "./PersonalizeMobile";
-import { FeaturedPickerModal } from "./FeaturedPickerModal";
-import { MihonImportModal } from "./MihonImportModal";
-import { PaperbackImportModal } from "./PaperbackImportModal";
-import { LetterboxdImportModal } from "./LetterboxdImportModal";
-import { AniListImportModal } from "./AniListImportModal";
-import { NotesImportModal } from "./NotesImportModal";
-import { GoodreadsImportModal } from "./GoodreadsImportModal";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { HofGridMobile, FavStacksMobile } from "./ProfileFavsMobile";
 import { Sakura } from "./Sakura";
+import { lazyNamed } from "../lib/lazyNamed";
+
+// Modais carregados só quando se abrem (code splitting)
+const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
+const FeaturedPickerModal = lazyNamed(() => import("./FeaturedPickerModal"), "FeaturedPickerModal");
+const MihonImportModal = lazyNamed(() => import("./MihonImportModal"), "MihonImportModal");
+const PaperbackImportModal = lazyNamed(() => import("./PaperbackImportModal"), "PaperbackImportModal");
+const LetterboxdImportModal = lazyNamed(() => import("./LetterboxdImportModal"), "LetterboxdImportModal");
+const AniListImportModal = lazyNamed(() => import("./AniListImportModal"), "AniListImportModal");
+const NotesImportModal = lazyNamed(() => import("./NotesImportModal"), "NotesImportModal");
+const GoodreadsImportModal = lazyNamed(() => import("./GoodreadsImportModal"), "GoodreadsImportModal");
 
 // Secção que abre e fecha (telemóvel): cabeçalho com título, contagem e seta; o conteúdo mantém os seus próprios espaços laterais
 function SectionAccordion({ title, right, open, onToggle, darkMode, children }) {
@@ -663,53 +666,53 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       {/* Modais de importação (fora do separador Perfil para funcionarem a partir das Definições) */}
       {/* Mihon Modal */}
       {showMihon && (
-        <MihonImportModal
+        <Suspense fallback={null}><MihonImportModal
          
          
           onClose={() => setShowMihon(false)}
           onImport={(items) => { onImportMihon && onImportMihon(items); setShowMihon(false); }}
-        />
+        /></Suspense>
       )}
 
       {/* Modais Paperback e Letterboxd */}
       {showPaperback && (
-        <PaperbackImportModal
+        <Suspense fallback={null}><PaperbackImportModal
          
           onClose={() => setShowPaperback(false)}
           onImport={(items) => { onImportPaperback && onImportPaperback(items); setShowPaperback(false); }}
-        />
+        /></Suspense>
       )}
       {showNotes && (
-        <NotesImportModal
+        <Suspense fallback={null}><NotesImportModal
           library={library}
           tmdbKey={tmdbKey}
           workerUrl={workerUrl}
           onClose={() => setShowNotes(false)}
           onImport={(items) => { onImportNotes && onImportNotes(items); setShowNotes(false); }}
-        />
+        /></Suspense>
       )}
       {showGoodreads && (
-        <GoodreadsImportModal
+        <Suspense fallback={null}><GoodreadsImportModal
           library={library}
           workerUrl={workerUrl}
           onClose={() => setShowGoodreads(false)}
           onImport={(items) => { onImportGoodreads && onImportGoodreads(items); setShowGoodreads(false); }}
-        />
+        /></Suspense>
       )}
       {showAniList && (
-        <AniListImportModal
+        <Suspense fallback={null}><AniListImportModal
           library={library}
           workerUrl={workerUrl}
           onClose={() => setShowAniList(false)}
           onImport={(items, opts) => { onImportAniList && onImportAniList(items, opts); setShowAniList(false); }}
-        />
+        /></Suspense>
       )}
       {showLetterboxd && (
-        <LetterboxdImportModal
+        <Suspense fallback={null}><LetterboxdImportModal
          
           onClose={() => setShowLetterboxd(false)}
           onImport={(items) => { onImportLetterboxd && onImportLetterboxd(items); setShowLetterboxd(false); }}
-        />
+        /></Suspense>
       )}
 
       {/* ── Separador Definições ── */}
@@ -1034,23 +1037,23 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
 
     </div>{/* fim conteudo */}
     {showFeaturedPicker && (
-      <FeaturedPickerModal
+      <Suspense fallback={null}><FeaturedPickerModal
         items={items}
         currentId={featuredItem?.id}
         onSelect={(it) => { onSetFeatured && onSetFeatured(it); setShowFeaturedPicker(false); }}
         onClear={() => { onSetFeatured && onSetFeatured(null); setShowFeaturedPicker(false); }}
         onClose={() => setShowFeaturedPicker(false)}
-      />
+      /></Suspense>
     )}
     {cropSrc && (
-      <CropModal
+      <Suspense fallback={null}><CropModal
         imageSrc={cropSrc}
         aspectRatio={cropType === "banner" ? 2 : 1}
         outputWidth={cropType === "banner" ? 1600 : undefined}
         title={cropType === "banner" ? "Recortar Banner" : "Recortar Avatar"}
         onSave={handleCropSave}
         onClose={() => { setCropSrc(null); setCropType(null); }}
-      />
+      /></Suspense>
     )}
     </>
   );

@@ -24,7 +24,7 @@ import { parseMihonBackup, parsePaperbackBackup, parseLetterboxdCSV } from './li
 import { t, detectLang, saveLang } from './translations';
 // ─── Config imports ───────────────────────────────────────────────────────────
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
-import { MAX_FAVORITES_PER_TYPE, MAX_HALL_OF_FAME } from './config/limits';
+import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { lazyNamed, prefetchIdle } from './lib/lazyNamed';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
 import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
@@ -1021,8 +1021,8 @@ export default function TrackAll() {
       nextHall = currentHall.filter(entry => !hallIds.has(entry.id));
       showNotif(lang === "en" ? "Removed from Hall of Fame" : "Removido do Hall of Fame", "#8b949e");
     } else {
-      if (currentHall.length >= MAX_HALL_OF_FAME) {
-        showNotif(lang === "en" ? `Hall of Fame max: ${MAX_HALL_OF_FAME} titles` : `Hall of Fame máximo: ${MAX_HALL_OF_FAME} obras`, "#ef4444");
+      if (currentHall.length >= 10) {
+        showNotif(lang === "en" ? "Hall of Fame max: 10 titles" : "Hall of Fame máximo: 10 obras", "#ef4444");
         return;
       }
       const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
