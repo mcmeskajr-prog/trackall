@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
 import { flushSync, createPortal } from "react-dom";
 import { createClient } from '@supabase/supabase-js';
 import { StarRating } from './components/StarRating';
@@ -8,12 +8,7 @@ import { MediaCard } from './components/MediaCard';
 import { VirtualGrid } from './components/VirtualGrid';
 import { TiltCard } from './components/TiltCard';
 import { CropModal } from './components/CropModal';
-import { CollectionModal } from './components/CollectionModal';
 import { CoverEditModal } from './components/CoverEditModal';
-import { DetailModal } from './components/DetailModal';
-import { AuthScreen } from './components/AuthScreen';
-import { LandingPage } from './components/LandingPage';
-import { FriendsView } from './components/FriendsView';
 import { FeedTab } from './components/FeedTab';
 import { ProfileView } from './components/ProfileView';
 import { ProfileTabCompletos } from './components/ProfileTabCompletos';
@@ -21,10 +16,6 @@ import { ProfileTabDiario } from './components/ProfileTabDiario';
 import { TierListCard } from './components/TierListCard';
 import { CollectionCard } from './components/CollectionCard';
 import { RecentSection } from './components/RecentSection';
-import { CollectionViewer } from './components/CollectionViewer';
-import { TierListEditor } from './components/TierListEditor';
-import { TierListViewer } from './components/TierListViewer';
-import { RatingOverlay } from './components/RatingOverlay';
 import { SidebarSearch } from './components/SidebarSearch';
 import { MihonImportModal } from './components/MihonImportModal';
 import { PaperbackImportModal } from './components/PaperbackImportModal';
@@ -33,7 +24,8 @@ import { parseMihonBackup, parsePaperbackBackup, parseLetterboxdCSV } from './li
 import { t, detectLang, saveLang } from './translations';
 // ─── Config imports ───────────────────────────────────────────────────────────
 import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_EN, mediaLabel, getMediaTypeLabel, statusLabel } from './config/constants';
-import { MAX_FAVORITES_PER_TYPE } from './config/limits';
+import { MAX_FAVORITES_PER_TYPE, MAX_HALL_OF_FAME } from './config/limits';
+import { lazyNamed, prefetchIdle } from './lib/lazyNamed';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
 import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
@@ -62,9 +54,22 @@ import { fetchPersonalizedRecos } from './api/recommendations';
 import { smartSearch, CACHE, cacheKey } from './api/smartSearch';
 
 // ─── Contexts ─────────────────────────────────────────────────────────────────
-import { ThemeContext, useTheme, useAccent, useDarkMode, useIsMobile } from './contexts/ThemeContext';
-import { LangContext, useLang } from './contexts/LangContext';
+import { ThemeBridge, LangBridge } from './components/ContextBridges';
+import { TopSearchInput } from './components/TopSearchInput';
+import { useTheme, useAccent, useDarkMode, useIsMobile } from './contexts/ThemeContext';
+import { useLang } from './contexts/LangContext';
 import { TypeIcon } from "./components/TypeIcon";
+
+// Carregados só quando são precisos (code splitting): modais, editores e ecrãs secundários
+const CollectionModal = lazyNamed(() => import('./components/CollectionModal'), 'CollectionModal');
+const DetailModal = lazyNamed(() => import('./components/DetailModal'), 'DetailModal');
+const AuthScreen = lazyNamed(() => import('./components/AuthScreen'), 'AuthScreen');
+const LandingPage = lazyNamed(() => import('./components/LandingPage'), 'LandingPage');
+const FriendsView = lazyNamed(() => import('./components/FriendsView'), 'FriendsView');
+const CollectionViewer = lazyNamed(() => import('./components/CollectionViewer'), 'CollectionViewer');
+const TierListEditor = lazyNamed(() => import('./components/TierListEditor'), 'TierListEditor');
+const TierListViewer = lazyNamed(() => import('./components/TierListViewer'), 'TierListViewer');
+const RatingOverlay = lazyNamed(() => import('./components/RatingOverlay'), 'RatingOverlay');
 
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
@@ -468,6 +473,8 @@ export default function TrackAll() {
       localStorage.setItem(BOOT_THEME_KEY, JSON.stringify({ accent, bgColor, bgColorMobile, sidebarColor, panelBg, panelOpacity, bgSeparateDevices }));
     } catch { /* quota/privado: ignora */ }
   }, [user, accent, bgColor, bgColorMobile, sidebarColor, panelBg, panelOpacity, bgSeparateDevices]);
+  // Depois de entrar, descarrega em segundo plano o modal de detalhe (o mais usado), para o 1.º clique ser instantâneo
+  useEffect(() => { if (user) prefetchIdle(() => import('./components/DetailModal')); }, [user]);
   const [authLoading, setAuthLoading] = useState(true);
   const libDirtyRef = useRef(false); // true se alteraste a biblioteca nesta sessão
   const [bootError, setBootError] = useState(false); // servidor não respondeu ao carregar os dados
@@ -1014,8 +1021,8 @@ export default function TrackAll() {
       nextHall = currentHall.filter(entry => !hallIds.has(entry.id));
       showNotif(lang === "en" ? "Removed from Hall of Fame" : "Removido do Hall of Fame", "#8b949e");
     } else {
-      if (currentHall.length >= 10) {
-        showNotif(lang === "en" ? "Hall of Fame max: 10 titles" : "Hall of Fame máximo: 10 obras", "#ef4444");
+      if (currentHall.length >= MAX_HALL_OF_FAME) {
+        showNotif(lang === "en" ? `Hall of Fame max: ${MAX_HALL_OF_FAME} titles` : `Hall of Fame máximo: ${MAX_HALL_OF_FAME} obras`, "#ef4444");
         return;
       }
       const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
@@ -1961,8 +1968,8 @@ export default function TrackAll() {
 
   // Auth screen
   if (!user && !demoMode) {
-    if (showLanding) return <LandingPage accent={accent} onEnter={() => setShowLanding(false)} onDemo={() => { setDemoMode(true); setShowLanding(false); }} lang={lang} useT={useT} changeLang={changeLang} />;
-    return <AuthScreen onAuth={handleAuth} accent={accent} onBack={() => setShowLanding(true)} lang={lang} useT={useT} />;
+    if (showLanding) return <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0c10" }} />}><LandingPage accent={accent} onEnter={() => setShowLanding(false)} onDemo={() => { setDemoMode(true); setShowLanding(false); }} lang={lang} useT={useT} changeLang={changeLang} /></Suspense>;
+    return <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0c10" }} />}><AuthScreen onAuth={handleAuth} accent={accent} onBack={() => setShowLanding(true)} lang={lang} useT={useT} /></Suspense>;
   }
 
   // Which bg image to show based on device + separate setting
@@ -2028,8 +2035,8 @@ export default function TrackAll() {
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeContext.Provider value={{ accent, bg: activeBgColor, darkMode: activeDarkMode, panelDark, isMobileDevice, panelBg: activePanelBg ? computedPanelBgCSS : null, setFriendTheme }}>
-      <LangContext.Provider value={{ lang, useT }}>
+    <ThemeBridge accent={accent} bg={activeBgColor} darkMode={activeDarkMode} panelDark={panelDark} isMobileDevice={isMobileDevice} panelBg={activePanelBg ? computedPanelBgCSS : null} setFriendTheme={setFriendTheme}>
+      <LangBridge lang={lang}>
       <div style={{
         minHeight: "100vh",
         backgroundColor: activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", transition: "background-color 0.4s ease, color 0.3s ease",
@@ -2403,7 +2410,7 @@ export default function TrackAll() {
 
         {/* ── Rating prompt after quick-log ── */}
         {logPendingItem && (
-          <RatingOverlay
+          <Suspense fallback={null}><RatingOverlay
             item={logPendingItem}
            
             library={library}
@@ -2423,12 +2430,12 @@ export default function TrackAll() {
               }
               setLogPendingItem(null);
             }}
-          />
+          /></Suspense>
         )}
 
         {/* Detail Modal */}
         {selectedItem && (
-          <DetailModal
+          <Suspense fallback={null}><DetailModal
             item={selectedItem}
             library={library}
             onAdd={addToLibrary}
@@ -2451,7 +2458,7 @@ export default function TrackAll() {
             showNotif={showNotif}
             setView={setView}
             setLibSearch={setLibSearch}
-          />
+          /></Suspense>
         )}
 
         {/* NAV TOP */}
@@ -2477,11 +2484,12 @@ export default function TrackAll() {
               <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 14, display: "flex" }}>
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </span>
-              <input
+              <TopSearchInput
                 value={searchQuery}
+                onValue={setSearchQuery}
                 autoFocus={isMobileDevice && mobileSearchOpen}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doSearch(searchQuery, activeTab); setMobileSearchOpen(false); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } else if (e.key === "Escape") setMobileSearchOpen(false); }}
+                onSubmit={(q) => { doSearch(q, activeTab); setMobileSearchOpen(false); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }}
+                onEscape={() => setMobileSearchOpen(false)}
                 placeholder="Pesquisar..."
                 style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }}
               />
@@ -2553,7 +2561,7 @@ export default function TrackAll() {
               </button>
             </div>
           ) : (
-            <FriendsView user={user} library={library} onOpenItem={setSelectedItem} />
+            <Suspense fallback={null}><FriendsView user={user} library={library} onOpenItem={setSelectedItem} /></Suspense>
           )}
         </div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>
@@ -2638,7 +2646,7 @@ export default function TrackAll() {
         <div style={{ display: view === "collection" ? "block" : "none" }}>
           {viewingCollection && (
             <div style={{ background: "transparent", minHeight: "100vh" }}>
-              <CollectionViewer
+              <Suspense fallback={null}><CollectionViewer
                 col={viewingCollection}
                 onClose={() => { setViewingCollection(null); setView("profile"); }}
                 onLike={handleCollectionLike}
@@ -2650,7 +2658,7 @@ export default function TrackAll() {
                   const libItem = findLibraryEntry(library, item.id, item.type || item.mediaType || "anime")?.item;
                   if (libItem) { setSelectedItem(libItem); } else { setSelectedItem({ id: item.id, title: item.title, type: item.type || item.mediaType || "anime", cover: item.cover }); }
                 }}
-              />
+              /></Suspense>
             </div>
           )}
         </div>
@@ -2660,7 +2668,7 @@ export default function TrackAll() {
 
         {/* TierList Viewer */}
         {viewingTierlist && (
-          <TierListViewer
+          <Suspense fallback={null}><TierListViewer
             tl={viewingTierlist}
             onClose={() => setViewingTierlist(null)}
             onLike={handleTierlistLike}
@@ -2668,30 +2676,30 @@ export default function TrackAll() {
             currentUserId={user?.id}
             onEdit={(tl) => { setViewingTierlist(null); setEditingTierlist(tl); setShowTierlistEditor(true); }}
             onOpenItem={(item) => { setTierReturn(viewingTierlist); setViewingTierlist(null); setSelectedItem(item); }}
-          />
+          /></Suspense>
         )}
 
         {/* TierList Editor */}
         {showTierlistEditor && (
-          <TierListEditor
+          <Suspense fallback={null}><TierListEditor
             initialData={editingTierlist}
             library={library}
             onSave={handleSaveTierlist}
             onClose={() => { setShowTierlistEditor(false); setEditingTierlist(null); }}
             workerUrl={workerUrl}
             tmdbKey={tmdbKey}
-          />
+          /></Suspense>
         )}
 
         {/* Collection Editor */}
         {showCollectionEditor && (
-          <CollectionModal
+          <Suspense fallback={null}><CollectionModal
             initialData={editingCollection}
             library={Object.values(library)}
             onSave={handleSaveCollection}
             onClose={() => { setShowCollectionEditor(false); setEditingCollection(null); }}
             workerUrl={workerUrl}
-          />
+          /></Suspense>
         )}
 
         {/* PWA Install Banner — mobile only */}
@@ -2805,7 +2813,7 @@ export default function TrackAll() {
           </button>
         </nav>
       </div>
-      </LangContext.Provider>
-    </ThemeContext.Provider>
+      </LangBridge>
+    </ThemeBridge>
   );
 }
