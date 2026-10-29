@@ -5,7 +5,9 @@ import { supa } from "../config/supabase";
 import { compressImage } from "../lib/utils";
 import { persistImage } from "../lib/imageStore";
 import { STYLE_PRESETS } from "./AppearanceSettings";
-import { CropModal } from "./CropModal";
+import { Suspense } from "react";
+import { lazyNamed } from "../lib/lazyNamed";
+const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
 import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
@@ -355,9 +357,9 @@ export function PersonalizeMobile({
       )}
 
       {crop && (
-        <CropModal imageSrc={crop.src} aspectRatio={crop.type === "banner" ? 2 : 1} outputWidth={crop.type === "banner" ? 1600 : undefined}
+        <Suspense fallback={null}><CropModal imageSrc={crop.src} aspectRatio={crop.type === "banner" ? 2 : 1} outputWidth={crop.type === "banner" ? 1600 : undefined}
           title={crop.type === "banner" ? (en ? "Crop banner" : "Recortar banner") : (en ? "Crop photo" : "Recortar foto")}
-          onSave={onCrop} onClose={() => setCrop(null)} />
+          onSave={onCrop} onClose={() => setCrop(null)} /></Suspense>
       )}
     </ThemeContext.Provider>
   );

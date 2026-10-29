@@ -7,10 +7,8 @@ import { Notification } from './components/Notification';
 import { MediaCard } from './components/MediaCard';
 import { VirtualGrid } from './components/VirtualGrid';
 import { TiltCard } from './components/TiltCard';
-import { CropModal } from './components/CropModal';
 import { CoverEditModal } from './components/CoverEditModal';
 import { FeedTab } from './components/FeedTab';
-import { ProfileView } from './components/ProfileView';
 import { ProfileTabCompletos } from './components/ProfileTabCompletos';
 import { ProfileTabDiario } from './components/ProfileTabDiario';
 import { TierListCard } from './components/TierListCard';
@@ -61,6 +59,7 @@ import { useLang } from './contexts/LangContext';
 import { TypeIcon } from "./components/TypeIcon";
 
 // Carregados só quando são precisos (code splitting): modais, editores e ecrãs secundários
+const ProfileView = lazyNamed(() => import('./components/ProfileView'), 'ProfileView');
 const CollectionModal = lazyNamed(() => import('./components/CollectionModal'), 'CollectionModal');
 const DetailModal = lazyNamed(() => import('./components/DetailModal'), 'DetailModal');
 const AuthScreen = lazyNamed(() => import('./components/AuthScreen'), 'AuthScreen');
@@ -474,7 +473,7 @@ export default function TrackAll() {
     } catch { /* quota/privado: ignora */ }
   }, [user, accent, bgColor, bgColorMobile, sidebarColor, panelBg, panelOpacity, bgSeparateDevices]);
   // Depois de entrar, descarrega em segundo plano o modal de detalhe (o mais usado), para o 1.º clique ser instantâneo
-  useEffect(() => { if (user) prefetchIdle(() => import('./components/DetailModal')); }, [user]);
+  useEffect(() => { if (user) prefetchIdle(() => import('./components/ProfileView'), () => import('./components/DetailModal')); }, [user]);
   const [authLoading, setAuthLoading] = useState(true);
   const libDirtyRef = useRef(false); // true se alteraste a biblioteca nesta sessão
   const [bootError, setBootError] = useState(false); // servidor não respondeu ao carregar os dados
@@ -2566,7 +2565,7 @@ export default function TrackAll() {
         </div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>
           <div className="profile-desktop-wrap" style={{ padding: 0, background: "transparent", minHeight: "100vh" }}>
-          <ProfileView
+          <Suspense fallback={null}><ProfileView
             onOpenLibrary={openLibraryFiltered}
             profile={activeProfile}
             library={library}
@@ -2640,7 +2639,7 @@ export default function TrackAll() {
             onImportGoodreads={importGoodreads}
             onOpen={setSelectedItem}
             diaryPanel={null}
-          />
+          /></Suspense>
           </div>
         </div>
         <div style={{ display: view === "collection" ? "block" : "none" }}>
