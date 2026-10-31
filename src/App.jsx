@@ -2156,7 +2156,6 @@ export default function TrackAll() {
 
         <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: "transparent" }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
           body { overscroll-behavior: none; font-family: 'Outfit', 'Segoe UI', sans-serif; }
           :root { --tc: ${activeTextContrast / 100}; }
