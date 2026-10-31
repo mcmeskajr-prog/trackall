@@ -279,6 +279,9 @@ export default function TrackAll() {
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
   const [view, setView] = useState("home");
+  // Vistas pesadas só montam na 1.ª visita (depois ficam montadas, escondidas) — menos JS no arranque
+  const seen = useRef({ home: true });
+  seen.current[view] = true;
   // O tema do amigo só vale enquanto a vista Amigos está ativa (as vistas ficam montadas em segundo plano)
   const friendTheme = view === "friends" ? friendThemeRaw : null;
   const [activeTab, setActiveTab] = useState("all");
@@ -2546,9 +2549,9 @@ export default function TrackAll() {
         >
 
         <HomeView view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
-        <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />
-        <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />
-        <div style={{ display: view === "friends" ? "block" : "none" }}>
+        {seen.current.search && <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />}
+        {seen.current.library && <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />}
+        <div style={{ display: view === "friends" ? "block" : "none" }}>{seen.current.friends && <>
         {/* ── FRIENDS ── */}
           {demoMode || !user ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
@@ -2562,8 +2565,8 @@ export default function TrackAll() {
           ) : (
             <Suspense fallback={null}><FriendsView user={user} library={library} onOpenItem={setSelectedItem} /></Suspense>
           )}
-        </div>
-        <div style={{ display: view === "profile" ? "block" : "none" }}>
+        </>}</div>
+        <div style={{ display: view === "profile" ? "block" : "none" }}>{seen.current.profile && <>
           <div className="profile-desktop-wrap" style={{ padding: 0, background: "transparent", minHeight: "100vh" }}>
           <Suspense fallback={null}><ProfileView
             onOpenLibrary={openLibraryFiltered}
@@ -2641,8 +2644,8 @@ export default function TrackAll() {
             diaryPanel={null}
           /></Suspense>
           </div>
-        </div>
-        <div style={{ display: view === "collection" ? "block" : "none" }}>
+        </>}</div>
+        <div style={{ display: view === "collection" ? "block" : "none" }}>{seen.current.collection && <>
           {viewingCollection && (
             <div style={{ background: "transparent", minHeight: "100vh" }}>
               <Suspense fallback={null}><CollectionViewer
@@ -2660,7 +2663,7 @@ export default function TrackAll() {
               /></Suspense>
             </div>
           )}
-        </div>
+        </>}</div>
 
         </div>
         </div>
