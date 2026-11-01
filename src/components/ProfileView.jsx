@@ -555,8 +555,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
                     position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: darkMode ? "#11151b" : "#e2e8f0",
-                    border: isMobileDevice ? `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"}` : "none",
-                    boxShadow: isMobileDevice ? "0 18px 30px -16px rgba(0,0,0,0.8)" : `0 0 0 1px ${accent}8c, 0 18px 30px -16px rgba(0,0,0,0.8)`,
+                    boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
                     
                     {coverSrc
@@ -572,6 +571,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     {score > 0 && (
                       <div className="hof-badge" style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", transition: "background 0.25s", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
                     )}
+                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 2px ${accent+"b3"}`, pointerEvents: "none", zIndex: 3 }} />
                   </TiltCard>
                 </div>
               );
@@ -590,8 +590,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       </div>
 
       <div style={{ padding: isMobileDevice ? 0 : "0 16px", marginTop: isMobileDevice ? 0 : 28 }}>
-      {/* Telemóvel: Favoritos primeiro (com os seus chips de tipo), depois Recentes e Em curso */}
-      {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}
+      {/* Telemóvel: ordem Recentes, Em curso, Favoritos (ver mais abaixo) */}
 
       {/* ── Filtro de tipo (só PC; no telemóvel os chips vivem dentro dos Favoritos) ── */}
       {!isMobileDevice && (() => {
@@ -617,6 +616,9 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
         {nRecent > 0 && <SectionAccordion title={lang === "en" ? "Recent" : "Recentes"} right={nRecent} open={secOpen.recentes} onToggle={() => toggleSec("recentes")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" bare /></div></SectionAccordion>}
         {nCurso > 0 && <SectionAccordion title={lang === "en" ? "In progress" : "Em curso"} right={nCurso} open={secOpen.curso} onToggle={() => toggleSec("curso")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="curso" bare /></div></SectionAccordion>}
       </>) : <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>)}
+
+      {/* Telemóvel: Recentes e Em curso logo a seguir ao Hall of Fame; Favoritos (com os seus chips de tipo) depois */}
+      {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}
 
       {isMobileDevice ? null : favoritesBlock}
 

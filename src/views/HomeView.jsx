@@ -1,4 +1,5 @@
 import { useTheme } from "../contexts/ThemeContext";
+import { HomeFriendsFeed } from "../components/HomeFriendsFeed";
 import { useLang } from "../contexts/LangContext";
 import { supa } from "../config/supabase";
 import { MEDIA_TYPES, TYPE_COLORS, mediaLabel, getMediaTypeLabel } from "../config/constants";
@@ -11,7 +12,7 @@ import { TypeIcon } from "../components/TypeIcon";
 
 // ─── Vista Home (dashboard) ───
 // O estado e os cálculos (stats, homeDashboard, recos...) vivem no TrackAll; esta vista só os mostra.
-export function HomeView({ view, setView, profile, user, items, library, setLibrary, stats, homeStatColors, homeDashboard, homeFilter, setHomeFilter, graveyardOpen, setGraveyardOpen, recos, personalRecos, recoLoading, loadRecos, setFilterStatus, setSelectedItem }) {
+export function HomeView({ onOpenFriendItem, view, setView, profile, user, items, library, setLibrary, stats, homeStatColors, homeDashboard, homeFilter, setHomeFilter, graveyardOpen, setGraveyardOpen, recos, personalRecos, recoLoading, loadRecos, setFilterStatus, setSelectedItem }) {
   const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang, useT } = useLang();
   return (
@@ -137,6 +138,8 @@ export function HomeView({ view, setView, profile, user, items, library, setLibr
                 </div>
               );
             })()}
+
+            {!isMobileDevice ? null : <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onSeeAll={() => setView("friends")} />}
 
             {items.length > 0 && homeDashboard.quickPicks.length > 0 && (() => {
               const picks = homeDashboard.quickPicks;

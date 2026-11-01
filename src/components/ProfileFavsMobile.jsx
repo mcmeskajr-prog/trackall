@@ -98,9 +98,10 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
         const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
         return (
           <div key={item.id} data-ridx={i} onClick={() => onOpen && onOpen(item)} title={item.title}
-            style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: item._feat ? `0 0 0 2px ${accent}` : "0 4px 10px -6px rgba(0,0,0,0.8)", transition: "transform .15s" }}>
+            style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: "0 4px 10px -6px rgba(0,0,0,0.8)", transition: "transform .15s" }}>
             {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
             {score > 0 && <div style={{ position: "absolute", right: 3, top: 3, padding: "1px 4px 1px 3px", borderRadius: 6, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, lineHeight: 1.3, pointerEvents: "none" }}><Sakura size={8} />{score}</div>}
+            <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 1.5px ${item._feat ? accent : accent + "b3"}`, pointerEvents: "none", zIndex: 3 }} />
           </div>
         );
       })}
@@ -109,15 +110,15 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
 });
 
 // ── Favoritos: uma pilha por tipo (capas sobrepostas), duas colunas; se sobrar uma, ocupa a largura toda ──
-const STEP = 0.555; // avanço entre capas, em largura de capa
+const STEP = 0.30; // avanço entre capas, em largura de capa (as 7 à vista, cada uma parcialmente tapada pela seguinte)
 function Stack({ items, wide }) {
-  // O tamanho das capas é sempre o de uma pilha cheia (4, ou 5 na larga); com menos itens ficam centradas
-  const N = wide ? 5 : 4;
+  // O tamanho das capas é sempre o de uma pilha cheia (7); com menos itens ficam centradas
+  const N = MAX_FAVORITES_PER_TYPE; // sempre as 7 possíveis à vista
   const n = Math.min(items.length, N);
   const w = 100 / (1 + (N - 1) * STEP);
   const off = (100 - w * (1 + (Math.max(n, 1) - 1) * STEP)) / 2;
   return (
-    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: wide ? "3.22 / 1.5" : "2.67 / 1.5" }}>
+    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${1 + (N - 1) * STEP} / 1.5` }}>
       {items.slice(0, n).map((it, j) => {
         const src = it.customCover || it.cover;
         return (

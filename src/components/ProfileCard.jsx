@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ProfileMenu } from "./ProfileMenu";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry } from "../lib/mediaIds";
@@ -53,7 +54,11 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
 
   // Telemóvel: cartão compacto numa linha (o destaque vive no Hall of Fame, ver ProfileView)
   if (isMobileDevice) {
-    const iconBtn = { width: 44, height: 44, borderRadius: 12, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", color: text, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.18)"}` };
+    const menuItems = [
+      { label: lang === "en" ? "Edit profile" : "Editar perfil", onClick: onEdit },
+      { label: lang === "en" ? "Customise" : "Personalizar", onClick: onPersonalize },
+      { label: lang === "en" ? "Sign out" : "Terminar sessão", onClick: onSignOut, danger: true },
+    ];
     const divider = darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)";
     const stats = [
       { n: mini.total, l: lang === "en" ? "items" : "itens", f: {}, c: text },
@@ -88,6 +93,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
       return (
         <div style={{ color: text }}>
           <div style={{ position: "relative", height: 236 }}>
+            <ProfileMenu items={menuItems} accent={accent} darkMode={darkMode} lang={lang} style={{ right: 14, top: "calc(12px + env(safe-area-inset-top))" }} />
             {bUrl && <img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
           </div>
           <div style={{ position: "relative", marginTop: -60, padding: "0 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
@@ -107,15 +113,6 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
               </button>
             ))}
           </div>
-          {(onEdit || onPersonalize || onSignOut) && <div style={{ display: "flex", gap: 8, padding: "14px 16px 0" }}>
-            {onEdit && <button onClick={onEdit} style={outBtn(accent)}>{lang === "en" ? "Edit profile" : "Editar perfil"}</button>}
-            {onPersonalize && <button onClick={onPersonalize} style={outBtn(divider)}>{lang === "en" ? "Customise" : "Personalizar"}</button>}
-            {onSignOut && (
-              <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-              </button>
-            )}
-          </div>}
           {featRow && <div style={{ padding: "0 16px" }}>{featRow}</div>}
         </div>
       );
@@ -134,14 +131,9 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
             {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 3, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
           </div>
-          {onEdit && <button onClick={onEdit} aria-label={lang === "en" ? "Edit profile" : "Editar perfil"} style={iconBtn}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-          </button>}
-          {onSignOut && (
-            <button onClick={onSignOut} aria-label={lang === "en" ? "Sign out" : "Terminar sessão"} style={{ ...iconBtn, color: sub }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            </button>
-          )}
+          <div style={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
+            <ProfileMenu items={menuItems} accent={accent} darkMode={darkMode} lang={lang} style={{ right: 0, top: 0 }} />
+          </div>
         </div>
 
         {/* Números (cada um abre a Biblioteca filtrada) */}

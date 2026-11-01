@@ -187,10 +187,11 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             return (
               <div key={h.id} className="hof-card" onClick={() => openItem(h)} title={h.title} style={{ cursor: "pointer", minWidth: 0 }}>
                 <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ position: "relative", aspectRatio: "5/7", borderRadius: 14, overflow: "hidden", background: darkMode ? "#11151b" : "#e2e8f0",
-                  boxShadow: `0 0 0 ${h.id === featuredId ? 2 : 1}px ${h.id === featuredId ? accent : accent + "8c"}, 0 18px 30px -16px rgba(0,0,0,0.8)` }}>
+                  boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)" }}>
                   {src ? <CoverImg hi src={src} alt={h.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                     : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{h.title}</div>}
                   {score > 0 && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Star size={10} />{score}</div>}
+                  <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 2px ${h.id === featuredId ? accent : accent + "b3"}`, pointerEvents: "none", zIndex: 3 }} />
                 </TiltCard>
               </div>
             );
@@ -303,6 +304,8 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
               <>
                 <div style={{ marginBottom: 26 }}><ProfileStats items={libItems} panelBg={panelBg} /></div>
                 {hofBlock}
+                {completed.length > 0 && <Section title={en ? "Completed" : "Completados"} count={completed.length} muted={muted} accent={accent}>{row(completed, 15)}</Section>}
+                {inProgress.length > 0 && <Section title={en ? "In progress" : "Em curso"} count={inProgress.length} muted={muted} accent={accent}>{row(inProgress, 15)}</Section>}
                 {common.both.length > 0 && (
                   <Section title={en ? "Completed by both" : "Completos por ambos"} count={common.both.length} muted={muted} accent={accent}>
                     <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
@@ -335,8 +338,6 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
                     </div>
                   </Section>
                 )}
-                {completed.length > 0 && <Section title={en ? "Completed" : "Completados"} count={completed.length} muted={muted} accent={accent}>{row(completed, 15)}</Section>}
-                {inProgress.length > 0 && <Section title={en ? "In progress" : "Em curso"} count={inProgress.length} muted={muted} accent={accent}>{row(inProgress, 15)}</Section>}
               </>
             )}
           </div>

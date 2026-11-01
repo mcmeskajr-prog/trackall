@@ -35,6 +35,7 @@ import { HomeView } from './views/HomeView';
 
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
+import { addRevision } from './lib/revisions';
 import { getConsumptionTime } from './lib/consumptionTime';
 import { shuffle, gradientFor, compressImage } from './lib/utils';
 import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
@@ -1624,6 +1625,33 @@ export default function TrackAll() {
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
 
+  // Data de conclusão (addedAt). at = null → «Sem data»: tira a data (nunca põe a de hoje sozinho).
+  const updateDate = useCallback((id, at) => {
+    const matched = findLibraryEntry(libraryRef.current, id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const { addedAt: _old, ...rest } = matched.item;
+    const update = at ? { ...rest, id: canonicalId, addedAt: at, completedAt: matched.item.completedAt || at } : { ...rest, id: canonicalId };
+    const next = { ...libraryRef.current };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = update;
+    saveLibrary(next);
+    showNotif(at ? (lang === "en" ? "Date saved" : "Data guardada") : (lang === "en" ? "Date removed" : "Data removida"), accent);
+  }, [library, accent, lang]);
+
+  // «Completar outra vez»: acrescenta uma revisão (data + nota desta vez); não mexe na entrada original
+  const addRewatch = useCallback((id, { at, rating } = {}) => {
+    const matched = findLibraryEntry(libraryRef.current, id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const next = { ...libraryRef.current };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...addRevision(matched.item, { at, rating }), id: canonicalId, userStatus: "completo" };
+    saveLibrary(next);
+    showNotif(lang === "en" ? "Completed again ✓" : "Completo outra vez ✓", accent);
+    if (navigator.vibrate) navigator.vibrate(30);
+  }, [library, accent, lang]);
+
   const updateLastChapter = useCallback((id, chapter) => {
     const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched || !chapter) return;
@@ -2446,6 +2474,8 @@ export default function TrackAll() {
             onUpdateNote={updateNote}
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
+            onUpdateDate={updateDate}
+            onRewatch={addRewatch}
             onChangeCover={updateCover}
             onClose={() => { setSelectedItem(null); if (tierReturn) { setViewingTierlist(tierReturn); setTierReturn(null); } }}
             accent={accent}
@@ -2547,7 +2577,7 @@ export default function TrackAll() {
           }}
         >
 
-        <HomeView view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
+        <HomeView onOpenFriendItem={setSelectedItem} view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
         {seen.current.search && <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />}
         {seen.current.library && <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />}
         <div style={{ display: view === "friends" ? "block" : "none" }}>{seen.current.friends && <>

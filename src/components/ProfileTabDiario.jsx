@@ -1,6 +1,7 @@
 import { useTheme } from "../contexts/ThemeContext";
 import { useState, useMemo } from "react";
 import { gradientFor } from "../lib/utils";
+import { expandDiary } from "../lib/revisions";
 import { MEDIA_TYPES, MONTH_PT, MONTH_EN, TYPE_COLORS, mediaLabel } from "../config/constants";
 
 // ─── Diário (v2): resumo do ano, atividade por mês, filtros por tipo e entradas por mês ───
@@ -9,7 +10,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
   const [filter, setFilter] = useState("all");
 
   const completados = useMemo(
-    () => (items || []).filter(i => i.userStatus === "completo" && i.addedAt).sort((a, b) => b.addedAt - a.addedAt),
+    () => expandDiary(items), // inclui as revisões («Completar outra vez») como linhas extra
     [items]
   );
   const types = useMemo(() => MEDIA_TYPES.slice(1).filter(t => completados.some(i => i.type === t.id)), [completados]);
@@ -150,7 +151,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             const t = MEDIA_TYPES.find(x => x.id === item.type);
             return (
-              <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{
+              <div key={item._k || item.id} onClick={() => onOpen && onOpen(item)} style={{
                 display: "flex", alignItems: "center", gap: isMobileDevice ? 12 : 18, padding: isMobileDevice ? 12 : "14px 16px", marginTop: 10, borderRadius: 16, cursor: "pointer",
                 background: darkMode ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.04)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}`,
               }}>
@@ -163,7 +164,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: isMobileDevice ? 14 : 16, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}</div>
+                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && <span style={{ marginLeft: 8, padding: "1px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77` }}>↺ {lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}</span>}</div>
                 </div>
                 {item.userRating > 0 && (
                   <div style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {item.userRating}</div>

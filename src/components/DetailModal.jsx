@@ -11,8 +11,9 @@ import { StarRating } from "./StarRating";
 import { CoverEditModal } from "./CoverEditModal";
 import { TypeIcon } from "./TypeIcon";
 import { ActionIcon } from "./ActionIcon";
+import { CompletedPanel } from "./CompletedPanel";
 
-export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
+export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onUpdateDate, onRewatch, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
@@ -28,6 +29,12 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const [chapterInput, setChapterInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
   const [modalTab, setModalTab] = useState("info");
+  // Bloqueia o scroll da página por trás enquanto o modal está aberto
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
   const [synOpen, setSynOpen] = useState(false);
   const [barExtras, setBarExtras] = useState(false); // nota pessoal / capítulo na barra fixa
   const [selectedPerson, setSelectedPerson] = useState(null);
@@ -326,7 +333,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   return createPortal(
     <>
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 160 }}>
-      <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 900, maxHeight: "90vh", overflowY: "auto", padding: 0, background: `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), ${modalSolid}`, border: `1px solid ${modalBorder}`, borderRadius: isMobileDevice ? undefined : 24, boxShadow: "0 30px 80px rgba(0,0,0,0.6)", animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
+      <div ref={modalScrollRef} className="modal" style={{ maxWidth: isMobileDevice ? 640 : 900, maxHeight: "90vh", overflowY: "auto", overscrollBehavior: "contain", padding: 0, background: `radial-gradient(circle at 85% 0%, ${accent}1f, transparent 45%), ${modalSolid}`, border: `1px solid ${modalBorder}`, borderRadius: isMobileDevice ? undefined : 24, boxShadow: "0 30px 80px rgba(0,0,0,0.6)", animation: "modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }} onClick={(e) => e.stopPropagation()}>
 
         {/* ── Vista: Perfil da Pessoa (TMDB) ── */}
         {selectedPerson ? (
@@ -452,9 +459,9 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
 
               {/* Tabs */}
               {(hasCast || hasRelations || hasMedia) && (
-                <div style={{ display: "flex", marginTop: 20, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
+                <div style={{ display: "flex", marginTop: 20, borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
                   {["info", ...(hasCast ? ["cast"] : []), ...(hasRelations ? ["relacoes"] : []), ...(hasMedia ? ["media"] : [])].map(tab => (
-                    <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
+                    <button key={tab} onClick={() => setModalTab(tab)} style={{ padding: isMobileDevice ? "8px 12px" : "8px 16px", background: "none", border: "none", borderBottom: `2px solid ${modalTab === tab ? accent : "transparent"}`, color: modalTab === tab ? accent : "#8b949e", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "color 0.15s", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 1, minWidth: 0 }}>
                       {tab === "info" ? "Info" : tab === "cast" ? (isAniList ? (lang === "en" ? "Characters" : "Personagens") : "Cast") : tab === "relacoes" ? (lang === "en" ? "Relations" : "Relações") : "Media"}
                     </button>
                   ))}
@@ -877,6 +884,9 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       );
                     })}
                   </div>
+                  {libItem.userStatus === "completo" && (onUpdateDate || onRewatch) && (
+                    <CompletedPanel libItem={libItem} accent={accent} darkMode={darkMode} lang={lang} onUpdateDate={onUpdateDate} onRewatch={onRewatch} />
+                  )}
                   {/* Nota + ações */}
                   {isMobileDevice ? (
                     <>
