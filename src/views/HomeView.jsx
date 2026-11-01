@@ -12,7 +12,7 @@ import { TypeIcon } from "../components/TypeIcon";
 
 // ─── Vista Home (dashboard) ───
 // O estado e os cálculos (stats, homeDashboard, recos...) vivem no TrackAll; esta vista só os mostra.
-export function HomeView({ onOpenFriendItem, view, setView, profile, user, items, library, setLibrary, stats, homeStatColors, homeDashboard, homeFilter, setHomeFilter, graveyardOpen, setGraveyardOpen, recos, personalRecos, recoLoading, loadRecos, setFilterStatus, setSelectedItem }) {
+export function HomeView({ onOpenFriendItem, onOpenFriend, view, setView, profile, user, items, library, setLibrary, stats, homeStatColors, homeDashboard, homeFilter, setHomeFilter, graveyardOpen, setGraveyardOpen, recos, personalRecos, recoLoading, loadRecos, setFilterStatus, setSelectedItem }) {
   const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang, useT } = useLang();
   return (
@@ -304,7 +304,7 @@ export function HomeView({ onOpenFriendItem, view, setView, profile, user, items
                       <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>
                     }
                   />
-                  <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onSeeAll={() => setView("friends")} />
+                  <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onOpenFriend={onOpenFriend} onSeeAll={() => setView("friends")} />
                 </>
               );
             })()}

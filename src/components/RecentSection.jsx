@@ -6,8 +6,8 @@ import { MEDIA_TYPES, MONTH_PT, MONTH_EN } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 
-// part: "all" | "recent" | "curso" · bare: sem títulos (o telemóvel mostra-os num cabeçalho de secção)
-export function RecentSection({ items, onOpen, showDiary = true, part = "all", bare = false }) {
+// part: "all" | "recent" | "curso" · bare: sem títulos · inlineTitle: (telemóvel) título da secção na mesma linha do «Ver todos»
+export function RecentSection({ items, onOpen, showDiary = true, part = "all", bare = false, inlineTitle = "" }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -61,22 +61,25 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
       {/* Completados — tamanho igual aos Favoritos */}
       {completados.length > 0 && part !== "curso" && (
         <div style={{ marginBottom: bare ? 8 : 24 }}>
-          <div style={{ display: "flex", justifyContent: bare ? "flex-end" : "space-between", alignItems: "center", marginBottom: bare ? 4 : 12 }}>
+          <div style={{ display: "flex", justifyContent: bare && !inlineTitle ? "flex-end" : "space-between", alignItems: "center", marginBottom: inlineTitle ? 10 : bare ? 4 : 12 }}>
+            {inlineTitle && <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" }}>{inlineTitle}</h3>}
             {!bare && <h3 style={isMobileDevice ? { fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" } : { fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{isMobileDevice ? (lang === "en" ? "Recent" : "Recentes") : (lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>}
-            {completados.length > (isMobileDevice ? 4 : 7) && (
+            {completados.length > (isMobileDevice ? 6 : 7) && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: isMobileDevice ? "none" : `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
               </button>
             )}
           </div>
-          <div
-                        style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))", gap: isMobileDevice ? 10 : 14 }}>
-            {(showAllCompleto ? completados : completados.slice(0, isMobileDevice ? 4 : 7)).map((item) => {
+          <div className={isMobileDevice && !showAllCompleto ? "hscroll" : undefined}
+                        style={isMobileDevice && !showAllCompleto
+                          ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }
+                          : { display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))", gap: isMobileDevice ? 10 : 14 }}>
+            {(showAllCompleto ? completados : completados.slice(0, isMobileDevice ? 20 : 7)).map((item) => {
               const coverSrc = item.customCover || item.cover || item.thumbnailUrl;
               const days = item.addedAt ? Math.floor((Date.now() - item.addedAt) / 86400000) : null;
               const when = days === null ? "" : days <= 0 ? (lang === "en" ? "Today" : "Hoje") : days === 1 ? (lang === "en" ? "Yesterday" : "Ontem") : days < 14 ? (lang === "en" ? `${days} days ago` : `Há ${days} dias`) : days < 60 ? (lang === "en" ? `${Math.floor(days / 7)} weeks ago` : `Há ${Math.floor(days / 7)} semanas`) : new Date(item.addedAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" });
               return (
-                <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, cursor: "pointer" }} onClick={() => onOpen && onOpen(item)}>
+                <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, cursor: "pointer", ...(isMobileDevice && !showAllCompleto ? { width: "clamp(84px, 24vw, 100px)" } : {}) }} onClick={() => onOpen && onOpen(item)}>
                   <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: "none", boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
                     {coverSrc
                       ? <CoverImg src={coverSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
@@ -178,7 +181,8 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
       {/* Em Curso — small cards with chapter info */}
       {inCurso.length > 0 && part !== "recent" && (
         <div style={{ marginBottom: bare ? 8 : 24 }}>
-          <div style={{ display: "flex", justifyContent: bare ? "flex-end" : "space-between", alignItems: "center", marginBottom: bare ? 4 : 12 }}>
+          <div style={{ display: "flex", justifyContent: bare && !inlineTitle ? "flex-end" : "space-between", alignItems: "center", marginBottom: inlineTitle ? 10 : bare ? 4 : 12 }}>
+            {inlineTitle && <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" }}>{inlineTitle}</h3>}
             {!bare && <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>}
             {inCurso.length > 10 && (
               <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>

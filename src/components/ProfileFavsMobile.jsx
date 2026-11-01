@@ -101,7 +101,7 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
             style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 10, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), boxShadow: "0 4px 10px -6px rgba(0,0,0,0.8)", transition: "transform .15s" }}>
             {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
             {score > 0 && <div style={{ position: "absolute", right: 3, top: 3, padding: "1px 4px 1px 3px", borderRadius: 6, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, lineHeight: 1.3, pointerEvents: "none" }}><Sakura size={8} />{score}</div>}
-            <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 ${item._feat ? 2 : 1}px ${item._feat ? accent : accent + "b3"}`, pointerEvents: "none", zIndex: 3 }} />
+            {item._feat && <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 2px ${accent}`, pointerEvents: "none", zIndex: 3 }} />}
           </div>
         );
       })}

@@ -191,7 +191,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
                   {src ? <CoverImg hi src={src} alt={h.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                     : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{h.title}</div>}
                   {score > 0 && <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Star size={10} />{score}</div>}
-                  <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 ${h.id === featuredId ? 2 : 1}px ${h.id === featuredId ? accent : accent + "b3"}`, pointerEvents: "none", zIndex: 3 }} />
+                  {h.id === featuredId && <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 2px ${accent}`, pointerEvents: "none", zIndex: 3 }} />}
                 </TiltCard>
               </div>
             );

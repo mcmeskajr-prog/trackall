@@ -415,6 +415,7 @@ export default function TrackAll() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [openFriendRequest, setOpenFriendRequest] = useState(null); // Home → abrir o perfil de um amigo
   const [notif, setNotif] = useState(null);
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
@@ -2577,7 +2578,7 @@ export default function TrackAll() {
           }}
         >
 
-        <HomeView onOpenFriendItem={setSelectedItem} view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
+        <HomeView onOpenFriendItem={setSelectedItem} onOpenFriend={(id, info) => { setOpenFriendRequest({ id, info }); setView("friends"); }} view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
         {seen.current.search && <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />}
         {seen.current.library && <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />}
         <div style={{ display: view === "friends" ? "block" : "none" }}>{seen.current.friends && <>
@@ -2592,7 +2593,7 @@ export default function TrackAll() {
               </button>
             </div>
           ) : (
-            <Suspense fallback={null}><FriendsView user={user} library={library} onOpenItem={setSelectedItem} /></Suspense>
+            <Suspense fallback={null}><FriendsView user={user} library={library} onOpenItem={setSelectedItem} openFriendRequest={openFriendRequest} onOpenFriendHandled={() => setOpenFriendRequest(null)} /></Suspense>
           )}
         </>}</div>
         <div style={{ display: view === "profile" ? "block" : "none" }}>{seen.current.profile && <>

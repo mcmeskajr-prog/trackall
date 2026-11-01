@@ -131,7 +131,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             <div style={{ fontSize: 21, fontWeight: 800, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</div>
             {profile.bio && <div style={{ fontSize: 12, color: sub, marginTop: 3, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{profile.bio}</div>}
           </div>
-          <div style={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
+          <div style={{ position: "relative", width: 32, height: 32, flexShrink: 0 }}>
             <ProfileMenu items={menuItems} accent={accent} darkMode={darkMode} lang={lang} style={{ right: 0, top: 0 }} />
           </div>
         </div>

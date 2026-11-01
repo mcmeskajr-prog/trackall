@@ -18,7 +18,7 @@ const stripPersonal = (it) => {
 };
 
 // Faixa «Amigos acabaram de completar» da Home: capas com nota, quem, quando, e etiquetas ♥ / 🌸
-export function HomeFriendsFeed({ user, onOpenItem, onSeeAll }) {
+export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
   const { accent, darkMode } = useTheme();
   const { lang } = useLang();
   const en = lang === "en";
@@ -63,13 +63,13 @@ export function HomeFriendsFeed({ user, onOpenItem, onSeeAll }) {
         <div style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 800, color: text }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
         {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0" }}>{en ? "See all ›" : "Ver tudo ›"}</button>}
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingRight: 16, paddingBottom: 6 }}>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingRight: 16, paddingBottom: 6, paddingLeft: 0 }}>
         {rows.map(it => {
           const info = state.infoById[it.userId] || {};
           const src = it.customCover || it.cover || it.thumbnailUrl;
           const tag = tagOf(it);
           return (
-            <div key={`${it.userId}|${it.id}`} style={{ width: 108, flexShrink: 0 }}>
+            <div key={`${it.userId}|${it.id}`} className="recent-card" style={{ width: 108, flexShrink: 0 }}>
               <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
                 onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
                 style={{ position: "relative", width: 108, height: 162, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id), boxShadow: "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
@@ -78,11 +78,12 @@ export function HomeFriendsFeed({ user, onOpenItem, onSeeAll }) {
                 {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 8px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
                 <div className="no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "26px 8px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.88))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, minWidth: 0 }}>
+              <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""}
+                style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
                 <FriendAvatar src={info.avatar} name={info.name || info.username} size={20} ring={accent} ringWidth={1.5} />
                 <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
                 <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>
-              </div>
+              </button>
               <div style={{ marginTop: 5, minHeight: 20 }}>
                 {tag && <span className="no-tc" style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: tag.c, background: `${tag.c}22`, border: `1px solid ${tag.c}77` }}>{tag.icon} {tag.label}</span>}
               </div>

@@ -24,7 +24,7 @@ const Icon = ({ name, size = 16 }) => {
 };
 
 // user, accent, darkMode, isMobileDevice, library vêm do App; o resto vem do tema.
-export function FriendsView({ user, library = {}, onOpenItem }) {
+export function FriendsView({ user, library = {}, onOpenItem, openFriendRequest = null, onOpenFriendHandled }) {
   const { accent, darkMode, isMobileDevice, panelBg } = useTheme();
   const { lang } = useLang();
   const en = lang === "en";
@@ -121,6 +121,13 @@ export function FriendsView({ user, library = {}, onOpenItem }) {
     catch (e) { console.error("[TrackAll] perfil do amigo:", e?.message || e); setFriendError(true); }
     setFriendLoading(false);
   };
+  // Pedido vindo da Home (tocar no avatar/nome de um amigo no feed): abre o perfil desse amigo
+  useEffect(() => {
+    if (!openFriendRequest?.id) return;
+    openFriend(openFriendRequest.id, openFriendRequest.info);
+    onOpenFriendHandled && onOpenFriendHandled();
+  }, [openFriendRequest]);
+
   const closeFriend = () => { setSelected(null); setFriendData(null); setFriendError(false); };
   const removeFriend = async () => {
     const f = accepted.find(x => getFriendInfo(x)?.id === selected?.id);
