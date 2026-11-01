@@ -63,7 +63,7 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
         <div style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 800, color: text }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
         {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0" }}>{en ? "See all ›" : "Ver tudo ›"}</button>}
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingRight: 16, paddingBottom: 6, paddingLeft: 0 }}>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingTop: 14, paddingBottom: 30, paddingLeft: 16, paddingRight: 16, marginLeft: -16, marginTop: -14, marginBottom: -22 }}>
         {rows.map(it => {
           const info = state.infoById[it.userId] || {};
           const src = it.customCover || it.cover || it.thumbnailUrl;
