@@ -571,7 +571,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
                     {score > 0 && (
                       <div className="hof-badge" style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", transition: "background 0.25s", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
                     )}
-                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 2px ${accent+"b3"}`, pointerEvents: "none", zIndex: 3 }} />
+                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", boxShadow: `inset 0 0 0 1px ${accent+"b3"}`, pointerEvents: "none", zIndex: 3 }} />
                   </TiltCard>
                 </div>
               );
@@ -579,6 +579,12 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           </div>
         )}
       </div>
+
+      {/* Telemóvel: Recentes e Em curso logo a seguir ao Hall of Fame */}
+      {isMobileDevice && items.length > 0 && (<>
+        {nRecent > 0 && <SectionAccordion title={lang === "en" ? "Recent" : "Recentes"} right={nRecent} open={secOpen.recentes} onToggle={() => toggleSec("recentes")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" bare /></div></SectionAccordion>}
+        {nCurso > 0 && <SectionAccordion title={lang === "en" ? "In progress" : "Em curso"} right={nCurso} open={secOpen.curso} onToggle={() => toggleSec("curso")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="curso" bare /></div></SectionAccordion>}
+            </>)}
 
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
       {items.length > 0 && (isMobileDevice
@@ -612,10 +618,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
       })()}
 
       {/* ── Recentes (+ Em curso) ── o Diário tem o seu próprio separador ── */}
-      {items.length > 0 && (isMobileDevice ? (<>
-        {nRecent > 0 && <SectionAccordion title={lang === "en" ? "Recent" : "Recentes"} right={nRecent} open={secOpen.recentes} onToggle={() => toggleSec("recentes")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" bare /></div></SectionAccordion>}
-        {nCurso > 0 && <SectionAccordion title={lang === "en" ? "In progress" : "Em curso"} right={nCurso} open={secOpen.curso} onToggle={() => toggleSec("curso")} darkMode={darkMode}><div style={{ padding: "0 16px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="curso" bare /></div></SectionAccordion>}
-      </>) : <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>)}
+      {items.length > 0 && !isMobileDevice && <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>}
 
       {/* Telemóvel: Recentes e Em curso logo a seguir ao Hall of Fame; Favoritos (com os seus chips de tipo) depois */}
       {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}

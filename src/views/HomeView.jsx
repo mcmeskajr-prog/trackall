@@ -139,8 +139,6 @@ export function HomeView({ onOpenFriendItem, view, setView, profile, user, items
               );
             })()}
 
-            {!isMobileDevice ? null : <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onSeeAll={() => setView("friends")} />}
-
             {items.length > 0 && homeDashboard.quickPicks.length > 0 && (() => {
               const picks = homeDashboard.quickPicks;
               if (picks.length === 0) return null;
@@ -306,8 +304,7 @@ export function HomeView({ onOpenFriendItem, view, setView, profile, user, items
                       <button onClick={() => { setView("library"); setFilterStatus("completo"); }} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>{useT("verTudo")}</button>
                     }
                   />
-
-
+                  <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onSeeAll={() => setView("friends")} />
                 </>
               );
             })()}
