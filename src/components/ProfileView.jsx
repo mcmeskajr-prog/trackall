@@ -98,6 +98,36 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
     io.observe(el);
     return () => io.disconnect();
   }, [isMobileDevice, profileTab, editing]);
+  const [exporting, setExporting] = useState(false);
+  // Exportar tudo (RGPD: acesso e portabilidade). Pede à base de dados o que não está em memória.
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const safe = async (q) => { try { const r = await q; return r?.data ?? null; } catch { return null; } };
+      const [tierlists, collections, prof] = await Promise.all([
+        currentUserId ? safe(supabase.from("tierlists").select("*").eq("user_id", currentUserId)) : null,
+        currentUserId ? safe(supabase.from("collections").select("*").eq("user_id", currentUserId)) : null,
+        currentUserId ? safe(supabase.from("profiles").select("*").eq("id", currentUserId).maybeSingle()) : null,
+      ]);
+      const payload = {
+        app: "TrackAll", exportedAt: new Date().toISOString(), version: 1,
+        account: { id: currentUserId || null, email: userEmail || null },
+        profile: prof || profile || null,
+        library: library || {},
+        favorites: favorites || [],
+        hallOfFame: hallOfFame || [],
+        tierlists: tierlists || [],
+        collections: collections || [],
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `trackall-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) { console.error("[TrackAll] exportar:", e?.message || e); }
+    setExporting(false);
+  };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -885,9 +915,19 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
               <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
               <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
             </div>
-            <a href="https://raw.githubusercontent.com/mcmeskajr-prog/trackall/main/public/privacy.pdf" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
-              Ver PDF →
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
+              {lang === "en" ? "View →" : "Ver →"}
             </a>
+          </div>
+          <div style={{ height: 1, background: panelDM ? "#21262d" : "#e8e0d5" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{lang === "en" ? "Export my data" : "Exportar os meus dados"}</p>
+              <p style={{ fontSize: 11, color: "#8b949e" }}>{lang === "en" ? "Everything you have in TrackAll, as a JSON file" : "Tudo o que tens no TrackAll, num ficheiro JSON"}</p>
+            </div>
+            <button type="button" onClick={handleExportData} disabled={exporting} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, cursor: exporting ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap", opacity: exporting ? 0.6 : 1 }}>
+              {exporting ? "…" : (lang === "en" ? "Download ↓" : "Descarregar ↓")}
+            </button>
           </div>
           <div style={{ height: 1, background: panelDM ? "#21262d" : "#e8e0d5" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -907,13 +947,20 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
           if (!confirmDelete) { setConfirmDelete(true); return; }
           setDeleting(true);
           try {
-            // 1. Apagar todos os dados da biblioteca
-            await supabase.from("library").delete().eq("user_id", currentUserId);
-            // 2. Apagar friendships
-            await supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
-            // 3. Apagar perfil
-            await supabase.from("profiles").delete().eq("id", currentUserId);
-            // 4. Sign out (a conta auth só pode ser apagada por service role — instrui o utilizador)
+            // Função do servidor: apaga dados, imagens e a própria conta de login (ver docs/supabase_delete_account.sql)
+            const { error: rpcError } = await supabase.rpc("delete_my_account");
+            if (rpcError) {
+              // Sem a função instalada: apaga pelo menos os dados (a conta de login fica)
+              console.warn("[TrackAll] delete_my_account indisponível, a apagar tabelas:", rpcError.message);
+              await supabase.from("collection_likes").delete().eq("user_id", currentUserId);
+              await supabase.from("tierlist_likes").delete().eq("user_id", currentUserId);
+              await supabase.from("collections").delete().eq("user_id", currentUserId);
+              await supabase.from("tierlists").delete().eq("user_id", currentUserId);
+              await supabase.from("library").delete().eq("user_id", currentUserId);
+              await supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
+              await supabase.from("profile_private").delete().eq("id", currentUserId);
+              await supabase.from("profiles").delete().eq("id", currentUserId);
+            }
             await supabase.auth.signOut();
             onSignOut && onSignOut();
           } catch (e) {
