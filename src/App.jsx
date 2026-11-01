@@ -2444,21 +2444,37 @@ export default function TrackAll() {
             item={logPendingItem}
            
             library={library}
-            onDone={(rating) => {
-              if (rating > 0) {
-                const normalizedPending = normalizeMediaItem(logPendingItem);
-                const matched = getLibraryMatch(normalizedPending.id, normalizedPending.type);
-                const canonicalId = normalizeMediaId(normalizedPending.id, normalizedPending.type);
-                const next = { ...library };
-                if (matched?.key && matched.key !== canonicalId) delete next[matched.key];
-                const base = matched?.item || normalizedPending;
-                next[canonicalId] = { ...base, id: canonicalId, userStatus: "completo", userRating: rating };
-                saveLibrary(next);
-                showNotif(`"${(logPendingItem.title || "Item").slice(0, 24)}" ✓  ★ ${rating}`, accent);
-              } else {
-                showNotif(`"${(logPendingItem.title || "Item").slice(0, 30)}" ✓`, accent);
-              }
+            again={!!logPendingItem._again}
+            revCount={(() => { const e = findLibraryEntry(library, logPendingItem.id, logPendingItem.type); return Array.isArray(e?.item?.revisions) ? e.item.revisions.length : 0; })()}
+            isFavorite={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type)); return activeFavorites.some(f => ids.has(f.id)); })()}
+            isHallOfFame={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type)); return (activeProfile.hallOfFame || []).some(h => ids.has(h.id)); })()}
+            canHallOfFame={(activeProfile.hallOfFame || []).length < 10}
+            onDone={(rating, extra) => {
+              const pending = logPendingItem;
               setLogPendingItem(null);
+              const normalizedPending = normalizeMediaItem(pending);
+              const matched = getLibraryMatch(normalizedPending.id, normalizedPending.type);
+              const canonicalId = normalizeMediaId(normalizedPending.id, normalizedPending.type);
+              if (!extra) { // «Saltar» / fora: não muda mais nada (o título já ficou completo)
+                showNotif(`"${(pending.title || "Item").slice(0, 30)}" ✓`, accent);
+                return;
+              }
+              const next = { ...libraryRef.current };
+              if (matched?.key && matched.key !== canonicalId) delete next[matched.key];
+              const base = matched?.item || normalizedPending;
+              let upd;
+              if (pending._again) {
+                upd = { ...addRevision(base, { at: extra.at || Date.now(), rating }), id: canonicalId, userStatus: "completo" };
+              } else {
+                const { addedAt: _a, ...rest } = base;
+                upd = { ...rest, id: canonicalId, userStatus: "completo", ...(rating > 0 ? { userRating: rating } : {}) };
+                if (extra.at) { upd.addedAt = extra.at; upd.completedAt = base.completedAt || extra.at; } // «Sem data» (at = null) deixa sem data
+              }
+              next[canonicalId] = upd;
+              saveLibrary(next);
+              showNotif(`"${(pending.title || "Item").slice(0, 24)}" ✓${rating > 0 ? `  ★ ${rating}` : ""}`, accent);
+              if (extra.favorite) toggleFavorite(upd);
+              if (extra.hof) toggleHallOfFame(upd);
             }}
           /></Suspense>
         )}
@@ -2779,9 +2795,11 @@ export default function TrackAll() {
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
                   {logResults.map(item => (
                     <div key={item.id} onClick={() => {
-                      if (findLibraryEntry(library, item.id, item.type)) updateStatus(item.id, "completo");
-                      else addToLibrary(item, "completo");
-                      setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(item);
+                      const existing = findLibraryEntry(library, item.id, item.type);
+                      const again = !!existing && existing.item?.userStatus === "completo"; // já completo → «Completar outra vez» (não mexe na data original)
+                      if (existing && !again) updateStatus(item.id, "completo");
+                      else if (!existing) addToLibrary(item, "completo");
+                      setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(again ? { ...item, _again: true } : item);
                     }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.04)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "transparent"}`, cursor: "pointer" }}>
                       {(item.cover || item.thumbnailUrl)
                         ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
