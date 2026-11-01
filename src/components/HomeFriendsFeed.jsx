@@ -69,14 +69,16 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
           const src = it.customCover || it.cover || it.thumbnailUrl;
           const tag = tagOf(it);
           return (
-            <div key={`${it.userId}|${it.id}`} className="recent-card" style={{ width: 108, flexShrink: 0 }}>
-              <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
+            <div key={`${it.userId}|${it.id}`} style={{ width: 108, flexShrink: 0 }}>
+              <div className="recent-card" style={{ width: 108, height: 162 }}>
+                <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
                 onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
                 style={{ position: "relative", width: 108, height: 162, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id), boxShadow: "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
                 {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
                 {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 8px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
-                <div className="no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "26px 8px 8px", background: "linear-gradient(transparent, rgba(0,0,0,0.88))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</div>
+                <div className="recent-hover-overlay no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "34px 8px 8px", opacity: 0, transition: "opacity 0.18s ease", background: "linear-gradient(transparent, rgba(0,0,0,0.9))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{it.title}</div>
+              </div>
               </div>
               <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""}
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
@@ -84,8 +86,8 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
                 <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
                 <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>
               </button>
-              <div style={{ marginTop: 5, minHeight: 20 }}>
-                {tag && <span className="no-tc" style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: tag.c, background: `${tag.c}22`, border: `1px solid ${tag.c}77` }}>{tag.icon} {tag.label}</span>}
+              <div style={{ marginTop: 1, minHeight: 14 }}>
+                {tag && <span className="no-tc" style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "0 0 0 3px", fontSize: 10, fontWeight: 700, color: tag.c, opacity: 0.8 }}>{tag.icon} {tag.label}</span>}
               </div>
             </div>
           );
