@@ -69,7 +69,7 @@ const FriendsView = lazyNamed(() => import('./components/FriendsView'), 'Friends
 const CollectionViewer = lazyNamed(() => import('./components/CollectionViewer'), 'CollectionViewer');
 const TierListEditor = lazyNamed(() => import('./components/TierListEditor'), 'TierListEditor');
 const TierListViewer = lazyNamed(() => import('./components/TierListViewer'), 'TierListViewer');
-const RatingOverlay = lazyNamed(() => import('./components/RatingOverlay'), 'RatingOverlay');
+import { RatingOverlay } from './components/RatingOverlay'; // estático: abre instantâneo no Log Rápido
 
 // ─── Configurações padrão ────────────────────────────────────────────────────
 const DEFAULT_TMDB_KEY = ""; // Chave movida para o Cloudflare Worker (variável TMDB_KEY)
@@ -2440,7 +2440,7 @@ export default function TrackAll() {
 
         {/* ── Rating prompt after quick-log ── */}
         {logPendingItem && (
-          <Suspense fallback={null}><RatingOverlay
+          <RatingOverlay
             item={logPendingItem}
            
             library={library}
@@ -2476,7 +2476,7 @@ export default function TrackAll() {
               if (extra.favorite) toggleFavorite(upd);
               if (extra.hof) toggleHallOfFame(upd);
             }}
-          /></Suspense>
+          />
         )}
 
         {/* Detail Modal */}
@@ -2797,9 +2797,12 @@ export default function TrackAll() {
                     <div key={item.id} onClick={() => {
                       const existing = findLibraryEntry(library, item.id, item.type);
                       const again = !!existing && existing.item?.userStatus === "completo"; // já completo → «Completar outra vez» (não mexe na data original)
-                      if (existing && !again) updateStatus(item.id, "completo");
-                      else if (!existing) addToLibrary(item, "completo");
+                      // 1.º mostra o painel (instantâneo); só depois grava na biblioteca, fora do caminho do toque
                       setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(again ? { ...item, _again: true } : item);
+                      setTimeout(() => {
+                        if (existing && !again) updateStatus(item.id, "completo");
+                        else if (!existing) addToLibrary(item, "completo");
+                      }, 60);
                     }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.04)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : "transparent"}`, cursor: "pointer" }}>
                       {(item.cover || item.thumbnailUrl)
                         ? <img src={item.cover || item.thumbnailUrl} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
