@@ -1,4 +1,6 @@
 import { useState, useRef, useMemo, useEffect, Suspense } from "react";
+import { exportAllData } from "../lib/exportData";
+import { pickImage } from "../lib/imageCheck";
 import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
@@ -103,28 +105,7 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const safe = async (q) => { try { const r = await q; return r?.data ?? null; } catch { return null; } };
-      const [tierlists, collections, prof] = await Promise.all([
-        currentUserId ? safe(supabase.from("tierlists").select("*").eq("user_id", currentUserId)) : null,
-        currentUserId ? safe(supabase.from("collections").select("*").eq("user_id", currentUserId)) : null,
-        currentUserId ? safe(supabase.from("profiles").select("*").eq("id", currentUserId).maybeSingle()) : null,
-      ]);
-      const payload = {
-        app: "TrackAll", exportedAt: new Date().toISOString(), version: 1,
-        account: { id: currentUserId || null, email: userEmail || null },
-        profile: prof || profile || null,
-        library: library || {},
-        favorites: favorites || [],
-        hallOfFame: hallOfFame || [],
-        tierlists: tierlists || [],
-        collections: collections || [],
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `trackall-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      await exportAllData({ supabase, userId: currentUserId, email: userEmail, profile, library, favorites, hallOfFame });
     } catch (e) { console.error("[TrackAll] exportar:", e?.message || e); }
     setExporting(false);
   };
@@ -180,14 +161,14 @@ export function ProfileView({ profile, library, accent, bgColor, bgColorMobile, 
   const totalRatings = useMemo(() => items.filter((i) => i.userRating > 0), [items]);
   const avgRating = totalRatings.length ? (totalRatings.reduce((a, i) => a + i.userRating, 0) / totalRatings.length).toFixed(1) : "—";
   const handleAvatarFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
+    const file = pickImage(e); if (!file) return;
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropType("avatar");
   };
 
   const handleBannerFile = (e) => {
-    const file = e.target.files[0]; if (!file) return;
+    const file = pickImage(e); if (!file) return;
     const url = URL.createObjectURL(file);
     setCropSrc(url);
     setCropType("banner");

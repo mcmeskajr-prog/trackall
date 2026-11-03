@@ -36,6 +36,8 @@ import { HomeView } from './views/HomeView';
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
 import { addRevision } from './lib/revisions';
+import { initErrorReporting } from './lib/errorReporting';
+import { PwaHints } from './components/PwaHints';
 import { getConsumptionTime } from './lib/consumptionTime';
 import { shuffle, gradientFor, compressImage } from './lib/utils';
 import { cacheGet, cacheSet, cacheClearAll } from './lib/bootCache';
@@ -448,6 +450,7 @@ export default function TrackAll() {
   const logInputRef = useRef(null);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [quickSearchType, setQuickSearchType] = useState(null);
+  const logPrevRef = useRef(null); // estado anterior do título no Log Rápido (para «Desfazer»)
   const [logPendingItem, setLogPendingItem] = useState(null); // item awaiting rating after log
   const [favorites, setFavorites] = useState([]);
   const [recos, setRecos] = useState({});
@@ -869,6 +872,17 @@ export default function TrackAll() {
     setNotif({ msg, color, action });
     notifTimerRef.current = setTimeout(() => setNotif(null), action ? 6500 : Math.max(2000, Math.min(msg.length * 60, 4500)));
   };
+
+  useEffect(() => { initErrorReporting(); }, []);
+
+  // avisos vindos de fora de React (ex.: validação de imagens em lib/imageCheck.js)
+  const showNotifRef = useRef(showNotif);
+  showNotifRef.current = showNotif;
+  useEffect(() => {
+    const h = (e) => { const d = e.detail || {}; if (d.message) showNotifRef.current(d.message, d.error ? "#ef4444" : undefined); };
+    window.addEventListener("trackall-notice", h);
+    return () => window.removeEventListener("trackall-notice", h);
+  }, []);
 
   const saveLibrary = (lib) => {
     const prev = libraryRef.current;
@@ -1622,7 +1636,17 @@ export default function TrackAll() {
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = update;
     saveLibrary(next);
-    showNotif(useT("statusUpdated"), accent);
+    const prevEntry = { key: matched.key, item: matched.item };
+    showNotif(useT("statusUpdated"), accent, {
+      label: lang === "en" ? "Undo" : "Desfazer",
+      onClick: () => {
+        const cur = { ...libraryRef.current };
+        delete cur[canonicalId];
+        cur[prevEntry.key] = prevEntry.item;
+        saveLibrary(cur);
+        showNotif(lang === "en" ? "Restored ✓" : "Reposto ✓", "#10b981");
+      },
+    });
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent]);
 
@@ -2433,6 +2457,7 @@ export default function TrackAll() {
           .ds-type-item:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; }
         `}</style>
 
+        <PwaHints accent={accent} darkMode={darkMode} lang={lang} isMobile={isMobileDevice} />
         <Notification notif={notif} isMobile={isMobileDevice} onDismiss={() => setNotif(null)} />
 
 
@@ -2456,7 +2481,17 @@ export default function TrackAll() {
               const matched = getLibraryMatch(normalizedPending.id, normalizedPending.type);
               const canonicalId = normalizeMediaId(normalizedPending.id, normalizedPending.type);
               if (!extra) { // «Saltar» / fora: não muda mais nada (o título já ficou completo)
-                showNotif(`"${(pending.title || "Item").slice(0, 30)}" ✓`, accent);
+                const prev0 = logPrevRef.current;
+                showNotif(`"${(pending.title || "Item").slice(0, 30)}" ✓`, accent, {
+                  label: lang === "en" ? "Undo" : "Desfazer",
+                  onClick: () => {
+                    const cur = { ...libraryRef.current };
+                    delete cur[canonicalId];
+                    if (prev0) cur[prev0.key] = prev0.item;
+                    saveLibrary(cur);
+                    showNotif(lang === "en" ? "Undone ✓" : "Desfeito ✓", "#10b981");
+                  },
+                });
                 return;
               }
               const next = { ...libraryRef.current };
@@ -2472,7 +2507,17 @@ export default function TrackAll() {
               }
               next[canonicalId] = upd;
               saveLibrary(next);
-              showNotif(`"${(pending.title || "Item").slice(0, 24)}" ✓${rating > 0 ? `  ★ ${rating}` : ""}`, accent);
+              const prev = logPrevRef.current;
+              showNotif(`"${(pending.title || "Item").slice(0, 24)}" ✓${rating > 0 ? `  ★ ${rating}` : ""}`, accent, {
+                label: lang === "en" ? "Undo" : "Desfazer",
+                onClick: () => {
+                  const cur = { ...libraryRef.current };
+                  delete cur[canonicalId];
+                  if (prev) cur[prev.key] = prev.item;
+                  saveLibrary(cur);
+                  showNotif(lang === "en" ? "Undone ✓" : "Desfeito ✓", "#10b981");
+                },
+              });
               if (extra.favorite) toggleFavorite(upd);
               if (extra.hof) toggleHallOfFame(upd);
             }}
@@ -2796,6 +2841,7 @@ export default function TrackAll() {
                   {logResults.map(item => (
                     <div key={item.id} onClick={() => {
                       const existing = findLibraryEntry(library, item.id, item.type);
+                      logPrevRef.current = existing ? { key: existing.key, item: existing.item } : null;
                       const again = !!existing && existing.item?.userStatus === "completo"; // já completo → «Completar outra vez» (não mexe na data original)
                       // 1.º mostra o painel (instantâneo); só depois grava na biblioteca, fora do caminho do toque
                       setLogOpen(false); setLogQuery(""); setLogResults([]); setLogPendingItem(again ? { ...item, _again: true } : item);

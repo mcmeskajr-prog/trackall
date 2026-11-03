@@ -53,7 +53,8 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
   if (completados.length === 0) return (
     <div style={{ textAlign: "center", padding: "40px 16px", color: "#484f58" }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
-      <p>{lang === "en" ? "Complete items to see your diary" : "Completa itens para ver o teu diário"}</p>
+      <p style={{ fontWeight: 700, color: "#8b949e", marginBottom: 6 }}>{lang === "en" ? "Your diary starts with the first title you finish" : "O teu diário começa no primeiro título que acabares"}</p>
+      <p style={{ fontSize: 12.5, lineHeight: 1.5, maxWidth: 320, margin: "0 auto" }}>{lang === "en" ? "Tap + (Quick Log) to mark something as complete, with the date and your rating." : "Toca em + (Log Rápido) para marcar algo como completo, com a data e a tua nota."}</p>
     </div>
   );
 

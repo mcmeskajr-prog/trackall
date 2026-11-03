@@ -1,10 +1,11 @@
-import { useState, memo } from "react";
+import { useState, useRef, memo } from "react";
 import { useLang } from "../contexts/LangContext";
 import { findLibraryEntry } from "../lib/mediaIds";
 import { gradientFor } from "../lib/utils";
 import { MEDIA_TYPES, STATUS_OPTIONS, mediaLabel, statusLabel } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
+import { prefetchMediaDetails } from "../api/details";
 
 export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
   const { lang, useT } = useLang();
@@ -14,6 +15,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
   const status = STATUS_OPTIONS.find((s) => s.id === libItem?.userStatus);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const warmRef = useRef(null);
 
   const handleError = (e) => {
     if (item.coverFallback && e.currentTarget.src !== item.coverFallback) {
@@ -24,7 +26,10 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
   };
 
   return (
-    <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}>
+    <div className="card" onClick={() => onOpen(item)} style={{ cursor: "pointer" }}
+      onMouseEnter={() => { clearTimeout(warmRef.current); warmRef.current = setTimeout(() => prefetchMediaDetails(item), 180); }}
+      onMouseLeave={() => clearTimeout(warmRef.current)}
+      onTouchStart={() => prefetchMediaDetails(item)}>
       <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(item.id) }}>
         {coverSrc && !imgError ? (
           <CoverImg

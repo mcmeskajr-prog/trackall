@@ -23,6 +23,7 @@ export function CoverImg({ src, hi = false, style, onLoad, onError, ...rest }) {
       <img
         ref={ref}
         src={shown}
+        decoding="async"
         {...rest}
         onLoad={(e) => { setState("ok"); if (onLoad) onLoad(e); }}
         onError={(e) => { if (hi && !useOrig && shown !== src) { setUseOrig(true); return; } setState("error"); if (onError) onError(e); }}

@@ -2,7 +2,7 @@
 // Deteta a fonte pelo prefixo do id (tmdb-, igdb-, gb-, cv-, al-) e busca
 // detalhes adicionais que a pesquisa inicial não trouxe.
 
-export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
+async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
   const fetchWithTimeout = (url, opts, ms = 8000) => {
     const ctrl = new AbortController();
@@ -208,4 +208,25 @@ export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     console.error('[fetchMediaDetails] Erro:', err);
   }
   return null;
+}
+
+
+// Cache em memória (por sessão): o modal abre com os dados prontos se o cartão já foi «aquecido» (hover / toque).
+// Só guarda resultados com dados; falhas e null não ficam em cache.
+const _cache = new Map();
+export function fetchMediaDetails(item, tmdbKey, workerUrl) {
+  const id = item?.id;
+  if (!id) return fetchMediaDetailsRaw(item, tmdbKey, workerUrl);
+  const hit = _cache.get(id);
+  if (hit) return hit;
+  const p = fetchMediaDetailsRaw(item, tmdbKey, workerUrl).then((d) => {
+    if (!d) _cache.delete(id);
+    return d;
+  }, (e) => { _cache.delete(id); throw e; });
+  _cache.set(id, p);
+  if (_cache.size > 80) _cache.delete(_cache.keys().next().value);
+  return p;
+}
+export function prefetchMediaDetails(item) {
+  try { if (item?.id) fetchMediaDetails(item).catch(() => {}); } catch { /* noop */ }
 }

@@ -12,6 +12,7 @@ import { CoverEditModal } from "./CoverEditModal";
 import { TypeIcon } from "./TypeIcon";
 import { ActionIcon } from "./ActionIcon";
 import { CompletedPanel } from "./CompletedPanel";
+import { useCoverColor } from "../lib/coverColor";
 
 export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onUpdateDate, onRewatch, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
@@ -308,6 +309,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const libItem = matchedLib?.item;
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
+  const coverTint = useCoverColor(coverSrc); // cor dominante da capa (null se o servidor não deixar ler)
   const isFavorite = favorites.some(f => f.id === currentItem.id);
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
   const canAddFavorite = !isFavorite && !isHallOfFame && favorites.length < 30; // o que está no Hall of Fame não é favorito
@@ -393,9 +395,13 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
             {(() => {
               const heroBg = detailExtra?.bannerImage || currentItem.backdrop || null;
               const useBanner = !!heroBg;
-              const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
+              // sem banner próprio (livros, comics…): capa desfocada e ampliada em vez de esticada; + brilho com a cor da capa
+              const blurCover = !heroBg && coverSrc;
+              const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (blurCover ? "transparent" : gradientFor(currentItem.id));
               return (
               <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 210, background: bgStyle, position: "relative", borderRadius: isMobileDevice ? "16px 16px 0 0" : "24px 24px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
+                {blurCover && <div aria-hidden="true" style={{ position: "absolute", inset: -30, background: `url(${coverSrc}) center 30%/cover`, filter: "blur(22px) saturate(1.25) brightness(0.8)", transform: "scale(1.1)" }} />}
+                {coverTint && <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 20% 100%, ${coverTint}66, transparent 65%)` }} />}
                 <div style={{ position: "absolute", inset: 0, background: useBanner ? `linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, ${modalSolid} 100%)` : `linear-gradient(to bottom, transparent 30%, ${modalSolid} 100%)` }} />
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
