@@ -64,7 +64,7 @@ export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
     // IGDB jogos
     if (id.startsWith("igdb-")) {
       const igdbId = id.replace("igdb-", "");
-      const [mainRes, videosRes, artworksRes, ttbRes] = await Promise.allSettled([
+      const [mainRes, videosRes, artworksRes, shotsRes] = await Promise.allSettled([
         // Campos sem time_to_beat (endpoint separada) e sem artworks inline
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "games", body: `fields name,summary,genres.name,platforms.name,franchises.name,collections.name,involved_companies.company.name,involved_companies.developer,first_release_date,total_rating,videos.video_id,videos.name; where id = ${igdbId}; limit 1;` }) }).then(r => r.json()),
@@ -72,7 +72,9 @@ export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
           body: JSON.stringify({ endpoint: "game_videos", body: `fields video_id,name; where game = ${igdbId}; limit 5;` }) }).then(r => r.json()),
         fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: "artworks", body: `fields image_id; where game = ${igdbId}; limit 8;` }) }).then(r => r.json()),
-
+        // screenshots: fallback para o banner quando o jogo não tem artworks
+        fetch(`${wUrl}/igdb-query`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: "screenshots", body: `fields image_id; where game = ${igdbId}; limit 1;` }) }).then(r => r.json()),
       ]);
       const g = (mainRes.status === "fulfilled" && Array.isArray(mainRes.value) && mainRes.value[0]) ? mainRes.value[0] : null;
       if (!g) return null;
@@ -86,6 +88,9 @@ export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
       const artworks = (artworksRes.status === "fulfilled" && Array.isArray(artworksRes.value))
         ? artworksRes.value.map(a => `https://images.igdb.com/igdb/image/upload/t_screenshot_big/${a.image_id}.jpg`)
         : [];
+      const bannerId = (artworksRes.status === "fulfilled" && Array.isArray(artworksRes.value) && artworksRes.value[0]?.image_id)
+        || (shotsRes.status === "fulfilled" && Array.isArray(shotsRes.value) && shotsRes.value[0]?.image_id) || null;
+      const bannerImage = bannerId ? `https://images.igdb.com/igdb/image/upload/t_1080p/${bannerId}.jpg` : null;
       const platforms = (g.platforms || []).map(p => p.name);
       const timeToBeat = null;
       return {
@@ -96,6 +101,7 @@ export async function fetchMediaDetails(item, tmdbKey, workerUrl) {
         developer,
         videos,
         artworks,
+        bannerImage,
         score: g.total_rating ? +(g.total_rating / 10).toFixed(1) : null,
       };
     }
