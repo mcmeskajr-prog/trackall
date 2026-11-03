@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { Component, useState } from "react";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { StarRating } from "./StarRating";
 import { gradientFor } from "../lib/utils";
-import { t } from "../translations";
 import { useLang } from "../contexts/LangContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { TypeIcon } from "./TypeIcon";
 
-export function RatingOverlay({ item, library, onDone, again = false, revCount = 0, isFavorite = false, isHallOfFame = false, canHallOfFame = true }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
+function RatingOverlayInner({ item, library, onDone, again = false, revCount = 0, isFavorite = false, isHallOfFame = false, canHallOfFame = true }) {
+  const { accent: _acc, darkMode, isMobileDevice } = useTheme();
+  const accent = /^#[0-9a-f]{6}$/i.test(_acc || "") ? _acc : "#6366f1";
 
-  const { lang, useT } = useLang();
+  const { lang } = useLang();
   const [rating, setRating] = useState(0);
   const [when, setWhen] = useState("today"); // today | yesterday | custom | none
   const [customAt, setCustomAt] = useState(() => Date.now());
@@ -77,4 +77,16 @@ export function RatingOverlay({ item, library, onDone, again = false, revCount =
       </div>
     </div>
   );
+}
+
+// Se algo falhar a desenhar o painel, nunca deixa a app em branco: fecha-o e segue (o título já ficou completo).
+class RatingBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err) { console.error("RatingOverlay:", err); try { this.props.onDone(0, null); } catch { /* noop */ } }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
+export function RatingOverlay(props) {
+  return <RatingBoundary onDone={props.onDone}><RatingOverlayInner {...props} /></RatingBoundary>;
 }

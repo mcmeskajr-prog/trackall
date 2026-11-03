@@ -2446,9 +2446,9 @@ export default function TrackAll() {
             library={library}
             again={!!logPendingItem._again}
             revCount={(() => { const e = findLibraryEntry(library, logPendingItem.id, logPendingItem.type); return Array.isArray(e?.item?.revisions) ? e.item.revisions.length : 0; })()}
-            isFavorite={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type)); return activeFavorites.some(f => ids.has(f.id)); })()}
-            isHallOfFame={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type)); return (activeProfile.hallOfFame || []).some(h => ids.has(h.id)); })()}
-            canHallOfFame={(activeProfile.hallOfFame || []).length < 10}
+            isFavorite={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type) || []); return activeFavorites.some(f => ids.has(f?.id)); })()}
+            isHallOfFame={(() => { const ids = new Set(mediaIdCandidates(logPendingItem.id, logPendingItem.type)); return ((activeProfile && activeProfile.hallOfFame) || []).some(h => ids.has(h.id)); })()}
+            canHallOfFame={((activeProfile && activeProfile.hallOfFame) || []).length < 10}
             onDone={(rating, extra) => {
               const pending = logPendingItem;
               setLogPendingItem(null);
