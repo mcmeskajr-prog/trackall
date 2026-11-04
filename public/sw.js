@@ -1,4 +1,4 @@
-// TrackAll Service Worker v2
+// TrackAll Service Worker v2.1
 const CACHE = 'trackall-v2';
 const IMG = CACHE + '-img';
 const SHELL = ['/', '/index.html'];
@@ -41,6 +41,10 @@ self.addEventListener('fetch', e => {
       (url.hostname.includes('google') && !isFont)) {
     return;
   }
+
+  // Pedidos CORS de imagens (ex.: ler a cor da capa num canvas) vão direto à rede: a cópia da cache é «opaca» e daria erro
+  if (req.destination === 'image' && req.mode === 'cors') return;
+  if (req.destination !== 'image' && req.mode === 'cors' && /\.(jpg|jpeg|png|webp|gif)$/i.test(url.pathname)) return;
 
   // Capas: stale-while-revalidate
   if (req.destination === 'image' || /\.(jpg|jpeg|png|webp|gif)$/i.test(url.pathname)) {

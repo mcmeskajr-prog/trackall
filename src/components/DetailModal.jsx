@@ -309,7 +309,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const libItem = matchedLib?.item;
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
-  const coverTint = useCoverColor(coverSrc); // cor dominante da capa (null se o servidor não deixar ler)
+  const coverTint = useCoverColor(coverSrc); // cor dominante da capa (null se não for possível ler)
   const isFavorite = favorites.some(f => f.id === currentItem.id);
   const isHallOfFame = hallOfFame.some(f => f.id === currentItem.id);
   const canAddFavorite = !isFavorite && !isHallOfFame && favorites.length < 30; // o que está no Hall of Fame não é favorito
@@ -398,8 +398,8 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
               return (
               <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 210, background: bgStyle, position: "relative", borderRadius: isMobileDevice ? "16px 16px 0 0" : "24px 24px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
-                {coverTint && <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 20% 100%, ${coverTint}66, transparent 65%)` }} />}
                 <div style={{ position: "absolute", inset: 0, background: useBanner ? `linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, ${modalSolid} 100%)` : `linear-gradient(to bottom, transparent 30%, ${modalSolid} 100%)` }} />
+                {coverTint && <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 90% at 18% 70%, ${coverTint}73, transparent 70%)`, mixBlendMode: "screen" }} />}
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
               </div>
@@ -410,7 +410,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               {/* Header: cover + title */}
               <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? -60 : -90, position: "relative", zIndex: 2 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: isMobileDevice ? 110 : 170, height: isMobileDevice ? 160 : 255, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + modalSolid, background: gradientFor(currentItem.id), boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
+                  <div style={{ width: isMobileDevice ? 110 : 170, height: isMobileDevice ? 160 : 255, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + modalSolid, background: gradientFor(currentItem.id), boxShadow: coverTint ? `0 14px 40px rgba(0,0,0,0.55), 0 0 36px ${coverTint}55` : "0 14px 40px rgba(0,0,0,0.55)" }}>
                     {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = currentItem.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
                   </div>
                   {inLib && (
