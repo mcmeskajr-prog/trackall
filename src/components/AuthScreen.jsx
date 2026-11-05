@@ -20,8 +20,9 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
     try {
       if (mode === "register") {
         // O código é validado e consumido no servidor (trigger enforce_invite); se for inválido o registo falha com erro
-        const { user: u } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase());
-        if (u) {
+        const { user: u, session } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase());
+        // Sem sessão = o Supabase está à espera da confirmação do email: não entrar (senão fica «dentro» mas sem permissões na BD)
+        if (u && session) {
           onAuth(u);
         } else {
           setAwaitingVerification(true);

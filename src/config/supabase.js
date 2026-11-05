@@ -72,7 +72,10 @@ const supa = {
       if (error) throw error;
     }
     if (Object.keys(pub).length) {
-      await supabase.from('profiles').update({ ...pub, updated_at: new Date().toISOString() }).eq('id', userId);
+      const { data, error } = await supabase.from('profiles')
+        .update({ ...pub, updated_at: new Date().toISOString() }).eq('id', userId).select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Perfil não encontrado ou sem permissão para atualizar');
     }
   },
 
@@ -310,6 +313,8 @@ const supa = {
   // (isso é o que fazia o guardar do banner/avatar encravar).
   async uploadImage(userId, blob, filename) {
     const path = `${userId}/${filename}`;
+    if (!blob || blob.size > 5 * 1024 * 1024) throw new Error('Imagem demasiado grande (máx. 5 MB)');
+    if (blob.type && !/^image\/(jpeg|png|webp|gif)$/.test(blob.type)) throw new Error('Formato de imagem não suportado');
     const { error } = await supabase.storage.from('profile-images').upload(path, blob, {
       upsert: true,
       contentType: blob.type || 'image/jpeg',
