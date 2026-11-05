@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { pickImage } from "../lib/imageCheck";
 import { ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { compressImage } from "../lib/utils";
 import { persistImage } from "../lib/imageStore";
+import { useUiPref } from "../lib/uiPrefs";
 
 // ─── Definições › Aparência ──────────────────────────────────────────────────
 // Estilos prontos + todas as opções de personalização (cor de destaque, fundo, imagem, painéis,
@@ -34,6 +36,10 @@ export function AppearanceSettings({
   onPanelBg, onPanelOpacity, onBgImage, onBgImageMobile, onBgOverlay, onBgBlur, onBgParallax, onBgSeparateDevices,
 }) {
   const [themeName, setThemeName] = useState("");
+  const [advOpen, setAdvOpen] = useState(false);
+  const [sbMode, setSbMode] = useUiPref("trackall_sidebar_mode");
+  const [sbGlass, setSbGlass] = useUiPref("trackall_sidebar_glass");
+  const [topAcc, setTopAcc] = useUiPref("trackall_top_accent");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [ratingStyle, setRatingStyleState] = useState(() => { try { return localStorage.getItem(RATING_STYLE_KEY) || "stars"; } catch { return "stars"; } });
   const [tabsBg, setTabsBgState] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -47,6 +53,7 @@ export function AppearanceSettings({
   };
 
   const en = lang === "en";
+  const sbModeEff = sbMode === "auto" ? ((bgSeparateDevices && isMobileDevice ? bgImageMobile : bgImage) ? "glass" : "solid") : sbMode;
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const sub = darkMode ? "#9aa6b2" : "#475569";
   const line = darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.1)";
@@ -106,10 +113,22 @@ export function AppearanceSettings({
   const pvPanel = { background: panel, border: `1px solid ${line}`, borderRadius: 14 };
 
   const preview = (
-    <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${line}`, position: "relative", background: pvBg }}>
+    <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${line}`, position: "relative", background: pvBg, display: "flex" }}>
       {pvImg && <div style={{ position: "absolute", inset: 0, background: `url(${pvImg}) center/cover`, filter: bgBlur ? `blur(${bgBlur}px)` : undefined, transform: "scale(1.05)" }} />}
       {pvImg && <div style={{ position: "absolute", inset: 0, background: bgOverlay || "transparent" }} />}
-      <div style={{ position: "relative", padding: 16, display: "flex", flexDirection: "column", gap: 12, color: text, filter: tc !== 100 ? `brightness(${tc / 100})` : undefined }}>
+      {!isMobileDevice && (() => {
+        const g = Math.max(0, Math.min(100, Number(sbGlass) || 0)) / 100;
+        const bgS = sbModeEff === "glass" ? `rgba(8,10,14,${(0.28 + g * 0.47).toFixed(2)})` : sbModeEff === "clear" ? "transparent" : (sidebarColor || pvBg);
+        const dk = sbModeEff !== "solid" ? true : (() => { const c = hexToRgb(sidebarColor || pvBg); return c ? (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) < 140 : true; })();
+        const ink = dk ? "rgba(255,255,255,0.78)" : "rgba(15,23,42,0.7)";
+        return (
+          <div aria-hidden="true" style={{ position: "relative", width: 58, flexShrink: 0, padding: "14px 8px", display: "flex", flexDirection: "column", gap: 9, background: bgS, backdropFilter: sbModeEff === "glass" ? `blur(${Math.round(8 + g * 20)}px)` : undefined, borderRight: sbModeEff === "clear" ? "none" : `1px solid ${sbModeEff === "glass" ? "rgba(255,255,255,0.14)" : line}`, textShadow: sbModeEff === "clear" ? "0 1px 6px rgba(0,0,0,0.85)" : undefined }}>
+            <div style={{ width: 20, height: 20, borderRadius: 6, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>T</div>
+            {[0, 1, 2, 3].map(i => <div key={i} style={{ height: 7, borderRadius: 4, background: i === 2 ? accent : ink, opacity: i === 2 ? 1 : 0.55, width: i === 2 ? "100%" : "72%" }} />)}
+          </div>
+        );
+      })()}
+      <div style={{ position: "relative", flex: 1, minWidth: 0, padding: 16, display: "flex", flexDirection: "column", gap: 12, color: text, filter: tc !== 100 ? `brightness(${tc / 100})` : undefined }}>
         <div style={{ ...pvPanel, padding: 14, display: "flex", gap: 12, alignItems: "center" }}>
           <div style={{ width: 50, height: 50, borderRadius: 99, background: `linear-gradient(135deg, ${accent}, #222)`, boxShadow: `0 0 0 3px ${accent}`, flexShrink: 0 }} />
           <div><div style={{ fontSize: 18, fontWeight: 800 }}>Higan</div><div style={{ fontSize: 11, color: sub }}>TrackAll · 232 {en ? "items" : "itens"}</div></div>
@@ -155,7 +174,7 @@ export function AppearanceSettings({
     <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
       <label style={{ width: 64, height: 64, borderRadius: 12, border: img ? `2px solid ${color}` : `2px dashed ${line}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 22, background: img ? `url(${img}) center/cover` : "transparent", overflow: "hidden", gap: 2 }}>
         {!img && <><span>{icon}</span><span style={{ fontSize: 10, color: sub }}>{label}</span></>}
-        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const c = await compressImage(f, w, h, q); if (c) onSet(await persistImage(c)); }} />
+        <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const f = pickImage(e); if (!f) return; const c = await compressImage(f, w, h, q); if (c) onSet(await persistImage(c)); }} />
       </label>
       {img && <button type="button" onClick={() => onSet("")} style={{ fontSize: 11, padding: "2px 10px", background: "#ef444422", border: "1px solid #ef444455", borderRadius: 6, color: "#ef4444", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
     </div>
@@ -186,12 +205,6 @@ export function AppearanceSettings({
             );
           })}
         </div>
-      </section>
-
-      {/* Cor de destaque */}
-      <section style={box}>
-        <div style={eyebrow}>{useT("accentColor")}</div>
-        {colorRow(ACCENT_PRESETS, accent, onAccentChange, onAccentChange, true)}
       </section>
 
       {/* Fundo */}
@@ -240,6 +253,12 @@ export function AppearanceSettings({
             </div>
           </div>
         )}
+        {(bgImage || bgImageMobile) && (bgOverlay === "rgba(0,0,0,0)" || !bgOverlay) && (panelOpacity ?? 100) < 60 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "#f59e0b1c", border: "1px solid #f59e0b66", fontSize: 12, fontWeight: 700, color: "#f59e0b" }}>
+            <span>⚠ {en ? "With this background the text may be hard to read." : "Com este fundo o texto pode ficar difícil de ler."}</span>
+            <button type="button" onClick={() => { onBgOverlay("rgba(0,0,0,0.55)"); onPanelOpacity(70); }} style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#1a1100", fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{en ? "Fix" : "Corrigir"}</button>
+          </div>
+        )}
       </section>
 
       {/* Painéis */}
@@ -259,6 +278,69 @@ export function AppearanceSettings({
         {slider(useT("panelOpacity"), panelOpacity ?? 100, onPanelOpacity, 0, 100, 1)}
       </section>
 
+      {/* Barra lateral (só PC) */}
+      {!isMobileDevice && (
+        <section style={box}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={eyebrow}>{useT("sidebarSection")}</div>
+            {sidebarColor && sbModeEff === "solid" && <button type="button" onClick={() => onSidebarColor("")} style={{ fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ {en ? "same as background" : "igual ao fundo"}</button>}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[["auto", en ? "Automatic" : "Automático"], ["glass", en ? "Glass" : "Vidro"], ["solid", en ? "Solid" : "Sólida"], ["clear", en ? "Transparent" : "Transparente"]].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setSbMode(v)} style={chip(sbMode === v)}>{l}</button>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: sub, marginTop: -2 }}>
+            {sbMode === "auto" ? (en ? "Glass over a background image, solid otherwise." : "Vidro quando há imagem de fundo, sólida quando não há.")
+              : sbMode === "glass" ? (en ? "Darkens and blurs the wallpaper behind the bar — always readable." : "Escurece e desfoca o wallpaper atrás da barra: lê-se sempre.")
+              : sbMode === "solid" ? (en ? "Your own opaque colour; the text adapts to it." : "A tua cor, opaca; o texto adapta-se a ela.")
+              : (en ? "No background: the wallpaper runs edge to edge." : "Sem fundo: o wallpaper vai de lado a lado.")}
+          </p>
+          {sbModeEff === "glass" && slider(en ? "Glass intensity" : "Intensidade do vidro", Number(sbGlass) || 0, (v) => setSbGlass(v), 0, 100, 5)}
+          {sbModeEff === "solid" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+              <button type="button" onClick={() => onSidebarColor("")} title={useT("sameAsBg")} style={{ ...sw(!sidebarColor, false), background: bgColor, color: sub, fontSize: 10, fontFamily: "inherit" }}>≡</button>
+              {BG_PRESETS.map(p => <button key={p.name} type="button" onClick={() => onSidebarColor(p.value)} title={p.name} aria-label={p.name} style={{ ...sw(sidebarColor === p.value, false), background: p.value }} />)}
+              <label style={{ ...sw(false, false), border: `2px dashed ${line}`, display: "flex", alignItems: "center", justifyContent: "center", color: sub, fontSize: 16, position: "relative", cursor: "pointer" }}>+
+                <input type="color" value={sidebarColor || bgColor} onChange={e => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
+              </label>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Cor de destaque */}
+      <section style={box}>
+        <div style={eyebrow}>{useT("accentColor")}</div>
+        {colorRow(ACCENT_PRESETS, accent, onAccentChange, onAccentChange, true)}
+        {!isMobileDevice && (
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{en ? "Accent at the top of the pages" : "Cor de destaque no topo das páginas"}</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[["profile", en ? "Profile glow + line" : "Brilho no Perfil + linha"], ["all", en ? "Glow on every tab" : "Brilho em todas as abas"], ["none", en ? "Never" : "Nunca"]].map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setTopAcc(v)} style={chip(topAcc === v)}>{l}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Avançado */}
+      <section style={box}>
+        <button type="button" onClick={() => setAdvOpen(o => !o)} aria-expanded={advOpen} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: text, padding: 0, textAlign: "left" }}>
+          <span style={eyebrow}>{en ? "Advanced" : "Avançado"}</span>
+          <span style={{ fontSize: 12, color: sub }}>{en ? "text contrast · tabs background · rating · devices" : "contraste do texto · fundo das abas · avaliação · dispositivos"} {advOpen ? "▴" : "▾"}</span>
+        </button>
+        {advOpen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, paddingTop: 6 }}>
+      {/* Texto */}
+      <section style={box}>
+        <div style={eyebrow}>{useT("textSection")}</div>
+        {slider(bgSeparateDevices ? "🖥 PC" : (en ? "Contrast" : "Contraste"), textContrast, onTextContrast, 40, 160, 5)}
+        {bgSeparateDevices && slider("📱 Mobile", textContrastMobile, onTextContrastMobile, 40, 160, 5, "#06b6d4")}
+        <button type="button" onClick={() => { onTextContrast(100); onTextContrastMobile(100); }} style={{ alignSelf: "flex-start", fontSize: 12, color: sub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ {en ? "Reset" : "Repor"}</button>
+      </section>
+
       {/* Fundo das abas (só PC e só com imagem de fundo) */}
       {!isMobileDevice && !!bgImage && (
         <section style={box}>
@@ -271,29 +353,6 @@ export function AppearanceSettings({
           </div>
         </section>
       )}
-
-      {/* Texto */}
-      <section style={box}>
-        <div style={eyebrow}>{useT("textSection")}</div>
-        {slider(bgSeparateDevices ? "🖥 PC" : (en ? "Contrast" : "Contraste"), textContrast, onTextContrast, 40, 160, 5)}
-        {bgSeparateDevices && slider("📱 Mobile", textContrastMobile, onTextContrastMobile, 40, 160, 5, "#06b6d4")}
-        <button type="button" onClick={() => { onTextContrast(100); onTextContrastMobile(100); }} style={{ alignSelf: "flex-start", fontSize: 12, color: sub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>↺ {en ? "Reset" : "Repor"}</button>
-      </section>
-
-      {/* Barra lateral */}
-      <section style={box}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={eyebrow}>{useT("sidebarSection")}</div>
-          {sidebarColor && <button type="button" onClick={() => onSidebarColor("")} style={{ fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>✕ {en ? "same as background" : "igual ao fundo"}</button>}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-          <button type="button" onClick={() => onSidebarColor("")} title={useT("sameAsBg")} style={{ ...sw(!sidebarColor, false), background: bgColor, color: sub, fontSize: 10, fontFamily: "inherit" }}>≡</button>
-          {BG_PRESETS.map(p => <button key={p.name} type="button" onClick={() => onSidebarColor(p.value)} title={p.name} aria-label={p.name} style={{ ...sw(sidebarColor === p.value, false), background: p.value }} />)}
-          <label style={{ ...sw(false, false), border: `2px dashed ${line}`, display: "flex", alignItems: "center", justifyContent: "center", color: sub, fontSize: 16, position: "relative", cursor: "pointer" }}>+
-            <input type="color" value={sidebarColor || bgColor} onChange={e => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
-          </label>
-        </div>
-      </section>
 
       {/* Avaliação + dispositivos */}
       <section style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "1fr 1fr", gap: 14 }}>
@@ -315,6 +374,10 @@ export function AppearanceSettings({
             </label>
           </div>
         </div>
+      </section>
+
+          </div>
+        )}
       </section>
 
       {/* Os meus estilos */}

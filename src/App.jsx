@@ -27,6 +27,7 @@ import { lazyNamed, prefetchIdle } from './lib/lazyNamed';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
 import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
+import { useUiPref } from './lib/uiPrefs';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
@@ -254,6 +255,9 @@ export default function TrackAll() {
   const [bgColor, setBgColor] = useState(_bt.bgColor || "#0d1117");
   const [bgColorMobile, setBgColorMobile] = useState(_bt.bgColorMobile || ""); // "" = igual ao PC
   const [sidebarColor, setSidebarColor] = useState(_bt.sidebarColor || ""); // "" = igual ao bgColor
+  const [sidebarMode] = useUiPref("trackall_sidebar_mode");   // auto | glass | solid | clear
+  const [sidebarGlass] = useUiPref("trackall_sidebar_glass");  // 0–100
+  const [topAccent] = useUiPref("trackall_top_accent");        // profile | all | none
   const [textContrast, setTextContrast] = useState(100);
   const [textContrastMobile, setTextContrastMobile] = useState(100);
   const [savedThemes, setSavedThemes] = useState(() => { try { return JSON.parse(localStorage.getItem("trackall_themes") || "[]"); } catch { return []; } });
@@ -2067,7 +2071,19 @@ export default function TrackAll() {
   if (!friendTheme) ownDarkRef.current = activeDarkMode;
   const ownDark = ownDarkRef.current;
   const onAccentTxt = onAccentColor(accent);
-  const activeBgPaint = activeBgImage ? "none" : appBgPaint(activeBgColor, friendTheme?.accent || accent, activeDarkMode);
+  // Brilho de destaque no topo: por defeito só no Perfil (nas outras abas fica uma linha fina); no telemóvel mantém-se como antes
+  const _glowOn = isMobileDevice || topAccent === "all" || (topAccent !== "none" && view === "profile");
+  const activeBgPaint = (activeBgImage || !_glowOn) ? "none" : appBgPaint(activeBgColor, friendTheme?.accent || accent, activeDarkMode);
+  const _topLine = !isMobileDevice && topAccent === "profile" && view !== "profile";
+
+  // Barra lateral: «auto» = vidro quando há imagem de fundo, sólida quando não há
+  const sbMode = sidebarMode === "auto" ? (activeBgImage ? "glass" : "solid") : sidebarMode;
+  // Texto da barra lateral: vidro/transparente são sempre escuros por baixo (texto claro); sólida segue a cor real da barra
+  const sbDark = sbMode === "solid" ? isColorDark(sidebarColor || ownBgColor) : true;
+  const _g = Math.max(0, Math.min(100, Number(sidebarGlass) || 0)) / 100;
+  const sbBackground = sbMode === "glass" ? `rgba(8,10,14,${(0.28 + _g * 0.47).toFixed(2)})` : sbMode === "clear" ? "transparent" : `${sidebarColor || ownBgColor}f5`;
+  const sbBlur = sbMode === "glass" ? `blur(${Math.round(8 + _g * 20)}px) saturate(1.25)` : "none";
+  const sbBorder = sbMode === "clear" ? "transparent" : sbMode === "glass" ? "rgba(255,255,255,0.14)" : (sbDark ? "#21262d" : "#e2e8f0");
 
   // Computed panel bg para uso no CSS global (lib-sidebar)
   const computedPanelBgCSS = (() => {
@@ -2125,12 +2141,12 @@ export default function TrackAll() {
             { id: "profile", icon: "◉", label: useT("profile") },
           ];
           return (
-            <aside className="desktop-sidebar">
+            <aside className={`desktop-sidebar sb-${sbMode}`}>
               {/* Logo */}
-              <div style={{ padding: "20px 16px 12px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, marginBottom: 8 }}>
+              <div style={{ padding: "20px 16px 12px", borderBottom: `1px solid ${sbDark ? "#21262d" : "#e2e8f0"}`, marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${accent}, ${accent}99)`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "white", flexShrink: 0 }}>T</div>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: sbDark ? "#e6edf3" : "#0d1117", letterSpacing: "-0.5px" }}>TrackAll</span>
                 </div>
               </div>
 
@@ -2150,15 +2166,15 @@ export default function TrackAll() {
                   style={view === "friends" ? { background: `${accent}1a`, color: accent } : {}}>
                   <span className="ds-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} />
-                      <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} opacity="0.7" />
-                      <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-                      <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (darkMode ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
+                      <circle cx="9" cy="7" r="3.5" fill={view === "friends" ? accent : (sbDark ? "#8b949e" : "#64748b")} />
+                      <circle cx="17" cy="8" r="2.8" fill={view === "friends" ? accent : (sbDark ? "#8b949e" : "#64748b")} opacity="0.7" />
+                      <path d="M2 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke={view === "friends" ? accent : (sbDark ? "#8b949e" : "#64748b")} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+                      <path d="M17 13c2.2 0.4 4 2.2 4 4.5" stroke={view === "friends" ? accent : (sbDark ? "#8b949e" : "#64748b")} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7" />
                     </svg>
                   </span>
                   {useT("friends")}
                 </button>
-                <SidebarSearch accent={accent} darkMode={friendTheme ? darkMode : activeDarkMode} activeTab={activeTab} doSearch={doSearch} setSearchQuery={setSearchQuery} setView={setView} useT={useT} />
+                <SidebarSearch accent={accent} darkMode={sbDark} activeTab={activeTab} doSearch={doSearch} setSearchQuery={setSearchQuery} setView={setView} useT={useT} />
               </div>
 
               {/* Botão + Log Rápido */}
@@ -2180,9 +2196,9 @@ export default function TrackAll() {
                     
                     return (
                       <div key={t.id} className="ds-type-item" onClick={() => { setView("library"); setActiveTab(t.id); }}
-                        style={{ background: isActive ? `${accent}18` : undefined, borderRadius: 8, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}>
-                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (darkMode ? "#8b949e" : "#64748b") }}><TypeIcon id={t.id} size={16} /></span>
-                        <span style={{ flex: 1, color: isActive ? accent : (darkMode ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{mediaLabel(t, lang)}</span>
+                        style={{ background: isActive ? `${accent}18` : undefined, borderRadius: 8, color: isActive ? accent : (sbDark ? "#8b949e" : "#64748b") }}>
+                        <span style={{ display: "flex", alignItems: "center", width: 18, flexShrink: 0, color: isActive ? accent : (sbDark ? "#8b949e" : "#64748b") }}><TypeIcon id={t.id} size={16} /></span>
+                        <span style={{ flex: 1, color: isActive ? accent : (sbDark ? "#c9d1d9" : "#374151"), fontWeight: isActive ? 700 : 500, fontSize: 13 }}>{mediaLabel(t, lang)}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? accent : "#484f58" }}>{cnt}</span>
                       </div>
                     );
@@ -2192,13 +2208,13 @@ export default function TrackAll() {
               )}
 
               {/* Avatar + nome em baixo */}
-              <div style={{ marginTop: "auto", padding: "16px", borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}` }}>
+              <div style={{ marginTop: "auto", padding: "16px", borderTop: `1px solid ${sbDark ? "#21262d" : "#e2e8f0"}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setView("profile")}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: sbDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
                     <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
                   </div>
                 </div>
@@ -2207,6 +2223,7 @@ export default function TrackAll() {
           );
         })()}
 
+        {_topLine && <div aria-hidden="true" className="top-accent-line" style={{ position: "fixed", top: 0, left: 220, right: 0, height: 2, zIndex: 3, pointerEvents: "none", background: `linear-gradient(90deg, transparent, ${accent}dd 22%, ${accent}dd 78%, transparent)` }} />}
         <div className="desktop-main tc-zone" style={{ position: "relative", zIndex: 2, minHeight: "100vh", background: "transparent" }}>
         <style>{`
           * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -2384,7 +2401,7 @@ export default function TrackAll() {
           .spin { animation: spin 0.7s linear infinite; display: inline-block; }
           .hero-gradient { background: transparent; border-bottom: 1px solid transparent; position: relative; }
           ${!ownDark ? `
-            .desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }
+            ${sbMode === "solid" && !sidebarColor ? ".desktop-sidebar { background: rgba(255,255,255,0.95) !important; border-right: 1px solid #e2e8f0 !important; }" : ""}
             .bottom-nav { background: rgba(255,255,255,0.78) !important; }
           ` : ""}
           ${!activeDarkMode ? `
@@ -2432,29 +2449,31 @@ export default function TrackAll() {
             display: none;
             position: fixed; left: 0; top: 0; bottom: 0; width: 220px; z-index: 50;
             flex-direction: column;
-            background: ${sidebarColor || ownBgColor}f5;
-            border-right: 1px solid ${darkMode ? "#21262d" : "#e2e8f0"};
+            background: ${sbBackground};
+            -webkit-backdrop-filter: ${sbBlur}; backdrop-filter: ${sbBlur};
+            border-right: 1px solid ${sbBorder};
             padding: 0 0 16px 0;
             overflow-y: hidden;
           }
+          ${sbMode === "clear" ? `.desktop-sidebar span, .desktop-sidebar p, .desktop-sidebar button { text-shadow: 0 1px 8px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6); }` : ""}
           .ds-nav-btn {
             display: flex; align-items: center; gap: 12px;
             width: 100%; padding: 11px 16px; border: none; background: none;
             cursor: pointer; font-family: Outfit, sans-serif; font-size: 14px; font-weight: 600;
-            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
+            color: ${sbDark ? (sbMode === "solid" ? "#8b949e" : "#c3ccd6") : "#64748b"}; border-radius: 10px; margin: 1px 8px; width: calc(100% - 16px);
             transition: all 0.15s; text-align: left;
           }
-          .ds-nav-btn:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; color: ${darkMode ? "#e6edf3" : "#0d1117"}; }
+          .ds-nav-btn:hover { background: ${sbMode !== "solid" ? "rgba(255,255,255,0.1)" : (sbDark ? "#161b22" : "#f1f5f9")}; color: ${sbDark ? "#e6edf3" : "#0d1117"}; }
           .ds-nav-btn.active { background: ${accent}18; color: ${accent}; }
           .ds-nav-btn .ds-icon { font-size: 18px; width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-          .ds-section { font-size: 10px; font-weight: 800; color: #484f58; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 24px 4px; }
+          .ds-section { font-size: 10px; font-weight: 800; color: ${sbMode !== "solid" ? "#b4bdc8" : (sbDark ? "#6e7681" : "#8c959f")}; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 24px 4px; }
           .ds-type-item {
             display: flex; align-items: center; gap: 8px;
             padding: 4px 16px; font-size: 12px; cursor: pointer;
-            color: ${darkMode ? "#8b949e" : "#64748b"}; border-radius: 8px; margin: 0 8px;
+            color: ${sbDark ? (sbMode === "solid" ? "#8b949e" : "#c3ccd6") : "#64748b"}; border-radius: 8px; margin: 0 8px;
             transition: all 0.12s;
           }
-          .ds-type-item:hover { background: ${darkMode ? "#161b22" : "#f1f5f9"}; }
+          .ds-type-item:hover { background: ${sbMode !== "solid" ? "rgba(255,255,255,0.1)" : (sbDark ? "#161b22" : "#f1f5f9")}; }
         `}</style>
 
         <PwaHints accent={accent} darkMode={darkMode} lang={lang} isMobile={isMobileDevice} />

@@ -139,7 +139,10 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${hall.length <= 6 ? Math.max(hall.length, 4) : hall.length <= 8 ? 4 : 5}, minmax(0, 1fr))`, gap: 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
+        <div style={{ display: "grid", ...(hall.length <= 5
+          // Poucos títulos: capas com tamanho normal, centradas (não encolhem nem ficam coladas à esquerda)
+          ? { gridTemplateColumns: `repeat(${hall.length}, minmax(0, ${hall.length <= 4 ? 190 : 170}px))`, justifyContent: "center", gap: 18 }
+          : { gridTemplateColumns: `repeat(${hall.length <= 6 ? 6 : hall.length <= 8 ? 4 : 5}, minmax(0, 1fr))`, gap: 14 }), padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
           {hall.map(h => <Poster key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
