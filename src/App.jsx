@@ -28,6 +28,7 @@ import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } f
 import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
 import { useUiPref } from './lib/uiPrefs';
+import { usePersistedState } from './lib/usePersistedState';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
@@ -291,7 +292,8 @@ export default function TrackAll() {
   seen.current[view] = true;
   // O tema do amigo só vale enquanto a vista Amigos está ativa (as vistas ficam montadas em segundo plano)
   const friendTheme = view === "friends" ? friendThemeRaw : null;
-  const [activeTab, setActiveTab] = useState("all");
+  // Filtros da biblioteca lembrados neste dispositivo (a pesquisa de texto e o filtro por nota vindo do perfil não)
+  const [activeTab, setActiveTab] = usePersistedState("trackall_lib_tab", "all", v => v === "all" || MEDIA_TYPES.some(t => t.id === v));
   const [homeFilter, setHomeFilter] = useState([]);
   const [homeCollapsedCurso, setHomeCollapsedCurso] = useState(false);
 
@@ -425,9 +427,9 @@ export default function TrackAll() {
   const [notif, setNotif] = useState(null);
   const [pwaPrompt, setPwaPrompt] = useState(null); // deferred install prompt
   const [pwaInstalled, setPwaInstalled] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = usePersistedState("trackall_lib_status", "all", v => v === "all" || STATUS_OPTIONS.some(o => o.id === v));
   const [filterRating, setFilterRating] = useState(null); // null | "rated" | nota exata (vem das estatísticas do perfil)
-  const [libSort, setLibSort] = useState("date");
+  const [libSort, setLibSort] = usePersistedState("trackall_lib_sort", "date", v => ["date", "title", "rating"].includes(v));
   const [libSearch, setLibSearch] = useState("");
   const [libViewMode, setLibViewMode] = useState(() => { 
     try { 
