@@ -70,6 +70,29 @@
 16. **Arrastar para reordenar em grelha**
    `useDragReorder` usa `data-ridx` nos filhos e `elementFromPoint`; com `handle` arrasta logo pela pega (≡). Funciona em listas e grelhas, mas cada elemento arrastável precisa de `data-ridx`.
 
+17. **Registo de contas novas (Supabase)**
+   Com confirmação de e-mail ligada, `signUp` devolve `user` mas **não** `session`: entrar logo "como se estivesse autenticado" faz falhar tudo o que passa por RLS (ex.: pedido de amizade → «new row violates row-level security policy for table friendships»). O `AuthScreen` só entra com `user && session`. O link do e-mail usa o **Site URL** do Supabase (já saiu `localhost:3000` por esquecimento).
+
+18. **`handle_new_user` tem de acompanhar as colunas**
+   Ao mover `tmdb_key`/`worker_url` para `profile_private`, o trigger continuou a inserir nas colunas antigas e o registo falhava com «Código de convite inválido» (o erro real ficava escondido atrás do trigger `enforce_invite`). Mexeu em colunas de `profiles`? Rever `handle_new_user` e `upsertProfile`.
+
+19. **Service worker e imagens CORS**
+   Nunca pôr em cache respostas opacas de imagens pedidas com `mode: 'cors'` (canvas/`getImageData` deixa de funcionar e a consola enche-se de erros). O `sw.js` v2.1 deixa-as passar.
+
+20. **Um só `darkMode` não serve para tudo**
+   A barra lateral sobre wallpaper ficava ilegível porque o texto seguia o `darkMode` da página. Cada superfície com fundo próprio calcula o seu (`sbDark` na barra, `panelDM` nos painéis).
+
+21. **Extrair código sem partir o ecrã**
+   Mover blocos grandes (como se fez na Home e nas Definições) é seguro se: (1) ESLint com `no-undef` a 0 erros e (2) o HTML renderizado antes/depois for idêntico (`renderToStaticMarkup`). Só olhar para o diff não chega.
+
+---
+
+## 🙅 Decisões do Noé a respeitar
+
+- **Home e Perfil no PC ficam como estão** (rejeitou a coluna lateral na Home, o cartão fixo e a fusão de separadores no Perfil). Mexer só em detalhes pedidos por ele.
+- Mudanças de comportamento global → opção em Definições, **desligada por defeito**. Desenhos novos passam primeiro pelo canvas.
+- Hall of Fame = 10; `MAX_FAVORITES_PER_TYPE` = 7; HoF e favoritos nunca se repetem.
+
 ---
 
 ## ✅ Trabalho recente concluído
@@ -87,6 +110,12 @@
 **2026-10-28:** ecrã da pilha de favoritos no telemóvel (cartão de destaque + grelha); Hall of Fame e favoritos sem repetição; flor `Sakura` na nota do HoF do telemóvel; maquetes no canvas para HoF com 10/8/6.
 
 **Próximos passos combinados (2026-10-28):** testar no telemóvel → **desempenho/fluidez** (medir primeiro) → checklist para partilhar → HoF 8 ou 6 (decidir após testes) → ligar itens antigos/MAL → Conquistas por último. Pendente pequeno: limpeza única de itens que estão no HoF e nos favoritos.
+
+**31 de outubro de 2026 (desempenho):** contextos memoizados (`ContextBridges`), `TopSearchInput` com debounce, `ProfileView` lazy, vistas pesadas só montam na 1.ª visita (`seen` ref no `App.jsx`), `manualChunks` no `vite.config.js`, service worker v2 (clone síncrono), fontes num só pedido não bloqueante. Lighthouse mobile: 71, TBT ~1,5 s (custo em Style & Layout). Noé acha a app já boa → **otimização em pausa**; retomar com profile de «Recalculate Style» (ver DEV_GUIDE «Desempenho»). Próximo: checklist antes de partilhar.
+
+**1 de novembro de 2026:** perfil mobile com ⚙ (menu) e Recentes logo após o Hall of Fame; pilhas de favoritos com as 7 capas; Hall of Fame sem bordas; feed dos amigos na Home (hover só na capa, avatar abre o perfil do amigo); «Completar outra vez» (`item.revisions`, só o Diário conta as vezes); log rápido com data, destaques e revisão; DetailModal sem scroll por trás. Detalhes no DEV_GUIDE («Ronda de 1 de novembro»). **Próximo:** checklist antes de partilhar (exportar dados JSON, apagar conta + política de privacidade, limites de upload, atribuição TMDB, monitorização).
+
+**2–6 de novembro de 2026:** log rápido mais rápido e com Desfazer; banners de jogos (IGDB); pequenos detalhes (pré-carregar detalhes, `PwaHints`, `errorReporting`, estados vazios); exportar dados + apagar conta + política de privacidade feitos (falta só a chave Sentry e os limites de upload); personalização refeita (barra lateral vidro/sólida/transparente, brilho no topo só no Perfil, HoF centrado com poucos itens, Definições reorganizadas); correções de registo/amizades no Supabase; arrumação (`views/home/`, `ProfileSettings`). Detalhes no DEV_GUIDE («Ronda de 2 a 6 de novembro»). **Adiado pelo Noé:** limites de upload, atalhos de teclado, retrospetiva anual, lembrete de backup. **Por decidir:** nome de utilizador no registo (perguntar ou gerar do e-mail).
 
 **Por fazer nas importações:** função "Ligar" para itens antigos (`pb-`/`mihon-`/`lb-`) → registo da API; fazer Letterboxd/Mihon/Paperback resolverem para ids de API; MyAnimeList (XML/Jikan); possível limpeza de lotes por `importedFrom`.
 

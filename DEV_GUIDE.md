@@ -56,6 +56,10 @@ TrackAll/
   - components/ novos: GoodreadsImportModal, NotesImportModal, AniListImportModal, Sakura, ProfileFavsMobile
   - lib/ (inclui utils.js, importParsers.js, **bootCache.js**, **imageStore.js**, **libraryDiff.js**, **anilistImport.js**, **notesImport.js**, **goodreadsImport.js**, **lazyNamed.js**)
   - views/ (HomeView, LibraryView, SearchView — estado fica no TrackAll, a vista recebe props)
+  - **Atualização 2026-11-06:**
+    - views/home/ — a `HomeView` só compõe blocos: `HomeHero`, `HomeStatsStrip`, `HomeQuickPicks`, `HomeEmpty`, `HomeRows` (Completados + feed de amigos), `HomeWhenToConsume`, `HomeGraveyard`, `HomeInsights`, `HomeRecos`, `homeUtils.js`
+    - components/ novos desde a última listagem: `ProfileSettings` (separador Definições), `ProfileMenu`, `ProfileActivity`, `ProfileFavsMobile`, `PersonalizeMobile`, `FriendProfile`, `FriendAvatar`, `HomeFriendsFeed`, `PwaHints`, `CompletedPanel`, `ContextBridges`, `TopSearchInput`, `WallpaperLayer`, `BannerEditor`, `BannerHero`, `ColorPicker`
+    - lib/ novos: `uiPrefs.js`, `imageCheck.js`, `exportData.js`, `errorReporting.js`, `friendHighlights.js`, `revisions.js`, `bannerColors.js`, `contrast.js`
 
 ---
 
@@ -202,7 +206,7 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 - Todos os Contexts (Theme, Lang)
 - Lógica de routing/views
 - Modais e interações
-- **Estado atual:** ~2660 linhas (orquestração: estado global, auth/arranque, sincronização da biblioteca, navegação, gesto de deslizar entre separadores)
+- **Estado atual:** ~2940 linhas (orquestração: estado global, auth/arranque, sincronização da biblioteca, navegação, gesto de deslizar entre separadores)
 
 **Quando editar:**
 - Só editar diretamente se for lógica de orquestração
@@ -328,11 +332,11 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 **Ideias guardadas:** importar do MAL (XML/Jikan) e função "Ligar" itens antigos às APIs; aviso "nova versão disponível"; imagem "resumo do ano"; paleta Ctrl+K; code splitting (`React.lazy`); pequenos testes automáticos.
 
 **Antes de partilhar com outras pessoas (checklist):**
-- [ ] Exportar os meus dados (JSON).
-- [ ] Apagar conta + política de privacidade.
-- [ ] Limites de upload no Storage (tamanho/tipo por utilizador).
+- [x] Exportar os meus dados (JSON) — `lib/exportData.js`, botão em Definições → Geral.
+- [x] Apagar conta + política de privacidade — função `delete_my_account` (`docs/supabase_delete_account.sql`, corre uma vez no Supabase) e `public/privacy.html`; botão na «Zona de perigo».
+- [ ] Limites de upload no Storage (tamanho/tipo por utilizador). **Adiado pelo Noé.** `lib/imageCheck.js` já existe (`pickImage`); falta ligá-lo a `CoverEditModal`, `PersonalizeMobile` e `supa.uploadImage`, e pôr limites no bucket.
 - [ ] Verificar termos **comerciais** do TMDB (atribuição, uso não-comercial) e do plano **Vercel Hobby** (uso não-comercial) antes de aceitar doações/planos.
-- [ ] Monitorização de erros (ex.: Sentry free) e RLS revista no Supabase.
+- [~] Monitorização de erros: `lib/errorReporting.js` está ligado no `App.jsx`; só envia para o Sentry se existir `VITE_SENTRY_KEY` (Vercel → Environment Variables). RLS revista em 2026-10-26.
 - **Capacidade estimada** (free tier): ~50–200 utilizadores ativos; o gargalo é a instância gratuita do Supabase (CPU/ligações e cópias pesadas na BD); depois o Worker (100k pedidos/dia) e as APIs externas.
 
 ---
@@ -410,8 +414,60 @@ Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas,
 - **Regra:** cada uso tem de estar dentro de `<Suspense fallback={null}>` **local** (junto ao componente). Nunca pôr um `Suspense` à volta da app inteira: ao carregar um pedaço novo o React esconderia a app toda. Landing/Auth usam um fundo escuro simples como fallback (sem flash branco).
 - Depois do login, `prefetchIdle` descarrega o `DetailModal` em segundo plano (browser parado) para o primeiro clique num item ser instantâneo.
 - **Para um componente novo pesado e condicional (modal, editor, ecrã raro):** usar `lazyNamed` + `Suspense`. Não usar em coisas que aparecem logo no arranque (a Home, o menu, o cartão de perfil).
-- **Medir antes e depois:** `npm run build` mostra o tamanho de cada pedaço (JS). Registar aqui os números quando forem medidos. Ainda por medir: tamanho do pedaço principal antes/depois, e fluidez no telemóvel (Chrome → Performance, CPU 4× mais lento).
-- **Ideias de desempenho por fazer (por ordem de retorno):** (1) medir o bundle com `npx vite-bundle-visualizer`; (2) extrair o `ThemeProvider` do `App.jsx` (cada mudança de tema re-renderiza muita coisa); (3) `memo` nos cartões das grelhas e `content-visibility: auto` nas secções longas; (4) importações grandes: gravar no Supabase em lotes em vez de uma a uma; (5) imagens: tamanhos certos (`srcset`) e `loading="lazy"` em todas.
+- **Contextos estáveis:** `components/ContextBridges.jsx` (`ThemeBridge`, `LangBridge`) dão `useMemo` aos valores dos contextos. Têm de ser componentes à parte porque o `App` tem um `return` antecipado (`authLoading`) e não pode ter hooks depois dele.
+- **Pesquisa no topo:** `components/TopSearchInput.jsx` guarda o texto localmente e só atualiza o `searchQuery` do `App` com debounce de 220 ms (escrever já não re-renderiza a app toda).
+- **Vistas que só montam na 1.ª visita:** no `App.jsx`, `seen = useRef({home:true})` + `seen.current[view] = true`. Pesquisa, Biblioteca, Amigos, Perfil e Coleção só montam quando abertas pela primeira vez e depois ficam montadas (escondidas com `display:none`). Uma vista nova pesada deve seguir o mesmo padrão. Efeito medido no Lighthouse: pequeno (o TBT não mexeu).
+- **`vite.config.js`:** `manualChunks` separa `react` e `supabase`. `ProfileView` também é lazy.
+- **Service worker (`public/sw.js`, v2):** o `clone()` da resposta tem de ser **síncrono** (`putSafe`); fazê-lo dentro de um `.then` dava «Response body is already used» (34 erros na consola). Fontes Google passaram a ficar em cache. Mudar a versão do `CACHE` limpa o cache antigo.
+- **Fontes:** carregadas UMA vez no `index.html`, sem bloquear o 1.º desenho (`media="print" onload="this.media='all'"`). Não voltar a pôr `@import` do Google Fonts em componentes (eram 3 e duplicavam pedidos).
+- **Medições (Lighthouse mobile, Edge, 2026-10-31):** build principal 758 → 573 kB (gzip 212 → 166). Score 71, FCP 0,9 s, LCP 2,6 s, CLS ~0, Speed Index 2,4 s, **TBT ~1 500 ms** (o ponto fraco). Trabalho na thread principal ~5 s: Style & Layout 1,56 s, Other 1,64 s, execução de scripts 1,29 s, parse só 6 ms → o custo é CSS/layout, não JS.
+- **Próximo passo de desempenho (em pausa):** gravar Performance no Edge (CPU 4×, reload) e ver «Recalculate Style» / «Elements affected» para achar o culpado (suspeitos: `backdrop-filter`/`blur`, `transition: all`, animações, nº de cartões na Home). LCP: capa do «Melhor para hoje» sem `fetchpriority="high"`.
+- **Ideias por fazer:** extrair `ThemeProvider` do `App.jsx`; `memo` nos cartões e `content-visibility: auto`; importações grandes em lotes no Supabase; imagens com tamanhos certos (`srcset`).
+
+---
+
+## 🆕 Ronda de 1 de novembro de 2026 (perfil, Home, registo rápido)
+
+- **Perfil no telemóvel:** `components/ProfileMenu.jsx` (⚙ discreto com menu: Editar perfil / Personalizar / Terminar sessão) substitui a linha de botões no `ProfileCard`. Ordem: Hall of Fame → **Recentes / Em curso** (sem esconder/mostrar; `RecentSection` tem a prop `inlineTitle`) → Atividade → Favoritos. No perfil do amigo: Completados/Em curso logo a seguir ao Hall of Fame.
+- **Pilhas de favoritos (telemóvel):** `Stack` mostra sempre as 7 capas (`STEP = 0.30`, cada uma parcialmente tapada pela seguinte).
+- **Hall of Fame:** sem bordas nas capas (só o item em destaque leva contorno de 2 px). Não voltar a pôr anel por fora (ficava escondido em capas claras).
+- **DetailModal:** bloqueia o scroll da página por trás (`body.overflow` no `useEffect`), `overscrollBehavior: contain`, e as abas Info/Cast/Media já não fazem scroll lateral.
+- **Feed dos amigos na Home** (`components/HomeFriendsFeed.jsx`, depois da secção «Completados» da `HomeView`): faixa de capas com nota, quem e quando, etiqueta ♥/🌸 (via `lib/friendHighlights.js`: favoritos em `profiles.favorites`, Hall of Fame na linha `__hall_of_fame__`; se as regras do Supabase não deixarem ler, só perde as etiquetas). Carrega ~0,9 s depois do arranque e guarda cópia em memória 2 min. Só a **capa** tem hover (a classe `recent-card` fica no contentor da capa, não no cartão todo); o título só aparece no hover. Avatar/nome abrem o perfil do amigo: `App.openFriendRequest` → `FriendsView` (props `openFriendRequest`, `onOpenFriendHandled`).
+- **Revisões («Completar outra vez»):** `lib/revisions.js` (`addRevision`, `revisionsOf`, `expandDiary`, testes em `revisions.test.js`). Guardadas em `item.revisions = [{ at, rating? }]`; a entrada original (`addedAt`) não muda; a nota atual passa a ser a da última revisão. **Os números do perfil contam títulos**; só o Diário (`ProfileTabDiario`, linhas com etiqueta «2.ª vez») e a sequência contam as vezes.
+- **Datas:** `App.updateDate(id, at)` (`at = null` → «Sem data», nunca põe hoje sozinho) e `App.addRewatch`. UI: `components/CompletedPanel.jsx` (na barra do `DetailModal` quando o item está completo).
+- **Log rápido (botão +):** `RatingOverlay.jsx` é agora o ecrã «Guardar»: estrelas, **Quando** (Hoje/Ontem/data/Sem data) e **Destacar** (♥/🌸). Se o título já estava completo mostra «Completar outra vez» (não toca na data original; acrescenta revisão). `onDone(rating, extra)`; `extra = null` quando se salta/cancela.
+- **Desempenho (31 out):** ver secção «Desempenho e carregamento» (SW v2, fontes num pedido, `ContextBridges`, vistas montadas na 1.ª visita, baseline Lighthouse 71). Profile de «Recalculate Style» fica para depois.
+- **Ideias descartadas por agora:** mais modos de ver favoritos no telemóvel (D–L no canvas «FavsMais»); HoF 8/6 só se ele pedir.
+
+---
+
+## 🆕 Ronda de 2 a 6 de novembro de 2026 (log rápido, personalização, conta, arrumação)
+
+**Log rápido e detalhes**
+- `RatingOverlay.jsx` = `RatingOverlayInner` + `RatingBoundary` (error boundary: se algo falhar chama `onDone(0, null)` em vez de deixar ecrã branco). Está importado estaticamente (sem `lazy`/`Suspense`) para abrir logo; no `App.jsx` o menu abre primeiro e o `updateStatus`/`addToLibrary` corre 60 ms depois.
+- **Desfazer:** `updateStatus` e o log rápido mostram toast com «Desfazer» (`logPrevRef` guarda a entrada anterior; apaga `canonicalId` e repõe `prev.key`).
+- `api/details.js`: `fetchMediaDetails` tem cache em memória (Map por id, máx. 80, nunca guarda `null`) e `prefetchMediaDetails(item)`; `MediaCard` pré-carrega ao passar o rato (180 ms) / `onTouchStart`.
+- **Jogos (IGDB):** `bannerImage` = `t_1080p` da 1.ª arte (`artworks[0]`) ou, na falta, de um screenshot; o `DetailModal` usa `detailExtra.bannerImage || item.backdrop`. O Worker tem de deixar passar o endpoint de `screenshots`.
+- `components/PwaHints.jsx` (aviso «sem ligação» + convite a instalar, uma vez) e `lib/errorReporting.js` (guarda os últimos erros em `window.__trackallErrors`; Sentry opcional).
+- **Service worker v2.1 (`public/sw.js`):** pedidos de imagem com `req.mode === 'cors'` **passam direto** (não entram na cache). Uma resposta opaca em cache partia leituras de canvas (ex.: extrair cor da capa). Experiências de cor da capa/brilho/desfoque foram removidas a pedido do Noé.
+
+**Personalização (PC)**
+- `lib/uiPrefs.js`: `useUiPref(key)` (localStorage + evento `trackall-ui-pref`; **por dispositivo, não vai para a conta**). Chaves: `trackall_sidebar_mode` (auto | glass | solid | clear), `trackall_sidebar_glass` (0–100), `trackall_top_accent` (profile | all | none).
+- **Barra lateral:** em «auto» fica vidro quando há imagem de fundo e sólida sem imagem. `sbMode`/`sbDark` (no `App.jsx`) decidem fundo, desfocagem, borda e **a cor do texto da própria barra** (`sbDark`), que já não depende do `darkMode` global. A regra CSS «barra branca quando `!ownDark`» só se aplica em `solid` sem cor própria.
+- **Cor de destaque no topo:** brilho (`appBgPaint`) só no Perfil e no telemóvel; nas restantes abas, uma linha fina de 2 px (`.top-accent-line`, à direita da barra). `none` desliga tudo.
+- **Hall of Fame com poucos itens (PC):** ≤ 5 itens ficam centrados com tamanho fixo (não encolhem); `FriendProfile` segue a mesma regra.
+- **`AppearanceSettings`:** ordem Estilo → Fundo (com aviso de legibilidade e botão «Corrigir») → Painéis (opacidade visível) → Barra lateral (só PC) → Cor de destaque → Avançado (recolhido) → Os meus estilos; a pré-visualização mostra uma mini barra lateral.
+
+**Conta e Supabase (ver CONTEXT_FOR_AI)**
+- Registo: com confirmação de e-mail ligada, `signUp` devolve `user` **sem** `session`; o `AuthScreen` só entra se houver sessão (senão mostra «confirma o teu e-mail»). Em Supabase → Authentication → URL Configuration, o **Site URL** tem de ser o do Vercel (não `localhost:3000`).
+- `supa.upsertProfile` usa `update(...).select('id')` e lança erro se não atualizar nada (antes falhava em silêncio).
+- Triggers em `auth.users`: `on_auth_user_created` (`handle_new_user`) e `enforce_invite` (valida `invite_codes`).
+
+**Arrumação do código (2026-11-06)**
+- `HomeView` → `views/home/*` (um ficheiro por secção; `RowSection` deixou de ser recriado a cada render). `ProfileView` perdeu ~260 linhas: o separador Definições vive em `ProfileSettings.jsx`, que recebe `{...props}` do `ProfileView` + o estado que fica lá (`settingsSection`, `setShow*` dos modais de importação, `personalizeProps`, `panelDM`, `computedPanelBg`). `exporting`, `confirmDelete` e `deleting` passaram para o `ProfileSettings` (reiniciam ao sair do separador).
+- `FeedTab` usa o `timeAgo` de `lib/friendHighlights.js` (havia uma cópia). Removidos `getLastBackup`/`markBackup` (lembrete de cópia de segurança foi retirado).
+- **Como se prova que uma extração não muda nada:** fazer `renderToStaticMarkup` do componente antes e depois (React 18 + `react-dom/server`, com os contextos e stubs dos módulos) e comparar o HTML — foi assim que se validaram a Home e o Perfil. Complementa o ESLint (`no-undef`).
+- **Decisão do Noé (2026-11-05):** a Home e o Perfil no PC **ficam como estão**; as propostas de reorganização (coluna lateral na Home, cartão fixo/4 separadores no Perfil) foram rejeitadas. Não voltar a propor sem ele pedir.
 
 ---
 
@@ -534,6 +590,7 @@ Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas,
 - [x] Perfil v2: `ProfileCard`, `FeaturedPickerModal`, `ProfileStats`, Diário novo (ver secção "Perfil")
 - [x] `HomeView`, `LibraryView`, `SearchView` em `src/views/` (+ `LibGroupedList` e `RecoCarousel` em components/)
 - [x] `SidebarSearch`, `TierListEditor`, `TierListViewer`, `CollectionViewer`, `RatingOverlay` extraídos para `components/`
+- [x] (2026-11-06) `HomeView` partida em blocos (`views/home/`) e separador Definições extraído do `ProfileView` para `components/ProfileSettings.jsx` — **sem alterar o aspeto** (HTML renderizado idêntico antes/depois em 7 cenários da Home e 12 do Perfil)
 - [ ] Custom hooks / dividir mais o `App.jsx` (arranque + sincronização da biblioteca seriam os próximos candidatos)
 
 ### 🧪 Verificação depois de extrair código

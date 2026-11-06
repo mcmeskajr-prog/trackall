@@ -1,13 +1,4 @@
-// Exportação completa dos dados da conta (JSON). Usada no Perfil e no lembrete de cópia de segurança.
-const KEY = "trackall_last_backup";
-
-export function getLastBackup() {
-  try { return Number(localStorage.getItem(KEY)) || 0; } catch { return 0; }
-}
-export function markBackup(ts = Date.now()) {
-  try { localStorage.setItem(KEY, String(ts)); } catch { /* noop */ }
-}
-
+// Exportação completa dos dados da conta (JSON). Usada em Perfil → Definições → Geral.
 export async function exportAllData({ supabase, userId, email, profile, library, favorites, hallOfFame }) {
   const safe = async (q) => { try { const r = await q; return r?.data ?? null; } catch { return null; } };
   const [tierlists, collections, prof] = await Promise.all([
@@ -31,5 +22,4 @@ export async function exportAllData({ supabase, userId, email, profile, library,
   a.href = url; a.download = `trackall-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-  markBackup();
 }

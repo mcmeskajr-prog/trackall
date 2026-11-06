@@ -8,6 +8,7 @@ import { gradientFor } from "../lib/utils";
 import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
+import { timeAgo as timeAgoAt } from "../lib/friendHighlights";
 import { Skeleton, SkeletonStyles } from "./Skeleton";
 
 // Cópia em memória: ao voltar ao separador o feed aparece logo e atualiza por baixo (máx. 90 s)
@@ -77,16 +78,7 @@ export function FeedTab({ accepted, getFriendInfo, library, onOpenFriend, onOpen
     return secs;
   }, [filtered, en]);
 
-  const timeAgo = (ts) => {
-    const m = Math.floor((Date.now() - ts) / 60000);
-    if (m < 1) return en ? "now" : "agora";
-    if (m < 60) return en ? `${m}m ago` : `há ${m} min`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return en ? `${h}h ago` : `há ${h} h`;
-    const d = Math.floor(h / 24);
-    if (d < 30) return en ? `${d}d ago` : `há ${d} d`;
-    return en ? `${Math.floor(d / 30)}mo ago` : `há ${Math.floor(d / 30)} mes`;
-  };
+  const timeAgo = (ts) => timeAgoAt(ts, en);
 
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const muted = darkMode ? "#8b949e" : "#64748b";
