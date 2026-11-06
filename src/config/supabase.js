@@ -22,8 +22,17 @@ const supa = {
   _user: null,
 
   // O código de convite vai nos metadados: o trigger `enforce_invite` (auth.users) valida e consome-o no servidor.
-  async signUp(email, password, inviteCode = "") {
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { invite_code: inviteCode } } });
+  // Nome de utilizador livre? (função pública do Supabase, ver docs/supabase_username_signup.sql). Se a função não existir não bloqueia o registo.
+  async usernameAvailable(username) {
+    try {
+      const { data, error } = await supabase.rpc('username_available', { u: username });
+      if (error) return true;
+      return data !== false;
+    } catch { return true; }
+  },
+
+  async signUp(email, password, inviteCode = "", username = "") {
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { invite_code: inviteCode, username: username || undefined } } });
     if (error) {
       // O Supabase esconde a mensagem do trigger atrás de "Database error saving new user"
       if (/database error/i.test(error.message)) throw new Error("Código de convite inválido ou já utilizado.");
@@ -37,6 +46,11 @@ const supa = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     supa._user = data.user;
+    // Rede de segurança: se o perfil ainda não tem username, aplica o escolhido no registo (guardado nos metadados da conta)
+    try {
+      const un = String(data.user?.user_metadata?.username || "").trim().toLowerCase();
+      if (un) await supabase.from('profiles').update({ username: un }).eq('id', data.user.id).or('username.is.null,username.eq.');
+    } catch { /* sem efeito: o trigger do Supabase já deve ter guardado */ }
     return data;
   },
 

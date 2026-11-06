@@ -6,6 +6,7 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -15,12 +16,15 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
     if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
+    const uname = username.trim().toLowerCase();
+    if (mode === "register" && !/^[a-z0-9_.]{3,20}$/.test(uname)) { setError("Escolhe um nome de utilizador com 3 a 20 caracteres (letras, números, _ ou .)."); return; }
     if (mode === "register" && !inviteCode.trim()) { setError("Precisas de um código de convite para criar conta."); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "register") {
+        if (!(await supa.usernameAvailable(uname))) { setError("Esse nome de utilizador já está a ser usado. Escolhe outro."); setLoading(false); return; }
         // O código é validado e consumido no servidor (trigger enforce_invite); se for inválido o registo falha com erro
-        const { user: u, session } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase());
+        const { user: u, session } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase(), uname);
         // Sem sessão = o Supabase está à espera da confirmação do email: não entrar (senão fica «dentro» mas sem permissões na BD)
         if (u && session) {
           onAuth(u);
@@ -79,6 +83,13 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
                 <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>{useT("password").toUpperCase()}</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={useT("passwordPlaceholder")} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit", boxSizing: "border-box" }} />
               </div>
+              {mode === "register" && (
+                <div>
+                  <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>NOME DE UTILIZADOR</label>
+                  <input type="text" value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 20))} placeholder="Ex: higan" autoComplete="username" maxLength={20} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: "1px solid #30363d", color: "#e6edf3", fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <p style={{ fontSize: 11, color: "#484f58", marginTop: 5 }}>É assim que os amigos te encontram (@{username || "nome"}). Podes mudar o nome de apresentação mais tarde.</p>
+                </div>
+              )}
               {mode === "register" && (
                 <div>
                   <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>CÓDIGO DE CONVITE</label>
