@@ -1085,6 +1085,15 @@ export default function TrackAll() {
     await persistHall(undefined, featured);
   };
 
+  // Frase do item em destaque (até 140 caracteres) — vive dentro do próprio objeto «featured»
+  const saveFeaturedNote = async (note) => {
+    const cur = hallRef.current?.featured;
+    if (!cur) return;
+    const featured = { ...cur, note: String(note || "").slice(0, 140) };
+    setProfile(prev => ({ ...prev, featuredItem: featured }));
+    await persistHall(undefined, featured);
+  };
+
   const saveAccent = async (c) => {
     setAccent(c);
     if (user) try { await supa.upsertProfile(user.id, { accent: c }); } catch (err) { console.error("[TrackAll] Erro ao guardar accent:", err); }
@@ -2743,6 +2752,7 @@ export default function TrackAll() {
             hallOfFame={activeProfile.hallOfFame || []}
             featuredItem={activeProfile.featuredItem || null}
             onSetFeatured={demoMode ? null : saveFeatured}
+            onSaveFeaturedNote={demoMode ? null : saveFeaturedNote}
             onToggleHallOfFame={toggleHallOfFame}
             onReorderHallOfFame={demoMode ? null : reorderHallOfFame}
             onReorderFavorites={demoMode ? null : reorderFavorites}

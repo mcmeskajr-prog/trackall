@@ -12,6 +12,9 @@ import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../confi
 import { TiltCard } from "./TiltCard";
 import { BannerEditor } from "./BannerEditor";
 import { BannerPageTint } from "./BannerHero";
+import { ProfileHeaderPC } from "./ProfileHeaderPC";
+import { FeaturedCardPC } from "./FeaturedCardPC";
+import { useUiPref } from "../lib/uiPrefs";
 import { splitBanner, joinBanner, extractPalette, bannerAccentHex } from "../lib/bannerColors";
 import { CollectionCard } from "./CollectionCard";
 import { TierListCard } from "./TierListCard";
@@ -62,7 +65,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
 export function ProfileView(props) {
-  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportMal, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null } = props;
+  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportMal, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null, onSaveFeaturedNote = null } = props;
   const { panelDark } = useTheme() || {};
   const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode;
   const [tabsBg, setTabsBg] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -203,6 +206,8 @@ export function ProfileView(props) {
   const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); };
   // Na vista normal do separador Perfil, a identidade vive no ProfileCard; o cabeçalho antigo só aparece a editar ou noutros separadores.
   const showHeaderIdentity = editing || profileTab !== "perfil";
+  const [profileLayout] = useUiPref("trackall_profile_layout");
+  const v2 = !isMobileDevice && !editing && profileLayout !== "classic"; // layout novo do PC (banner + duas colunas)
   const currentBanner = editing ? bannerPreview : splitBanner(profile.banner).url;
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
@@ -247,9 +252,19 @@ export function ProfileView(props) {
     const sortedOf = (tid) => favorites.filter(f => f.type === tid).map(f => ({ ...f, userRating: ratingOf(f) })).sort(byRating);
     const hair = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.15)";
     const heading = (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
-        <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>{lang === "en" ? "Favorites" : "Favoritos"}</h3>
-        <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{favorites.length}</span>
+      <div style={{ marginBottom: 12, padding: v2 ? 0 : "0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>{lang === "en" ? "Favorites" : "Favoritos"}</h3>
+          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b" }}>{favorites.length}</span>
+        </div>
+        {v2 && typesWithFavs.length > 1 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+            {[{ id: "all" }, ...typesWithFavs].map(t => {
+              const on = favFilter === t.id;
+              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+            })}
+          </div>
+        )}
       </div>
     );
     const empty = (txt) => (
@@ -304,11 +319,11 @@ export function ProfileView(props) {
       <div style={{ marginBottom: 28 }}>
         {heading}
         {groups.length === 0 ? (
-          <div style={{ margin: "0 16px", border: `1px dashed ${hair}`, borderRadius: 12, padding: 20, textAlign: "center", color: darkMode ? "#8b949e" : "#64748b", fontSize: 13 }}>
+          <div style={{ margin: v2 ? 0 : "0 16px", border: `1px dashed ${hair}`, borderRadius: 12, padding: 20, textAlign: "center", color: darkMode ? "#8b949e" : "#64748b", fontSize: 13 }}>
             {lang === "en" ? "No favorites of this type." : "Sem favoritos deste tipo."}
           </div>
         ) : (
-          <div style={{ margin: "0 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ margin: v2 ? 0 : "0 16px", display: "flex", flexDirection: "column", gap: 24 }}>
             {groups.map(({ t, list }) => (
               <div key={t.id}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>
@@ -316,8 +331,12 @@ export function ProfileView(props) {
                   <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>
                   <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
                   {list.map(item => renderFav(item))}
+                  {v2 && onToggleFavorite && Array.from({ length: Math.max(0, MAX_FAVORITES_PER_TYPE - list.length) }).map((_, k) => (
+                    <button key={"slot" + k} type="button" onClick={() => onOpenLibrary && onOpenLibrary({ type: t.id })} aria-label={lang === "en" ? "Add a favorite" : "Adicionar favorito"}
+                      style={{ aspectRatio: "2/3", borderRadius: 12, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.22)"}`, background: "transparent", color: darkMode ? "#6b7684" : "#94a3b8", fontSize: 24, cursor: onOpenLibrary ? "pointer" : "default", fontFamily: "inherit", padding: 0 }}>+</button>
+                  ))}
                 </div>
               </div>
             ))}
@@ -361,6 +380,69 @@ export function ProfileView(props) {
     onPersonalize: isMobileDevice ? () => setPersonalizing(true) : null, onSignOut,
     onPickFeatured: onSetFeatured ? () => setShowFeaturedPicker(true) : null, onFilter: onOpenLibrary,
   };
+
+  const hofSection = (
+      <div style={{ marginBottom: isMobileDevice ? 20 : 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: v2 ? 0 : "0 16px" }}>
+          <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
+          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
+                        {hallOfFame.length}/10 {lang === "en" ? "titles" : "obras"}
+          </span>
+        </div>
+
+        {isMobileDevice ? (() => {
+          // Máximo 10 obras. Se o destaque estiver no Hall of Fame, fica assinalado com o contorno de destaque.
+          const sameItem = (a, b) => a.id === b.id || (findLibraryEntry(library, a.id, a.type)?.key && findLibraryEntry(library, a.id, a.type)?.key === findLibraryEntry(library, b.id, b.type)?.key);
+          const list = hallOfFame.slice(0, 10).map(h => (featuredItem && sameItem(h, featuredItem)) ? { ...h, _feat: true } : h);
+          return <HofGridMobile list={list} accent={accent} darkMode={darkMode} lang={lang} library={library} onOpen={onOpen} onReorder={onReorderHallOfFame} onAdd={onOpenLibrary ? () => onOpenLibrary() : undefined} />;
+        })() : hallOfFame.length === 0 ? (
+          <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
+            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
+          </div>
+        ) : (
+          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
+              // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
+              ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
+              : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>
+            {hallOfFame.map((item, idx) => {
+              const coverSrc = item.customCover || item.cover;
+              const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
+              const tone = accentVariant(accent, idx);
+              return (
+                <div
+                  key={item.id}
+                  className="hof-card"
+                  onClick={() => onOpen && onOpen(item)}
+                  title={item.title}
+                  style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
+                >
+                  <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
+                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
+                    background: darkMode ? "#11151b" : "#e2e8f0",
+                    boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
+                  }}>
+                    
+                    {coverSrc
+                      ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
+                      aria-label={lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame"}
+                      className="hof-rm" style={{ position: "absolute", top: 8, left: 8, width: 24, height: 24, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: isMobileDevice ? "none" : "flex", alignItems: "center", justifyContent: "center", fontSize: 13, padding: 0 }}
+                    >
+                      ×
+                    </button>
+                    {score > 0 && (
+                      <div className="hof-badge" style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", transition: "background 0.25s", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
+                    )}
+                                      </TiltCard>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+  );
 
   return (
     <>
@@ -462,6 +544,12 @@ export function ProfileView(props) {
       </>
       )}
 
+      {/* Layout novo do PC: banner + identidade (no separador Perfil) */}
+      {v2 && profileTab === "perfil" && (
+        <ProfileHeaderPC profile={profile} avatar={currentAvatar} items={items} userEmail={userEmail} hideEmail={hideEmail}
+          onEdit={startEditing} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} />
+      )}
+
       {/* Perfil sem moldura: banner a toda a largura, depois os separadores */}
       {flatProfile && profileTab === "perfil" && <ProfileCard {...cardProps} />}
       <div ref={tabsSentinel} aria-hidden="true" style={{ height: 1, marginBottom: -1 }} />
@@ -492,7 +580,8 @@ export function ProfileView(props) {
         })}
       </div>
 
-      {/* Stats and settings — PC: flex row com diário à direita */}
+      {/* Stats and settings — PC: flex row com diário à direita (layout clássico) */}
+      {!(v2 && profileTab === "perfil") && (<>
       <div style={{ display: profileTab === "perfil" ? "block" : "none" }}>
       <div style={ !isMobileDevice
         ? { display: "flex", flexDirection: "row", gap: 32, padding: "24px 32px 0 32px", alignItems: "stretch" }
@@ -524,66 +613,7 @@ export function ProfileView(props) {
       {!isMobileDevice && <ProfileStats items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} />}
 
       {/* ── Hall of Fame ── */}
-      <div style={{ marginBottom: isMobileDevice ? 20 : 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
-          <h3 style={{ fontSize: isMobileDevice ? 18 : 20, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", margin: 0 }}>Hall of Fame</h3>
-          <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", display: "flex", alignItems: "center", gap: 6 }}>
-                        {hallOfFame.length}/10 {lang === "en" ? "titles" : "obras"}
-          </span>
-        </div>
-
-        {isMobileDevice ? (() => {
-          // Máximo 10 obras. Se o destaque estiver no Hall of Fame, fica assinalado com o contorno de destaque.
-          const sameItem = (a, b) => a.id === b.id || (findLibraryEntry(library, a.id, a.type)?.key && findLibraryEntry(library, a.id, a.type)?.key === findLibraryEntry(library, b.id, b.type)?.key);
-          const list = hallOfFame.slice(0, 10).map(h => (featuredItem && sameItem(h, featuredItem)) ? { ...h, _feat: true } : h);
-          return <HofGridMobile list={list} accent={accent} darkMode={darkMode} lang={lang} library={library} onOpen={onOpen} onReorder={onReorderHallOfFame} onAdd={onOpenLibrary ? () => onOpenLibrary() : undefined} />;
-        })() : hallOfFame.length === 0 ? (
-          <div style={{ margin: "0 16px", border: "1px dashed #30363d", borderRadius: 12, padding: 16, textAlign: "center" }}>
-            <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
-          </div>
-        ) : (
-          <div style={{ margin: "0 16px", ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
-              // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
-              ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
-              : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>
-            {hallOfFame.map((item, idx) => {
-              const coverSrc = item.customCover || item.cover;
-              const score = findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
-              const tone = accentVariant(accent, idx);
-              return (
-                <div
-                  key={item.id}
-                  className="hof-card"
-                  onClick={() => onOpen && onOpen(item)}
-                  title={item.title}
-                  style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
-                >
-                  <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
-                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
-                    background: darkMode ? "#11151b" : "#e2e8f0",
-                    boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
-                  }}>
-                    
-                    {coverSrc
-                      ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                      : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{item.title}</div>}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onToggleHallOfFame && onToggleHallOfFame(item); }}
-                      aria-label={lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame"}
-                      className="hof-rm" style={{ position: "absolute", top: 8, left: 8, width: 24, height: 24, borderRadius: 999, border: "none", background: "rgba(10,10,10,0.72)", color: "#f8fafc", cursor: "pointer", display: isMobileDevice ? "none" : "flex", alignItems: "center", justifyContent: "center", fontSize: 13, padding: 0 }}
-                    >
-                      ×
-                    </button>
-                    {score > 0 && (
-                      <div className="hof-badge" style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", transition: "background 0.25s", color: "#fbcfe8", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{score}</div>
-                    )}
-                                      </TiltCard>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {hofSection}
 
       {/* Telemóvel: Recentes e Em curso logo a seguir ao Hall of Fame */}
       {isMobileDevice && items.length > 0 && (<>
@@ -653,6 +683,71 @@ export function ProfileView(props) {
 
             </div>
       </div> {/* fim wrapper tab perfil */}
+      </>)}
+
+      {/* ── Layout novo do PC: duas colunas (Hall of Fame, Favoritos, Recentes | Destaque, Em curso, Atividade) ── */}
+      {v2 && profileTab === "perfil" && (() => {
+        const cursoList = items.filter(i => i.userStatus === "assistindo").slice(0, 4);
+        const panel = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg ? computedPanelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` };
+        const eyebrow = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
+        return (
+          <div style={{ padding: "24px 32px 0", maxWidth: 1344, margin: "0 auto", boxSizing: "border-box" }}>
+            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:30px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:16px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
+            <div className="pv2-grid">
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 28 }}>
+                {hofSection}
+                {favoritesBlock}
+                {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" />}
+              </div>
+              <div className="pv2-aside">
+                <FeaturedCardPC featuredItem={featuredItem} library={library} items={items} onOpen={onOpen}
+                  onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null} onSaveNote={onSaveFeaturedNote} />
+                {cursoList.length > 0 && (
+                  <div style={panel}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+                      <h3 style={eyebrow}>{lang === "en" ? "In progress" : "Em curso"}</h3>
+                      <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", fontWeight: 700 }}>{nCurso}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {cursoList.map(it => (
+                        <div key={it.id} onClick={() => onOpen && onOpen(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
+                          <div style={{ width: 44, height: 66, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
+                            {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#0f172a" }}>{it.title}</div>
+                            {it.lastChapter && <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", marginTop: 3 }}>{String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {items.length > 0 && (
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+                    <ProfileActivity items={items} accent={accent} darkMode={panelDM} isMobile lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{renderTopGenres(true)}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {diaryPanel}
+            {!editing && <div style={{ margin: "28px 0" }}><ProfileEstatisticas items={items} panelBg={panelBg ? computedPanelBg : null} /></div>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14, margin: "0 0 28px" }}>
+              {[
+                { tab: "tierlists", label: "Tier Lists", count: userTierlists.length, grad: "rgba(236,72,153,0.16)" },
+                { tab: "listas", label: lang === "en" ? "My Lists" : "Minhas Listas", count: userCollections.length, grad: "rgba(59,130,246,0.16)" },
+              ].map(c => (
+                <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 20, padding: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>{c.label}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>{c.count} {c.count === 1 ? (lang === "en" ? "list" : "lista") : (lang === "en" ? "lists" : "listas")}</div>
+                  <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#475569", marginTop: 2 }}>{lang === "en" ? "Open" : "Abrir"} →</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Telemóvel: menu «⋯» (Tier Lists e Definições) */}
       {isMobileDevice && moreOpen && createPortal(

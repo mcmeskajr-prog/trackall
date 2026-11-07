@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 export const UI_PREF_DEFAULTS = {
   trackall_sidebar_mode: "auto",   // auto | glass | solid | clear   («auto»: vidro com imagem de fundo, sólida sem imagem)
   trackall_sidebar_glass: "55",    // 0–100: intensidade do vidro
+  trackall_profile_layout: "new",  // new (banner + duas colunas) | classic — só no PC
   trackall_top_accent: "profile",  // profile (brilho no Perfil + linha nas outras) | all (como antes) | none
 };
 

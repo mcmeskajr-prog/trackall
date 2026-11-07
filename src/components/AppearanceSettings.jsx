@@ -40,6 +40,7 @@ export function AppearanceSettings({
   const [sbMode, setSbMode] = useUiPref("trackall_sidebar_mode");
   const [sbGlass, setSbGlass] = useUiPref("trackall_sidebar_glass");
   const [topAcc, setTopAcc] = useUiPref("trackall_top_accent");
+  const [profLayout, setProfLayout] = useUiPref("trackall_profile_layout");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [ratingStyle, setRatingStyleState] = useState(() => { try { return localStorage.getItem(RATING_STYLE_KEY) || "stars"; } catch { return "stars"; } });
   const [tabsBg, setTabsBgState] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -324,6 +325,18 @@ export function AppearanceSettings({
           </div>
         )}
       </section>
+
+      {/* Layout do perfil (PC) */}
+      {!isMobileDevice && (
+        <section style={box}>
+          <div style={eyebrow}>{en ? "Profile layout (PC)" : "Layout do perfil (PC)"}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[["new", en ? "New (banner + two columns)" : "Novo (banner + duas colunas)"], ["classic", en ? "Classic" : "Clássico"]].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setProfLayout(v)} style={chip(profLayout === v)}>{l}</button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Avançado */}
       <section style={box}>
