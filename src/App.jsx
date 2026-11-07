@@ -1465,7 +1465,7 @@ export default function TrackAll() {
 
   // AniList: grava o que a pré-visualização aprovou. Os itens já vêm no formato da pesquisa (ids al-anime-N / al-manga-N), por isso
   // ficam ligados às APIs (banner, descrição, personagens). Sem data de conclusão → sem addedAt (fora do Diário, nunca "hoje").
-  const importAniList = (alItems, { withDates = true, skipExisting = true, username = "" } = {}) => {
+  const importAniList = (alItems, { withDates = true, skipExisting = true, username = "", source = "anilist" } = {}) => {
     const before = libraryRef.current || library;
     const lib = { ...before };
     let added = 0, updated = 0;
@@ -1478,12 +1478,12 @@ export default function TrackAll() {
         lib[existing.key] = { ...existing.item, userStatus: item.userStatus, userRating: item.userRating || existing.item.userRating || 0, ...date };
         updated++;
       } else {
-        lib[item.id] = { ...rest, userRating: item.userRating || 0, ...date, importedFrom: `anilist:${username}`, importedAt: Date.now() }; // marca o lote (permite desfazer/limpar mais tarde)
+        lib[item.id] = { ...rest, userRating: item.userRating || 0, ...date, importedFrom: `${source}:${username}`, importedAt: Date.now() }; // marca o lote (permite desfazer/limpar mais tarde)
         added++;
       }
     });
     saveLibrary(lib);
-    showNotif(`AniList: ${added} adicionados${updated ? `, ${updated} atualizados` : ""} ✓`, "#2563eb", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+    showNotif(`${source === "mal" ? "MyAnimeList" : "AniList"}: ${added} adicionados${updated ? `, ${updated} atualizados` : ""} ✓`, source === "mal" ? "#2e51a2" : "#2563eb", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
   };
 
   // Notas: itens já resolvidos pela pesquisa (ids das APIs → ligados). Sem data de conclusão: fora do Diário.
@@ -2750,6 +2750,7 @@ export default function TrackAll() {
             onImportPaperback={importPaperback}
             onImportLetterboxd={importLetterboxd}
             onImportAniList={importAniList}
+            onImportMal={(items, opts) => importAniList(items, { ...opts, source: "mal" })}
             onImportNotes={importNotes}
             onImportGoodreads={importGoodreads}
             onOpen={setSelectedItem}

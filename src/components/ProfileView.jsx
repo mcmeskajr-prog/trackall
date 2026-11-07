@@ -38,6 +38,7 @@ const MihonImportModal = lazyNamed(() => import("./MihonImportModal"), "MihonImp
 const PaperbackImportModal = lazyNamed(() => import("./PaperbackImportModal"), "PaperbackImportModal");
 const LetterboxdImportModal = lazyNamed(() => import("./LetterboxdImportModal"), "LetterboxdImportModal");
 const AniListImportModal = lazyNamed(() => import("./AniListImportModal"), "AniListImportModal");
+const MalImportModal = lazyNamed(() => import("./MalImportModal"), "MalImportModal");
 const NotesImportModal = lazyNamed(() => import("./NotesImportModal"), "NotesImportModal");
 const GoodreadsImportModal = lazyNamed(() => import("./GoodreadsImportModal"), "GoodreadsImportModal");
 
@@ -61,7 +62,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
 export function ProfileView(props) {
-  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null } = props;
+  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportMal, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null } = props;
   const { panelDark } = useTheme() || {};
   const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode;
   const [tabsBg, setTabsBg] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -76,6 +77,7 @@ export function ProfileView(props) {
   const [showPaperback, setShowPaperback] = useState(false);
   const [showLetterboxd, setShowLetterboxd] = useState(false);
   const [showAniList, setShowAniList] = useState(false);
+  const [showMal, setShowMal] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showGoodreads, setShowGoodreads] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -715,6 +717,14 @@ export function ProfileView(props) {
           onImport={(items, opts) => { onImportAniList && onImportAniList(items, opts); setShowAniList(false); }}
         /></Suspense>
       )}
+      {showMal && (
+        <Suspense fallback={null}><MalImportModal
+          library={library}
+          workerUrl={workerUrl}
+          onClose={() => setShowMal(false)}
+          onImport={(items, opts) => { onImportMal && onImportMal(items, opts); setShowMal(false); }}
+        /></Suspense>
+      )}
       {showLetterboxd && (
         <Suspense fallback={null}><LetterboxdImportModal
          
@@ -728,7 +738,7 @@ export function ProfileView(props) {
       {profileTab === "definicoes" && (
         <ProfileSettings {...props} lang={lang} useT={useT} panelDM={panelDM} computedPanelBg={computedPanelBg} personalizeProps={personalizeProps}
           settingsSection={settingsSection} setSettingsSection={setSettingsSection}
-          setShowMihon={setShowMihon} setShowPaperback={setShowPaperback} setShowLetterboxd={setShowLetterboxd} setShowAniList={setShowAniList} setShowNotes={setShowNotes} setShowGoodreads={setShowGoodreads} />
+          setShowMihon={setShowMihon} setShowPaperback={setShowPaperback} setShowLetterboxd={setShowLetterboxd} setShowAniList={setShowAniList} setShowMal={setShowMal} setShowNotes={setShowNotes} setShowGoodreads={setShowGoodreads} />
       )}
 
 

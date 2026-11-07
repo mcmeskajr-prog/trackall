@@ -14,7 +14,7 @@ export function ProfileSettings(props) {
     textContrast, textContrastMobile, userEmail, profile, library, favorites = [], hallOfFame = [],
   } = props;
   const {
-    settingsSection, setSettingsSection, setShowMihon, setShowPaperback, setShowLetterboxd, setShowAniList, setShowNotes, setShowGoodreads,
+    settingsSection, setSettingsSection, setShowMihon, setShowPaperback, setShowLetterboxd, setShowAniList, setShowMal, setShowNotes, setShowGoodreads,
     personalizeProps, panelDM, computedPanelBg, lang, useT,
   } = props;
   const [exporting, setExporting] = useState(false);
@@ -117,6 +117,14 @@ export function ProfileSettings(props) {
           <p style={{ fontSize: 13, fontWeight: 700 }}>AniList <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>{lang === "en" ? "— anime and manga, with dates" : "— anime e manga, com datas"}</span></p>
         </div>
         <button onClick={() => setShowAniList(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{lang === "en" ? "Import" : "Importar"}</button>
+      </div>
+      {/* MyAnimeList */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <span style={{ fontSize: 20, width: 36, textAlign: "center" }}>🗾</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 700 }}>MyAnimeList <span style={{ fontSize: 11, color: "#8b949e", fontWeight: 400 }}>{lang === "en" ? "— anime and manga, with dates (XML)" : "— anime e manga, com datas (XML)"}</span></p>
+        </div>
+        <button onClick={() => setShowMal(true)} className="btn-accent" style={{ padding: "7px 14px", fontSize: 12, flexShrink: 0 }}>{lang === "en" ? "Import" : "Importar"}</button>
       </div>
       {/* Goodreads */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
