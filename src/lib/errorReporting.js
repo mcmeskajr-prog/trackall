@@ -20,7 +20,10 @@ export function initErrorReporting() {
   try { key = import.meta.env?.VITE_SENTRY_KEY || ""; } catch { /* noop */ }
   if (!key || !/^[a-z0-9]{16,64}$/i.test(key)) return;
   const s = document.createElement("script");
-  s.src = `https://js.sentry-cdn.com/${key}.min.js`;
+  // Conta na UE → js-de.sentry-cdn.com (conta nos EUA: js.sentry-cdn.com). Dá para mudar com VITE_SENTRY_HOST.
+  let host = "js-de.sentry-cdn.com";
+  try { const h = import.meta.env?.VITE_SENTRY_HOST; if (h && /^js(-[a-z]+)?\.sentry-cdn\.com$/.test(h)) host = h; } catch { /* noop */ }
+  s.src = `https://${host}/${key}.min.js`;
   s.crossOrigin = "anonymous";
   s.async = true;
   document.head.appendChild(s);
