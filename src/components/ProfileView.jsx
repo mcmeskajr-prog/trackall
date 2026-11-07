@@ -559,7 +559,7 @@ export function ProfileView(props) {
                   style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
                 >
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
-                    position: "relative", aspectRatio: "5/7", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
+                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
                     background: darkMode ? "#11151b" : "#e2e8f0",
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>

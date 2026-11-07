@@ -82,7 +82,7 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
                 <div key={item.id} className="recent-card" style={{ minWidth: 0, flexShrink: 0, cursor: "pointer", ...(isMobileDevice && !showAllCompleto ? { width: "clamp(84px, 24vw, 100px)" } : {}) }} onClick={() => onOpen && onOpen(item)}>
                   <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), border: "none", boxShadow: "0 12px 22px -10px rgba(0,0,0,0.75)" }}>
                     {coverSrc
-                      ? <CoverImg src={coverSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                      ? <CoverImg hi src={coverSrc} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}><TypeIcon id={item.type} /></div>
                     }
                     {item.userRating > 0 && (

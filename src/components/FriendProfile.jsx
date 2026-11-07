@@ -189,7 +189,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             const score = h.userRating ?? 0;
             return (
               <div key={h.id} className="hof-card" onClick={() => openItem(h)} title={h.title} style={{ cursor: "pointer", minWidth: 0 }}>
-                <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ position: "relative", aspectRatio: "5/7", borderRadius: 14, overflow: "hidden", background: darkMode ? "#11151b" : "#e2e8f0",
+                <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ position: "relative", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", background: darkMode ? "#11151b" : "#e2e8f0",
                   boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)" }}>
                   {src ? <CoverImg hi src={src} alt={h.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                     : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 10, fontSize: 13, fontWeight: 800, color: "white", lineHeight: 1.2 }}>{h.title}</div>}
