@@ -224,6 +224,16 @@ export function PersonalizeMobile({
               </div>
             </div>
           </div>
+          <div style={{ padding: "14px 0", borderBottom: `1px solid ${line}` }}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>{en ? "Accent at the top" : "Cor de destaque no topo"}</div>
+            <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "The coloured glow at the top of every page" : "O brilho colorido no topo de todas as páginas"}</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+              {[["all", en ? "Glow at the top" : "Brilho no topo"], ["none", en ? "Never" : "Nunca"]].map(([v, l]) => {
+                const on = v === "none" ? topAcc === "none" : topAcc !== "none";
+                return <button key={v} type="button" onClick={() => setTopAcc(v)} style={{ padding: "10px 16px", borderRadius: 12, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: `1.5px solid ${on ? A : line}`, background: on ? `${A}22` : "transparent", color: on ? A : text }}>{l}</button>;
+              })}
+            </div>
+          </div>
           <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", background: "none", border: "none", borderBottom: more ? "none" : `1px solid ${line}`, color: text, fontFamily: "inherit", cursor: "pointer" }}>
             <span style={{ fontSize: 15, fontWeight: 800 }}>{en ? "More options" : "Mais opções"}</span>
             <span style={{ color: muted, fontSize: 16, transform: more ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
@@ -354,13 +364,6 @@ export function PersonalizeMobile({
           </div>
           <button type="button" onClick={() => setSheet("picker")} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: `1.5px dashed ${muted}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ {en ? "Another colour" : "Outra cor"}</button>
           <div style={{ marginTop: 10, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "The profile and the background tone change live while you choose." : "O perfil e o tom do fundo mudam ao vivo enquanto escolhes."}</div>
-          <div style={{ ...lbl, marginTop: 20 }}>{en ? "Accent at the top of the pages" : "Cor de destaque no topo das páginas"}</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[["all", en ? "Glow at the top" : "Brilho no topo"], ["none", en ? "Never" : "Nunca"]].map(([v, l]) => {
-              const on = v === "none" ? topAcc === "none" : topAcc !== "none";
-              return <button key={v} type="button" onClick={() => setTopAcc(v)} style={{ padding: "10px 16px", borderRadius: 12, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: `1.5px solid ${on ? A : line}`, background: on ? `${A}22` : "transparent", color: on ? A : text }}>{l}</button>;
-            })}
-          </div>
         </>)
       )}
       {sheet === "picker" && (
