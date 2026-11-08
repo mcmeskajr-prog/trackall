@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { pickImage } from "../lib/imageCheck";
 import { createPortal } from "react-dom";
 import { ThemeContext, useTheme } from "../contexts/ThemeContext";
 import { supa } from "../config/supabase";
@@ -11,6 +12,7 @@ const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
 import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
+import { useUiPref } from "../lib/uiPrefs";
 import { hexRgb, hexLum, overlayAlpha, onAccent as onAccentColor } from "../lib/contrast";
 
 // ─── Personalizar: três linhas (Banner, Foto, Cor) e "Mais opções" fechado ───
@@ -42,6 +44,7 @@ export function PersonalizeMobile({
   const [sheet, setSheet] = useState(null); // "banner" | "color" | "bg" | "picker"
   const [crop, setCrop] = useState(null);   // { src, type }
   const [busy, setBusy] = useState(null);   // "banner" | "avatar"
+  const [topAcc, setTopAcc] = useUiPref("trackall_top_accent"); // brilho da cor de destaque no topo das páginas
   const [err, setErr] = useState("");
   const [undo, setUndo] = useState(null);
   const fileRef = useRef(), avatarRef = useRef(), bgFileRef = useRef();
@@ -70,7 +73,7 @@ export function PersonalizeMobile({
   const flash = (label, restore) => { setUndo({ label, restore }); setTimeout(() => setUndo((u) => (u && u.label === label ? null : u)), 7000); };
 
   // ── enviar imagens (banner / foto) ──
-  const pick = (type) => (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setSheet(null); if (f) setCrop({ src: URL.createObjectURL(f), type }); };
+  const pick = (type) => (e) => { const f = pickImage(e); e.target.value = ""; if (f) setSheet(null); if (f) setCrop({ src: URL.createObjectURL(f), type }); };
   const onCrop = async (dataUrl) => {
     const type = crop.type; setCrop(null); setErr("");
     const prevUrl = d.url, prevAvatar = profile.avatar;
@@ -87,7 +90,7 @@ export function PersonalizeMobile({
     } finally { setBusy(null); }
   };
   const onBgFile = async (e) => {
-    const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+    const f = pickImage(e); e.target.value = ""; if (!f) return;
     const c = await compressImage(f, 1080, 1920, 0.85); if (!c) return;
     set({ bgImage: await persistImage(c), bgMode: "image" });
   };
@@ -311,6 +314,27 @@ export function PersonalizeMobile({
               <input type="range" min={0} max={100} value={d.style.d} onChange={(e) => setStyle({ d: Number(e.target.value) })} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
             </label>
           )}
+          {d.url && (<>
+            <label style={{ display: "block", marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{en ? "Tint strength" : "Força da cor"}</span><span style={{ color: A }}>{d.style.m}%</span></div>
+              <input type="range" min={0} max={100} value={d.style.m} onChange={(e) => setStyle({ m: Number(e.target.value) })} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
+            </label>
+            <label style={{ display: "block", marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{en ? "Brightness" : "Brilho"}</span><span style={{ color: A }}>{d.style.b}%</span></div>
+              <input type="range" min={60} max={140} value={d.style.b} onChange={(e) => setStyle({ b: Number(e.target.value) })} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
+            </label>
+            <div style={{ marginTop: 18, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: muted }}>{en ? "Framing on mobile" : "Enquadramento no telemóvel"}</div>
+            {[[en ? "Horizontal" : "Horizontal", "mfx", "fx", 0, 100], [en ? "Vertical" : "Vertical", "mfy", "fy", 0, 100], ["Zoom", "mz", "z", 100, 250]].map(([l, k, pk, mn, mx]) => {
+              const cur = d.style[k] ?? d.style[pk] ?? (k === "mz" ? 100 : 50);
+              return (
+                <label key={k} style={{ display: "block", marginTop: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{l}</span><span style={{ color: A }}>{Math.round(cur)}%</span></div>
+                  <input type="range" min={mn} max={mx} value={cur} onChange={(e) => setStyle({ mfx: d.style.mfx ?? d.style.fx ?? 50, mfy: d.style.mfy ?? d.style.fy ?? 50, mz: d.style.mz ?? d.style.z ?? 100, [k]: Number(e.target.value) })} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
+                </label>
+              );
+            })}
+            <div style={{ marginTop: 8, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "Only changes the phone. The PC framing stays as you set it on the computer." : "Só muda o telemóvel. O enquadramento do PC fica como o definiste no computador."}</div>
+          </>)}
         </>)
       )}
 
@@ -330,6 +354,13 @@ export function PersonalizeMobile({
           </div>
           <button type="button" onClick={() => setSheet("picker")} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: `1.5px dashed ${muted}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ {en ? "Another colour" : "Outra cor"}</button>
           <div style={{ marginTop: 10, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "The profile and the background tone change live while you choose." : "O perfil e o tom do fundo mudam ao vivo enquanto escolhes."}</div>
+          <div style={{ ...lbl, marginTop: 20 }}>{en ? "Accent at the top of the pages" : "Cor de destaque no topo das páginas"}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[["all", en ? "Glow at the top" : "Brilho no topo"], ["none", en ? "Never" : "Nunca"]].map(([v, l]) => {
+              const on = v === "none" ? topAcc === "none" : topAcc !== "none";
+              return <button key={v} type="button" onClick={() => setTopAcc(v)} style={{ padding: "10px 16px", borderRadius: 12, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: `1.5px solid ${on ? A : line}`, background: on ? `${A}22` : "transparent", color: on ? A : text }}>{l}</button>;
+            })}
+          </div>
         </>)
       )}
       {sheet === "picker" && (
