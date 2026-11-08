@@ -8,11 +8,16 @@ import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 // ─── Escolher item em destaque (Fase 1) ───
 // Portal para o body: o ProfileView vive dentro de um ancestral com transform,
 // onde position:fixed ficaria preso (ver DEV_GUIDE).
-export function FeaturedPickerModal({ items, currentId, onSelect, onClear, onClose }) {
+export const FEATURED_NOTE_MAX = 140;
+
+export function FeaturedPickerModal({ items, currentId, currentNote = "", onSelect, onClear, onClose }) {
   const { accent, darkMode } = useTheme();
   const { lang } = useLang();
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
+  const [pickedId, setPickedId] = useState(currentId || null);
+  const [note, setNote] = useState(currentNote || "");
+  const picked = useMemo(() => (items || []).find(i => i.id === pickedId) || null, [items, pickedId]);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -31,7 +36,7 @@ export function FeaturedPickerModal({ items, currentId, onSelect, onClear, onClo
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800 }}>{lang === "en" ? "Choose featured item" : "Escolher item em destaque"}</div>
-            <div style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "It will show on your profile card." : "Vai aparecer no teu cartão de perfil."}</div>
+            <div style={{ fontSize: 13, color: darkMode ? "#8b949e" : "#64748b" }}>{lang === "en" ? "Pick one item and say why it matters to you." : "Escolhe um item e diz porque é especial para ti."}</div>
           </div>
           <button onClick={onClose} aria-label={lang === "en" ? "Close" : "Fechar"} style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, border: `1px solid ${border}`, background: "transparent", color: text, cursor: "pointer", fontSize: 20, fontFamily: "inherit" }}>×</button>
         </div>
@@ -54,10 +59,10 @@ export function FeaturedPickerModal({ items, currentId, onSelect, onClear, onClo
             <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: 32, color: darkMode ? "#8b949e" : "#64748b", fontSize: 13 }}>{lang === "en" ? "No items found." : "Nenhum item encontrado."}</div>
           )}
           {list.map(item => {
-            const selected = item.id === currentId;
+            const selected = item.id === pickedId;
             const cover = item.customCover || item.cover;
             return (
-              <button key={item.id} onClick={() => onSelect(item)} aria-label={item.title} style={{ position: "relative", aspectRatio: "2/3", padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), outline: selected ? `3px solid ${accent}` : "none", outlineOffset: 2 }}>
+              <button key={item.id} onClick={() => setPickedId(item.id)} aria-label={item.title} style={{ position: "relative", aspectRatio: "2/3", padding: 0, border: "none", borderRadius: 12, overflow: "hidden", cursor: "pointer", background: gradientFor(item.id), outline: selected ? `3px solid ${accent}` : "none", outlineOffset: 2 }}>
                 {cover
                   ? <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", padding: 8, fontSize: 11, fontWeight: 700, color: "white", textAlign: "left", lineHeight: 1.2 }}>{item.title}</span>}
@@ -67,13 +72,28 @@ export function FeaturedPickerModal({ items, currentId, onSelect, onClear, onClo
           })}
         </div>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>
+            {lang === "en" ? "Your phrase (optional)" : "A tua frase (opcional)"}{picked ? ` · ${picked.title}` : ""}
+          </label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, FEATURED_NOTE_MAX))} rows={2} disabled={!picked}
+            placeholder={picked ? (lang === "en" ? "Why is this one special?" : "Porque é que este é especial?") : (lang === "en" ? "Pick an item first" : "Escolhe primeiro um item")}
+            style={{ resize: "none", borderRadius: 12, padding: "10px 14px", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", width: "100%", opacity: picked ? 1 : 0.5 }} />
+          <div style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", textAlign: "right" }}>{note.length}/{FEATURED_NOTE_MAX}</div>
+        </div>
+
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
           <button onClick={onClear} style={{ minHeight: 44, padding: "0 16px", borderRadius: 12, border: `1px solid ${border}`, background: "transparent", color: darkMode ? "#8b949e" : "#64748b", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}>
             {lang === "en" ? "Use my top-rated item" : "Usar o meu mais bem avaliado"}
           </button>
-          <button onClick={onClose} style={{ minHeight: 44, padding: "0 20px", borderRadius: 12, border: `1px solid ${border}`, background: "transparent", color: text, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600 }}>
-            {lang === "en" ? "Cancel" : "Cancelar"}
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} style={{ minHeight: 44, padding: "0 20px", borderRadius: 12, border: `1px solid ${border}`, background: "transparent", color: text, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600 }}>
+              {lang === "en" ? "Cancel" : "Cancelar"}
+            </button>
+            <button onClick={() => picked && onSelect(picked, note.trim())} disabled={!picked} style={{ minHeight: 44, padding: "0 22px", borderRadius: 12, border: "none", background: accent, color: "white", cursor: picked ? "pointer" : "default", opacity: picked ? 1 : 0.5, fontFamily: "inherit", fontSize: 14, fontWeight: 800 }}>
+              {lang === "en" ? "Save" : "Guardar"}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

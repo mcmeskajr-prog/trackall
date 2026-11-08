@@ -3,13 +3,13 @@ import { createPortal } from "react-dom";
 import { MONTH_PT, MONTH_EN } from "../config/constants";
 
 // Atividade (estilo GitHub): cada quadrado é um dia, a intensidade é o nº de obras completadas.
-// Usa a mesma data do Diário (`addedAt` dos itens completos). PC: 53 semanas; telemóvel: 26 semanas.
+// Usa a mesma data do Diário (`addedAt` dos itens completos). PC: 53 semanas (26 na coluna estreita do layout novo); telemóvel: 26 semanas.
 const DAY = 86400000;
 const startOfDay = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const keyOf = (t) => startOfDay(t);
 
 export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, isMobile = false, compact = false, lang = "pt", panelBg = null, onOpen }) {
-  const weeks = isMobile ? 26 : 53;
+  const weeks = (isMobile || compact) ? 26 : 53;
   const en = lang === "en";
   // dia selecionado: hover mostra pré-visualização; clique "fixa" o painel (obras clicáveis)
   const [sel, setSel] = useState(null); // { t, x, y, below, pinned }
@@ -91,7 +91,7 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
     <div style={st ? { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 } : { width: 170, flexShrink: 0 }}>
       <div>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: muted, textTransform: "uppercase" }}>
-          {isMobile ? (en ? "Last 6 months" : "Últimos 6 meses") : (en ? "Last 12 months" : "Últimos 12 meses")}
+          {(isMobile || compact) ? (en ? "Last 6 months" : "Últimos 6 meses") : (en ? "Last 12 months" : "Últimos 12 meses")}
         </div>
         <div style={{ fontSize: st ? 24 : 28, fontWeight: 800, lineHeight: 1, marginTop: st ? 8 : 6, color: text }}>
           {data.total}<span style={{ fontSize: 13, color: muted, fontWeight: 700 }}> {en ? "completed" : "completados"}</span>

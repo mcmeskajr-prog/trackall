@@ -1075,21 +1075,14 @@ export default function TrackAll() {
   };
 
   // Item em destaque do cartão de perfil — guardado na mesma linha especial do Hall of Fame (não precisa de coluna nova)
-  const saveFeatured = async (item) => {
+  const saveFeatured = async (item, note) => {
+    const cur = hallRef.current?.featured;
     const featured = item ? (() => {
       const n = normalizeMediaItem(item);
       const libItem = getLibraryMatch(n.id, n.type)?.item;
-      return { id: n.id, type: n.type, title: n.title, cover: n.cover || "", customCover: libItem?.customCover || n.customCover || "" };
+      const keepNote = note === undefined ? (cur && cur.id === n.id ? cur.note : "") : note;
+      return { id: n.id, type: n.type, title: n.title, cover: n.cover || "", customCover: libItem?.customCover || n.customCover || "", note: String(keepNote || "").slice(0, 140) };
     })() : null;
-    setProfile(prev => ({ ...prev, featuredItem: featured }));
-    await persistHall(undefined, featured);
-  };
-
-  // Frase do item em destaque (até 140 caracteres) — vive dentro do próprio objeto «featured»
-  const saveFeaturedNote = async (note) => {
-    const cur = hallRef.current?.featured;
-    if (!cur) return;
-    const featured = { ...cur, note: String(note || "").slice(0, 140) };
     setProfile(prev => ({ ...prev, featuredItem: featured }));
     await persistHall(undefined, featured);
   };
@@ -2752,7 +2745,6 @@ export default function TrackAll() {
             hallOfFame={activeProfile.hallOfFame || []}
             featuredItem={activeProfile.featuredItem || null}
             onSetFeatured={demoMode ? null : saveFeatured}
-            onSaveFeaturedNote={demoMode ? null : saveFeaturedNote}
             onToggleHallOfFame={toggleHallOfFame}
             onReorderHallOfFame={demoMode ? null : reorderHallOfFame}
             onReorderFavorites={demoMode ? null : reorderFavorites}

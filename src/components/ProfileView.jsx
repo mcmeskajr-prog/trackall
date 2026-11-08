@@ -11,6 +11,7 @@ import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
 import { BannerEditor } from "./BannerEditor";
+import { EditProfileModal } from "./EditProfileModal";
 import { BannerPageTint } from "./BannerHero";
 import { ProfileHeaderPC } from "./ProfileHeaderPC";
 import { FeaturedCardPC } from "./FeaturedCardPC";
@@ -75,6 +76,7 @@ export function ProfileView(props) {
     return () => { window.removeEventListener("trackall-tabs-bg", h); window.removeEventListener("storage", h); };
   }, []); // texto dentro de painéis segue a cor do painel
   const [editing, setEditing] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // layout novo: «Editar perfil» num modal só com foto e banner
   const [profileTab, setProfileTab] = useState("perfil");
   const [showMihon, setShowMihon] = useState(false);
   const [showPaperback, setShowPaperback] = useState(false);
@@ -85,8 +87,11 @@ export function ProfileView(props) {
   const [showGoodreads, setShowGoodreads] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
-  const [favFilter, setFavFilter] = useState("all");
-  const [favAll, setFavAll] = useState(false); // layout novo: «Tudo» mostra uma fila por tipo; por defeito mostra só o primeiro tipo
+  const [favFilterPref, setFavFilterPref] = useUiPref("trackall_profile_fav_filter"); // layout novo: lembra o último filtro
+  const [favFilterTmp, setFavFilterTmp] = useState("all");
+  const [layoutPrefEarly] = useUiPref("trackall_profile_layout");
+  const favFilter = !isMobileDevice && layoutPrefEarly !== "classic" ? favFilterPref : favFilterTmp;
+  const setFavFilter = (v) => { setFavFilterTmp(v); setFavFilterPref(v); };
   const [moreOpen, setMoreOpen] = useState(false); // telemóvel: menu «⋯» dos separadores
   const [secOpen, setSecOpen] = useState(() => { try { return { ...SECTION_DEFAULTS, ...JSON.parse(localStorage.getItem("trackall.profileSections") || "{}") }; } catch { return SECTION_DEFAULTS; } });
   const toggleSec = (k) => setSecOpen(prev => { const next = { ...prev, [k]: !prev[k] }; try { localStorage.setItem("trackall.profileSections", JSON.stringify(next)); } catch { /* sem armazenamento: só nesta sessão */ } return next; });
@@ -196,13 +201,15 @@ export function ProfileView(props) {
 
   const handleSave = async () => {
     await onUpdateProfile({ ...profile, name, bio, avatar: avatarPreview, banner: joinBanner(bannerUrl, bannerStyle), hideEmail, hideBannerMobile });
-    setEditing(false);
+    setEditing(false); setShowEditModal(false);
     // Uma só cor para tudo: a cor do banner passa a ser a cor de destaque da app (e fica guardada no perfil)
     if (bannerUrl && bannerStyle.a !== 0 && onAccentChange) {
       try { const hex = bannerAccentHex(bannerStyle, await extractPalette(bannerUrl)); if (hex && hex.toLowerCase() !== String(accent).toLowerCase()) onAccentChange(hex); } catch {}
     }
   };
 
+  const openEditModal = () => { setName(profile.name||""); setBio(profile.bio||""); setHideEmail(profile.hideEmail || false); setAvatarPreview(profile.avatar||""); resetBanner(); setShowEditModal(true); };
+  const closeEditModal = () => { setShowEditModal(false); resetBanner(); setAvatarPreview(profile.avatar||""); };
   const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); };
   // Na vista normal do separador Perfil, a identidade vive no ProfileCard; o cabeçalho antigo só aparece a editar ou noutros separadores.
   const showHeaderIdentity = editing || profileTab !== "perfil";
@@ -247,7 +254,7 @@ export function ProfileView(props) {
   // ── Favoritos: máx. MAX_FAVORITES_PER_TYPE por tipo (aplicado ao adicionar, ver toggleFavorite no App) ──
   const favoritesBlock = (() => {
     const typesWithFavs = MEDIA_TYPES.slice(1).filter(t => favorites.some(f => f.type === t.id));
-    const fEff = v2 && !favAll && favFilter === "all" ? (typesWithFavs[0]?.id || "all") : (favFilter !== "all" && !typesWithFavs.some(t => t.id === favFilter) ? "all" : favFilter);
+    const fEff = favFilter !== "all" && !typesWithFavs.some(t => t.id === favFilter) ? "all" : favFilter;
     const byRating = (a, b) => ((b.userRating || 0) - (a.userRating || 0)) || ((b.addedAt || 0) - (a.addedAt || 0));
     const ratingOf = (item) => findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
     const sortedOf = (tid) => favorites.filter(f => f.type === tid).map(f => ({ ...f, userRating: ratingOf(f) })).sort(byRating);
@@ -262,7 +269,7 @@ export function ProfileView(props) {
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {[{ id: "all" }, ...typesWithFavs].map(t => {
               const on = fEff === t.id;
-              return <button key={t.id} type="button" onClick={() => { setFavAll(t.id === "all"); setFavFilter(t.id); }} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
             })}
           </div>
         )}
@@ -332,7 +339,7 @@ export function ProfileView(props) {
                   <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>
                   <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${v2 ? Math.min(MAX_FAVORITES_PER_TYPE, Math.max(5, list.length)) : MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
                   {list.map(item => renderFav(item))}
                 </div>
               </div>
@@ -397,7 +404,7 @@ export function ProfileView(props) {
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ ...(v2 ? {} : { margin: "0 16px" }), ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
+          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 190px))", justifyContent: hallOfFame.length >= 5 ? "space-between" : "start", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
               // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
               ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
               : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>
@@ -544,7 +551,7 @@ export function ProfileView(props) {
       {/* Layout novo do PC: banner + identidade (no separador Perfil) */}
       {v2 && profileTab === "perfil" && (
         <ProfileHeaderPC profile={profile} avatar={currentAvatar} items={items} userEmail={userEmail} hideEmail={hideEmail}
-          onEdit={startEditing} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} panelBg={panelBg ? computedPanelBg : null} />
+          onEdit={openEditModal} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} panelBg={panelBg ? computedPanelBg : null} />
       )}
 
       {/* Perfil sem moldura: banner a toda a largura, depois os separadores */}
@@ -553,6 +560,7 @@ export function ProfileView(props) {
       {/* ── Profile Tabs ── */}
       <div style={{ display: "flex", gap: isMobileDevice ? 18 : 28, padding: isMobileDevice ? (tabsStuck ? "calc(8px + env(safe-area-inset-top)) 16px 0" : "8px 16px 0") : "16px 32px 0", margin: isMobileDevice ? "0 0 4px" : "0 0 8px", borderBottom: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, overflowX: "auto", scrollbarWidth: "none",
         ...(tabsGlass ? { background: tabsGlass.bg, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRadius: 16, padding: "12px 24px 0", margin: "0 0 14px", borderBottom: "none" } : {}),
+        ...(v2 ? { maxWidth: 1600, marginLeft: "auto", marginRight: "auto", boxSizing: "border-box" } : {}),
         ...(isMobileDevice ? { justifyContent: "space-between", position: "sticky", top: 0, zIndex: 30, transition: "background-color .25s ease",
           background: tabsStuck ? (darkMode ? `color-mix(in srgb, ${pageBg} 72%, transparent)` : "rgba(255,255,255,0.78)") : "transparent",
           backdropFilter: tabsStuck ? "blur(16px)" : "none", WebkitBackdropFilter: tabsStuck ? "blur(16px)" : "none" } : {}) }}>
@@ -684,12 +692,13 @@ export function ProfileView(props) {
 
       {/* ── Layout novo do PC: duas colunas (Hall of Fame, Favoritos, Recentes | Destaque, Em curso, Atividade) ── */}
       {v2 && profileTab === "perfil" && (() => {
-        const cursoList = items.filter(i => i.userStatus === "assistindo").slice(0, 4);
+        const cursoList = items.filter(i => i.userStatus === "assistindo").slice(0, 2);
         const panel = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg ? computedPanelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` };
         const eyebrow = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
         return (
-          <div style={{ padding: "24px 32px 0", maxWidth: 1480, margin: "0 auto", boxSizing: "border-box" }}>
-            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:16px}.pv2-genres{display:flex;flex-direction:column;flex:1}.pv2-genres>*{flex:1}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
+          <div style={{ padding: "4px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
+            <div style={{ margin: "0 0 14px" }}><ProfileStats compact items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} /></div>
+            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:14px}.pv2-genres{display:flex;flex-direction:column;flex:1}.pv2-genres>*{flex:1}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
             <div className="pv2-grid">
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
                 {hofSection}
@@ -698,17 +707,19 @@ export function ProfileView(props) {
               </div>
               <div className="pv2-aside">
                 <FeaturedCardPC featuredItem={featuredItem} library={library} items={items} onOpen={onOpen}
-                  onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null} onSaveNote={onSaveFeaturedNote} />
+                  onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null} />
                 {cursoList.length > 0 && (
                   <div style={panel}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
                       <h3 style={eyebrow}>{lang === "en" ? "In progress" : "Em curso"}</h3>
-                      <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", fontWeight: 700 }}>{nCurso}</span>
+                      {onOpenLibrary
+                        ? <button type="button" onClick={() => onOpenLibrary({ status: "assistindo" })} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800, color: accent }}>{lang === "en" ? `See all (${nCurso}) →` : `Ver todos (${nCurso}) →`}</button>
+                        : <span style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", fontWeight: 700 }}>{nCurso}</span>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {cursoList.map(it => (
                         <div key={it.id} onClick={() => onOpen && onOpen(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
-                          <div style={{ width: 44, height: 66, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
+                          <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
                             {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                           </div>
                           <div style={{ minWidth: 0 }}>
@@ -918,10 +929,18 @@ export function ProfileView(props) {
       <Suspense fallback={null}><FeaturedPickerModal
         items={items}
         currentId={featuredItem?.id}
-        onSelect={(it) => { onSetFeatured && onSetFeatured(it); setShowFeaturedPicker(false); }}
+        currentNote={featuredItem?.note || ""}
+        onSelect={(it, note) => { onSetFeatured && onSetFeatured(it, note); setShowFeaturedPicker(false); }}
         onClear={() => { onSetFeatured && onSetFeatured(null); setShowFeaturedPicker(false); }}
         onClose={() => setShowFeaturedPicker(false)}
       /></Suspense>
+    )}
+    {showEditModal && (
+      <EditProfileModal lang={lang} avatar={avatarPreview} onAvatarFile={handleAvatarFile} uploadingImage={uploadingImage} uploadError={uploadError}
+        bannerUrl={bannerPreview} bannerStyle={bannerStyle} onBannerStyle={setBannerStyle} onBannerFile={handleBannerFile}
+        onBannerRemove={() => { setBannerPreview(""); setBannerUrl(""); }} hideBannerMobile={hideBannerMobile} onHideBannerMobile={setHideBannerMobile}
+        name={name} onName={setName} bio={bio} onBio={setBio} hideEmail={hideEmail} onHideEmail={setHideEmail}
+        onSave={handleSave} onClose={closeEditModal} />
     )}
     {cropSrc && (
       <Suspense fallback={null}><CropModal

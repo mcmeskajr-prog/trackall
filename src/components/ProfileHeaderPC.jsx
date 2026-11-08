@@ -17,7 +17,7 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
 
   return (
     <div style={{ position: "relative", color: text }}>
-      <div style={{ position: "relative", height: 190, overflow: "hidden", background: url ? "transparent" : `linear-gradient(135deg, ${accent}66, ${accent}18)` }}>
+      <div style={{ position: "relative", height: 110, overflow: "hidden", background: url ? "transparent" : `linear-gradient(135deg, ${accent}66, ${accent}18)` }}>
         {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), filter: filt, WebkitMaskImage: mask, maskImage: mask, pointerEvents: "none" }} />}
         {!url && <div aria-hidden="true" style={{ position: "absolute", inset: 0, WebkitMaskImage: mask, maskImage: mask, background: `radial-gradient(circle at 78% 30%, ${accent}33, transparent 55%)` }} />}
         {onSettings && (
@@ -28,12 +28,12 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "0 32px", position: "relative", flexWrap: "wrap", maxWidth: 1480, margin: "-70px auto 0", boxSizing: "border-box" }}>
-        <div style={{ width: 104, height: 104, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 6.5px ${accent}, 0 12px 30px rgba(0,0,0,0.5)`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 42, color: "white" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "0 32px", position: "relative", flexWrap: "wrap", maxWidth: 1600, margin: "-44px auto 0", boxSizing: "border-box" }}>
+        <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 6.5px ${accent}, 0 12px 30px rgba(0,0,0,0.5)`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 36, color: "white" }}>
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: "1 1 220px", minWidth: 0, paddingBottom: 6 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (en ? "User" : "Utilizador")}</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (en ? "User" : "Utilizador")}</h2>
           {profile.bio && <div style={{ fontSize: 14, color: sub, marginTop: 5, lineHeight: 1.4 }}>{profile.bio}</div>}
           {userEmail && !hideEmail && <div style={{ fontSize: 12, color: sub, opacity: 0.8, marginTop: 4, overflowWrap: "anywhere" }}>✉ {userEmail}</div>}
         </div>
