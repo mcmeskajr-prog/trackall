@@ -397,7 +397,7 @@ export function ProfileView(props) {
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, min(230px, max(110px, calc((100vh - 470px) / 3)), calc((100% - 56px) / 5))))", justifyContent: "space-between", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
+          <div style={{ ...(v2 ? {} : { margin: "0 16px" }), ...(isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
               // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
               ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
               : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>

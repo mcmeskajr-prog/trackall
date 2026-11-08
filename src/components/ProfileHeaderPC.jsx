@@ -1,7 +1,6 @@
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { splitBanner, bannerFilter, bannerFit } from "../lib/bannerColors";
-import { ProfileStats } from "./ProfileStats";
 
 // Cabeçalho do perfil no PC (layout novo): banner largo com engrenagem, avatar por cima, nome, números e «Editar perfil».
 export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, onEdit, onSettings, onFilter, panelBg = null }) {
@@ -37,9 +36,6 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
           <h2 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, margin: 0, overflowWrap: "anywhere" }}>{profile.name || (en ? "User" : "Utilizador")}</h2>
           {profile.bio && <div style={{ fontSize: 14, color: sub, marginTop: 5, lineHeight: 1.4 }}>{profile.bio}</div>}
           {userEmail && !hideEmail && <div style={{ fontSize: 12, color: sub, opacity: 0.8, marginTop: 4, overflowWrap: "anywhere" }}>✉ {userEmail}</div>}
-        </div>
-        <div style={{ flex: "0 1 640px", minWidth: 420 }}>
-          <ProfileStats items={items} panelBg={panelBg} onFilter={onFilter} inline />
         </div>
         {onEdit && (
           <button type="button" onClick={onEdit} style={{ marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: sub, background: "transparent", border: `1px solid ${line}`, cursor: "pointer", whiteSpace: "nowrap" }}>
