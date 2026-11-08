@@ -6,6 +6,7 @@ import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
 import { Sakura } from "./Sakura";
+import higanLine from "../assets/higan-line.webp";
 
 const NOTE_MAX = 140;
 
@@ -36,7 +37,15 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
     borderRadius: 18, padding: 22, boxSizing: "border-box", color: text,
     background: panelBg ? panelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"),
     border: `1px solid ${accent}44`, boxShadow: `0 0 26px -12px ${accent}77`,
+    position: "relative", isolation: "isolate", overflow: "hidden",
   };
+  // Higanbana só em traço, na cor de destaque, por trás do conteúdo (canto superior direito)
+  const flower = (
+    <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", WebkitMaskImage: "linear-gradient(180deg, #000 35%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 35%, transparent 100%)" }}>
+      <div style={{ position: "absolute", right: -34, top: 28, width: 170, height: 270, opacity: darkMode ? 0.36 : 0.3, background: accent,
+        WebkitMask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain`, mask: `url(${JSON.stringify(higanLine)}) no-repeat center / contain` }} />
+    </div>
+  );
   const eyebrow = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b" };
   const head = (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -50,6 +59,7 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
   if (!featured) {
     return (
       <div style={shell}>
+        {flower}
         {head}
         <button type="button" onClick={onPickFeatured || undefined} style={{ width: "100%", minHeight: 120, borderRadius: 14, cursor: onPickFeatured ? "pointer" : "default", fontFamily: "inherit", fontSize: 13, color: sub, background: "transparent", border: `1.5px dashed ${line}` }}>
           {en ? "+ Choose your featured item" : "+ Escolhe o teu item em destaque"}
@@ -69,6 +79,7 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
 
   return (
     <div style={shell}>
+      {flower}
       {head}
       <div style={{ display: "flex", gap: 18 }}>
         <div onClick={() => onOpen && onOpen(featured)} style={{ position: "relative", width: 128, aspectRatio: "2/3", borderRadius: 13, overflow: "hidden", flexShrink: 0, cursor: "pointer", background: gradientFor(featured.id), boxShadow: "0 14px 26px -14px rgba(0,0,0,0.8)" }}>

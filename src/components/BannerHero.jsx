@@ -17,7 +17,7 @@ export function BannerHero({ banner, styleOverride, urlOverride, height = 150, c
     <div style={{ position: "relative", borderRadius: 26, overflow: "hidden", border: `1px solid ${accent}55`, background: darkMode ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.4)", boxShadow: `0 10px 40px ${accent}18`, isolation: "isolate", ...boxStyle }}>
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, filter: filt, background: backdropCss(base, st, darkMode), pointerEvents: "none" }} />
       {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous"
-        style={{ position: "absolute", left: 0, top: 0, width: "100%", height, objectFit: "cover", ...bannerFit(st), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
+        style={{ position: "absolute", left: 0, top: 0, width: "100%", height, objectFit: "cover", ...bannerFit(st, "mobile"), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
       <div style={{ position: "relative", zIndex: 1, padding: `${Math.max(40, height - 46)}px 18px 18px` }}>{children}</div>
     </div>
   );

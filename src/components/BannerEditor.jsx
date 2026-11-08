@@ -11,13 +11,17 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
   const en = lang === "en";
   const fileRef = useRef();
   const [picker, setPicker] = useState(false);
+  const [dev, setDev] = useState("pc"); // dispositivo cujo enquadramento se está a editar
+  const same = style.mfx == null; // sem enquadramento próprio, o telemóvel usa o do PC
+  const own = dev === "mobile" && !same;
+  const kx = own ? "mfx" : "fx", ky = own ? "mfy" : "fy", kz = own ? "mz" : "z";
   const boxRef = useRef(null);
   const dragging = useRef(false);
   const moveDot = (e) => {
     const r = boxRef.current?.getBoundingClientRect(); if (!r || !r.width || !r.height) return;
     const x = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100));
     const y = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100));
-    onStyle({ ...style, fx: Math.round(x), fy: Math.round(y) });
+    onStyle({ ...style, [kx]: Math.round(x), [ky]: Math.round(y) });
   };
   const palette = useBannerPalette(url);
   const line = darkMode ? "#30363d" : "#e2e8f0";
@@ -28,7 +32,7 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
   const slider = (k, label, min, max, fmt) => (
     <label style={{ display: "block", marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: muted, marginBottom: 4 }}><span>{label}</span><span style={{ color: text, fontWeight: 700 }}>{fmt(style[k])}</span></div>
-      <input type="range" min={min} max={max} value={style[k]} onChange={(e) => set(k, Number(e.target.value))} style={{ width: "100%", accentColor: accent }} />
+      <input type="range" min={min} max={max} value={style[k] ?? 100} onChange={(e) => set(k, Number(e.target.value))} style={{ width: "100%", accentColor: accent }} />
     </label>
   );
   const btn = { padding: "8px 14px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${line}`, background: "transparent", color: text };
@@ -40,16 +44,28 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
         <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{ ...btn, width: "100%", padding: "22px 10px", borderStyle: "dashed", color: muted }}>{uploading ? (en ? "Uploading…" : "A enviar…") : (en ? "+ Add banner image" : "+ Adicionar imagem de banner")}</button>
       ) : (
         <>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "4px 0 10px" }}>
+            {!same && ["pc", "mobile"].map(d => (
+              <button key={d} type="button" onClick={() => setDev(d)} style={{ ...btn, padding: "6px 14px", borderColor: dev === d ? accent : line, color: dev === d ? accent : muted, background: dev === d ? `${accent}18` : "transparent" }}>{d === "pc" ? "PC" : (en ? "Mobile" : "Telemóvel")}</button>
+            ))}
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginLeft: same ? 0 : "auto" }}>
+              <input type="checkbox" checked={same} onChange={(e) => {
+                if (e.target.checked) { const { mfx, mfy, mz, ...rest } = style; setDev("pc"); onStyle(rest); }
+                else { setDev("mobile"); onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 }); }
+              }} style={{ width: 16, height: 16, accentColor: accent }} />
+              <span style={{ fontSize: 12.5, color: muted }}>{en ? "Same framing on PC and mobile" : "Mesmo enquadramento no PC e no telemóvel"}</span>
+            </label>
+          </div>
           <div style={{ fontSize: 12, color: muted, margin: "2px 0 8px" }}>{en ? "Drag the dot to the part of the image that matters — it frames the banner on PC and on mobile at the same time." : "Arrasta o ponto para a parte da imagem que interessa — enquadra o banner no PC e no telemóvel ao mesmo tempo."}</div>
           <div ref={boxRef} onPointerDown={(e) => { e.currentTarget.setPointerCapture?.(e.pointerId); dragging.current = true; moveDot(e); }} onPointerMove={(e) => { if (dragging.current) moveDot(e); }} onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
             style={{ position: "relative", maxWidth: 360, margin: "0 auto 10px", borderRadius: 12, overflow: "hidden", cursor: "crosshair", touchAction: "none", userSelect: "none", border: `1px solid ${line}` }}>
             <img src={url} alt="" draggable={false} style={{ width: "100%", display: "block", pointerEvents: "none" }} />
-            <span aria-hidden="true" style={{ position: "absolute", left: `${style.fx ?? 50}%`, top: `${style.fy ?? 50}%`, width: 22, height: 22, marginLeft: -11, marginTop: -11, borderRadius: "50%", border: "2.5px solid #fff", background: `${accent}99`, boxShadow: "0 0 0 1.5px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.5)", pointerEvents: "none" }} />
+            <span aria-hidden="true" style={{ position: "absolute", left: `${style[kx] ?? 50}%`, top: `${style[ky] ?? 50}%`, width: 22, height: 22, marginLeft: -11, marginTop: -11, borderRadius: "50%", border: "2.5px solid #fff", background: `${accent}99`, boxShadow: "0 0 0 1.5px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.5)", pointerEvents: "none" }} />
           </div>
-          {slider("z", en ? "Zoom" : "Zoom", 100, 250, (v) => `${v}%`)}
+          {slider(kz, "Zoom", 100, 250, (v) => `${v ?? 100}%`)}
           <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0 4px", fontSize: 12, color: muted }}><span>{en ? "On PC" : "No PC"}</span></div>
           <div style={{ maxWidth: 360, margin: "0 auto 12px", aspectRatio: "6 / 1", position: "relative", overflow: "hidden", borderRadius: 10, border: `1px solid ${line}` }}>
-            <img src={url} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(style), filter: bannerFilter(style), pointerEvents: "none" }} />
+            <img src={url} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(style, "pc"), filter: bannerFilter(style), pointerEvents: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 4px", fontSize: 12, color: muted }}><span>{en ? "On mobile" : "No telemóvel"}</span></div>
           <div style={{ maxWidth: 360, margin: "0 auto" }}>

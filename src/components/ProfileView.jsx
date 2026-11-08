@@ -12,6 +12,7 @@ import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../confi
 import { TiltCard } from "./TiltCard";
 import { BannerEditor } from "./BannerEditor";
 import { EditProfileModal } from "./EditProfileModal";
+import { DiaryRecent } from "./DiaryRecent";
 import { BannerPageTint } from "./BannerHero";
 import { ProfileHeaderPC } from "./ProfileHeaderPC";
 import { FeaturedCardPC } from "./FeaturedCardPC";
@@ -380,7 +381,7 @@ export function ProfileView(props) {
   const pageBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor || "#0d1117";
   const flatProfile = isMobileDevice && !editing && !!profile.banner && !profile.hideBannerMobile; // perfil sem moldura (banner a toda a largura)
   const cardProps = {
-    profile, avatar: currentAvatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit: startEditing,
+    profile, avatar: currentAvatar, items, library, featuredItem, userEmail, hideEmail, onOpen, onEdit: isMobileDevice ? openEditModal : startEditing,
     onPersonalize: isMobileDevice ? () => setPersonalizing(true) : null, onSignOut,
     onPickFeatured: onSetFeatured ? () => setShowFeaturedPicker(true) : null, onFilter: onOpenLibrary,
   };
@@ -695,10 +696,14 @@ export function ProfileView(props) {
         const cursoList = items.filter(i => i.userStatus === "assistindo").slice(0, 2);
         const panel = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg ? computedPanelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` };
         const eyebrow = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
+        // Diário recente: acompanha a altura da coluna da esquerda (5 entradas com uma fila de Favoritos; +5 por cada fila extra, até 15)
+        const favTypesN = MEDIA_TYPES.slice(1).filter(t => favorites.some(f => f.type === t.id)).length;
+        const favRows = favFilter === "all" ? Math.max(1, favTypesN) : 1;
+        const diaryCount = Math.min(15, 5 + 5 * (favRows - 1));
         return (
           <div style={{ padding: "4px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
             <div style={{ margin: "0 0 14px" }}><ProfileStats compact items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} /></div>
-            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:14px}.pv2-genres{display:flex;flex-direction:column;flex:1}.pv2-genres>*{flex:1}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
+            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.pv2-aside{display:flex;flex-direction:column;gap:14px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
             <div className="pv2-grid">
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
                 {hofSection}
@@ -732,10 +737,11 @@ export function ProfileView(props) {
                   </div>
                 )}
                 {items.length > 0 && (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <>
                     <ProfileActivity items={items} accent={accent} darkMode={panelDM} compact lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} />
-                    <div className="pv2-genres">{renderTopGenres(true)}</div>
-                  </div>
+                    {renderTopGenres(true)}
+                    <DiaryRecent items={items} count={diaryCount} onOpen={onOpen} onSeeAll={() => setProfileTab("diario")} />
+                  </>
                 )}
               </div>
             </div>

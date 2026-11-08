@@ -114,7 +114,9 @@ export function ProfileStats({ items, panelBg, stacked, onFilter, inline = false
               boxShadow: compact ? `0 0 0 1px ${t.col}55` : `0 0 0 1px ${t.col}cc, 0 0 0 4px ${t.col}2e, 0 14px 28px -10px ${t.col}80`, color: text }}>
             <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, background: `linear-gradient(90deg, transparent, ${t.col}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
             <span aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none", WebkitMaskImage: FADE, maskImage: FADE }}>
-              <span style={{ position: "absolute", right: `${t.art.r}cqw`, top: t.art.t, width: `${t.art.w}cqw`, height: `${t.art.h}cqw`, background: t.col, opacity: t.art.o, ...MASK(t.art.src) }} />
+              <span style={compact
+                ? { position: "absolute", right: "3cqw", top: "50%", transform: "translateY(-50%)", height: 118, width: Math.round(118 * t.art.w / t.art.h), background: t.col, opacity: t.art.o, ...MASK(t.art.src) }
+                : { position: "absolute", right: `${t.art.r}cqw`, top: t.art.t, width: `${t.art.w}cqw`, height: `${t.art.h}cqw`, background: t.col, opacity: t.art.o, ...MASK(t.art.src) }} />
               <Flower col={t.col} size={13} rot={14} style={{ right: "9cqw", top: 12, opacity: 0.9 }} />
               <Flower col={t.col} size={9} rot={-20} style={{ right: "19cqw", top: 30, opacity: 0.75 }} />
               <Flower col={t.col} size={7} rot={40} style={{ right: "6cqw", top: 44, opacity: 0.65 }} />

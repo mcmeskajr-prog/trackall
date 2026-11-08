@@ -2076,7 +2076,7 @@ export default function TrackAll() {
   const ownDark = ownDarkRef.current;
   const onAccentTxt = onAccentColor(accent);
   // Brilho de destaque no topo: por defeito só no Perfil (nas outras abas fica uma linha fina); no telemóvel mantém-se como antes
-  const _glowOn = isMobileDevice || topAccent === "all" || (topAccent !== "none" && view === "profile");
+  const _glowOn = isMobileDevice ? topAccent !== "none" : (topAccent === "all" || (topAccent !== "none" && view === "profile"));
   const activeBgPaint = (activeBgImage || !_glowOn) ? "none" : appBgPaint(activeBgColor, friendTheme?.accent || accent, activeDarkMode);
   const _topLine = !isMobileDevice && topAccent === "profile" && view !== "profile";
 

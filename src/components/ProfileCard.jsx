@@ -94,7 +94,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
         <div style={{ color: text }}>
           <div style={{ position: "relative", height: 236 }}>
             <ProfileMenu items={menuItems} accent={accent} darkMode={darkMode} lang={lang} style={{ right: 14, top: "calc(12px + env(safe-area-inset-top))" }} />
-            {bUrl && <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}><img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} /></div>}
+            {bUrl && <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}><img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst, "mobile"), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} /></div>}
           </div>
           <div style={{ position: "relative", marginTop: -60, padding: "0 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
             <div style={{ position: "relative", width: 86, height: 86 }}>

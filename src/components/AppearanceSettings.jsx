@@ -314,16 +314,17 @@ export function AppearanceSettings({
       <section style={box}>
         <div style={eyebrow}>{useT("accentColor")}</div>
         {colorRow(ACCENT_PRESETS, accent, onAccentChange, onAccentChange, true)}
-        {!isMobileDevice && (
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{en ? "Accent at the top of the pages" : "Cor de destaque no topo das páginas"}</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {[["profile", en ? "Profile glow + line" : "Brilho no Perfil + linha"], ["all", en ? "Glow on every tab" : "Brilho em todas as abas"], ["none", en ? "Never" : "Nunca"]].map(([v, l]) => (
-                <button key={v} type="button" onClick={() => setTopAcc(v)} style={chip(topAcc === v)}>{l}</button>
-              ))}
-            </div>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{en ? "Accent at the top of the pages" : "Cor de destaque no topo das páginas"}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(isMobileDevice
+              ? [["all", en ? "Glow at the top" : "Brilho no topo"], ["none", en ? "Never" : "Nunca"]]
+              : [["profile", en ? "Profile glow + line" : "Brilho no Perfil + linha"], ["all", en ? "Glow on every tab" : "Brilho em todas as abas"], ["none", en ? "Never" : "Nunca"]]
+            ).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setTopAcc(v)} style={chip(isMobileDevice ? (v === "none" ? topAcc === "none" : topAcc !== "none") : topAcc === v)}>{l}</button>
+            ))}
           </div>
-        )}
+        </div>
       </section>
 
       {/* Layout do perfil (PC) */}

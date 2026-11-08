@@ -13,11 +13,11 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
   const line = darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.14)";
   const { url, style: bst } = splitBanner(profile.banner);
   const filt = bannerFilter(bst);
-  const mask = "linear-gradient(180deg, #000 0%, #000 45%, rgba(0,0,0,0.6) 75%, transparent 100%)";
+  const mask = "linear-gradient(180deg, #000 0%, #000 55%, rgba(0,0,0,0.55) 80%, transparent 100%)";
 
   return (
     <div style={{ position: "relative", color: text }}>
-      <div style={{ position: "relative", height: 110, overflow: "hidden", background: url ? "transparent" : `linear-gradient(135deg, ${accent}66, ${accent}18)` }}>
+      <div style={{ position: "relative", height: 160, overflow: "hidden", background: url ? "transparent" : `linear-gradient(135deg, ${accent}66, ${accent}18)` }}>
         {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), filter: filt, WebkitMaskImage: mask, maskImage: mask, pointerEvents: "none" }} />}
         {!url && <div aria-hidden="true" style={{ position: "absolute", inset: 0, WebkitMaskImage: mask, maskImage: mask, background: `radial-gradient(circle at 78% 30%, ${accent}33, transparent 55%)` }} />}
         {onSettings && (
@@ -28,7 +28,7 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "0 32px", position: "relative", flexWrap: "wrap", maxWidth: 1600, margin: "-44px auto 0", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "0 32px", position: "relative", flexWrap: "wrap", maxWidth: 1600, margin: "-94px auto 0", boxSizing: "border-box" }}>
         <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg, ${accent}, ${accent}88)`, boxShadow: `0 0 0 4px ${darkMode ? "#0a0c10" : "#ffffff"}, 0 0 0 6.5px ${accent}, 0 12px 30px rgba(0,0,0,0.5)`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 36, color: "white" }}>
           {avatar ? <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (profile.name || "?").charAt(0).toUpperCase()}
         </div>

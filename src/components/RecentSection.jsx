@@ -97,13 +97,6 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
               );
             })}
           </div>
-          {compactHead && completados.length > 7 && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: "none", color: accent, padding: "2px 0", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
-                {showAllCompleto ? (lang === "en" ? "↑ Less" : "↑ Menos") : (lang === "en" ? `View all (${completados.length}) →` : `Ver todos (${completados.length}) →`)}
-              </button>
-            </div>
-          )}
         </div>
       )}
 
