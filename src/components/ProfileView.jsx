@@ -332,7 +332,7 @@ export function ProfileView(props) {
                   <span style={{ fontWeight: 600, opacity: 0.7 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>
                   <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)" }} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${v2 ? Math.min(MAX_FAVORITES_PER_TYPE, Math.max(5, list.length)) : MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
                   {list.map(item => renderFav(item))}
                 </div>
               </div>
@@ -397,7 +397,7 @@ export function ProfileView(props) {
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, min(230px, max(110px, calc((100vh - 400px) / 3)), calc((100% - 56px) / 5))))", justifyContent: "space-between", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
+          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, min(230px, max(110px, calc((100vh - 470px) / 3)), calc((100% - 56px) / 5))))", justifyContent: "space-between", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
               // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
               ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
               : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>
