@@ -7,7 +7,7 @@ import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 
 // part: "all" | "recent" | "curso" · bare: sem títulos · inlineTitle: (telemóvel) título da secção na mesma linha do «Ver todos»
-export function RecentSection({ items, onOpen, showDiary = true, part = "all", bare = false, inlineTitle = "" }) {
+export function RecentSection({ items, onOpen, showDiary = true, part = "all", bare = false, inlineTitle = "", compactHead = false }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
   const { lang, useT } = useLang();
@@ -61,11 +61,11 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
       {/* Completados — tamanho igual aos Favoritos */}
       {completados.length > 0 && part !== "curso" && (
         <div style={{ marginBottom: bare ? 8 : 24 }}>
-          <div style={{ display: "flex", justifyContent: bare && !inlineTitle ? "flex-end" : "space-between", alignItems: "center", marginBottom: inlineTitle ? 10 : bare ? 4 : 12 }}>
+          <div style={{ display: "flex", justifyContent: compactHead ? "flex-start" : bare && !inlineTitle ? "flex-end" : "space-between", gap: compactHead ? 12 : 0, alignItems: "center", marginBottom: inlineTitle ? 10 : bare ? 4 : 12 }}>
             {inlineTitle && <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" }}>{inlineTitle}</h3>}
             {!bare && <h3 style={isMobileDevice ? { fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" } : { fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{isMobileDevice ? (lang === "en" ? "Recent" : "Recentes") : (lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>}
             {completados.length > (isMobileDevice ? 6 : 7) && (
-              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: isMobileDevice ? "none" : `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+              <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: (isMobileDevice || compactHead) ? "none" : `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                 {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
               </button>
             )}

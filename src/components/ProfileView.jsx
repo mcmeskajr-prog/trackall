@@ -86,6 +86,7 @@ export function ProfileView(props) {
   const [showStats, setShowStats] = useState(false);
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [favFilter, setFavFilter] = useState("all");
+  const [favAll, setFavAll] = useState(false); // layout novo: «Tudo» mostra uma fila por tipo; por defeito mostra só o primeiro tipo
   const [moreOpen, setMoreOpen] = useState(false); // telemóvel: menu «⋯» dos separadores
   const [secOpen, setSecOpen] = useState(() => { try { return { ...SECTION_DEFAULTS, ...JSON.parse(localStorage.getItem("trackall.profileSections") || "{}") }; } catch { return SECTION_DEFAULTS; } });
   const toggleSec = (k) => setSecOpen(prev => { const next = { ...prev, [k]: !prev[k] }; try { localStorage.setItem("trackall.profileSections", JSON.stringify(next)); } catch { /* sem armazenamento: só nesta sessão */ } return next; });
@@ -162,18 +163,17 @@ export function ProfileView(props) {
     setCropType("avatar");
   };
 
-  const handleBannerFile = (e) => {
+  // Banner: sem recorte fixo. Vai a imagem inteira (até 2400 px) e o enquadramento escolhe-se com o ponto focal no editor.
+  const handleBannerFile = async (e) => {
     const file = pickImage(e); if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCropSrc(url);
-    setCropType("banner");
+    const dataUrl = await compressImage(file, 2400, 2400, 0.9);
+    if (dataUrl) saveImage("banner", dataUrl);
   };
 
   const [uploadingImage, setUploadingImage] = useState(null); // "avatar" | "banner" | null
   const [uploadError, setUploadError] = useState("");
-  const handleCropSave = async (dataUrl) => {
-    const type = cropType;
-    setCropSrc(null); setCropType(null);
+  const handleCropSave = (dataUrl) => { const type = cropType; setCropSrc(null); setCropType(null); return saveImage(type, dataUrl); };
+  const saveImage = async (type, dataUrl) => {
     setUploadError("");
     // Pré-visualização imediata (local) enquanto o upload real acontece
     if (type === "avatar") setAvatarPreview(dataUrl);
@@ -247,6 +247,7 @@ export function ProfileView(props) {
   // ── Favoritos: máx. MAX_FAVORITES_PER_TYPE por tipo (aplicado ao adicionar, ver toggleFavorite no App) ──
   const favoritesBlock = (() => {
     const typesWithFavs = MEDIA_TYPES.slice(1).filter(t => favorites.some(f => f.type === t.id));
+    const fEff = v2 && !favAll && favFilter === "all" ? (typesWithFavs[0]?.id || "all") : (favFilter !== "all" && !typesWithFavs.some(t => t.id === favFilter) ? "all" : favFilter);
     const byRating = (a, b) => ((b.userRating || 0) - (a.userRating || 0)) || ((b.addedAt || 0) - (a.addedAt || 0));
     const ratingOf = (item) => findLibraryEntry(library, item.id, item.type)?.item?.userRating ?? item.userRating ?? 0;
     const sortedOf = (tid) => favorites.filter(f => f.type === tid).map(f => ({ ...f, userRating: ratingOf(f) })).sort(byRating);
@@ -260,8 +261,8 @@ export function ProfileView(props) {
         {v2 && typesWithFavs.length > 1 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {[{ id: "all" }, ...typesWithFavs].map(t => {
-              const on = favFilter === t.id;
-              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+              const on = fEff === t.id;
+              return <button key={t.id} type="button" onClick={() => { setFavAll(t.id === "all"); setFavFilter(t.id); }} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
             })}
           </div>
         )}
@@ -314,7 +315,7 @@ export function ProfileView(props) {
     );
 
     // ── PC: uma fila por tipo (7 colunas = o máximo por tipo, cabem todos) ──
-    const groups = (favFilter === "all" ? typesWithFavs : typesWithFavs.filter(t => t.id === favFilter)).map(t => ({ t, list: sortedOf(t.id) }));
+    const groups = (fEff === "all" ? typesWithFavs : typesWithFavs.filter(t => t.id === fEff)).map(t => ({ t, list: sortedOf(t.id) }));
     return (
       <div style={{ marginBottom: 28 }}>
         {heading}
@@ -333,10 +334,6 @@ export function ProfileView(props) {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: v2 ? 12 : 14 }}>
                   {list.map(item => renderFav(item))}
-                  {v2 && onToggleFavorite && Array.from({ length: Math.max(0, MAX_FAVORITES_PER_TYPE - list.length) }).map((_, k) => (
-                    <button key={"slot" + k} type="button" onClick={() => onOpenLibrary && onOpenLibrary({ type: t.id })} aria-label={lang === "en" ? "Add a favorite" : "Adicionar favorito"}
-                      style={{ aspectRatio: "2/3", borderRadius: 12, border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.22)"}`, background: "transparent", color: darkMode ? "#6b7684" : "#94a3b8", fontSize: 24, cursor: onOpenLibrary ? "pointer" : "default", fontFamily: "inherit", padding: 0 }}>+</button>
-                  ))}
                 </div>
               </div>
             ))}
@@ -400,7 +397,7 @@ export function ProfileView(props) {
             <p style={{ color: "#484f58", fontSize: 13 }}>{lang === "en" ? "Choose up to 10 titles from the item modal." : "Escolhe até 10 obras a partir do modal de cada item."}</p>
           </div>
         ) : (
-          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
+          <div style={{ ...(v2 ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, min(230px, max(110px, calc((100vh - 400px) / 3)), calc((100% - 56px) / 5))))", justifyContent: "space-between", gap: 14 } : { margin: "0 16px" }), ...(v2 ? {} : isMobileDevice ? { display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 6 } : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", ...(hallOfFame.length <= 5
               // Poucos títulos: o tamanho das capas não encolhe; ficam centradas e um pouco maiores (até 4)
               ? { gridTemplateColumns: `repeat(${hallOfFame.length}, minmax(0, calc(var(--hof-h) * 5 / 7 * ${hallOfFame.length <= 4 ? 1.12 : 1})))`, justifyContent: "center", gap: 18 }
               : { gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }) }) }}>
@@ -547,7 +544,7 @@ export function ProfileView(props) {
       {/* Layout novo do PC: banner + identidade (no separador Perfil) */}
       {v2 && profileTab === "perfil" && (
         <ProfileHeaderPC profile={profile} avatar={currentAvatar} items={items} userEmail={userEmail} hideEmail={hideEmail}
-          onEdit={startEditing} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} />
+          onEdit={startEditing} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} panelBg={panelBg ? computedPanelBg : null} />
       )}
 
       {/* Perfil sem moldura: banner a toda a largura, depois os separadores */}
@@ -691,13 +688,13 @@ export function ProfileView(props) {
         const panel = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg ? computedPanelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` };
         const eyebrow = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
         return (
-          <div style={{ padding: "24px 32px 0", maxWidth: 1344, margin: "0 auto", boxSizing: "border-box" }}>
-            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:30px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:16px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
+          <div style={{ padding: "24px 32px 0", maxWidth: 1480, margin: "0 auto", boxSizing: "border-box" }}>
+            <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:stretch}.pv2-aside{display:flex;flex-direction:column;gap:16px}.pv2-genres{display:flex;flex-direction:column;flex:1}.pv2-genres>*{flex:1}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
             <div className="pv2-grid">
-              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 28 }}>
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
                 {hofSection}
                 {favoritesBlock}
-                {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" />}
+                {items.length > 0 && <RecentSection items={items} onOpen={onOpen} showDiary={false} part="recent" compactHead />}
               </div>
               <div className="pv2-aside">
                 <FeaturedCardPC featuredItem={featuredItem} library={library} items={items} onOpen={onOpen}
@@ -716,7 +713,7 @@ export function ProfileView(props) {
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#0f172a" }}>{it.title}</div>
-                            {it.lastChapter && <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", marginTop: 3 }}>{String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}</div>}
+                            <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(MEDIA_TYPES.find(t => t.id === it.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === it.type), lang) : "")}{it.lastChapter ? ` · ${String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}` : ""}</div>
                           </div>
                         </div>
                       ))}
@@ -725,8 +722,8 @@ export function ProfileView(props) {
                 )}
                 {items.length > 0 && (
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-                    <ProfileActivity items={items} accent={accent} darkMode={panelDM} isMobile lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} />
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{renderTopGenres(true)}</div>
+                    <ProfileActivity items={items} accent={accent} darkMode={panelDM} compact lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} />
+                    <div className="pv2-genres">{renderTopGenres(true)}</div>
                   </div>
                 )}
               </div>

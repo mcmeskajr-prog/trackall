@@ -8,7 +8,7 @@ const DAY = 86400000;
 const startOfDay = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const keyOf = (t) => startOfDay(t);
 
-export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, isMobile = false, lang = "pt", panelBg = null, onOpen }) {
+export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, isMobile = false, compact = false, lang = "pt", panelBg = null, onOpen }) {
   const weeks = isMobile ? 26 : 53;
   const en = lang === "en";
   // dia selecionado: hover mostra pré-visualização; clique "fixa" o painel (obras clicáveis)
@@ -61,7 +61,8 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
   const empty = darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.07)";
   const level = (n) => n === 0 ? empty : n === 1 ? `${accent}55` : n <= 3 ? `${accent}99` : n <= 6 ? `${accent}cc` : accent;
   const MONTHS = en ? MONTH_EN : MONTH_PT;
-  const gap = isMobile ? 3 : 3;
+  const gap = compact ? 2 : 3;
+  const st = isMobile || compact; // layout empilhado (telemóvel e coluna estreita do PC)
 
   const pin = sel && sel.pinned;
   useEffect(() => {
@@ -87,28 +88,36 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
   const selItems = sel ? (data.byDay.get(sel.t) || []) : [];
 
   const stats = (
-    <div style={isMobile ? { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 } : { width: 170, flexShrink: 0 }}>
+    <div style={st ? { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 } : { width: 170, flexShrink: 0 }}>
       <div>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: muted, textTransform: "uppercase" }}>
           {isMobile ? (en ? "Last 6 months" : "Últimos 6 meses") : (en ? "Last 12 months" : "Últimos 12 meses")}
         </div>
-        <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 800, lineHeight: 1, marginTop: isMobile ? 8 : 6, color: text }}>
+        <div style={{ fontSize: st ? 24 : 28, fontWeight: 800, lineHeight: 1, marginTop: st ? 8 : 6, color: text }}>
           {data.total}<span style={{ fontSize: 13, color: muted, fontWeight: 700 }}> {en ? "completed" : "completados"}</span>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: muted, marginTop: isMobile ? 0 : 6, textAlign: isMobile ? "right" : "left" }}>
+      <div style={{ fontSize: 12, color: muted, marginTop: st ? 0 : 6, textAlign: st ? "right" : "left" }}>
         {en ? "current streak" : "sequência atual"} <b style={{ color: data.streak > 0 ? accent : muted }}>{data.streak} {en ? (data.streak === 1 ? "day" : "days") : (data.streak === 1 ? "dia" : "dias")}</b>
       </div>
     </div>
   );
 
   const grid = (
-    <div style={{ flex: 1, minWidth: 0, ...(isMobile ? {} : { maxWidth: weeks * 12, marginLeft: "auto" }) }}>
+    <div style={{ flex: 1, minWidth: 0, ...(st ? {} : { maxWidth: weeks * 12, marginLeft: "auto" }) }}>
+      {compact ? (
+        <div style={{ position: "relative", height: 13, marginBottom: 5 }}>
+          {data.months.map(({ c, m }) => (
+            <span key={c} style={{ position: "absolute", left: `${(c / weeks) * 100}%`, fontSize: 9.5, color: muted, whiteSpace: "nowrap", lineHeight: "13px" }}>{MONTHS[m]}</span>
+          ))}
+        </div>
+      ) : (
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gap, marginBottom: isMobile ? 5 : 4, height: isMobile ? 12 : 11 }}>
         {data.months.map(({ c, m }) => (
           <span key={c} style={{ gridColumn: `${c + 1} / span 4`, fontSize: 9.5, color: muted, whiteSpace: "nowrap", overflow: "visible", lineHeight: isMobile ? "12px" : "11px" }}>{MONTHS[m]}</span>
         ))}
       </div>
+      )}
       <div role="img" aria-label={en ? "Completed items per day" : "Obras completadas por dia"} style={{ display: "grid", gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`, gridTemplateRows: "repeat(7, auto)", gridAutoFlow: "column", gap }}>
         {data.cells.map(({ t, n, future }) => {
           const on = n > 0 && !future;
@@ -126,7 +135,7 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
           );
         })}
       </div>
-      {isMobile && <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 8, fontSize: 10, color: muted }}>
+      {st && <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 8, fontSize: 10, color: muted }}>
         {en ? "Less" : "Menos"}
         {[0, 1, 2, 4, 7].map(n => <span key={n} style={{ width: 10, height: 10, borderRadius: 2.5, background: level(n) }} />)}
         {en ? "More" : "Mais"}
@@ -136,10 +145,10 @@ export function ProfileActivity({ items, accent = "#dc2626", darkMode = true, is
 
   return (
     <div style={{
-      marginBottom: isMobile ? 6 : 0, borderRadius: 20, padding: isMobile ? "16px 16px 14px" : "10px 22px",
+      marginBottom: isMobile ? 6 : 0, borderRadius: 20, padding: st ? "16px 16px 14px" : "10px 22px",
       background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"),
       border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
-      ...(isMobile ? {} : { display: "flex", alignItems: "center", gap: 22, flex: "1 1 auto" }),
+      ...(st ? {} : { display: "flex", alignItems: "center", gap: 22, flex: "1 1 auto" }),
     }}>
       {stats}{grid}
       {sel && selItems.length > 0 && createPortal(

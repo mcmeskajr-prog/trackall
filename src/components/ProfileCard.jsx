@@ -7,7 +7,7 @@ import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TiltCard } from "./TiltCard";
 import { TypeIcon } from "./TypeIcon";
-import { splitBanner, bannerFilter } from "../lib/bannerColors";
+import { splitBanner, bannerFilter, bannerFit } from "../lib/bannerColors";
 import higanLine from "../assets/higan-line.webp";
 
 // ─── Cartão de perfil (Fase 1 do redesign) ───
@@ -94,7 +94,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
         <div style={{ color: text }}>
           <div style={{ position: "relative", height: 236 }}>
             <ProfileMenu items={menuItems} accent={accent} darkMode={darkMode} lang={lang} style={{ right: 14, top: "calc(12px + env(safe-area-inset-top))" }} />
-            {bUrl && <img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
+            {bUrl && <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}><img src={bUrl} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} /></div>}
           </div>
           <div style={{ position: "relative", marginTop: -60, padding: "0 16px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
             <div style={{ position: "relative", width: 86, height: 86 }}>

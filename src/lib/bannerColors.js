@@ -4,7 +4,7 @@
 // Assim não é preciso nenhuma coluna nova na BD e os amigos recebem tudo com o perfil.
 import { useEffect, useState } from "react";
 
-export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100, a: 1, g: 1 }; // c "" = automático; a 1 = a cor do banner passa a ser o destaque do perfil
+export const DEFAULT_BANNER_STYLE = { c: "", m: 70, d: 55, b: 100, a: 1, g: 1, fx: 50, fy: 50, z: 100 }; // c "" = automático; a 1 = a cor do banner passa a ser o destaque do perfil
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const isHex = (s) => /^[0-9a-f]{6}$/i.test(s || "");
@@ -17,20 +17,22 @@ export function splitBanner(str) {
   const q = new URLSearchParams(str.slice(i + 1));
   const num = (k, def, a, b) => { const v = Number(q.get(k)); return q.has(k) && Number.isFinite(v) ? clamp(v, a, b) : def; };
   const tc = (q.get("tc") || "").replace("#", "");
-  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1, g: q.get("bg") === "0" ? 0 : 1 } };
+  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1, g: q.get("bg") === "0" ? 0 : 1, fx: num("fx", 50, 0, 100), fy: num("fy", 50, 0, 100), z: num("zm", 100, 100, 250) } };
 }
 
 export function joinBanner(url, style) {
   if (!url) return "";
   if (url.startsWith("data:")) return url; // base64 não leva fragmento (o upload tenta sempre devolver URL)
   const s = { ...DEFAULT_BANNER_STYLE, ...(style || {}) };
-  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0 && s.g !== 0;
+  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0 && s.g !== 0 && s.fx === 50 && s.fy === 50 && s.z === 100;
   if (isDefault) return url;
   const p = [];
   if (s.c) p.push(`tc=${s.c.replace("#", "")}`);
   p.push(`mx=${Math.round(s.m)}`, `dk=${Math.round(s.d)}`, `br=${Math.round(s.b)}`);
   if (s.a === 0) p.push("ac=0");
   if (s.g === 0) p.push("bg=0");
+  if (s.fx !== 50 || s.fy !== 50) p.push(`fx=${Math.round(s.fx)}`, `fy=${Math.round(s.fy)}`);
+  if (s.z !== 100) p.push(`zm=${Math.round(s.z)}`);
   return `${url}#${p.join("&")}`;
 }
 
@@ -153,6 +155,8 @@ export function pageTintCss(baseHex, style, darkMode) {
   return `linear-gradient(180deg, #${hslToHex(h, sat, top)} 0px, #${hslToHex(h, sat * 0.85, low)} 900px, #${hslToHex(h, sat * 0.85, low)} 100%)`;
 }
 
+// Enquadramento do banner: o ponto focal (fx, fy em %) e o zoom (z em %). Serve para o PC e para o telemóvel.
+export const bannerFit = (style) => { const fx = clamp(style?.fx ?? 50, 0, 100), fy = clamp(style?.fy ?? 50, 0, 100), z = clamp(style?.z ?? 100, 100, 250); return { objectPosition: `${fx}% ${fy}%`, ...(z > 100 ? { transform: `scale(${z / 100})`, transformOrigin: `${fx}% ${fy}%` } : {}) }; };
 export const bannerFilter = (style) => { const b = clamp(style?.b ?? 100, 60, 140); return b === 100 ? undefined : `brightness(${b / 100})`; };
 
 // Cor de destaque tirada do banner (viva e legível sobre fundo escuro); null = usar a do tema

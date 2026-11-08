@@ -1,5 +1,5 @@
 import { useTheme } from "../contexts/ThemeContext";
-import { splitBanner, useBannerPalette, baseColor, backdropCss, pageTintCss, bannerFilter } from "../lib/bannerColors";
+import { splitBanner, useBannerPalette, baseColor, backdropCss, pageTintCss, bannerFilter, bannerFit } from "../lib/bannerColors";
 
 // Cartão de perfil com banner (telemóvel): imagem no topo que se dissolve num fundo tingido com a
 // cor do banner, dentro de um cartão arredondado. A mesma cor passa a ser o destaque do perfil
@@ -17,7 +17,7 @@ export function BannerHero({ banner, styleOverride, urlOverride, height = 150, c
     <div style={{ position: "relative", borderRadius: 26, overflow: "hidden", border: `1px solid ${accent}55`, background: darkMode ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.4)", boxShadow: `0 10px 40px ${accent}18`, isolation: "isolate", ...boxStyle }}>
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, filter: filt, background: backdropCss(base, st, darkMode), pointerEvents: "none" }} />
       {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous"
-        style={{ position: "absolute", left: 0, top: 0, width: "100%", height, objectFit: "cover", display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
+        style={{ position: "absolute", left: 0, top: 0, width: "100%", height, objectFit: "cover", ...bannerFit(st), display: "block", pointerEvents: "none", filter: filt, WebkitMaskImage: mask, maskImage: mask }} />}
       <div style={{ position: "relative", zIndex: 1, padding: `${Math.max(40, height - 46)}px 18px 18px` }}>{children}</div>
     </div>
   );

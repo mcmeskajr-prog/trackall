@@ -75,9 +75,6 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
           {coverSrc
             ? <img src={hiRes(coverSrc)} alt={featured.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
             : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}><TypeIcon id={typeDef?.id} /></div>}
-          {featured.userRating > 0 && (
-            <div style={{ position: "absolute", top: 8, right: 8, padding: "3px 8px 3px 6px", borderRadius: 8, background: "rgba(0,0,0,0.6)", color: "#fbcfe8", fontSize: 11.5, fontWeight: 800, display: "flex", alignItems: "center", gap: 4 }}><Sakura size={12} />{featured.userRating}</div>
-          )}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div onClick={() => onOpen && onOpen(featured)} style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
@@ -86,6 +83,9 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
             {status && <span style={chip}>{status}</span>}
             {when && <span style={chip}>{when}</span>}
           </div>
+          {featured.userRating > 0 && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 12, padding: "5px 12px 5px 9px", borderRadius: 99, background: "rgba(244,114,182,0.14)", border: "1px solid rgba(244,114,182,0.35)", color: "#fbcfe8", fontSize: 15, fontWeight: 800 }}><Sakura size={16} />{featured.userRating}</div>
+          )}
         </div>
       </div>
 

@@ -37,7 +37,7 @@ const MASK = (src) => ({ WebkitMaskImage: `url(${JSON.stringify(src)})`, maskIma
 const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
 
 // ─── Estatísticas do perfil: tiles de números (com mini-distribuição na média). No telemóvel mantém o cartão de ratings. ───
-export function ProfileStats({ items, panelBg, stacked, onFilter }) {
+export function ProfileStats({ items, panelBg, stacked, onFilter, inline = false }) {
   const { accent, darkMode: pageDark, panelDark, isMobileDevice, panelBg: ctxPanelBg } = useTheme();
   const darkMode = pageDark; // os cartões de números têm gradiente próprio e seguem o fundo da página (brancos em fundo claro)
   const panelDM = panelDark ?? pageDark;
@@ -90,7 +90,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter }) {
   const reset = { background: "none", border: "none", padding: 0, margin: 0, font: "inherit", color: "inherit", textAlign: "left", cursor: onFilter ? "pointer" : "default" };
 
   return (
-    <div style={{ margin: stacked ? 0 : (isMobileDevice ? "0 0 22px" : "0 16px 18px"), display: "flex", flexDirection: "column", gap: 14, color: text }}>
+    <div style={{ margin: (stacked || inline) ? 0 : (isMobileDevice ? "0 0 22px" : "0 16px 18px"), display: "flex", flexDirection: "column", gap: 14, color: text }}>
       <style>{`
         .st-int { transition: transform .15s ease, background-color .15s ease, border-color .15s ease, filter .15s ease; }
         @media (hover:hover) { .st-tile:hover { transform: translateY(-2px); }
