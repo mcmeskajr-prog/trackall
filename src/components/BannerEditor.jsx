@@ -11,10 +11,7 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
   const en = lang === "en";
   const fileRef = useRef();
   const [picker, setPicker] = useState(false);
-  const [dev, setDev] = useState("pc"); // dispositivo cujo enquadramento se está a editar
-  const same = style.mfx == null; // sem enquadramento próprio, o telemóvel usa o do PC
-  const own = dev === "mobile" && !same;
-  const kx = own ? "mfx" : "fx", ky = own ? "mfy" : "fy", kz = own ? "mz" : "z";
+  const kx = "fx", ky = "fy", kz = "z"; // aqui edita-se o enquadramento do PC; o do telemóvel só muda com o botão «Aplicar no telemóvel»
   const boxRef = useRef(null);
   const dragging = useRef(false);
   const moveDot = (e) => {
@@ -44,19 +41,7 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
         <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{ ...btn, width: "100%", padding: "22px 10px", borderStyle: "dashed", color: muted }}>{uploading ? (en ? "Uploading…" : "A enviar…") : (en ? "+ Add banner image" : "+ Adicionar imagem de banner")}</button>
       ) : (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "4px 0 10px" }}>
-            {!same && ["pc", "mobile"].map(d => (
-              <button key={d} type="button" onClick={() => setDev(d)} style={{ ...btn, padding: "6px 14px", borderColor: dev === d ? accent : line, color: dev === d ? accent : muted, background: dev === d ? `${accent}18` : "transparent" }}>{d === "pc" ? "PC" : (en ? "Mobile" : "Telemóvel")}</button>
-            ))}
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginLeft: same ? 0 : "auto" }}>
-              <input type="checkbox" checked={same} onChange={(e) => {
-                if (e.target.checked) { const { mfx, mfy, mz, ...rest } = style; setDev("pc"); onStyle(rest); }
-                else { setDev("mobile"); onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 }); }
-              }} style={{ width: 16, height: 16, accentColor: accent }} />
-              <span style={{ fontSize: 12.5, color: muted }}>{en ? "Same framing on PC and mobile" : "Mesmo enquadramento no PC e no telemóvel"}</span>
-            </label>
-          </div>
-          <div style={{ fontSize: 12, color: muted, margin: "2px 0 8px" }}>{en ? "Drag the dot to the part of the image that matters — it frames the banner on PC and on mobile at the same time." : "Arrasta o ponto para a parte da imagem que interessa — enquadra o banner no PC e no telemóvel ao mesmo tempo."}</div>
+          <div style={{ fontSize: 12, color: muted, margin: "2px 0 8px" }}>{en ? "Drag the dot to the part of the image that matters. This frames the banner on PC." : "Arrasta o ponto para a parte da imagem que interessa. Isto enquadra o banner no PC."}</div>
           <div ref={boxRef} onPointerDown={(e) => { e.currentTarget.setPointerCapture?.(e.pointerId); dragging.current = true; moveDot(e); }} onPointerMove={(e) => { if (dragging.current) moveDot(e); }} onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
             style={{ position: "relative", maxWidth: 360, margin: "0 auto 10px", borderRadius: 12, overflow: "hidden", cursor: "crosshair", touchAction: "none", userSelect: "none", border: `1px solid ${line}` }}>
             <img src={url} alt="" draggable={false} style={{ width: "100%", display: "block", pointerEvents: "none" }} />
@@ -67,7 +52,10 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
           <div style={{ maxWidth: 360, margin: "0 auto 12px", aspectRatio: "6 / 1", position: "relative", overflow: "hidden", borderRadius: 10, border: `1px solid ${line}` }}>
             <img src={url} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(style, "pc"), filter: bannerFilter(style), pointerEvents: "none" }} />
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 4px", fontSize: 12, color: muted }}><span>{en ? "On mobile" : "No telemóvel"}</span></div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", margin: "0 0 4px", fontSize: 12, color: muted }}>
+            <span>{en ? "On mobile" : "No telemóvel"}{style.mfx == null ? (en ? " (follows PC)" : " (igual ao PC)") : ""}</span>
+            <button type="button" onClick={() => onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 })} style={{ ...btn, padding: "5px 12px", fontSize: 12 }}>{en ? "Apply changes to mobile" : "Aplicar mudanças no telemóvel"}</button>
+          </div>
           <div style={{ maxWidth: 360, margin: "0 auto" }}>
             <BannerHero urlOverride={url} styleOverride={style} height={90} style={{ borderRadius: 18 }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>

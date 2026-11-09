@@ -16,6 +16,7 @@ import { ProfileCard } from "./ProfileCard";
 import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { RecentSection } from "./RecentSection";
+import { HofGridMobile, FavStacksMobile } from "./ProfileFavsMobile";
 import { ProfileHeaderPC } from "./ProfileHeaderPC";
 import { FeaturedCardPC } from "./FeaturedCardPC";
 import { DiaryRecent } from "./DiaryRecent";
@@ -408,46 +409,52 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             : (isV2 ? perfilV2 : perfilPC)
         )}
         {tab === "perfil" && isMobileDevice && (
-          <div style={{ padding: `0 ${pad}px` }}>
+          <div style={{ padding: 0 }}>
             {libItems.length === 0 ? (
-              <div style={{ ...card, padding: "40px 20px", textAlign: "center", color: muted, fontSize: 14 }}>{en ? "This library is empty (or private)." : "Esta biblioteca está vazia (ou privada)."}</div>
+              <div style={{ ...card, margin: "0 16px", padding: "40px 20px", textAlign: "center", color: muted, fontSize: 14 }}>{en ? "This library is empty (or private)." : "Esta biblioteca está vazia (ou privada)."}</div>
             ) : (
               <>
-                <div style={{ marginBottom: 26 }}><ProfileStats items={libItems} panelBg={panelBg} /></div>
-                {hofBlock}
-                {completed.length > 0 && <Section title={en ? "Completed" : "Completados"} count={completed.length} muted={muted} accent={accent}>{row(completed, 15)}</Section>}
-                {inProgress.length > 0 && <Section title={en ? "In progress" : "Em curso"} count={inProgress.length} muted={muted} accent={accent}>{row(inProgress, 15)}</Section>}
-                {common.both.length > 0 && (
-                  <Section title={en ? "Completed by both" : "Completos por ambos"} count={common.both.length} muted={muted} accent={accent}>
-                    <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
-                      {common.both.slice(0, 15).map(({ fi, m }) => (
-                        <div key={fi.id} style={{ width: isMobileDevice ? 104 : 124 }}>
-                          <Poster item={fi} onOpen={openItem} darkMode={darkMode}
-                            badge={m.userRating > 0 && fi.userRating > 0 && m.userRating !== fi.userRating ? (
-                              <div style={{ position: "absolute", left: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>{en ? "You" : "Tu"} ★{m.userRating}</div>
-                            ) : null} />
-                        </div>
-                      ))}
+                {/* Telemóvel: mesma ordem do teu perfil (Hall of Fame, Recentes, Em curso, Favoritos, Atividade, Géneros) */}
+                {hall.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
+                      <h3 style={{ fontSize: 18, fontWeight: 800, color: text, margin: 0 }}>Hall of Fame</h3>
+                      <span style={{ fontSize: 12, color: muted }}>{hall.length}/10 {en ? "titles" : "obras"}</span>
                     </div>
-                  </Section>
+                    <HofGridMobile readOnly list={hall.map(h => h.id === featuredId ? { ...h, _feat: true } : h)} accent={accent} darkMode={darkMode} lang={lang} library={data.library || {}} onOpen={openItem} />
+                  </div>
                 )}
+                {completed.length > 0 && <div style={{ padding: "0 16px", margin: "6px 0 18px" }}><RecentSection items={libItems} onOpen={openItem} showDiary={false} part="recent" bare inlineTitle={en ? "Recent" : "Recentes"} /></div>}
+                {inProgress.length > 0 && <div style={{ padding: "0 16px", margin: "6px 0 18px" }}><RecentSection items={libItems} onOpen={openItem} showDiary={false} part="curso" bare inlineTitle={en ? "In progress" : "Em curso"} /></div>}
                 {favTypes.length > 0 && (
-                  <Section title={en ? "Favorites" : "Favoritos"} count={favs.length} muted={muted} accent={accent}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                      {favTypes.map(t => (
-                        <div key={t.id}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: text, marginBottom: 9 }}>
-                            <TypeIcon id={t.id} />{mediaLabel(t, lang)}<span style={{ color: muted, fontWeight: 600 }}>{favByType[t.id].length}</span>
-                          </div>
-                          {isMobileDevice ? row(favByType[t.id], 24) : (
-                            <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 12, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
-                              {favByType[t.id].slice(0, 12).map(f => <Poster key={f.id} item={f} onOpen={openItem} darkMode={darkMode} />)}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                  <div style={{ marginBottom: 22 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, padding: "0 16px" }}>
+                      <h3 style={{ fontSize: 18, fontWeight: 800, color: text, margin: 0 }}>{en ? "Favorites" : "Favoritos"}</h3>
+                      <span style={{ fontSize: 12, color: muted }}>{favs.length}</span>
                     </div>
-                  </Section>
+                    <FavStacksMobile readOnly favorites={favs.map(f => ({ ...f, userRating: data.library?.[f.id]?.userRating ?? f.userRating }))} library={data.library || {}} accent={accent} darkMode={darkMode} lang={lang} onOpen={openItem} />
+                  </div>
+                )}
+                <div style={{ padding: "0 16px", marginBottom: 22 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: text, margin: "0 0 12px" }}>{en ? "Activity" : "Atividade"}</h3>
+                  <ProfileActivity items={libItems} accent={accent} darkMode={pdm} isMobile lang={lang} panelBg={panelBg} onOpen={openItem} />
+                </div>
+                {topGenresV2 && <div style={{ padding: "0 16px", marginBottom: 22 }}>{topGenresV2}</div>}
+                {common.both.length > 0 && (
+                  <div style={{ padding: "0 16px" }}>
+                    <Section title={en ? "Completed by both" : "Completos por ambos"} count={common.both.length} muted={muted} accent={accent}>
+                      <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
+                        {common.both.slice(0, 15).map(({ fi, m }) => (
+                          <div key={fi.id} style={{ width: 104 }}>
+                            <Poster item={fi} onOpen={openItem} darkMode={darkMode}
+                              badge={m.userRating > 0 && fi.userRating > 0 && m.userRating !== fi.userRating ? (
+                                <div style={{ position: "absolute", left: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>{en ? "you" : "tu"} ★{m.userRating}</div>
+                              ) : null} />
+                          </div>
+                        ))}
+                      </div>
+                    </Section>
+                  </div>
                 )}
               </>
             )}

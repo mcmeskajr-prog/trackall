@@ -156,13 +156,13 @@ export function PersonalizeMobile({
   const swBtn = { flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" };
   const swLbl = (on) => ({ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? text : muted, whiteSpace: "nowrap" });
   const linkBtn = { background: "none", border: "none", color: A, fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 6 };
-  const renderSheet = (title, children) => createPortal(
+  const renderSheet = (title, children, footer) => createPortal(
     <div onClick={() => setSheet(null)} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end" }}>
       <div role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxHeight: "86vh", overflowY: "auto", boxSizing: "border-box", borderRadius: "28px 28px 0 0", background: sheetBg, borderTop: `1px solid ${line}`, padding: "12px 18px calc(22px + env(safe-area-inset-bottom))", color: text }}>
         <div style={{ width: 40, height: 4, borderRadius: 3, background: darkMode ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.2)", margin: "0 auto 14px" }} />
         <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 12 }}>{title}</div>
         {children}
-        <button type="button" onClick={() => setSheet(null)} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: "none", background: A, color: onAccentColor(A), fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>{en ? "Done" : "Concluído"}</button>
+        {footer || <button type="button" onClick={() => setSheet(null)} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: "none", background: A, color: onAccentColor(A), fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>{en ? "Done" : "Concluído"}</button>}
       </div>
     </div>, document.body);
   const lbl = { fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", color: muted, margin: "16px 0 8px", textTransform: "uppercase" };
@@ -371,6 +371,7 @@ export function PersonalizeMobile({
               );
             })}
             <div style={{ marginTop: 8, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "Only changes the phone. The PC framing stays as you set it on the computer." : "Só muda o telemóvel. O enquadramento do PC fica como o definiste no computador."}</div>
+            <button type="button" onClick={() => setStyle({ fx: d.style.mfx ?? d.style.fx ?? 50, fy: d.style.mfy ?? d.style.fy ?? 50, z: d.style.mz ?? d.style.z ?? 100 })} style={{ width: "100%", height: 44, marginTop: 10, borderRadius: 12, border: `1.5px solid ${A}`, background: `${A}14`, color: A, fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>{en ? "Apply changes to PC" : "Aplicar mudanças no PC"}</button>
           </>)}
         </>)
       )}

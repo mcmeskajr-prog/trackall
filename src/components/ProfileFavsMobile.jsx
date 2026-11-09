@@ -84,9 +84,9 @@ function useDragReorder(onReorder, { handle = null } = {}) {
 const noSelect = { userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" };
 
 // ── Hall of Fame: 2 filas de 5, sem números. Os lugares livres ficam a tracejado com "+" ──
-export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMode, lang, library, onOpen, onReorder, onAdd }) {
-  const ref = useDragReorder((from, to) => onReorder && onReorder(moveItem(list, from, to)));
-  const slots = Array.from({ length: 10 }, (_, i) => list[i] || null);
+export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMode, lang, library, onOpen, onReorder, onAdd, readOnly = false }) {
+  const ref = useDragReorder((from, to) => !readOnly && onReorder && onReorder(moveItem(list, from, to)));
+  const slots = readOnly ? list.slice(0, 10) : Array.from({ length: 10 }, (_, i) => list[i] || null);
   return (
     <div ref={ref} style={{ "--reorder-c": accent, padding: "2px 16px 0", gap: 8, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", ...noSelect }}>
       {slots.map((item, i) => {
@@ -201,7 +201,7 @@ function TypeSheet({ t, list, accent, darkMode, lang, ratingOf, onOpen, onReorde
     </div>, document.body);
 }
 
-export function FavStacksMobile({ favorites, library, accent, darkMode, lang, onOpen, onReorderFavorites, onOpenLibrary }) {
+export function FavStacksMobile({ favorites, library, accent, darkMode, lang, onOpen, onReorderFavorites, onOpenLibrary, readOnly = false }) {
   const [openType, setOpenType] = useState(null);
   const text = darkMode ? "#e6edf3" : "#0f172a", muted = darkMode ? "#aab4c0" : "#64748b";
   const tileBg = darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)", tileBd = darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)";
@@ -212,7 +212,7 @@ export function FavStacksMobile({ favorites, library, accent, darkMode, lang, on
   favorites.forEach((f) => { if (!typeOrder.includes(f.type)) typeOrder.push(f.type); });
   const known = typeOrder.map((id) => MEDIA_TYPES.find((t) => t.id === id)).filter(Boolean);
   const byType = (id) => favorites.filter((f) => f.type === id);
-  const empties = MEDIA_TYPES.slice(1).filter((t) => !typeOrder.includes(t.id));
+  const empties = readOnly ? [] : MEDIA_TYPES.slice(1).filter((t) => !typeOrder.includes(t.id));
 
   const flatten = (order, override) => {
     const out = order.flatMap((id) => (override && override.id === id ? override.list : byType(id)));
