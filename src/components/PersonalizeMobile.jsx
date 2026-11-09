@@ -6,6 +6,7 @@ import { supa } from "../config/supabase";
 import { compressImage } from "../lib/utils";
 import { persistImage } from "../lib/imageStore";
 import { STYLE_PRESETS } from "./AppearanceSettings";
+import { BG_PRESETS } from "../config/theme";
 import { Suspense } from "react";
 import { lazyNamed } from "../lib/lazyNamed";
 const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
@@ -225,6 +226,31 @@ export function PersonalizeMobile({
             </div>
           </div>
           <div style={{ padding: "14px 0", borderBottom: `1px solid ${line}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>{en ? "Background colour" : "Cor de fundo"}</div>
+              <div style={{ fontSize: 11.5, color: muted }}>{d.bgMode === "image" ? (en ? "Wallpaper in use" : "A usar wallpaper") : ""}</div>
+            </div>
+            <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", margin: "12px -16px 0", padding: "2px 16px 4px" }}>
+              <div onClick={() => set({ bgMode: d.url && follow ? "auto" : "accent", bgImage: "" })} style={swBtn}>
+                {circle(tint.bg, d.bgMode === "accent" || d.bgMode === "auto", () => set({ bgMode: d.url && follow ? "auto" : "accent", bgImage: "" }), "bg-auto")}
+                <span style={swLbl(d.bgMode === "accent" || d.bgMode === "auto")}>{en ? "Auto" : "Automático"}</span>
+              </div>
+              {BG_PRESETS.map((p) => {
+                const on = d.bgMode === "color" && (d.bgColor || "").toLowerCase() === p.value.toLowerCase();
+                return (
+                  <div key={p.name} onClick={() => set({ bgMode: "color", bgColor: p.value, bgImage: "" })} style={swBtn}>
+                    {circle(p.value, on, () => set({ bgMode: "color", bgColor: p.value, bgImage: "" }), `bg-${p.name}`)}
+                    <span style={swLbl(on)}>{p.name}</span>
+                  </div>
+                );
+              })}
+              <div onClick={() => setSheet("bgpicker")} style={swBtn}>
+                <span style={{ width: 44, height: 44, borderRadius: "50%", border: `2px dashed ${muted}`, display: "flex", alignItems: "center", justifyContent: "center", color: muted, fontSize: 20 }}>+</span>
+                <span style={swLbl(false)}>{en ? "Other" : "Outra"}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: "14px 0", borderBottom: `1px solid ${line}` }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>{en ? "Accent at the top" : "Cor de destaque no topo"}</div>
             <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "The coloured glow at the top of every page" : "O brilho colorido no topo de todas as páginas"}</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
@@ -304,8 +330,9 @@ export function PersonalizeMobile({
       {sheet === "banner" && (
         renderSheet("Banner", <>
           {d.url ? (
-            <div style={{ position: "relative", height: 116, borderRadius: 16, overflow: "hidden" }}>
-              <img src={d.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: busy === "banner" ? "blur(6px)" : "none", transition: "filter .3s" }} />
+            <div style={{ position: "relative", filter: busy === "banner" ? "blur(6px)" : "none", transition: "filter .3s" }}>
+              {/* pré-visualização real: mesmo escurecer, cor, brilho e enquadramento do telemóvel que o perfil usa */}
+              <BannerHero urlOverride={d.url} styleOverride={d.style} height={120} style={{ borderRadius: 16 }}><div style={{ height: 8 }} /></BannerHero>
               <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 8 }}>
                 <button type="button" onClick={() => fileRef.current?.click()} style={{ padding: "8px 13px", borderRadius: 11, border: "none", background: "rgba(0,0,0,0.65)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Change" : "Trocar"}</button>
                 <button type="button" onClick={() => set({ url: "" })} style={{ padding: "8px 13px", borderRadius: 11, border: "none", background: "rgba(0,0,0,0.65)", color: "#f87171", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Remove" : "Remover"}</button>
@@ -364,6 +391,11 @@ export function PersonalizeMobile({
           </div>
           <button type="button" onClick={() => setSheet("picker")} style={{ width: "100%", height: 46, marginTop: 16, borderRadius: 14, border: `1.5px dashed ${muted}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ {en ? "Another colour" : "Outra cor"}</button>
           <div style={{ marginTop: 10, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "The profile and the background tone change live while you choose." : "O perfil e o tom do fundo mudam ao vivo enquanto escolhes."}</div>
+        </>)
+      )}
+      {sheet === "bgpicker" && (
+        renderSheet(en ? "Background colour" : "Cor de fundo", <>
+          <ColorPicker value={(d.bgColor || bgEff || "#111111").replace("#", "")} onChange={(hex) => set({ bgMode: "color", bgColor: `#${hex}`, bgImage: "" })} suggestions={PICKER_SUGGESTIONS} lang={lang} />
         </>)
       )}
       {sheet === "picker" && (
