@@ -434,8 +434,8 @@ export default function TrackAll() {
   const [libViewMode, setLibViewMode] = useState(() => { 
     try { 
       const saved = localStorage.getItem("trackall_lib_view") || "grid";
-      // compact não existe no mobile
-      if (saved === "compact" && typeof window !== 'undefined' && window.innerWidth < 600) return "grid";
+      // "large" (1 coluna) não existe no mobile; foi substituído pelo modo de 4 colunas ("compact")
+      if (saved === "large" && typeof window !== 'undefined' && window.innerWidth < 600) return "grid";
       return saved;
     } catch { return "grid"; } 
   });

@@ -565,7 +565,7 @@ export function ProfileView(props) {
         ...(isMobileDevice ? { justifyContent: "space-between", position: "sticky", top: 0, zIndex: 30, transition: "background-color .25s ease",
           background: tabsStuck ? (darkMode ? `color-mix(in srgb, ${pageBg} 72%, transparent)` : "rgba(255,255,255,0.78)") : "transparent",
           backdropFilter: tabsStuck ? "blur(16px)" : "none", WebkitBackdropFilter: tabsStuck ? "blur(16px)" : "none" } : {}) }}>
-        {(isMobileDevice ? ["perfil","completos","listas","diario","tierlists"] : ["perfil","completos","tierlists","listas","diario","definicoes"]).map(tab => {
+        {(isMobileDevice ? ["perfil","completos","diario","listas","tierlists"] : ["perfil","completos","tierlists","listas","diario","definicoes"]).map(tab => {
           const isMore = tab === "mais";
           const active = isMore ? (profileTab === "tierlists" || profileTab === "definicoes") : profileTab === tab;
           return (

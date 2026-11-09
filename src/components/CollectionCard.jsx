@@ -1,7 +1,7 @@
 import { useTheme } from "../contexts/ThemeContext";
 
 export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete }) {
-  const { accent, darkMode } = useTheme();
+  const { accent, darkMode, isMobileDevice } = useTheme();
   const items = col.items || [];
   const covers = items.slice(0, 8).map(i => i.cover).filter(Boolean);
 
@@ -22,6 +22,15 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
     >
       {/* Cover strip — estilo Letterboxd: capas portrait, sem espaço vazio */}
+      {isMobileDevice && covers.length > 0 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 4, padding: 4, flexShrink: 0 }}>
+          {covers.slice(0, 5).map((src, i) => (
+            <div key={i} style={{ aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", background: darkMode ? "#21262d" : "#c8cfd8" }}>
+              <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.target.style.display = "none"; }} />
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{
         display: "flex",
         gap: 3,
@@ -64,6 +73,7 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
           ))
         )}
       </div>
+      )}
 
       {/* Info + Actions */}
       <div style={{ padding: "10px 14px 12px", display: "flex", flexDirection: "column", gap: 8 }}>

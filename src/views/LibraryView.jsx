@@ -47,8 +47,8 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                   </div>
                 )}
                 <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
-                  {[{id:"grid",icon:"▦"},{id:"large",icon:"◻"},{id:"list",icon:"☰"}, ...(isMobileDevice ? [] : [{id:"compact",icon:"⊟"}])].map(m => (
-                    <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? "Compacto" : m.id === "large" ? "Grande" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
+                  {[{id:"grid",icon:"▦"}, ...(isMobileDevice ? [] : [{id:"large",icon:"◻"}]), {id:"list",icon:"☰"}, {id:"compact",icon:isMobileDevice ? "▩" : "⊟"}].map(m => (
+                    <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? (isMobileDevice ? "4 colunas" : "Compacto") : m.id === "large" ? "Grande" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
                   ))}
                 </div>
               </div>
@@ -153,7 +153,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                     onOpen={setSelectedItem}
                   />
                 ) : libViewMode === "compact" ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(4, minmax(0, 1fr))" : "repeat(auto-fill, minmax(90px, 1fr))", gap: isMobileDevice ? 5 : 6 }}>
                     {sortedLib.map(item => {
                       const libItem = findLibraryEntry(library, item.id, item.type)?.item;
                       const coverSrc = libItem?.customCover || item.cover || item.thumbnailUrl;
