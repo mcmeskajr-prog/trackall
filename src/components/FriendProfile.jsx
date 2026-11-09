@@ -361,7 +361,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
 
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
-      <div style={{ maxWidth: isMobileDevice ? 600 : (isV2 ? "100%" : 1500), margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : (isV2 ? "24px 0 40px" : "24px 28px 40px"), color: text, position: "relative", isolation: "isolate" }}>
+      <div style={{ maxWidth: isMobileDevice ? 600 : (isV2 ? "100%" : 1500), margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : (isV2 ? "0 0 40px" : "24px 28px 40px"), color: text, position: "relative", isolation: "isolate" }}>
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile && <BannerPageTint banner={prof.banner} />}
         {/* Barra de topo (no layout novo estes botões vão para dentro do banner) */}
         {(() => {
