@@ -338,7 +338,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {cursoV2.map(it => (
                   <div key={it.id} onClick={() => openItem(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
-                    <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
+                    <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
                       {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     </div>
                     <div style={{ minWidth: 0 }}>

@@ -42,7 +42,7 @@ export function DiaryRecent({ items, count = 5, onOpen, onSeeAll, panelStyle = n
         return (
           <div key={it.id} onClick={() => onOpen && onOpen(it)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderTop: idx ? `1px solid ${line}` : "none", cursor: "pointer", minWidth: 0 }}>
             <div style={{ width: 46, flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: sub, whiteSpace: "nowrap" }}>{dayLabel(it.addedAt)}</div>
-            <div style={{ width: 30, height: 44, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
+            <div style={{ width: 30, height: 44, borderRadius: 6, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
               {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
