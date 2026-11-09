@@ -42,7 +42,6 @@ export function PersonalizeMobile({
     ov: Math.round(overlayAlpha(bgOverlay) * 100), blur: bgBlur || 0,
   }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity, bgOverlay, bgBlur]); // eslint-disable-line
   const [d, setD] = useState(initial);
-  const [alsoPc, setAlsoPc] = useState(false); // sliders de enquadramento do telemóvel também mexem no PC
   const [sheet, setSheet] = useState(null); // "banner" | "color" | "bg" | "picker"
   const [crop, setCrop] = useState(null);   // { src, type }
   const [busy, setBusy] = useState(null);   // "banner" | "avatar"
@@ -367,15 +366,11 @@ export function PersonalizeMobile({
               return (
                 <label key={k} style={{ display: "block", marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{l}</span><span style={{ color: A }}>{Math.round(cur)}%</span></div>
-                  <input type="range" min={mn} max={mx} value={cur} onChange={(e) => { const nx = { mfx: d.style.mfx ?? d.style.fx ?? 50, mfy: d.style.mfy ?? d.style.fy ?? 50, mz: d.style.mz ?? d.style.z ?? 100, [k]: Number(e.target.value) }; setStyle(alsoPc ? { ...nx, fx: nx.mfx, fy: nx.mfy, z: nx.mz } : nx); }} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
+                  <input type="range" min={mn} max={mx} value={cur} onChange={(e) => { const nx = { mfx: d.style.mfx ?? d.style.fx ?? 50, mfy: d.style.mfy ?? d.style.fy ?? 50, mz: d.style.mz ?? d.style.z ?? 100, [k]: Number(e.target.value) }; setStyle(nx); }} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
                 </label>
               );
             })}
             <div style={{ marginTop: 8, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "Only changes the phone. The PC framing stays as you set it on the computer." : "Só muda o telemóvel. O enquadramento do PC fica como o definiste no computador."}</div>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
-              <input type="checkbox" checked={alsoPc} onChange={(e) => { setAlsoPc(e.target.checked); if (e.target.checked) setStyle({ fx: d.style.mfx ?? d.style.fx ?? 50, fy: d.style.mfy ?? d.style.fy ?? 50, z: d.style.mz ?? d.style.z ?? 100 }); }} style={{ width: 18, height: 18, accentColor: A }} />
-              <span style={{ fontSize: 13, color: muted }}>{en ? "Apply framing changes to PC too" : "Aplicar as mudanças de enquadramento também no PC"}</span>
-            </label>
           </>)}
         </>)
       )}

@@ -93,13 +93,6 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
             <span style={{ fontSize: 12.5, color: muted }}>{en ? "Use the banner colour as the app accent colour" : "Usar a cor do banner como cor de destaque da app"}</span>
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
-            <input type="checkbox" checked={style.mfx == null} onChange={(e) => {
-              if (e.target.checked) { const { mfx, mfy, mz, ...rest } = style; onStyle(rest); }
-              else onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 });
-            }} style={{ width: 16, height: 16, accentColor: accent }} />
-            <span style={{ fontSize: 12.5, color: muted }}>{en ? "Apply framing changes to mobile too" : "Aplicar as mudanças de enquadramento também no telemóvel"}</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={!hide} onChange={(e) => onHide(!e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
             <span style={{ fontSize: 12.5, color: muted }}>{en ? "Show banner on mobile" : "Mostrar banner no telemóvel"}</span>
           </label>
