@@ -52,10 +52,7 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
           <div style={{ maxWidth: 360, margin: "0 auto 12px", aspectRatio: "6 / 1", position: "relative", overflow: "hidden", borderRadius: 10, border: `1px solid ${line}` }}>
             <img src={url} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(style, "pc"), filter: bannerFilter(style), pointerEvents: "none" }} />
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", margin: "0 0 4px", fontSize: 12, color: muted }}>
-            <span>{en ? "On mobile" : "No telemóvel"}{style.mfx == null ? (en ? " (follows PC)" : " (igual ao PC)") : ""}</span>
-            <button type="button" onClick={() => onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 })} style={{ ...btn, padding: "5px 12px", fontSize: 12 }}>{en ? "Apply changes to mobile" : "Aplicar mudanças no telemóvel"}</button>
-          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 4px", fontSize: 12, color: muted }}><span>{en ? "On mobile" : "No telemóvel"}</span></div>
           <div style={{ maxWidth: 360, margin: "0 auto" }}>
             <BannerHero urlOverride={url} styleOverride={style} height={90} style={{ borderRadius: 18 }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
@@ -94,6 +91,13 @@ export function BannerEditor({ url, style, onStyle, onFile, onRemove, uploading,
           <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={style.a !== 0} onChange={(e) => set("a", e.target.checked ? 1 : 0)} style={{ width: 16, height: 16, accentColor: accent }} />
             <span style={{ fontSize: 12.5, color: muted }}>{en ? "Use the banner colour as the app accent colour" : "Usar a cor do banner como cor de destaque da app"}</span>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={style.mfx == null} onChange={(e) => {
+              if (e.target.checked) { const { mfx, mfy, mz, ...rest } = style; onStyle(rest); }
+              else onStyle({ ...style, mfx: style.fx ?? 50, mfy: style.fy ?? 50, mz: style.z ?? 100 });
+            }} style={{ width: 16, height: 16, accentColor: accent }} />
+            <span style={{ fontSize: 12.5, color: muted }}>{en ? "Apply framing changes to mobile too" : "Aplicar as mudanças de enquadramento também no telemóvel"}</span>
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={!hide} onChange={(e) => onHide(!e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
