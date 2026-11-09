@@ -16,6 +16,9 @@ import { ProfileCard } from "./ProfileCard";
 import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
 import { RecentSection } from "./RecentSection";
+import { ProfileHeaderPC } from "./ProfileHeaderPC";
+import { FeaturedCardPC } from "./FeaturedCardPC";
+import { DiaryRecent } from "./DiaryRecent";
 import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 
 const isHex = (c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
@@ -67,6 +70,9 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const fAccent = isHex(prof.accent) ? prof.accent : theme.accent;
   const accent = fAccent;
   const [tab, setTab] = useState("perfil");
+  const [favFilter, setFavFilter] = useState("all");
+  // Layout escolhido pelo amigo no PC (guardado na conta dele); sem informação = novo. No telemóvel não há layout alternativo.
+  const isV2 = !isMobileDevice && data.layout !== "classic";
   // Enquanto o perfil do amigo está aberto, a app usa o tema dele (fundo, wallpaper no PC, painéis); ao sair volta ao teu
   const { setFriendTheme } = theme;
   const fBgColor = (prof.bg_separate_devices && isMobileDevice ? prof.bg_color_mobile : prof.bg_color);
@@ -183,7 +189,9 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
       {hall.length === 0 ? (
         <div style={{ border: `1px dashed ${line}`, borderRadius: 12, padding: 16, textAlign: "center", color: muted, fontSize: 13 }}>{en ? "No titles in the Hall of Fame yet." : "Ainda sem obras no Hall of Fame."}</div>
       ) : (
-        <div style={{ "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }}>
+        <div style={isV2
+          ? { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 190px))", justifyContent: hall.length >= 5 ? "space-between" : "start", gap: 14 }
+          : { "--hof-h": "clamp(180px, calc((100vh - 450px) / 2), 300px)", display: "grid", gridTemplateColumns: "repeat(5, minmax(0, calc(var(--hof-h) * 5 / 7)))", justifyContent: "space-between", gap: 14 }}>
           {hall.map(h => {
             const src = h.customCover || h.cover;
             const score = h.userRating ?? 0;
@@ -203,20 +211,31 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
       )}
     </div>
   );
+  const favEff = favFilter !== "all" && !favTypes.some(t => t.id === favFilter) ? "all" : favFilter;
   const favsPC = favTypes.length > 0 && (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-        <h3 style={h3}>{en ? "Favorites" : "Favoritos"}</h3>
-        <span style={{ fontSize: 12, color: muted }}>{favs.length}</span>
+    <div style={{ marginBottom: isV2 ? 0 : 28 }}>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <h3 style={h3}>{en ? "Favorites" : "Favoritos"}</h3>
+          <span style={{ fontSize: 12, color: muted }}>{favs.length}</span>
+        </div>
+        {isV2 && favTypes.length > 1 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+            {[{ id: "all" }, ...favTypes].map(t => {
+              const on = favEff === t.id;
+              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "white" : muted }}>{t.id === "all" ? (en ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+            })}
+          </div>
+        )}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        {favTypes.map(t => (
+        {(favEff === "all" ? favTypes : favTypes.filter(t => t.id === favEff)).map(t => (
           <div key={t.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: muted }}>
               {mediaLabel(t, lang)}<span style={{ fontWeight: 600, opacity: 0.7 }}>{favByType[t.id].length}/{MAX_FAVORITES_PER_TYPE}</span>
               <span style={{ flex: 1, height: 1, background: line }} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: isV2 ? 12 : 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
               {favByType[t.id].slice(0, MAX_FAVORITES_PER_TYPE).map(f => <Poster key={f.id} item={{ ...f, userRating: data.library?.[f.id]?.userRating ?? f.userRating }} onOpen={openItem} darkMode={darkMode} />)}
             </div>
           </div>
@@ -264,12 +283,88 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     </>
   );
 
+  // ── PC, layout novo: igual ao teu perfil (cabeçalho com banner, números, duas colunas) ──
+  const panelV2 = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${line}` };
+  const eyebrowV2 = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
+  const topGenresV2 = (() => {
+    const cnt = {};
+    completed.forEach(i => (i.genres || []).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (!top.length) return null;
+    const mx = top[0][1];
+    return (
+      <div style={{ borderRadius: 20, padding: "16px 18px", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"), border: `1px solid ${line}` }}>
+        <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 14px" }}>
+          {en ? "TOP GENRES" : "TOP GÉNEROS"}
+          <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
+        </h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {top.map(([g, c], idx) => {
+            const alpha = Math.max(20, Math.round((c / mx) * 100));
+            return (
+              <div key={g} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2, "0")}`, border: `1px solid ${accent}${Math.round(alpha * 1.5).toString(16).padStart(2, "0")}`, borderRadius: 20, padding: idx === 0 ? "5px 12px" : "4px 10px" }}>
+                <span style={{ fontSize: idx === 0 ? 14 : idx < 3 ? 13 : 12, fontWeight: idx < 3 ? 800 : 600, color: idx === 0 ? accent : (darkMode ? "#c9d1d9" : "#374151") }}>{g}</span>
+                <span style={{ fontSize: 10, color: accent, fontWeight: 700, opacity: 0.8 }}>{c}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })();
+  const cursoV2 = inProgress.slice(0, 2);
+  const favRowsV2 = favEff === "all" ? Math.max(1, favTypes.length) : 1;
+  const diaryCountV2 = Math.min(15, 5 + 5 * (favRowsV2 - 1));
+  const perfilV2 = (
+    <div style={{ padding: "4px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
+      <div style={{ margin: "0 0 14px" }}><ProfileStats compact items={libItems} panelBg={panelBg} /></div>
+      <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.pv2-aside{display:flex;flex-direction:column;gap:14px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
+      <div className="pv2-grid">
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+          {hofPC}
+          {favsPC}
+          <RecentSection items={libItems} onOpen={openItem} showDiary={false} part="recent" compactHead />
+          {bothPC}
+        </div>
+        <div className="pv2-aside">
+          <FeaturedCardPC featuredItem={featuredItem} library={data.library || {}} items={libItems} onOpen={openItem} readOnly />
+          {matchPill}
+          {cursoV2.length > 0 && (
+            <div style={panelV2}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+                <h3 style={eyebrowV2}>{en ? "In progress" : "Em curso"}</h3>
+                <span style={{ fontSize: 12, color: muted, fontWeight: 700 }}>{inProgress.length}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {cursoV2.map(it => (
+                  <div key={it.id} onClick={() => openItem(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
+                    <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: gradientFor(it.id) }}>
+                      {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>{it.title}</div>
+                      <div style={{ fontSize: 12, color: muted, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(MEDIA_TYPES.find(t => t.id === it.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === it.type), lang) : "")}{it.lastChapter ? ` · ${String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}` : ""}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <ProfileActivity items={libItems} accent={accent} darkMode={pdm} compact lang={lang} panelBg={panelBg} onOpen={openItem} />
+          {topGenresV2}
+          <DiaryRecent items={libItems} count={diaryCountV2} onOpen={openItem} onSeeAll={() => setTab("diario")} />
+        </div>
+      </div>
+      <div style={{ marginTop: 28, marginBottom: 28 }}><ProfileEstatisticas items={libItems} panelBg={panelBg} /></div>
+    </div>
+  );
+
   return (
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
-      <div style={{ maxWidth: isMobileDevice ? 600 : 1500, margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : "24px 28px 40px", color: text, position: "relative", isolation: "isolate" }}>
+      <div style={{ maxWidth: isMobileDevice ? 600 : (isV2 ? "100%" : 1500), margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : (isV2 ? "24px 0 40px" : "24px 28px 40px"), color: text, position: "relative", isolation: "isolate" }}>
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile && <BannerPageTint banner={prof.banner} />}
         {/* Barra de topo */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${pad}px`, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isV2 ? "0 32px" : `0 ${pad}px`, marginBottom: 14, ...(isV2 ? { maxWidth: 1600, marginLeft: "auto", marginRight: "auto", boxSizing: "border-box" } : {}) }}>
           <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{en ? "Friends" : "Amigos"}
           </button>
@@ -284,11 +379,13 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           )}
         </div>
 
+        {isV2 && <ProfileHeaderPC profile={cardProfile} avatar={prof.avatar || info?.avatar} items={libItems} panelBg={panelBg} />}
+
         {/* Telemóvel: o mesmo cartão do perfil próprio; no PC o cartão vive na coluna esquerda do separador Perfil */}
         {isMobileDevice && tab === "perfil" && <div style={{ marginBottom: 14 }}>{friendCard}{matchPill && <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>{matchPill}</div>}</div>}
 
         {/* Separadores */}
-        <div style={{ display: "flex", gap: 4, margin: `0 ${pad}px 20px`, borderBottom: `1px solid ${line}` }}>
+        <div style={{ display: "flex", gap: 4, margin: `0 ${pad}px 20px`, borderBottom: `1px solid ${line}`, ...(isV2 ? { maxWidth: 1600, marginLeft: "auto", marginRight: "auto", padding: "16px 32px 0", boxSizing: "border-box" } : {}) }}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: isMobileDevice ? "10px 14px" : "11px 20px", background: "none", border: "none", borderBottom: `2px solid ${tab === t.id ? accent : "transparent"}`, marginBottom: -1, color: tab === t.id ? accent : muted, fontFamily: "inherit", fontSize: 13, fontWeight: tab === t.id ? 800 : 600, cursor: "pointer" }}>{t.label}</button>
           ))}
@@ -297,7 +394,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
         {tab === "perfil" && !isMobileDevice && (
           libItems.length === 0
             ? <div style={{ ...card, padding: "40px 20px", textAlign: "center", color: muted, fontSize: 14 }}>{en ? "This library is empty (or private)." : "Esta biblioteca está vazia (ou privada)."}</div>
-            : perfilPC
+            : (isV2 ? perfilV2 : perfilPC)
         )}
         {tab === "perfil" && isMobileDevice && (
           <div style={{ padding: `0 ${pad}px` }}>
@@ -346,10 +443,10 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           </div>
         )}
         {tab === "completos" && (
-          <ProfileTabCompletos items={libItems} library={data.library} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} />
+          <div style={isV2 ? { maxWidth: 1600, margin: "0 auto", padding: "0 32px", boxSizing: "border-box" } : undefined}><ProfileTabCompletos items={libItems} library={data.library} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} /></div>
         )}
         {tab === "diario" && (
-          <ProfileTabDiario items={libItems} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} />
+          <div style={isV2 ? { maxWidth: 1600, margin: "0 auto", padding: "0 32px", boxSizing: "border-box" } : undefined}><ProfileTabDiario items={libItems} accent={accent} darkMode={darkMode} isMobileDevice={isMobileDevice} lang={lang} onOpen={openItem} /></div>
         )}
       </div>
     </ThemeContext.Provider>

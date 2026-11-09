@@ -203,7 +203,7 @@ const supa = {
   async getFriendHall(friendId) {
     const { data } = await supabase.from('library').select('data').eq('user_id', friendId).eq('media_id', '__hall_of_fame__').maybeSingle();
     const d = data?.data || {};
-    return { hall: Array.isArray(d.hall) ? d.hall : [], featured: d.featured || null };
+    return { hall: Array.isArray(d.hall) ? d.hall : [], featured: d.featured || null, layout: d.layout === 'classic' ? 'classic' : null };
   },
 
   async getFriendProfile(friendId) {
@@ -217,10 +217,10 @@ const supa = {
     const [profile, library, hallRow] = await Promise.all([
       supa.getFriendProfile(friendId),
       supa.getFriendLibrary(friendId),
-      supa.getFriendHall(friendId).catch(() => ({ hall: [], featured: null })),
+      supa.getFriendHall(friendId).catch(() => ({ hall: [], featured: null, layout: null })),
     ]);
     const hall = hallRow.hall.length ? hallRow.hall : (Array.isArray(profile?.hall_of_fame) ? profile.hall_of_fame : []);
-    return { profile, library, hall, featured: hallRow.featured };
+    return { profile, library, hall, featured: hallRow.featured, layout: hallRow.layout || null };
   },
 
   // Atividade recente de vários amigos numa só consulta (só campos leves, só "completo"/"assistindo",

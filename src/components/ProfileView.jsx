@@ -627,6 +627,9 @@ export function ProfileView(props) {
         {nCurso > 0 && <div style={{ padding: "0 16px", margin: "6px 0 18px" }}><RecentSection items={items} onOpen={onOpen} showDiary={false} part="curso" bare inlineTitle={lang === "en" ? "In progress" : "Em curso"} /></div>}
       </>)}
 
+      {/* Telemóvel: Favoritos (com os seus chips de tipo) por cima da Atividade */}
+      {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}
+
       {/* ── Atividade (12 meses; 6 no telemóvel). Ocupa a faixa reservada às Conquistas até elas existirem ── */}
       {items.length > 0 && (isMobileDevice
         ? <SectionAccordion title={lang === "en" ? "Activity" : "Atividade"} open={secOpen.atividade} onToggle={() => toggleSec("atividade")} darkMode={panelDM}><div style={{ margin: "0 16px" }}><ProfileActivity items={items} accent={accent} darkMode={panelDM} isMobile={isMobileDevice} lang={lang} panelBg={panelBg ? computedPanelBg : null} onOpen={onOpen} /></div></SectionAccordion>
@@ -662,7 +665,6 @@ export function ProfileView(props) {
       {items.length > 0 && !isMobileDevice && <div style={{ padding: "0 16px" }}><RecentSection items={favFilter === "all" ? items : items.filter(i => i.type === favFilter)} onOpen={onOpen} showDiary={false} /></div>}
 
       {/* Telemóvel: Recentes e Em curso logo a seguir ao Hall of Fame; Favoritos (com os seus chips de tipo) depois */}
-      {isMobileDevice && <SectionAccordion title={lang === "en" ? "Favorites" : "Favoritos"} right={favorites.length} open={secOpen.favoritos} onToggle={() => toggleSec("favoritos")} darkMode={darkMode}>{favoritesBlock}</SectionAccordion>}
 
       {isMobileDevice ? null : favoritesBlock}
 

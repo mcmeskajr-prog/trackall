@@ -282,7 +282,7 @@ export default function TrackAll() {
   const libraryRef = useRef({});
   const saveQueueRef = useRef(Promise.resolve());
   // Hall of Fame: só se escreve depois de carregado (evita gravar uma lista vazia por cima da real)
-  const hallRef = useRef({ loaded: false, hall: [], featured: null });
+  const hallRef = useRef({ loaded: false, hall: [], featured: null, layout: null });
   libraryRef.current = library;
   const [tmdbKey, setTmdbKey] = useState(DEFAULT_TMDB_KEY);
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL);
@@ -600,11 +600,11 @@ export default function TrackAll() {
         // escolhe a lista mais completa entre todas as fontes (nunca perde itens)
         let _hallData = _cands.reduce((best, c) => (c.length > best.length ? c : best), []);
         if (!_featuredData) _featuredData = _scoped("trackall_featured");
-        hallRef.current = { loaded: !_rowErr || _hallData.length > 0, hall: _hallData, featured: _featuredData };
+        hallRef.current = { loaded: !_rowErr || _hallData.length > 0, hall: _hallData, featured: _featuredData, layout: _rowHall?.layout === "classic" ? "classic" : null };
         try { localStorage.setItem(`trackall_hall_of_fame_${userId}`, JSON.stringify(_hallData)); if (_featuredData) localStorage.setItem(`trackall_featured_${userId}`, JSON.stringify(_featuredData)); } catch {}
         // auto-reparação: se a linha na BD está vazia/desatualizada mas há dados noutra fonte, volta a gravar
         if (!fromCache && !_rowErr && _hallData.length > (_rowHall?.hall?.length || 0)) {
-          supa.upsertLibraryItem(userId, "__hall_of_fame__", { hall: _hallData, featured: _featuredData || null }).catch(() => {});
+          supa.upsertLibraryItem(userId, "__hall_of_fame__", { hall: _hallData, featured: _featuredData || null, layout: hallRef.current.layout || null }).catch(() => {});
         }
         setProfile({ name: prof.name || "", bio: prof.bio || "", avatar: prof.avatar || "", banner: prof.banner || "", hideEmail: prof.hide_email || false, hideBannerMobile: prof.hide_banner_mobile || false, hallOfFame: _hallData, featuredItem: _featuredData });
         if (prof.accent) setAccent(prof.accent);
@@ -867,7 +867,7 @@ export default function TrackAll() {
     bootCacheRef.current = { prof: null, hr: null };
     setUser(null);
     setLibrary({});
-    hallRef.current = { loaded: false, hall: [], featured: null };
+    hallRef.current = { loaded: false, hall: [], featured: null, layout: null };
     setProfile({ name: "", bio: "", avatar: "", hallOfFame: [] });
     setView("home");
   };
@@ -1020,18 +1020,18 @@ export default function TrackAll() {
 
   // Grava Hall of Fame + destaque num só sítio (linha especial na BD) com cópia local por utilizador.
   // Usa sempre o último valor conhecido (ref) e nunca grava antes de o Hall ter sido carregado.
-  const persistHall = async (hall, featured) => {
+  const persistHall = async (hall, featured, layout) => {
     const cur = hallRef.current;
-    const next = { loaded: cur.loaded, hall: hall !== undefined ? hall : cur.hall, featured: featured !== undefined ? featured : cur.featured };
+    const next = { loaded: cur.loaded, hall: hall !== undefined ? hall : cur.hall, featured: featured !== undefined ? featured : cur.featured, layout: layout !== undefined ? layout : cur.layout };
     hallRef.current = next;
-    bootCacheRef.current = { ...bootCacheRef.current, hr: { data: { data: { hall: next.hall, featured: next.featured || null } }, error: null } };
+    bootCacheRef.current = { ...bootCacheRef.current, hr: { data: { data: { hall: next.hall, featured: next.featured || null, layout: next.layout || null } }, error: null } };
     scheduleBootCache();
     if (user) try {
       localStorage.setItem(`trackall_hall_of_fame_${user.id}`, JSON.stringify(next.hall));
       if (next.featured) localStorage.setItem(`trackall_featured_${user.id}`, JSON.stringify(next.featured)); else localStorage.removeItem(`trackall_featured_${user.id}`);
     } catch {}
     if (!user || !next.loaded) return;
-    try { await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: next.hall, featured: next.featured || null }); }
+    try { await supa.upsertLibraryItem(user.id, "__hall_of_fame__", { hall: next.hall, featured: next.featured || null, layout: next.layout || null }); }
     catch (err) { console.error("[TrackAll] Erro ao guardar Hall of Fame:", err); showNotif(lang === "en" ? "Could not sync Hall of Fame" : "Não foi possível sincronizar o Hall of Fame", "#ef4444"); }
   };
 
@@ -1086,6 +1086,19 @@ export default function TrackAll() {
     setProfile(prev => ({ ...prev, featuredItem: featured }));
     await persistHall(undefined, featured);
   };
+
+  // Layout do perfil no PC (novo | clássico): fica também na conta, para os amigos verem o teu perfil como o escolheste.
+  // Só grava quando o valor muda neste PC (nunca ao abrir a app nem a partir do telemóvel).
+  const [profileLayoutPref] = useUiPref("trackall_profile_layout");
+  const layoutPrefSeen = useRef(profileLayoutPref);
+  useEffect(() => {
+    if (layoutPrefSeen.current === profileLayoutPref) return;
+    layoutPrefSeen.current = profileLayoutPref;
+    if (isMobileDevice || !user) return;
+    const want = profileLayoutPref === "classic" ? "classic" : null;
+    if ((hallRef.current.layout || null) !== want) persistHall(undefined, undefined, want);
+    // eslint-disable-next-line
+  }, [profileLayoutPref]);
 
   const saveAccent = async (c) => {
     setAccent(c);
