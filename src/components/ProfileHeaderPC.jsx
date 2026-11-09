@@ -3,7 +3,7 @@ import { useLang } from "../contexts/LangContext";
 import { splitBanner, bannerFilter, bannerFit } from "../lib/bannerColors";
 
 // Cabeçalho do perfil no PC (layout novo): banner largo com engrenagem, avatar por cima, nome, números e «Editar perfil».
-export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, onEdit, onSettings, onFilter, panelBg = null }) {
+export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, onEdit, onSettings, onFilter, panelBg = null, leftSlot = null, rightSlot = null }) {
   const { accent, darkMode: pageDark, panelDark } = useTheme();
   const darkMode = panelDark ?? pageDark;
   const { lang } = useLang();
@@ -17,9 +17,11 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
 
   return (
     <div style={{ position: "relative", color: text }}>
-      <div style={{ position: "relative", height: 160, overflow: "hidden", background: url ? "transparent" : `linear-gradient(135deg, ${accent}66, ${accent}18)` }}>
+      <div style={{ position: "relative", height: 160, overflow: "hidden", background: "transparent" }}>
         {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), filter: filt, WebkitMaskImage: mask, maskImage: mask, pointerEvents: "none" }} />}
-        {!url && <div aria-hidden="true" style={{ position: "absolute", inset: 0, WebkitMaskImage: mask, maskImage: mask, background: `radial-gradient(circle at 78% 30%, ${accent}33, transparent 55%)` }} />}
+        {!url && <div aria-hidden="true" style={{ position: "absolute", inset: 0, WebkitMaskImage: mask, maskImage: mask, background: darkMode ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))" : "linear-gradient(180deg, rgba(15,23,42,0.05), rgba(15,23,42,0.01))", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }} />}
+        {leftSlot && <div style={{ position: "absolute", top: 16, left: 32, zIndex: 2 }}>{leftSlot}</div>}
+        {rightSlot && <div style={{ position: "absolute", top: 16, right: 32, zIndex: 2 }}>{rightSlot}</div>}
         {onSettings && (
           <button type="button" onClick={onSettings} aria-label={en ? "Settings" : "Definições"} title={en ? "Settings" : "Definições"}
             style={{ position: "absolute", top: 16, right: 20, width: 36, height: 36, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#e6edf3", background: "rgba(0,0,0,0.38)", border: "1px solid rgba(255,255,255,0.16)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", padding: 0 }}>

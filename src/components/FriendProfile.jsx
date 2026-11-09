@@ -363,23 +363,34 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     <ThemeContext.Provider value={{ ...theme, accent: fAccent }}>
       <div style={{ maxWidth: isMobileDevice ? 600 : (isV2 ? "100%" : 1500), margin: "0 auto", padding: isMobileDevice ? "12px 0 28px" : (isV2 ? "24px 0 40px" : "24px 28px 40px"), color: text, position: "relative", isolation: "isolate" }}>
         {isMobileDevice && prof.banner && !prof.hide_banner_mobile && <BannerPageTint banner={prof.banner} />}
-        {/* Barra de topo */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isV2 ? "0 32px" : `0 ${pad}px`, marginBottom: 14, ...(isV2 ? { maxWidth: 1600, marginLeft: "auto", marginRight: "auto", boxSizing: "border-box" } : {}) }}>
-          <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, border: `1px solid ${line}`, background: "transparent", color: text, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{en ? "Friends" : "Amigos"}
-          </button>
-          {confirmRemove ? (
+        {/* Barra de topo (no layout novo estes botões vão para dentro do banner) */}
+        {(() => {
+          const onBanner = isV2;
+          const btnBase = onBanner
+            ? { color: "#e6edf3", background: "rgba(0,0,0,0.42)", border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }
+            : { color: text, background: "transparent", border: `1px solid ${line}` };
+          const backBtn = (
+            <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, ...btnBase, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{en ? "Friends" : "Amigos"}
+            </button>
+          );
+          const removeUi = confirmRemove ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: muted }}>{en ? "Remove friend?" : "Remover amigo?"}</span>
-              <button onClick={onRemove} style={{ padding: "6px 12px", borderRadius: 10, border: "1px solid #ef444466", background: "#ef444422", color: "#f87171", fontFamily: "inherit", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>{en ? "Remove" : "Remover"}</button>
-              <button onClick={() => setConfirmRemove(false)} style={{ padding: "6px 12px", borderRadius: 10, border: `1px solid ${line}`, background: "transparent", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{en ? "Cancel" : "Cancelar"}</button>
+              <span style={{ fontSize: 12, color: onBanner ? "#e6edf3" : muted, textShadow: onBanner ? "0 1px 6px rgba(0,0,0,0.7)" : "none" }}>{en ? "Remove friend?" : "Remover amigo?"}</span>
+              <button onClick={onRemove} style={{ padding: "6px 12px", borderRadius: 10, border: "1px solid #ef444466", background: onBanner ? "rgba(60,10,10,0.7)" : "#ef444422", color: "#f87171", fontFamily: "inherit", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>{en ? "Remove" : "Remover"}</button>
+              <button onClick={() => setConfirmRemove(false)} style={{ padding: "6px 12px", borderRadius: 10, ...btnBase, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", ...(onBanner ? {} : { color: muted }) }}>{en ? "Cancel" : "Cancelar"}</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmRemove(true)} style={{ padding: "6px 12px", borderRadius: 10, border: `1px solid ${line}`, background: "transparent", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{en ? "Remove friend" : "Remover amigo"}</button>
-          )}
-        </div>
-
-        {isV2 && <ProfileHeaderPC profile={cardProfile} avatar={prof.avatar || info?.avatar} items={libItems} panelBg={panelBg} />}
+            <button onClick={() => setConfirmRemove(true)} style={{ padding: "6px 12px", borderRadius: 10, ...btnBase, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", ...(onBanner ? {} : { color: muted }) }}>{en ? "Remove friend" : "Remover amigo"}</button>
+          );
+          if (onBanner) return <ProfileHeaderPC profile={cardProfile} avatar={prof.avatar || info?.avatar} items={libItems} panelBg={panelBg} leftSlot={backBtn} rightSlot={removeUi} />;
+          return (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `0 ${pad}px`, marginBottom: 14 }}>
+              {backBtn}
+              {removeUi}
+            </div>
+          );
+        })()}
 
         {/* Telemóvel: o mesmo cartão do perfil próprio; no PC o cartão vive na coluna esquerda do separador Perfil */}
         {isMobileDevice && tab === "perfil" && <div style={{ marginBottom: 14 }}>{friendCard}{matchPill && <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>{matchPill}</div>}</div>}
