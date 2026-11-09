@@ -216,7 +216,7 @@ export function ProfileView(props) {
   const showHeaderIdentity = editing || profileTab !== "perfil";
   const [profileLayout] = useUiPref("trackall_profile_layout");
   const v2 = !isMobileDevice && !editing && profileLayout !== "classic"; // layout novo do PC (banner + duas colunas)
-  const currentBanner = editing ? bannerPreview : splitBanner(profile.banner).url;
+  const currentBanner = editing ? bannerPreview : (splitBanner(profile.banner).style.hpc ? "" : splitBanner(profile.banner).url);
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
   const renderTopGenres = (panel) => {

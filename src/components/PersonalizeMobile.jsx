@@ -12,6 +12,7 @@ import { lazyNamed } from "../lib/lazyNamed";
 const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
 import { ColorPicker, PICKER_SUGGESTIONS } from "./ColorPicker";
 import { BannerHero } from "./BannerHero";
+import { BannerFraming } from "./BannerFraming";
 import { splitBanner, joinBanner, useBannerPalette, bannerAccentHex, DEFAULT_BANNER_STYLE, rgbToHsl, hslToHex } from "../lib/bannerColors";
 import { useUiPref } from "../lib/uiPrefs";
 import { hexRgb, hexLum, overlayAlpha, onAccent as onAccentColor } from "../lib/contrast";
@@ -37,7 +38,7 @@ export function PersonalizeMobile({
   const curBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor;
   const curImg = bgSeparateDevices ? bgImageMobile : bgImage;
   const initial = useMemo(() => ({
-    url: saved.url, style: saved.style, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : ((curBg || "").toLowerCase() === tintFrom(accent).bg ? "accent" : "color")),
+    url: saved.url, style: saved.style, hide: !!profile.hideBannerMobile, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : ((curBg || "").toLowerCase() === tintFrom(accent).bg ? "accent" : "color")),
     bgColor: curBg, bgImage: curImg || "", panel: panelBg, opacity: panelOpacity,
     ov: Math.round(overlayAlpha(bgOverlay) * 100), blur: bgBlur || 0,
   }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity, bgOverlay, bgBlur]); // eslint-disable-line
@@ -60,7 +61,7 @@ export function PersonalizeMobile({
   const followChanged = d.style.a !== initial.style.a, urlChanged = d.url !== initial.url;
   // a cor do banner só entra quando o banner (ou a opção "acompanha") muda; senão mantém-se a cor da app
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
-  const pick4 = (x) => JSON.stringify({ u: x.url, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity, v: x.ov, l: x.blur });
+  const pick4 = (x) => JSON.stringify({ u: x.url, h: x.hide, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity, v: x.ov, l: x.blur });
   const dirty = pick4(d) !== pick4(initial) || effAccent !== accent;
   const tint = tintFrom(effAccent);
   const bgEff = d.bgMode === "accent" ? tint.bg : d.bgColor;
@@ -78,7 +79,7 @@ export function PersonalizeMobile({
   const onCrop = async (dataUrl) => {
     const type = crop.type; setCrop(null); setErr("");
     const prevUrl = d.url, prevAvatar = profile.avatar;
-    if (type === "banner") set({ url: dataUrl });          // aparece logo, desfocado até chegar
+    if (type === "banner") set({ url: dataUrl, hide: false });          // aparece logo, desfocado até chegar
     setBusy(type);
     try {
       const url = currentUserId ? await supa.uploadImage(currentUserId, await (await fetch(dataUrl)).blob(), `${type}-${Date.now()}.jpg`) : dataUrl;
@@ -126,7 +127,7 @@ export function PersonalizeMobile({
     const before = { ...initial, accent };
     const bannerStr = joinBanner(d.url, { ...d.style, g: d.bgMode === "auto" ? 1 : 0 });
     const toColor = d.bgMode === "color" || d.bgMode === "accent";
-    if (bannerStr !== (profile.banner || "")) await onUpdateProfile({ ...profile, banner: bannerStr, hideBannerMobile: d.url ? false : profile.hideBannerMobile });
+    if (bannerStr !== (profile.banner || "") || !!d.hide !== !!profile.hideBannerMobile) await onUpdateProfile({ ...profile, banner: bannerStr, hideBannerMobile: !!d.hide });
     if (effAccent !== accent) onAccentChange(effAccent);
     if (toColor) { bgSeparateDevices ? onBgColorMobile(bgEff) : onBgChange(bgEff); }
     if (toColor || d.bgMode === "auto") { bgSeparateDevices ? onBgImageMobile("") : onBgImage(""); }
@@ -330,12 +331,11 @@ export function PersonalizeMobile({
       {sheet === "banner" && (
         renderSheet("Banner", <>
           {d.url ? (
-            <div style={{ position: "relative", filter: busy === "banner" ? "blur(6px)" : "none", transition: "filter .3s" }}>
-              {/* pré-visualização real: mesmo escurecer, cor, brilho e enquadramento do telemóvel que o perfil usa */}
-              <BannerHero urlOverride={d.url} styleOverride={d.style} height={120} style={{ borderRadius: 16 }}><div style={{ height: 8 }} /></BannerHero>
-              <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 8 }}>
-                <button type="button" onClick={() => fileRef.current?.click()} style={{ padding: "8px 13px", borderRadius: 11, border: "none", background: "rgba(0,0,0,0.65)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Change" : "Trocar"}</button>
-                <button type="button" onClick={() => set({ url: "" })} style={{ padding: "8px 13px", borderRadius: 11, border: "none", background: "rgba(0,0,0,0.65)", color: "#f87171", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Remove" : "Remover"}</button>
+            <div style={{ filter: busy === "banner" ? "blur(6px)" : "none", transition: "filter .3s" }}>
+              <BannerFraming url={d.url} style={d.style} onStyle={(st) => set({ style: st })} lang={lang} initialDevice="mobile" accent={A} hideMobile={!!d.hide} onHideMobile={(h) => set({ hide: h })} />
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <button type="button" onClick={() => fileRef.current?.click()} style={{ padding: "9px 14px", borderRadius: 11, border: `1px solid ${line}`, background: "transparent", color: "inherit", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Change image" : "Trocar imagem"}</button>
+                <button type="button" onClick={() => set({ url: "" })} style={{ padding: "9px 14px", borderRadius: 11, border: "1px solid #ef444455", background: "transparent", color: "#f87171", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{en ? "Remove" : "Remover"}</button>
               </div>
             </div>
           ) : (
@@ -360,17 +360,6 @@ export function PersonalizeMobile({
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{en ? "Brightness" : "Brilho"}</span><span style={{ color: A }}>{d.style.b}%</span></div>
               <input type="range" min={60} max={140} value={d.style.b} onChange={(e) => setStyle({ b: Number(e.target.value) })} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
             </label>
-            <div style={{ marginTop: 18, fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: muted }}>{en ? "Framing on mobile" : "Enquadramento no telemóvel"}</div>
-            {[[en ? "Horizontal" : "Horizontal", "mfx", "fx", 0, 100], [en ? "Vertical" : "Vertical", "mfy", "fy", 0, 100], ["Zoom", "mz", "z", 100, 250]].map(([l, k, pk, mn, mx]) => {
-              const cur = d.style[k] ?? d.style[pk] ?? (k === "mz" ? 100 : 50);
-              return (
-                <label key={k} style={{ display: "block", marginTop: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700 }}><span>{l}</span><span style={{ color: A }}>{Math.round(cur)}%</span></div>
-                  <input type="range" min={mn} max={mx} value={cur} onChange={(e) => { const nx = { mfx: d.style.mfx ?? d.style.fx ?? 50, mfy: d.style.mfy ?? d.style.fy ?? 50, mz: d.style.mz ?? d.style.z ?? 100, [k]: Number(e.target.value) }; setStyle(nx); }} style={{ width: "100%", accentColor: A, marginTop: 8 }} />
-                </label>
-              );
-            })}
-            <div style={{ marginTop: 8, fontSize: 12, color: muted, lineHeight: 1.45 }}>{en ? "Only changes the phone. The PC framing stays as you set it on the computer." : "Só muda o telemóvel. O enquadramento do PC fica como o definiste no computador."}</div>
           </>)}
         </>)
       )}

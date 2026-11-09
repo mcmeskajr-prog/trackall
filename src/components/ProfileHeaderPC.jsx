@@ -11,7 +11,8 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const sub = darkMode ? "#aab4c0" : "#475569";
   const line = darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.14)";
-  const { url, style: bst } = splitBanner(profile.banner);
+  const { url: bannerUrl, style: bst } = splitBanner(profile.banner);
+  const url = bst.hpc ? "" : bannerUrl; // «Mostrar banner» desligado no PC
   const filt = bannerFilter(bst);
   const mask = "linear-gradient(180deg, #000 0%, #000 55%, rgba(0,0,0,0.55) 80%, transparent 100%)";
 

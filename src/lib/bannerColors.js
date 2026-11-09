@@ -17,14 +17,14 @@ export function splitBanner(str) {
   const q = new URLSearchParams(str.slice(i + 1));
   const num = (k, def, a, b) => { const v = Number(q.get(k)); return q.has(k) && Number.isFinite(v) ? clamp(v, a, b) : def; };
   const tc = (q.get("tc") || "").replace("#", "");
-  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1, g: q.get("bg") === "0" ? 0 : 1, fx: num("fx", 50, 0, 100), fy: num("fy", 50, 0, 100), z: num("zm", 100, 100, 250), ...(q.has("mfx") || q.has("mfy") || q.has("mzm") ? { mfx: num("mfx", 50, 0, 100), mfy: num("mfy", 50, 0, 100), mz: num("mzm", 100, 100, 250) } : {}) } };
+  return { url, style: { c: isHex(tc) ? tc.toLowerCase() : "", m: num("mx", 70, 0, 100), d: num("dk", 55, 0, 100), b: num("br", 100, 60, 140), a: q.get("ac") === "0" ? 0 : 1, g: q.get("bg") === "0" ? 0 : 1, fx: num("fx", 50, 0, 100), fy: num("fy", 50, 0, 100), z: num("zm", 100, 100, 250), ...(q.get("hp") === "1" ? { hpc: true } : {}), ...(q.has("mfx") || q.has("mfy") || q.has("mzm") ? { mfx: num("mfx", 50, 0, 100), mfy: num("mfy", 50, 0, 100), mz: num("mzm", 100, 100, 250) } : {}) } };
 }
 
 export function joinBanner(url, style) {
   if (!url) return "";
   if (url.startsWith("data:")) return url; // base64 não leva fragmento (o upload tenta sempre devolver URL)
   const s = { ...DEFAULT_BANNER_STYLE, ...(style || {}) };
-  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0 && s.g !== 0 && s.fx === 50 && s.fy === 50 && s.z === 100 && s.mfx == null;
+  const isDefault = !s.c && s.m === 70 && s.d === 55 && s.b === 100 && s.a !== 0 && s.g !== 0 && s.fx === 50 && s.fy === 50 && s.z === 100 && s.mfx == null && !s.hpc;
   if (isDefault) return url;
   const p = [];
   if (s.c) p.push(`tc=${s.c.replace("#", "")}`);
@@ -33,6 +33,7 @@ export function joinBanner(url, style) {
   if (s.g === 0) p.push("bg=0");
   if (s.fx !== 50 || s.fy !== 50) p.push(`fx=${Math.round(s.fx)}`, `fy=${Math.round(s.fy)}`);
   if (s.z !== 100) p.push(`zm=${Math.round(s.z)}`);
+  if (s.hpc) p.push("hp=1"); // banner escondido no PC
   if (s.mfx != null) p.push(`mfx=${Math.round(s.mfx)}`, `mfy=${Math.round(s.mfy ?? 50)}`, `mzm=${Math.round(s.mz ?? 100)}`); // enquadramento próprio do telemóvel
   return `${url}#${p.join("&")}`;
 }
