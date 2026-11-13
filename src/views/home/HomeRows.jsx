@@ -23,7 +23,8 @@ export function HomeRows({ items, library, homeFilter, setView, setFilterStatus,
   const pad = isMobileDevice ? 16 : 24;
   return (
     <HomeSection style={{ padding: `0 ${pad}px 28px` }} title={useT("completedLabel")} action={useT("verTudo")} onAction={() => { setView("library"); setFilterStatus("completo"); }}>
-      <div className="recents-row" style={{ display: "flex", gap: isMobileDevice ? 8 : 14, overflowX: "auto", padding: "4px 4px 8px", margin: "-4px -4px -8px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+      <style>{`.home-rail .card{border-radius:3px !important}.home-rail .media-thumb,.home-rail .media-thumb .rating-hover{border-radius:2px !important}`}</style>
+      <div className="recents-row home-rail" style={{ display: "flex", gap: isMobileDevice ? 8 : 14, overflowX: "auto", padding: "18px 16px 30px", margin: "-18px -16px -30px", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
         {completados.map((item) => (
           <div key={item.id} style={{ flexShrink: 0, width: isMobileDevice ? "clamp(90px, 26vw, 130px)" : 150 }}>
             <MediaCard item={item} library={library} onOpen={setSelectedItem} accent={accent} />

@@ -58,12 +58,13 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
 
   if (!rows.length) return null;
   return (
-    <div style={{ padding: "16px 0 8px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 800, color: text }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
-        {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0" }}>{en ? "See all ›" : "Ver tudo ›"}</button>}
+    <div style={{ padding: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 800, color: muted, whiteSpace: "nowrap" }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
+        <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.12)" }} />
+        {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: accent, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>{en ? "See all →" : "Ver tudo →"}</button>}
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingTop: 14, paddingBottom: 30, paddingLeft: 16, paddingRight: 16, marginLeft: -16, marginTop: -14, marginBottom: -22 }}>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingTop: 18, paddingBottom: 30, paddingLeft: 16, paddingRight: 16, marginLeft: -16, marginRight: -16, marginTop: -18, marginBottom: -30 }}>
         {rows.map(it => {
           const info = state.infoById[it.userId] || {};
           const src = it.customCover || it.cover || it.thumbnailUrl;
@@ -73,10 +74,10 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
               <div className="recent-card" style={{ width: 108, height: 162 }}>
                 <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
                 onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
-                style={{ position: "relative", width: 108, height: 162, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id), boxShadow: "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
+                style={{ position: "relative", width: 108, height: 162, borderRadius: 3, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id) }}>
                 {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
-                {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 8px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
+                {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 7px", borderRadius: 2, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
                 <div className="recent-hover-overlay no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "34px 8px 8px", opacity: 0, transition: "opacity 0.18s ease", background: "linear-gradient(transparent, rgba(0,0,0,0.9))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{it.title}</div>
               </div>
               </div>
