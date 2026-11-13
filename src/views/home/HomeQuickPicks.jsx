@@ -66,25 +66,27 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     const r = rating(hero);
     return (
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
-        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 190 : 300 }}>
+        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 150 : 236 }}>
         {bg && <div aria-hidden style={{ position: "absolute", inset: banner ? 0 : -24, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(26px) saturate(1.1)", opacity: banner ? 0.9 : 0.55 }} />}
         <div aria-hidden style={{ position: "absolute", inset: 0, background: darkMode ? "linear-gradient(90deg, rgba(10,12,16,0.96) 0%, rgba(10,12,16,0.8) 42%, rgba(10,12,16,0.12) 100%)" : "linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.82) 42%, rgba(255,255,255,0.15) 100%)" }} />
-        <div style={{ position: "relative", display: "flex", gap: isMobileDevice ? 14 : 30, padding: isMobileDevice ? 14 : 30 }}>
-          <Cover item={hero} w={isMobileDevice ? 88 : 158} h={isMobileDevice ? 132 : 237} darkMode={darkMode} />
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 760, paddingRight: 44 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
+          <div style={{ width: isMobileDevice ? 96 : 160, flexShrink: 0, alignSelf: "stretch", position: "relative", background: darkMode ? "#0d1117" : "#e2e8f0", borderRight: `1px solid ${homeLineStrong(darkMode)}`, overflow: "hidden" }}>
+            {(hero.customCover || hero.cover) ? <img src={hero.customCover || hero.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} /> : <div style={{ width: "100%", height: "100%", minHeight: 130, display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{(MEDIA_TYPES.find((t) => t.id === hero.type) || {}).icon || "★"}</div>}
+          </div>
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 760, padding: isMobileDevice ? "14px 44px 14px 14px" : "22px 52px 22px 26px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, border: `1px solid ${accent}66`, background: `${accent}14`, borderRadius: HOME_R, padding: "4px 10px" }}>{lang === "en" ? "Best for today" : "Melhor para hoje"}</span>
               <span style={{ fontSize: 12, color: muted }}>{meta}</span>
               {r > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#e8b04a" }}>★ {r}</span>}
             </div>
-            <h3 style={{ fontSize: isMobileDevice ? 22 : 46, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.06, margin: isMobileDevice ? "8px 0 4px" : "10px 0 8px", color: homeText(darkMode) }}>{hero.title}</h3>
+            <h3 style={{ fontSize: isMobileDevice ? 22 : 38, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.06, margin: isMobileDevice ? "8px 0 4px" : "10px 0 8px", color: homeText(darkMode) }}>{hero.title}</h3>
             {chips.length > 0 && !isMobileDevice && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                 {chips.map((c) => <span key={c} style={{ fontSize: 11.5, fontWeight: 700, color: darkMode ? "#c3c9d3" : "#475569", border: `1px solid ${homeLineStrong(darkMode)}`, borderRadius: HOME_R, padding: "3px 9px" }}>{c}</span>)}
               </div>
             )}
-            {!syn && !isMobileDevice && <p style={{ fontSize: 14, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0 }}>{lang === "en" ? "Your strongest pick right now, based on your ratings, favourite genres and how long it has been waiting." : "A tua aposta mais forte neste momento, pela tua média, os teus géneros e o tempo que está à espera."}</p>}
-            {syn && <p style={{ fontSize: isMobileDevice ? 12 : 14.5, lineHeight: 1.6, color: darkMode ? "#b9c0cb" : "#475569", margin: 0, display: "-webkit-box", WebkitLineClamp: isMobileDevice ? 3 : 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>}
+            {syn ? <p style={{ fontSize: isMobileDevice ? 12 : 13.5, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>
+              : !isMobileDevice && <p style={{ fontSize: 13.5, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0 }}>{lang === "en" ? "Your strongest pick right now, based on your ratings, favourite genres and how long it has been waiting." : "A tua aposta mais forte neste momento, pela tua média, os teus géneros e o tempo que está à espera."}</p>}
           </div>
         </div>
         {(picks.today) && (

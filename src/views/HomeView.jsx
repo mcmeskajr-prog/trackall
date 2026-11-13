@@ -21,8 +21,8 @@ export function HomeView({ onOpenFriendItem, onOpenFriend, view, setView, profil
   return (
     <div style={{ display: view === "home" ? "block" : "none" }}>
       <div>
-        <HomeHero profile={profile} items={items} homeFilter={homeFilter} setHomeFilter={setHomeFilter} />
-        {hasItems && <HomeStatsStrip items={items} stats={stats} homeStatColors={homeStatColors} />}
+        <HomeHero profile={profile} items={items} stats={stats} homeStatColors={homeStatColors} homeFilter={homeFilter} setHomeFilter={setHomeFilter} />
+        {hasItems && isMobileDevice && <HomeStatsStrip items={items} stats={stats} homeStatColors={homeStatColors} />}
         {hasQuick && <HomeQuickPicks items={items} homeDashboard={homeDashboard} personalRecos={personalRecos} setSelectedItem={setSelectedItem} />}
         {!hasItems && <HomeEmpty setView={setView} />}
         {hasItems && <HomeRows items={items} library={library} homeFilter={homeFilter} setView={setView} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />}
