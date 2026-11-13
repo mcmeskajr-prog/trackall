@@ -1,106 +1,125 @@
+import { useEffect, useState } from "react";
+import { fetchMediaDetails } from "../../api/details";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useLang } from "../../contexts/LangContext";
 import { MEDIA_TYPES, getMediaTypeLabel } from "../../config/constants";
-import { getConsumptionTime } from "../../lib/consumptionTime";
-import { TiltCard } from "../../components/TiltCard";
+import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, monthsSince, seededRandom, dayNumber } from "./homeUtils";
+import { useHomePicks } from "./useHomePicks";
 
-// «Melhor para hoje» + escolhas rápidas + botões Surpreende-me / Algo novo.
-export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelectedItem }) {
-  const { accent, darkMode, isMobileDevice } = useTheme();
-  const { lang } = useLang();
-  const picks = homeDashboard.quickPicks;
-  if (picks.length === 0) return null;
-  const quickCopy = {
-    focus: { title: lang === "en" ? "Current Focus" : "Foco Atual", desc: lang === "en" ? "Keep going." : "Continua." },
-    continue: { title: lang === "en" ? "Continue now" : "Continuar agora", desc: lang === "en" ? "Keep the momentum." : "Mantém o embalo." },
-    today: { title: lang === "en" ? "Best for Today" : "Melhor para Hoje", desc: lang === "en" ? "Strongest current pick." : "Aposta mais forte do momento." },
-    forgotten: { title: lang === "en" ? "Forgotten in queue" : "Esquecido na fila", desc: lang === "en" ? "Has been waiting for a while." : "Já está contigo há algum tempo." },
-    return: { title: lang === "en" ? "Worth returning" : "Vale regressar", desc: lang === "en" ? "A paused title still worth your time." : "Uma pausa que ainda merece o teu tempo." },
-  };
-
-
-  const todayPick = picks.find(p => p.slot === "today");
-  const smallPicks = picks.filter(p => p.slot !== "today");
+function Cover({ item, w, h, darkMode }) {
+  const typeObj = MEDIA_TYPES.find((t) => t.id === item.type);
+  const src = item.customCover || item.cover;
   return (
-    <div style={{ padding: "14px 16px 0" }}>
-      {/* Best for Today — card grande */}
-      {todayPick && (() => {
-        const item = todayPick.item;
-        const typeObj = MEDIA_TYPES.find(t => t.id === item.type);
-        return (
-          <div onClick={() => setSelectedItem(item)} style={{ cursor: "pointer", borderRadius: 18, overflow: "hidden", border: `1px solid ${accent}26`, background: darkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, boxShadow: darkMode ? `0 10px 24px ${accent}10` : `0 10px 22px rgba(15,23,42,0.06)`, marginBottom: smallPicks.length > 0 ? 12 : 0 }}>
-            <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "96px 1fr" : "124px 1fr", gap: 14, padding: 14, alignItems: "stretch" }}>
-              <TiltCard maxTilt={7} glare style={{ borderRadius: 14, overflow: "hidden", height: isMobileDevice ? 136 : 170, background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0, boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}>
-                {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", pointerEvents: "none" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{typeObj?.icon || "★"}</div>}
-              </TiltCard>
-              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10 }}>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, marginBottom: 4 }}>{lang === "en" ? "Best for Today" : "Melhor para Hoje"}</div>
-                      <h3 style={{ fontSize: isMobileDevice ? 21 : 25, lineHeight: 1.05, fontWeight: 900, color: darkMode ? "#f8fafc" : "#0f172a", marginBottom: 6 }}>{item.title}</h3>
-                    </div>
-                    {(item.userRating > 0 || item.score) && <div style={{ flexShrink: 0, background: darkMode ? "rgba(10,10,10,0.28)" : "rgba(255,255,255,0.46)", border: `1px solid ${accent}22`, color: "#f59e0b", borderRadius: 999, padding: "6px 9px", fontSize: 12, fontWeight: 900 }}>★ {item.userRating > 0 ? item.userRating : item.score}</div>}
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 8px", borderRadius: 999, background: `${accent}1d`, color: accent }}>{getMediaTypeLabel(item.type, lang)}</span>
-                  </div>
-                  <p style={{ fontSize: 13, lineHeight: 1.5, color: darkMode ? "#cbd5e1" : "#475569", margin: 0 }}>{lang === "en" ? "Strongest current pick." : "A aposta mais forte do momento."}</p>
-                </div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: accent, fontSize: 12, fontWeight: 800 }}>
-                  <span>{lang === "en" ? "Open title" : "Abrir obra"}</span>
-                  <span style={{ fontSize: 14 }}>→</span>
-                </div>
-              </div>
+    <div style={{ width: w, height: h, flexShrink: 0, borderRadius: HOME_R, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", border: `1px solid ${homeLine(darkMode)}` }}>
+      {src ? <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 22 }}>{typeObj?.icon || "★"}</div>}
+    </div>
+  );
+}
+
+const rating = (item) => (item.userRating > 0 ? item.userRating : item.score);
+
+// «Melhor para hoje» (cartão clicável, com fundo) + 4 atalhos em linha.
+export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelectedItem }) {
+  const { accent, darkMode, panelBg, isMobileDevice } = useTheme();
+  const { lang } = useLang();
+  const picks = useHomePicks(items);
+  const dash = homeDashboard.quickPicks || [];
+  const bySlot = (s) => dash.find((p) => p.slot === s)?.item;
+
+  const hero = picks.today || bySlot("today");
+  const forgotten = picks.forgotten || bySlot("forgotten");
+  const focus = bySlot("focus") || bySlot("continue");
+  const back = bySlot("return");
+  const novo = (personalRecos && personalRecos.length) ? personalRecos[Math.floor(seededRandom(dayNumber() * 7)() * personalRecos.length)] : null;
+
+  // Banner e sinopse completa vêm dos detalhes (mesma cache do modal); até chegarem usa a capa e a sinopse guardada.
+  const [extra, setExtra] = useState({ id: null, d: null });
+  const heroId = hero?.id;
+  useEffect(() => {
+    if (!hero) return undefined;
+    let alive = true;
+    fetchMediaDetails(hero).then((d) => { if (alive && d) setExtra({ id: heroId, d }); }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroId]);
+  const heroExtra = extra.id === heroId ? extra.d : null;
+
+  const shortcuts = [
+    focus && { key: "focus", label: lang === "en" ? "Current focus" : "Foco atual", item: focus },
+    forgotten && { key: "forgotten", label: lang === "en" ? "Forgotten in queue" : "Esquecido na lista", item: forgotten, reroll: picks.rerollForgotten },
+    back && { key: "return", label: lang === "en" ? "Worth returning" : "Vale voltar", item: back },
+    novo && { key: "new", label: lang === "en" ? "Something new" : "Algo novo", item: novo },
+  ].filter(Boolean);
+
+  if (!hero && !shortcuts.length) return null;
+  const line = homeLine(darkMode);
+  const muted = homeMuted(darkMode);
+  const pad = isMobileDevice ? 16 : 24;
+
+  const heroCard = hero && (() => {
+    const banner = itemBanner(hero) || heroExtra?.bannerImage || "";
+    const bg = banner || hero.customCover || hero.cover || "";
+    const syn = heroExtra?.synopsis || itemSynopsis(hero);
+    const meta = [getMediaTypeLabel(hero.type, lang), hero.year, heroExtra?.runtime].filter(Boolean).join(" · ");
+    const waited = monthsSince(hero.addedAt);
+    const chips = [...(hero.genres || []).slice(0, 3), waited >= 1 ? (lang === "en" ? `Planned ${waited}m ago` : `Planeado há ${waited}m`) : null].filter(Boolean);
+    const r = rating(hero);
+    return (
+      <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
+        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 170 : 226 }}>
+        {bg && <div aria-hidden style={{ position: "absolute", inset: banner ? 0 : -24, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(26px) saturate(1.1)", opacity: banner ? 0.9 : 0.55 }} />}
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: darkMode ? "linear-gradient(90deg, rgba(10,12,16,0.96) 0%, rgba(10,12,16,0.8) 42%, rgba(10,12,16,0.12) 100%)" : "linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.82) 42%, rgba(255,255,255,0.15) 100%)" }} />
+        <div style={{ position: "relative", display: "flex", gap: isMobileDevice ? 14 : 22, padding: isMobileDevice ? 14 : 22 }}>
+          <Cover item={hero} w={isMobileDevice ? 80 : 112} h={isMobileDevice ? 120 : 168} darkMode={darkMode} />
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 680, paddingRight: 36 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, border: `1px solid ${accent}66`, borderRadius: HOME_R, padding: "3px 8px" }}>{lang === "en" ? "Best for today" : "Melhor para hoje"}</span>
+              <span style={{ fontSize: 12, color: muted }}>{meta}</span>
+              {r > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#e8b04a" }}>★ {r}</span>}
             </div>
-          </div>
-        );
-      })()}
-      {/* Outros quick picks — cards pequenos */}
-      {smallPicks.length > 0 && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b949e" : "#64748b" }}>
-              {(lang === "en" ? "Quick picks" : "Escolhas rápidas").toUpperCase()}
-            </span>
-            <span style={{ fontSize: 11, color: "#484f58" }}>{smallPicks.length}</span>
-          </div>
-          {(() => {
-            const plannedPool = items.filter(i => i.userStatus === "planejado" || i.userStatus === "planeado");
-            const surpriseLibrary = () => { if (plannedPool.length) setSelectedItem(plannedPool[Math.floor(Math.random() * plannedPool.length)]); };
-            const surpriseNew = () => { if (personalRecos.length) setSelectedItem(personalRecos[Math.floor(Math.random() * personalRecos.length)]); };
-            return (
-              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                <button className="qp-btn qp-btn-primary" onClick={surpriseLibrary} disabled={!plannedPool.length} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, border: `1px solid ${accent}70`, background: `${accent}20`, color: plannedPool.length ? (darkMode ? "#fff" : "#0f172a") : "#6e7681", fontSize: 12, fontWeight: 700, cursor: plannedPool.length ? "pointer" : "default", fontFamily: "inherit", opacity: plannedPool.length ? 1 : 0.5 }}>
-                  🎲 {lang === "en" ? "Surprise me" : "Surpreende-me"}
-                </button>
-                <button className="qp-btn qp-btn-secondary" onClick={surpriseNew} disabled={!personalRecos.length} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 999, border: `1px solid ${darkMode ? "#30363d" : "#cbd5e1"}`, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.04)", color: personalRecos.length ? (darkMode ? "#e6edf3" : "#0f172a") : "#6e7681", fontSize: 12, fontWeight: 700, cursor: personalRecos.length ? "pointer" : "default", fontFamily: "inherit", opacity: personalRecos.length ? 1 : 0.5 }}>
-                  ✦ {lang === "en" ? "Something new" : "Algo novo"}
-                </button>
+            <h3 style={{ fontSize: isMobileDevice ? 20 : 32, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.06, margin: isMobileDevice ? "8px 0 4px" : "10px 0 8px", color: homeText(darkMode) }}>{hero.title}</h3>
+            {chips.length > 0 && !isMobileDevice && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                {chips.map((c) => <span key={c} style={{ fontSize: 11.5, fontWeight: 700, color: darkMode ? "#c3c9d3" : "#475569", border: `1px solid ${homeLineStrong(darkMode)}`, borderRadius: HOME_R, padding: "3px 9px" }}>{c}</span>)}
               </div>
-            );
-          })()}
-          <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-            {smallPicks.map(({ slot, item }) => (
-              <button key={`${slot}-${item.id}`} onClick={() => setSelectedItem(item)} style={{ textAlign: "left", border: `1px solid ${accent}26`, background: darkMode ? `linear-gradient(135deg, ${accent}12 0%, rgba(12,12,16,0.42) 58%, rgba(18,10,14,0.30) 100%)` : `linear-gradient(135deg, ${accent}0d 0%, rgba(255,255,255,0.54) 65%, rgba(255,250,250,0.36) 100%)`, borderRadius: 14, padding: "12px", cursor: "pointer", fontFamily: "inherit", display: "grid", gridTemplateColumns: "54px 1fr", gap: 10 }}>
-                <div style={{ width: 54, height: 74, borderRadius: 10, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0" }}>
-                  {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)?.icon || "★"}</div>}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.10em", textTransform: "uppercase", color: accent, marginBottom: 6 }}>{quickCopy[slot]?.title || (lang === "en" ? "Pick" : "Escolha")}</div>
-                  <div style={{ fontSize: 15, lineHeight: 1.15, fontWeight: 800, color: darkMode ? "#f8fafc" : "#0f172a", marginBottom: 5 }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: darkMode ? "#94a3b8" : "#64748b", marginBottom: 6 }}>{quickCopy[slot]?.desc}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 11, color: darkMode ? "#cbd5e1" : "#475569", fontWeight: 700 }}>{getMediaTypeLabel(item.type, lang)}</span>
-                    {(item.userRating > 0 || item.score) && <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 800 }}>★ {item.userRating > 0 ? item.userRating : item.score}</span>}
-                    {(() => { const ct = getConsumptionTime(item); return ct ? <span style={{ fontSize: 10, fontWeight: 800, color: ct.color, background: ct.color + "18", borderRadius: 5, padding: "1px 5px" }}>{ct.emoji} {lang === "en" ? ct.labelEn : ct.label}</span> : null; })()}
-                  </div>
-                </div>
-              </button>
-            ))}
+            )}
+            {syn && <p style={{ fontSize: isMobileDevice ? 12 : 13, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0, display: "-webkit-box", WebkitLineClamp: isMobileDevice ? 3 : 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>}
           </div>
         </div>
-      )}
+        {(picks.today) && (
+          <button onClick={(e) => { e.stopPropagation(); picks.rerollToday(); }} title={lang === "en" ? "Another suggestion" : "Outra sugestão"} aria-label={lang === "en" ? "Another suggestion" : "Outra sugestão"}
+            style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: darkMode ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)", color: darkMode ? "#c3c9d3" : "#475569", cursor: "pointer", fontSize: 15, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>↻</button>
+        )}
+      </div>
+    );
+  })();
+
+  const shortcutRow = shortcuts.length > 0 && (
+    <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : `repeat(${shortcuts.length}, minmax(0, 1fr))`, gap: isMobileDevice ? 0 : 12, marginTop: 12, ...(isMobileDevice ? { border: `1px solid ${line}`, borderRadius: HOME_R, background: homePanel(darkMode, panelBg) } : {}) }}>
+      {shortcuts.map((s, i) => {
+        const r = rating(s.item);
+        return (
+          <button key={s.key} onClick={() => setSelectedItem(s.item)} style={{ position: "relative", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, padding: isMobileDevice ? "10px 14px" : 12, color: "inherit", minWidth: 0,
+            ...(isMobileDevice ? { background: "none", border: "none", borderTop: i ? `1px solid ${line}` : "none" } : { background: homePanel(darkMode, panelBg), border: `1px solid ${line}`, borderRadius: HOME_R }) }}>
+            <Cover item={s.item} w={isMobileDevice ? 34 : 44} h={isMobileDevice ? 51 : 66} darkMode={darkMode} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent }}>{s.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: homeText(darkMode), margin: "3px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.item.title}</div>
+              <div style={{ fontSize: 12, color: muted }}>{getMediaTypeLabel(s.item.type, lang)}{r > 0 ? ` · ★ ${r}` : ""}</div>
+            </div>
+            {s.reroll && (
+              <span role="button" tabIndex={0} title={lang === "en" ? "Another one" : "Outro"} onClick={(e) => { e.stopPropagation(); s.reroll(); }} style={{ flexShrink: 0, width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${line}`, borderRadius: HOME_R, color: muted, fontSize: 13 }}>↻</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div style={{ padding: `0 ${pad}px 28px` }}>
+      {heroCard}
+      {shortcutRow}
     </div>
   );
 }

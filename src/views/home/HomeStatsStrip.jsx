@@ -1,39 +1,36 @@
 import { useTheme } from "../../contexts/ThemeContext";
 import { useLang } from "../../contexts/LangContext";
-import { accentVariant } from "../../config/theme";
+import { HOME_R, homeLine, homeMuted, homePanel, homeText } from "./homeUtils";
 
-// Faixa rápida: completados este mês e rating médio.
-export function HomeStatsStrip({ items }) {
-  const { accent, darkMode } = useTheme();
+// Faixa única de números: estados + completados este mês + média.
+export function HomeStatsStrip({ items, stats }) {
+  const { darkMode, panelBg, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const thisMonth = items.filter(i => i.addedAt && i.userStatus === "completo" && i.addedAt >= startOfMonth).length;
-  const rated = items.filter(i => i.userRating > 0);
-  const avgRating = rated.length ? (rated.reduce((s,i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
-  const stats = [
-    { label: useT("completedThisMonth"), value: thisMonth, show: thisMonth > 0, icon: "📅" },
-    { label: lang === "en" ? "avg rating" : "rating médio", value: avgRating, show: !!avgRating, icon: "★" },
-  ].filter(s => s.show);
-  if (!stats.length) return null;
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const thisMonth = items.filter((i) => i.addedAt && i.userStatus === "completo" && i.addedAt >= startOfMonth).length;
+  const rated = items.filter((i) => i.userRating > 0);
+  const avg = rated.length ? (rated.reduce((s, i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
+  const cells = [
+    { l: lang === "en" ? "In progress" : "Em curso", v: stats.assistindo },
+    { l: useT("completo"), v: stats.completo },
+    { l: lang === "en" ? "Planned" : "Planeados", v: stats.planejado },
+    { l: lang === "en" ? "Paused" : "Pausa", v: stats.pausa },
+    { l: useT("dropado"), v: stats.largado },
+    { l: useT("completedThisMonth"), v: thisMonth },
+    { l: lang === "en" ? "Avg rating" : "Média", v: avg, star: true },
+  ].filter((c) => c.v !== null && c.v !== undefined && Number(c.v) > 0);
+  if (!cells.length) return null;
+  const line = homeLine(darkMode);
   return (
-    <div style={{ display: "flex", gap: 8, padding: "10px 16px 0", overflowX: "auto", scrollbarWidth: "none" }}>
-      {stats.map((s, si) => {
-        const c = accentVariant(accent, si);
-        return (
-          <div key={s.label} className="no-tc" style={{
-            flexShrink: 0,
-            background: `linear-gradient(135deg, ${c}18 0%, ${c}08 100%)`,
-            border: `1px solid ${c}33`,
-            borderRadius: 12, padding: "10px 16px",
-            display: "flex", flexDirection: "column", gap: 2,
-            minWidth: 110,
-          }}>
-            <span style={{ fontSize: 22, fontWeight: 900, color: c, lineHeight: 1 }}>{s.icon === "★" ? <span style={{ fontSize: 14, marginRight: 2 }}>★</span> : null}{s.value}</span>
-            <span style={{ fontSize: 10, color: darkMode ? "#8b949e" : "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</span>
+    <div style={{ padding: isMobileDevice ? "0 16px 16px" : "0 24px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${isMobileDevice ? 96 : 130}px, 1fr))`, gap: 1, background: line, border: `1px solid ${line}`, borderRadius: HOME_R, overflow: "hidden" }}>
+        {cells.map((c) => (
+          <div key={c.l} style={{ background: homePanel(darkMode, panelBg), padding: isMobileDevice ? "10px 12px" : "12px 18px", minWidth: 0 }}>
+            <div style={{ fontSize: isMobileDevice ? 19 : 24, fontWeight: 800, color: homeText(darkMode), lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{c.star ? "★ " : ""}{c.v}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: homeMuted(darkMode), marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.l}</div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
