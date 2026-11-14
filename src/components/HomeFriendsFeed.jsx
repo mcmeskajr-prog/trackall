@@ -7,6 +7,7 @@ import { fetchFriendHighlights, timeAgo } from "../lib/friendHighlights";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
 import { TypeIcon } from "./TypeIcon";
+import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 
 // Cópia em memória (voltar à Home não refaz os pedidos durante 2 min)
 let cache = { uid: "", ts: 0, rows: [], infoById: {}, hi: { fav: new Set(), hall: new Set() } };
@@ -65,22 +66,31 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
         <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.12)" }} />
         {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: accent, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>{en ? "See all →" : "Ver tudo →"}</button>}
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingTop: 18, paddingBottom: 30, paddingLeft: 16, paddingRight: 16, marginLeft: -16, marginRight: -16, marginTop: -18, marginBottom: -30 }}>
+      <style>{`.home-rail .card{border-radius:3px !important}.home-rail .media-thumb,.home-rail .media-thumb .rating-hover{border-radius:2px !important}`}</style>
+      <div className="recents-row home-rail" style={{ display: "flex", gap: isMobileDevice ? 8 : 14, overflowX: "auto", scrollbarWidth: "none", padding: "18px 16px 30px", margin: "-18px -16px -30px" }}>
         {rows.map(it => {
           const info = state.infoById[it.userId] || {};
           const src = it.customCover || it.cover || it.thumbnailUrl;
           const tag = tagOf(it);
           return (
             <div key={`${it.userId}|${it.id}`} style={{ width: cardW, flexShrink: 0 }}>
-              <div className="recent-card" style={{ width: "100%", aspectRatio: "2 / 3" }}>
-                <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
-                onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
-                style={{ position: "relative", width: "100%", height: "100%", borderRadius: 3, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id) }}>
-                {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
-                {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 7px", borderRadius: 2, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
-                <div className="recent-hover-overlay no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "34px 8px 8px", opacity: 0, transition: "opacity 0.18s ease", background: "linear-gradient(transparent, rgba(0,0,0,0.9))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{it.title}</div>
-              </div>
+              {/* Mesmo cartão dos «Completados»: capa 2:3 + linha de categoria/ano por baixo */}
+              <div className="card" role="button" tabIndex={0} title={it.title} onClick={() => onOpenItem && onOpenItem(stripPersonal(it))}
+                onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }} style={{ cursor: "pointer" }}>
+                <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(it.id) }}>
+                  {src ? <CoverImg src={src} alt={it.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                    : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
+                  <div className="rating-hover no-tc">
+                    <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{it.title}</p>
+                      {it.userRating > 0 ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span style={{ fontSize: 16, color: "#f59e0b" }}>★</span><span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{it.userRating}</span></div> : <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>★ {en ? "no rating" : "sem nota"}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="card-info" style={{ padding: "6px 8px 8px" }}>
+                  <p className="card-info-title card-title-text" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</p>
+                  <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>{(() => { const t = MEDIA_TYPES.find(x => x.id === it.type); return t ? mediaLabel(t, lang) : ""; })()}{it.year ? ` · ${it.year}` : ""}</p>
+                </div>
               </div>
               <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""}
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>

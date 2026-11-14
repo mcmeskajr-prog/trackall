@@ -37,12 +37,15 @@ export function HomeGraveyard({ items, user, setLibrary, graveyardOpen, setGrave
     <HomeSection fill style={embedded ? { padding: 0 } : { padding: `0 ${pad}px 28px` }} title={lang === "en" ? "Probably never consuming this" : "Provavelmente nunca vais consumir"}
       action={graveyard.length > 3 ? (graveyardOpen ? (lang === "en" ? "Show less" : "Mostrar menos") : `${lang === "en" ? "See all" : "Ver todos"} (${graveyard.length})`) : null} onAction={() => setGraveyardOpen((v) => !v)}>
       <style>{homeRowCss(accent)}</style>
-      <div style={{ flex: 1, border: `1px solid ${line}`, borderRadius: HOME_R, background: homePanel(darkMode, panelBg), overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", border: `1px solid ${line}`, borderRadius: HOME_R, background: homePanel(darkMode, panelBg), overflow: "hidden" }}>
+        <div style={{ padding: "13px 16px", borderBottom: `1px solid ${line}`, fontSize: 12, color: homeMuted(darkMode), flexShrink: 0 }}>
+          <b style={{ color: homeText(darkMode), fontWeight: 800 }}>{graveyard.length}</b> {lang === "en" ? "titles planned for 6+ months" : "títulos no Planejo há 6+ meses"}
+        </div>
         {visible.map((item, i) => {
           const cover = item.customCover || item.cover;
           return (
             <div key={item.id} className="home-row" role="button" tabIndex={0} onClick={() => setSelectedItem(item)} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(item); }}
-              style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderTop: i ? `1px solid ${line}` : "none" }}>
+              style={{ flex: 1, display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderTop: i ? `1px solid ${line}` : "none" }}>
               <div style={{ width: 40, height: 60, borderRadius: HOME_R - 1 > 0 ? HOME_R - 1 : 0, overflow: "hidden", background: "#161b22", flexShrink: 0, border: `1px solid ${line}` }}>
                 {cover ? <img src={cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#484f58", fontSize: 16 }}>?</div>}
               </div>

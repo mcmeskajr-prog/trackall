@@ -50,10 +50,10 @@ export function HomeWhenToConsume({ items, setSelectedItem, setView, setFilterSt
             );
           })}
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {active.picks.map((item, i) => (
             <div key={item.id + i} className="home-row" role="button" tabIndex={0} onClick={() => setSelectedItem(item)} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(item); }}
-              style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderTop: i ? `1px solid ${line}` : "none" }}>
+              style={{ flex: 1, display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderTop: i ? `1px solid ${line}` : "none" }}>
               <div style={{ width: 40, height: 60, borderRadius: HOME_R - 1 > 0 ? HOME_R - 1 : 0, overflow: "hidden", background: darkMode ? "#0d1117" : "#e2e8f0", flexShrink: 0, border: `1px solid ${line}` }}>
                 {item.cover ? <img src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 14 }}>{MEDIA_TYPES.find((t) => t.id === item.type)?.icon || "★"}</div>}
               </div>
@@ -65,11 +65,6 @@ export function HomeWhenToConsume({ items, setSelectedItem, setView, setFilterSt
             </div>
           ))}
         </div>
-        {setView && setFilterStatus && (
-          <button className="home-row" onClick={() => { setView("library"); setFilterStatus("planejado"); }} style={{ background: "none", border: "none", borderTop: `1px solid ${line}`, padding: "11px 16px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: homeMuted(darkMode), textAlign: "left", display: "flex", justifyContent: "space-between" }}>
-            <span>{lang === "en" ? `See all ${planned.length} planned` : `Ver os ${planned.length} planeados`}</span><span className="row-go">→</span>
-          </button>
-        )}
       </div>
     </HomeSection>
   );
