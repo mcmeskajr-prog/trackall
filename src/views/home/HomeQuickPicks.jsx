@@ -66,9 +66,9 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     const r = rating(hero);
     return (
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
-        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 160 : 256 }}>
-        {bg && <div aria-hidden style={{ position: "absolute", inset: banner ? 0 : -24, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(26px) saturate(1.1)", opacity: banner ? 0.9 : 0.55 }} />}
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: darkMode ? "linear-gradient(90deg, rgba(10,12,16,0.96) 0%, rgba(10,12,16,0.8) 42%, rgba(10,12,16,0.12) 100%)" : "linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.82) 42%, rgba(255,255,255,0.15) 100%)" }} />
+        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, minHeight: isMobileDevice ? 160 : 256 }}>
+        {bg && <div aria-hidden style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: isMobileDevice ? "100%" : "66%", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.4 : (banner ? 0.92 : 0.7), WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 58%)", maskImage: "linear-gradient(90deg, transparent 0%, #000 58%)", pointerEvents: "none" }} />}
+
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
           <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>
             <Cover item={hero} w={isMobileDevice ? 84 : 140} h={isMobileDevice ? 126 : 210} darkMode={darkMode} />

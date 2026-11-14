@@ -2229,15 +2229,19 @@ export default function TrackAll() {
               )}
 
               {/* Avatar + nome em baixo */}
-              <div style={{ marginTop: "auto", padding: "16px", borderTop: `1px solid ${sbDark ? "#21262d" : "#e2e8f0"}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setView("profile")}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${view === "profile" ? accent : "transparent"}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 16 }}>👤</span>}
+              <div style={{ marginTop: "auto", padding: "14px 12px 16px", borderTop: `1px solid ${sbDark ? "#21262d" : "#e2e8f0"}` }}>
+                <div onClick={() => setView("profile")} role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter") setView("profile"); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: 10, borderRadius: 4, border: `1px solid ${view === "profile" ? accent + "88" : (sbDark ? "#21262d" : "#e2e8f0")}`, background: view === "profile" ? `${accent}14` : "transparent", transition: "background 0.15s, border-color 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${accent}14`; e.currentTarget.style.borderColor = `${accent}66`; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = view === "profile" ? `${accent}14` : "transparent"; e.currentTarget.style.borderColor = view === "profile" ? `${accent}88` : (sbDark ? "#21262d" : "#e2e8f0"); }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", background: `linear-gradient(135deg, ${accent}, ${accent}66)`, border: `2px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}26`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>👤</span>}
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: sbDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
-                    <p style={{ fontSize: 11, color: "#8b949e" }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p style={{ fontSize: 15, fontWeight: 800, color: sbDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
+                    <p style={{ fontSize: 11.5, color: "#8b949e", marginTop: 1 }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
                   </div>
+                  <span style={{ color: sbDark ? "#484f58" : "#94a3b8", fontSize: 16 }}>›</span>
                 </div>
               </div>
             </aside>
