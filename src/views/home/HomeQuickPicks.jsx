@@ -66,14 +66,14 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     const r = rating(hero);
     return (
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
-        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 150 : 236 }}>
+        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: homePanel(darkMode, panelBg), minHeight: isMobileDevice ? 160 : 256 }}>
         {bg && <div aria-hidden style={{ position: "absolute", inset: banner ? 0 : -24, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(26px) saturate(1.1)", opacity: banner ? 0.9 : 0.55 }} />}
         <div aria-hidden style={{ position: "absolute", inset: 0, background: darkMode ? "linear-gradient(90deg, rgba(10,12,16,0.96) 0%, rgba(10,12,16,0.8) 42%, rgba(10,12,16,0.12) 100%)" : "linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.82) 42%, rgba(255,255,255,0.15) 100%)" }} />
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
-          <div style={{ width: isMobileDevice ? 96 : 160, flexShrink: 0, alignSelf: "stretch", position: "relative", background: darkMode ? "#0d1117" : "#e2e8f0", borderRight: `1px solid ${homeLineStrong(darkMode)}`, overflow: "hidden" }}>
-            {(hero.customCover || hero.cover) ? <img src={hero.customCover || hero.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} /> : <div style={{ width: "100%", height: "100%", minHeight: 130, display: "flex", alignItems: "center", justifyContent: "center", color: "#8b949e", fontSize: 28 }}>{(MEDIA_TYPES.find((t) => t.id === hero.type) || {}).icon || "★"}</div>}
+          <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>
+            <Cover item={hero} w={isMobileDevice ? 84 : 140} h={isMobileDevice ? 126 : 210} darkMode={darkMode} />
           </div>
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 760, padding: isMobileDevice ? "14px 44px 14px 14px" : "22px 52px 22px 26px" }}>
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 760, padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, border: `1px solid ${accent}66`, background: `${accent}14`, borderRadius: HOME_R, padding: "4px 10px" }}>{lang === "en" ? "Best for today" : "Melhor para hoje"}</span>
               <span style={{ fontSize: 12, color: muted }}>{meta}</span>
@@ -102,7 +102,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
       {shortcuts.map((s, i) => {
         const r = rating(s.item);
         return (
-          <button key={s.key} onClick={() => setSelectedItem(s.item)} style={{ position: "relative", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, padding: isMobileDevice ? "10px 14px" : 12, color: "inherit", minWidth: 0,
+          <button key={s.key} className="home-sc" onClick={() => setSelectedItem(s.item)} style={{ position: "relative", textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, padding: isMobileDevice ? "10px 14px" : 12, color: "inherit", minWidth: 0,
             ...(isMobileDevice ? { background: "none", border: "none", borderTop: i ? `1px solid ${line}` : "none" } : { background: homePanel(darkMode, panelBg), border: `1px solid ${line}`, borderRadius: HOME_R }) }}>
             <Cover item={s.item} w={isMobileDevice ? 34 : 44} h={isMobileDevice ? 51 : 66} darkMode={darkMode} />
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -110,6 +110,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
               <div style={{ fontSize: 14, fontWeight: 800, color: homeText(darkMode), margin: "3px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.item.title}</div>
               <div style={{ fontSize: 12, color: muted }}>{getMediaTypeLabel(s.item.type, lang)}{r > 0 ? ` · ★ ${r}` : ""}</div>
             </div>
+            {!s.reroll && !isMobileDevice && <span className="sc-go" style={{ flexShrink: 0, color: accent, fontSize: 16, fontWeight: 800 }}>→</span>}
             {s.reroll && (
               <span role="button" tabIndex={0} title={lang === "en" ? "Another one" : "Outro"} onClick={(e) => { e.stopPropagation(); s.reroll(); }} style={{ flexShrink: 0, width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${line}`, borderRadius: HOME_R, color: muted, fontSize: 13 }}>↻</span>
             )}
@@ -121,6 +122,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
 
   return (
     <div style={{ padding: `0 ${pad}px 28px` }}>
+      <style>{`.home-sc{transition:border-color .15s,background .15s,transform .15s}.home-sc .sc-go{opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s}@media (hover:hover){.home-sc:hover{border-color:${accent}88 !important;transform:translateY(-2px)}.home-sc:hover .sc-go{opacity:1;transform:none}}.home-sc:focus-visible{outline:2px solid ${accent};outline-offset:2px}.home-sc:active{transform:scale(.99)}`}</style>
       {heroCard}
       {shortcutRow}
     </div>
