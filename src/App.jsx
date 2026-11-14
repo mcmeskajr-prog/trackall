@@ -353,7 +353,11 @@ export default function TrackAll() {
       }
     }
     // Register service worker
-    if ('serviceWorker' in navigator) {
+    if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+      // Em desenvolvimento (npm run dev) o service worker só atrapalha: serve ficheiros antigos da cache. Desregista-o e limpa as caches.
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+      if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+    } else if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then(reg => console.log('[PWA] SW registered:', reg.scope))
         .catch(err => console.log('[PWA] SW failed:', err));

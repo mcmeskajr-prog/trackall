@@ -45,8 +45,15 @@ export function monthsSince(ts, now = Date.now()) {
   return Math.max(0, Math.floor((now - ts) / (1000 * 60 * 60 * 24 * 30)));
 }
 
+// Sinopses vêm das APIs com etiquetas e entidades HTML (<br>, &mdash;…): limpa para texto simples.
+export function cleanText(t) {
+  if (!t) return "";
+  let s = String(t).replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "");
+  try { const ta = document.createElement("textarea"); ta.innerHTML = s; s = ta.value; } catch { /* sem DOM */ }
+  return s.replace(/\s+/g, " ").trim();
+}
 export function itemSynopsis(item) {
-  return item?.synopsis || item?.sinopse || item?.overview || item?.description || item?.plot || "";
+  return cleanText(item?.synopsis || item?.sinopse || item?.overview || item?.description || item?.plot || "");
 }
 export function itemBanner(item) {
   return item?.banner || item?.bannerImage || item?.backdrop || item?.backdropUrl || "";

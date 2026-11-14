@@ -3,7 +3,7 @@ import { fetchMediaDetails } from "../../api/details";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useLang } from "../../contexts/LangContext";
 import { MEDIA_TYPES, getMediaTypeLabel } from "../../config/constants";
-import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, monthsSince, seededRandom, dayNumber } from "./homeUtils";
+import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, cleanText, monthsSince, seededRandom, dayNumber } from "./homeUtils";
 import { useHomePicks } from "./useHomePicks";
 
 function Cover({ item, w, h, darkMode }) {
@@ -59,7 +59,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
   const heroCard = hero && (() => {
     const banner = itemBanner(hero) || heroExtra?.bannerImage || "";
     const bg = banner || hero.customCover || hero.cover || "";
-    const syn = heroExtra?.synopsis || itemSynopsis(hero);
+    const syn = cleanText(heroExtra?.synopsis) || itemSynopsis(hero);
     const meta = [getMediaTypeLabel(hero.type, lang), hero.year, heroExtra?.runtime].filter(Boolean).join(" · ");
     const waited = monthsSince(hero.addedAt);
     const chips = [...(hero.genres || []).slice(0, 3), waited >= 1 ? (lang === "en" ? `Planned ${waited}m ago` : `Planeado há ${waited}m`) : null].filter(Boolean);
