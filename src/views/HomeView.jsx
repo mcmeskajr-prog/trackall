@@ -26,15 +26,14 @@ export function HomeView({ onOpenFriendItem, onOpenFriend, view, setView, profil
         {hasQuick && <HomeQuickPicks items={items} homeDashboard={homeDashboard} personalRecos={personalRecos} setSelectedItem={setSelectedItem} />}
         {!hasItems && <HomeEmpty setView={setView} />}
         {hasItems && <HomeRows items={items} library={library} homeFilter={homeFilter} setView={setView} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />}
-        <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: isMobileDevice ? 0 : 56, padding: `0 ${pad}px`, alignItems: "start" }}>
-          <div style={{ minWidth: 0, overflow: "hidden", margin: "-18px -16px 0", padding: "18px 16px 28px" }}>
-            <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onOpenFriend={onOpenFriend} onSeeAll={() => setView("friends")} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <HomeWhenToConsume items={items} setSelectedItem={setSelectedItem} />
-          </div>
+        <style>{`.home-feed-wrap:empty{display:none}`}</style>
+        <div className="home-feed-wrap" style={{ padding: `0 ${pad}px 28px` }}>
+          <HomeFriendsFeed user={user} onOpenItem={onOpenFriendItem} onOpenFriend={onOpenFriend} onSeeAll={() => setView("friends")} />
         </div>
-        <HomeGraveyard items={items} user={user} setLibrary={setLibrary} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} setSelectedItem={setSelectedItem} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(440px, 100%), 1fr))", gap: isMobileDevice ? 28 : 32, padding: `0 ${pad}px 28px`, alignItems: "stretch" }}>
+          <HomeWhenToConsume embedded items={items} setSelectedItem={setSelectedItem} setView={setView} setFilterStatus={setFilterStatus} />
+          <HomeGraveyard embedded items={items} user={user} setLibrary={setLibrary} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} setSelectedItem={setSelectedItem} />
+        </div>
         <HomeInsights items={items} />
         <HomeRecos recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} library={library} setSelectedItem={setSelectedItem} />
       </div>

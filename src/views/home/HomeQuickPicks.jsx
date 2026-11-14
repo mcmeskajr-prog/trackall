@@ -67,13 +67,13 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     return (
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
         style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, minHeight: isMobileDevice ? 160 : 256 }}>
-        {bg && <div aria-hidden style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: isMobileDevice ? "100%" : "66%", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: banner ? "center 30%" : "center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.4 : (banner ? 0.92 : 0.7), WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 58%)", maskImage: "linear-gradient(90deg, transparent 0%, #000 58%)", pointerEvents: "none" }} />}
+        {bg && <div aria-hidden style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: isMobileDevice ? "100%" : "62%", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.32 : (banner ? 0.92 : 0.7), WebkitMaskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, transparent 22%, #000 62%)", maskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, transparent 22%, #000 62%)", pointerEvents: "none" }} />}
 
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
           <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>
             <Cover item={hero} w={isMobileDevice ? 84 : 140} h={isMobileDevice ? 126 : 210} darkMode={darkMode} />
           </div>
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 760, padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 600, textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 16px rgba(0,0,0,0.55)", padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, border: `1px solid ${accent}66`, background: `${accent}14`, borderRadius: HOME_R, padding: "4px 10px" }}>{lang === "en" ? "Best for today" : "Melhor para hoje"}</span>
               <span style={{ fontSize: 12, color: muted }}>{meta}</span>
@@ -85,7 +85,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
                 {chips.map((c) => <span key={c} style={{ fontSize: 11.5, fontWeight: 700, color: darkMode ? "#c3c9d3" : "#475569", border: `1px solid ${homeLineStrong(darkMode)}`, borderRadius: HOME_R, padding: "3px 9px" }}>{c}</span>)}
               </div>
             )}
-            {syn ? <p style={{ fontSize: isMobileDevice ? 12 : 13.5, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>
+            {syn ? <p style={{ fontSize: isMobileDevice ? 12 : 13.5, lineHeight: 1.55, color: darkMode ? "#d0d6df" : "#334155", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>
               : !isMobileDevice && <p style={{ fontSize: 13.5, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0 }}>{lang === "en" ? "Your strongest pick right now, based on your ratings, favourite genres and how long it has been waiting." : "A tua aposta mais forte neste momento, pela tua média, os teus géneros e o tempo que está à espera."}</p>}
           </div>
         </div>

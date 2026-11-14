@@ -19,8 +19,9 @@ const stripPersonal = (it) => {
 
 // Faixa «Amigos acabaram de completar» da Home: capas com nota, quem, quando, e etiquetas ♥ / 🌸
 export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
-  const { accent, darkMode } = useTheme();
+  const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang } = useLang();
+  const cardW = isMobileDevice ? "clamp(90px, 26vw, 130px)" : 150;
   const en = lang === "en";
   const fresh = cache.uid === user?.id && Date.now() - cache.ts < 120000;
   const [state, setState] = useState(cache.uid === user?.id ? cache : null);
@@ -70,11 +71,11 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
           const src = it.customCover || it.cover || it.thumbnailUrl;
           const tag = tagOf(it);
           return (
-            <div key={`${it.userId}|${it.id}`} style={{ width: 108, flexShrink: 0 }}>
-              <div className="recent-card" style={{ width: 108, height: 162 }}>
+            <div key={`${it.userId}|${it.id}`} style={{ width: cardW, flexShrink: 0 }}>
+              <div className="recent-card" style={{ width: "100%", aspectRatio: "2 / 3" }}>
                 <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
                 onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
-                style={{ position: "relative", width: 108, height: 162, borderRadius: 3, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id) }}>
+                style={{ position: "relative", width: "100%", height: "100%", borderRadius: 3, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id) }}>
                 {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
                 {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 7px", borderRadius: 2, background: "rgba(0,0,0,0.7)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
