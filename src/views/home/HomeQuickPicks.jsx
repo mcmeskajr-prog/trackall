@@ -73,7 +73,12 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
 
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
           <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>
-            <Cover item={hero} w={isMobileDevice ? 84 : 140} h={isMobileDevice ? 126 : 210} darkMode={darkMode} />
+            {/* Só a capa se inclina ao seguir o rato (como no Hall of Fame). Sem zoom (scale 1) para a imagem não perder nitidez */}
+            {isMobileDevice
+              ? <Cover item={hero} w={84} h={126} darkMode={darkMode} />
+              : <TiltCard maxTilt={8} scale={1} glare glareOpacity={0.12} style={{ width: 140, height: 210, flexShrink: 0, borderRadius: HOME_R, backfaceVisibility: "hidden" }}>
+                  <Cover item={hero} w={140} h={210} darkMode={darkMode} />
+                </TiltCard>}
           </div>
           <div style={{ minWidth: 0, flex: 1, maxWidth: 600, textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 16px rgba(0,0,0,0.55)", padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -97,8 +102,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
         )}
       </div>
     );
-    // No PC o cartão inclina-se ao seguir o rato (como no Hall of Fame), de forma subtil por ser largo
-    return isMobileDevice ? card : <TiltCard maxTilt={2.2} scale={1.004} glare glareOpacity={0.05} style={{ borderRadius: HOME_R }}>{card}</TiltCard>;
+    return card;
   })();
 
   const shortcutRow = shortcuts.length > 0 && (
