@@ -40,7 +40,9 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
         const ids = Object.keys(infoById);
         if (!ids.length) { cache = { uid: user.id, ts: Date.now(), rows: [], infoById, hi: { fav: new Set(), hall: new Set() } }; if (!dead) setState(cache); return; }
         const [act, hi] = await Promise.all([supa.getFriendsActivity(ids, 60), fetchFriendHighlights(supabase, ids)]);
-        const rows = act.filter(i => i.userStatus === "completo").slice(0, 10);
+        // No máximo 2 por amigo, para o feed não ser só uma pessoa
+        const perFriend = {};
+        const rows = act.filter(i => i.userStatus === "completo" && (perFriend[i.userId] = (perFriend[i.userId] || 0) + 1) <= 2).slice(0, 10);
         cache = { uid: user.id, ts: Date.now(), rows, infoById, hi };
         if (!dead) setState(cache);
       } catch (e) { console.warn("[TrackAll] feed da Home:", e?.message || e); }

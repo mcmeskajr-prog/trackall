@@ -3,7 +3,7 @@ import { fetchMediaDetails } from "../../api/details";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useLang } from "../../contexts/LangContext";
 import { MEDIA_TYPES, getMediaTypeLabel } from "../../config/constants";
-import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, cleanText, monthsSince, seededRandom, dayNumber } from "./homeUtils";
+import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, cleanText, monthsSince, seededRandom, dayNumber, ratingOf10 } from "./homeUtils";
 import { useHomePicks } from "./useHomePicks";
 
 function Cover({ item, w, h, darkMode }) {
@@ -16,7 +16,7 @@ function Cover({ item, w, h, darkMode }) {
   );
 }
 
-const rating = (item) => (item.userRating > 0 ? item.userRating : item.score);
+const rating = ratingOf10;
 
 // «Melhor para hoje» (cartão clicável, com fundo) + 4 atalhos em linha.
 export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelectedItem }) {

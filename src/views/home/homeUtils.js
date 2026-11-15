@@ -61,3 +61,11 @@ export function itemBanner(item) {
 
 // Linhas clicáveis das listas (Quando consumir, Nunca vais consumir): realce, seta que aparece e foco por teclado.
 export const homeRowCss = (accent) => `.home-row{transition:background .15s,transform .15s;cursor:pointer}.home-row .row-go{opacity:.55;transition:opacity .15s,transform .15s}@media (hover:hover){.home-row:hover{background:${accent}14}.home-row:hover .row-go{opacity:1;transform:translateX(3px);color:${accent}}.home-row:hover .row-title{color:${accent}}}.home-row:focus-visible{outline:2px solid ${accent};outline-offset:-2px}.home-row:active{background:${accent}22}.home-danger{transition:all .15s}@media (hover:hover){.home-danger:hover{border-color:#e74c3c !important;color:#e74c3c !important;background:rgba(231,76,60,.1) !important}}`;
+
+// Nota na escala 0-10: as notas externas (AniList, etc.) vêm por vezes em 0-100.
+export const ratingOf10 = (item) => {
+  const v = item?.userRating > 0 ? item.userRating : (item?.score || 0);
+  if (!(v > 0)) return 0;
+  const n = v > 10 ? v / 10 : v;
+  return Math.round(n * 10) / 10;
+};

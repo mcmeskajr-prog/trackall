@@ -12,9 +12,9 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
 
   // Esqueleto só no primeiro carregamento (loading E ainda sem dados). Com dados já na lista, mostra-os mesmo durante um refresh.
   if (loading && (!items || items.length === 0)) return (
-    <div style={{ padding: "0 16px 28px" }} aria-busy="true">
+    <div style={{ padding: `0 ${isMobileDevice ? 16 : 24}px 24px` }} aria-busy="true">
       <SkeletonStyles />
-      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+      <h3 style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.005em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}><span aria-hidden style={{ color: accent, fontSize: 13 }}>{icon}</span>{title}</h3>
       <div style={{ display: "flex", gap: 10, overflow: "hidden" }}>
         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
           <div key={i} style={{ flexShrink: 0, width: 100 }}>
@@ -32,8 +32,8 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
   if (toShow.length === 0) return null;
 
   return (
-    <div style={{ padding: "0 16px 28px" }}>
-      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+    <div style={{ padding: `0 ${isMobileDevice ? 16 : 24}px 24px` }}>
+      <h3 style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.005em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}><span aria-hidden style={{ color: accent, fontSize: 13 }}>{icon}</span>{title}</h3>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {toShow.map(item => (
           <div key={item.id}

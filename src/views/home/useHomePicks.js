@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { dayNumber, pickDiverse, SIX_MONTHS, THREE_MONTHS } from "./homeUtils";
+import { dayNumber, pickDiverse, SIX_MONTHS, THREE_MONTHS, ratingOf10 } from "./homeUtils";
 
 // Guarda no aparelho o que já foi sugerido, para «Melhor para hoje» e «Esquecido na lista» não rodarem sempre nos mesmos títulos.
 // A sugestão fica estável durante o dia; muda no dia seguinte ou quando o utilizador carrega em ↻.
@@ -41,7 +41,7 @@ export function useHomePicks(items) {
   completed.forEach((i) => (i.genres || []).forEach((g) => { gc[g] = (gc[g] || 0) + 1; }));
   const planned = items.filter(isPlanned);
   const score = (i) => {
-    const r = i.userRating > 0 ? i.userRating : (i.score || 0);
+    const r = ratingOf10(i);
     const aff = (i.genres || []).reduce((s, g) => s + (gc[g] || 0), 0);
     const wait = Math.min(12, (now - (i.addedAt || now)) / (1000 * 60 * 60 * 24 * 30));
     return r + Math.min(aff, 10) * 0.6 + wait * 0.25;

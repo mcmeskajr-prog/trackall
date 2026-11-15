@@ -21,7 +21,7 @@ export function HomeGraveyard({ items, user, setLibrary, graveyardOpen, setGrave
   }).map((i) => {
     const outOfPattern = topGenres.size > 0 && !(i.genres || []).some((g) => topGenres.has(g));
     const monthsOld = Math.floor((now - (i.addedAt || now)) / (1000 * 60 * 60 * 24 * 30));
-    const reason = outOfPattern ? (lang === "en" ? "out of your pattern" : "fora do teu padrão") : (lang === "en" ? `forgotten for ${monthsOld}m` : `esquecido há ${monthsOld}m`);
+    const reason = outOfPattern ? (lang === "en" ? "out of your pattern" : "fora do teu padrão") : null;
     return { ...i, reason, monthsOld };
   }).sort((a, b) => b.monthsOld - a.monthsOld);
   if (graveyard.length === 0) return null;
@@ -52,7 +52,7 @@ export function HomeGraveyard({ items, user, setLibrary, graveyardOpen, setGrave
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 11, color: homeMuted(darkMode) }}>{getMediaTypeLabel(item.type, lang)} · {lang === "en" ? `added ${item.monthsOld}m ago` : `adicionado há ${item.monthsOld}m`}</div>
                 <div className="row-title" style={{ fontSize: 14.5, fontWeight: 800, color: homeText(darkMode), margin: "2px 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", transition: "color .15s" }}>{item.title}</div>
-                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#e2a84a", border: "1px solid rgba(226,168,74,0.4)", borderRadius: HOME_R, padding: "2px 7px", whiteSpace: "nowrap" }}>{item.reason}</span>
+                {item.reason && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#e2a84a", border: "1px solid rgba(226,168,74,0.4)", borderRadius: HOME_R, padding: "2px 7px", whiteSpace: "nowrap" }}>{item.reason}</span>}
               </div>
               <button className="home-danger" onClick={(e) => { e.stopPropagation(); removeItem(item); }} title={lang === "en" ? "Remove from library" : "Remover da biblioteca"} style={{ fontSize: 11.5, fontWeight: 700, padding: isMobileDevice ? "10px 12px" : "7px 12px", borderRadius: HOME_R, border: `1px solid ${line}`, background: "transparent", color: homeMuted(darkMode), cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
                 {lang === "en" ? "Remove" : "Remover"}
