@@ -13,22 +13,26 @@ async function cvFetch(workerUrl, query, resources) {
 const normName = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const isCollected = (c) => /^(trade paperback|hardcover|omnibus|collect|reprint)/i.test(c.deck || "") && (c.count_of_issues || 0) <= 1;
 
-// O ComicVine tem muitas "séries" com o mesmo nome (edições de coleção, outros países, variantes).
-// Junta-as numa só — fica a que tem mais edições — e deixa de fora as coleções de 1 edição.
+// O ComicVine tem muitas "séries" repetidas (edições de coleção, outros países, variantes).
+// Série com o mesmo nome E o mesmo ano → fica a que tem mais edições. Coleções de 1 edição saem.
+// Séries com o mesmo nome mas anos diferentes (ex.: Batman 1940, 2011, 2016) são corridas diferentes e ficam todas.
+// As maiores (mais edições) aparecem primeiro.
 export function cleanVolumes(list) {
   const arr = list.filter((c) => c?.name);
   const pool = arr.filter((c) => !isCollected(c));
   const base = pool.length ? pool : arr;
+  const score = (x) => (x.count_of_issues || 0) * 10 + (x.image ? 1 : 0);
   const best = new Map();
   for (const c of base) {
-    const k = normName(c.name);
+    const k = `${normName(c.name)}|${c.start_year || ""}`;
     const cur = best.get(k);
-    const score = (x) => (x.count_of_issues || 0) * 10 + (x.image ? 1 : 0);
     if (!cur || score(c) > score(cur)) best.set(k, c);
   }
-  // mantém a ordem original da API (relevância)
   const keep = new Set(best.values());
-  return base.filter((c) => keep.has(c)).slice(0, 16);
+  return base
+    .filter((c) => keep.has(c))
+    .sort((x, y) => (y.count_of_issues || 0) - (x.count_of_issues || 0))
+    .slice(0, 20);
 }
 
 export async function searchComicVine(query, workerUrl) {
