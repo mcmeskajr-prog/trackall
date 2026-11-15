@@ -553,6 +553,18 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.pages}</span>
                     </div>
                   )}
+                  {detailExtra?.series && (
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Série:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.series}</span>
+                    </div>
+                  )}
+                  {detailExtra?.firstIssue && (
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Edições:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.firstIssue}{detailExtra.lastIssue && detailExtra.lastIssue !== detailExtra.firstIssue ? ` → ${detailExtra.lastIssue}` : ""}</span>
+                    </div>
+                  )}
                   {detailExtra?.publisher && (
                     <div style={{ marginTop: 4 }}>
                       <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Editora:</span>

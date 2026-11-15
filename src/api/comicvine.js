@@ -17,7 +17,7 @@ export async function searchComicVine(query, workerUrl) {
     score: null,
     synopsis: (c.deck || "").slice(0, 220),
     genres: [],
-    extra: c.publisher?.name || "",
+    extra: [c.publisher?.name, c.count_of_issues ? `${c.count_of_issues} ed.` : ""].filter(Boolean).join(" · "),
     source: "ComicVine",
   }));
 }

@@ -1,7 +1,7 @@
 import { searchAniList } from './anilist';
 import { searchTMDB } from './tmdb';
 import { searchIGDB, searchSteam } from './igdb';
-import { searchGoogleBooks } from './books';
+import { searchGoogleBooks, searchOpenLibrary } from './books';
 import { searchComicVine } from './comicvine';
 
 // ─── Cache de pesquisas ─────────────────────────────────────────────────────────
@@ -44,7 +44,17 @@ export async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "lightnovels") { const r = await searchAniList(query, "lightnovels", keys.workerUrl, "NOVEL"); results = r; }
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
-    else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
+    else if (mediaType === "livros") {
+      results = await searchGoogleBooks(query, keys.workerUrl);
+      // Poucos resultados no Google → junta o Open Library (sem repetir títulos já encontrados)
+      if ((results?.length || 0) < 3) {
+        const ol = await searchOpenLibrary(query, keys.workerUrl).catch(() => null);
+        if (ol?.length) {
+          const have = new Set((results || []).map((r) => normalizeForMatch(r.title)));
+          results = [...(results || []), ...ol.filter((r) => !have.has(normalizeForMatch(r.title)))];
+        }
+      }
+    }
     else if (mediaType === "jogos") {
       results = await searchIGDB(query, keys.workerUrl);
       if (!results?.length) results = await searchSteam(query, keys.workerUrl);
