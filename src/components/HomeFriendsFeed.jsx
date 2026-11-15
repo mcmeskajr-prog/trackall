@@ -101,11 +101,9 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
                 <FriendAvatar src={info.avatar} name={info.name || info.username} size={20} ring={accent} ringWidth={1.5} />
                 <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
+                {tag && <span className="no-tc" title={tag.label} aria-label={tag.label} style={{ flexShrink: 0, fontSize: 12, lineHeight: 1, color: tag.c }}>{tag.icon}</span>}
                 <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>
               </button>
-              <div style={{ marginTop: 1, minHeight: 14 }}>
-                {tag && <span className="no-tc" style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "0 0 0 3px", fontSize: 10, fontWeight: 700, color: tag.c, opacity: 0.8 }}>{tag.icon} {tag.label}</span>}
-              </div>
             </div>
           );
         })}
