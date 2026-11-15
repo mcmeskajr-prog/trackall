@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// TrackAll proxy (Cloudflare Worker) — v7.0
+// TrackAll proxy (Cloudflare Worker) — v7.1
 //
 // Este ficheiro é a cópia versionada do worker. NÃO é publicado pela Vercel:
 // para entrar em vigor, cola-o em Cloudflare → Workers → trackall-proxy → Edit code → Deploy.
@@ -9,6 +9,9 @@
 //  • /openlibrary/search e /openlibrary/work  (livros — sem chave)
 //  • /comicvine-volume                         (detalhe completo de uma série de comics)
 //  • /hardcover/search                         (livros — precisa do segredo HARDCOVER_TOKEN)
+//  • v7.1: /comicvine aceita resources=story_arc (arcos), /comicvine-volume devolve personagens (com imagem) e usa a
+//          descrição da 1.ª edição quando a da série vem vazia, /comicvine-arc (detalhe de um arco),
+//          /openlibrary/search aceita author= (pesquisa por autor)
 //  • /health passa a indicar openLibrary e hardcover
 //  • Pequena cache em memória (e Cache API quando disponível) para poupar limites das APIs
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,9 +212,12 @@ export default {
     if (path === "/comicvine" && request.method === "GET") {
       const query = url.searchParams.get("q");
       if (!query) return json({ error: "Parametro q obrigatorio" }, 400, corsHeaders);
+      // resources: "volume" (séries, por omissão) ou "story_arc" (arcos / eventos)
+      const resources = url.searchParams.get("resources") === "story_arc" ? "story_arc" : "volume";
+      const fields = resources === "story_arc" ? "id,name,image,deck,publisher" : "id,name,image,start_year,deck,publisher,count_of_issues";
       try {
         if (!env.COMICVINE_KEY) return json({ error: "ComicVine nao configurado." }, 500, corsHeaders);
-        const resp = await fetch(`https://comicvine.gamespot.com/api/search/?api_key=${env.COMICVINE_KEY}&format=json&query=${encodeURIComponent(query)}&resources=volume&field_list=id,name,image,start_year,deck,publisher,count_of_issues&limit=24`, { headers: { "User-Agent": "TrackAll/1.0" } });
+        const resp = await fetch(`https://comicvine.gamespot.com/api/search/?api_key=${env.COMICVINE_KEY}&format=json&query=${encodeURIComponent(query)}&resources=${resources}&field_list=${fields}&limit=24`, { headers: { "User-Agent": "TrackAll/1.0" } });
         if (!resp.ok) return json({ error: `ComicVine erro ${resp.status}` }, resp.status, corsHeaders);
         return json(await resp.json(), 200, corsHeaders);
       } catch (e) {
@@ -219,34 +225,91 @@ export default {
       }
     }
 
-    // NOVO — detalhe completo de uma série (volume) do ComicVine
+    // NOVO — detalhe completo de uma série (volume) do ComicVine, com personagens e descrição de recurso
     if (path === "/comicvine-volume" && request.method === "GET") {
       const id = url.searchParams.get("id") || "";
       if (!/^\d{1,9}$/.test(id)) return json({ error: "Parametro id invalido" }, 400, corsHeaders);
       try {
         if (!env.COMICVINE_KEY) return json({ error: "ComicVine nao configurado." }, 500, corsHeaders);
-        const data = await cached(`cvvol:${id}`, 7 * DAY, async () => {
-          const j = await fetchJson(
-            `https://comicvine.gamespot.com/api/volume/4050-${id}/?api_key=${env.COMICVINE_KEY}&format=json&field_list=id,name,description,deck,image,start_year,publisher,count_of_issues,first_issue,last_issue`,
-            { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+        const data = await cached(`cvvol2:${id}`, 7 * DAY, async () => {
+          const cv = (p) => fetchJson(`https://comicvine.gamespot.com/api/${p}${p.includes("?") ? "&" : "?"}api_key=${env.COMICVINE_KEY}&format=json`, { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+          const j = await cv(`volume/4050-${id}/?field_list=id,name,description,deck,image,start_year,publisher,count_of_issues,first_issue,last_issue,characters`);
           const r = j && j.results;
           if (!r || Array.isArray(r)) throw new UpstreamError(404, "ComicVine: volume nao encontrado");
+          let description = htmlToText(r.description);
+          // Descrição da série vazia → usa a da 1.ª edição (costuma estar preenchida)
+          if (!description && r.first_issue && r.first_issue.id) {
+            try {
+              const ij = await cv(`issue/4000-${r.first_issue.id}/?field_list=description,deck`);
+              description = htmlToText(ij.results && ij.results.description) || (ij.results && ij.results.deck) || "";
+            } catch (e) {
+            }
+          }
+          // Personagens: as 12 com mais aparições; uma segunda chamada traz as imagens
+          const chars = (Array.isArray(r.characters) ? r.characters : [])
+            .sort((x, y) => (parseInt(y.count, 10) || 0) - (parseInt(x.count, 10) || 0))
+            .slice(0, 12);
+          let characters = chars.map((c) => ({ id: c.id, name: c.name || "", image: null }));
+          if (chars.length) {
+            try {
+              const cj = await cv(`characters/?filter=id:${chars.map((c) => c.id).join("|")}&field_list=id,name,image&limit=12`);
+              const byId = {};
+              for (const c of (cj.results || [])) byId[c.id] = c;
+              characters = chars.map((c) => ({
+                id: c.id,
+                name: (byId[c.id] && byId[c.id].name) || c.name || "",
+                image: (byId[c.id] && byId[c.id].image && (byId[c.id].image.medium_url || byId[c.id].image.small_url)) || null
+              }));
+            } catch (e) {
+            }
+          }
           return {
             id: r.id,
             name: r.name || "",
-            description: htmlToText(r.description) || r.deck || "",
+            description: description || r.deck || "",
             deck: r.deck || "",
             image: r.image || null,
             startYear: r.start_year || "",
             publisher: (r.publisher && r.publisher.name) || "",
             countOfIssues: r.count_of_issues || 0,
             firstIssue: r.first_issue ? { name: r.first_issue.name || "", number: r.first_issue.issue_number || "" } : null,
-            lastIssue: r.last_issue ? { name: r.last_issue.name || "", number: r.last_issue.issue_number || "" } : null
+            lastIssue: r.last_issue ? { name: r.last_issue.name || "", number: r.last_issue.issue_number || "" } : null,
+            characters
           };
         });
         return json(data, 200, corsHeaders);
       } catch (e) {
         return json({ error: "Erro ComicVine volume", detail: e.message }, e instanceof UpstreamError ? e.status : 500, corsHeaders);
+      }
+    }
+
+    // NOVO — detalhe de um arco narrativo (story arc) do ComicVine
+    if (path === "/comicvine-arc" && request.method === "GET") {
+      const id = url.searchParams.get("id") || "";
+      if (!/^\d{1,9}$/.test(id)) return json({ error: "Parametro id invalido" }, 400, corsHeaders);
+      try {
+        if (!env.COMICVINE_KEY) return json({ error: "ComicVine nao configurado." }, 500, corsHeaders);
+        const data = await cached(`cvarc:${id}`, 7 * DAY, async () => {
+          const j = await fetchJson(
+            `https://comicvine.gamespot.com/api/story_arc/4045-${id}/?api_key=${env.COMICVINE_KEY}&format=json&field_list=id,name,description,deck,image,publisher,first_appeared_in_issue,issues`,
+            { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+          const r = j && j.results;
+          if (!r || Array.isArray(r)) throw new UpstreamError(404, "ComicVine: arco nao encontrado");
+          const issues = Array.isArray(r.issues) ? r.issues : [];
+          return {
+            id: r.id,
+            name: r.name || "",
+            description: htmlToText(r.description) || r.deck || "",
+            deck: r.deck || "",
+            image: r.image || null,
+            publisher: (r.publisher && r.publisher.name) || "",
+            issueCount: issues.length,
+            firstIssue: r.first_appeared_in_issue ? { name: r.first_appeared_in_issue.name || "", number: r.first_appeared_in_issue.issue_number || "" } : null
+          };
+        });
+        return json(data, 200, corsHeaders);
+      } catch (e) {
+        return json({ error: "Erro ComicVine arco", detail: e.message }, e instanceof UpstreamError ? e.status : 500, corsHeaders);
       }
     }
 
@@ -315,13 +378,14 @@ export default {
 
     // NOVO — Open Library: pesquisa (sem chave)
     if (path === "/openlibrary/search" && request.method === "GET") {
-      const q = (url.searchParams.get("q") || "").trim();
+      const author = (url.searchParams.get("author") || "").trim();
+      const q = author || (url.searchParams.get("q") || "").trim();
       if (!q) return json({ error: "Parametro q obrigatorio" }, 400, corsHeaders);
       const limit = Math.min(24, Math.max(1, parseInt(url.searchParams.get("limit") || "12", 10) || 12));
       try {
-        const data = await cached(`ols:${q.toLowerCase()}:${limit}`, DAY, async () => {
+        const data = await cached(`ols:${author ? "a:" : ""}${q.toLowerCase()}:${limit}`, DAY, async () => {
           const j = await fetchJson(
-            `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=${limit}&fields=key,title,author_name,first_publish_year,cover_i,isbn,subject,ratings_average,ratings_count`,
+            `https://openlibrary.org/search.json?${author ? "author" : "q"}=${encodeURIComponent(q)}&limit=${limit}&fields=key,title,author_name,first_publish_year,cover_i,isbn,subject,ratings_average,ratings_count`,
             { headers: { "User-Agent": UA, "Accept": "application/json" } }, "Open Library");
           return {
             results: (j.docs || []).map((d) => ({
@@ -498,7 +562,7 @@ export default {
     if (path === "/health") {
       return json({
         status: "ok",
-        version: "v7.0",
+        version: "v7.1",
         igdb: !!(env.IGDB_CLIENT_ID && (env.IGDB_ACCESS_TOKEN || env.IGDB_CLIENT_SECRET)),
         igdbAutoRefresh: !!env.IGDB_CLIENT_SECRET,
         comicvine: !!env.COMICVINE_KEY,

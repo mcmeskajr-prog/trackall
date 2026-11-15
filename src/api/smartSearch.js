@@ -1,7 +1,7 @@
 import { searchAniList } from './anilist';
 import { searchTMDB } from './tmdb';
 import { searchIGDB, searchSteam } from './igdb';
-import { searchGoogleBooks, searchOpenLibrary } from './books';
+import { searchGoogleBooks, searchOpenLibrary, parseAuthorQuery } from './books';
 import { searchComicVine } from './comicvine';
 
 // ─── Cache de pesquisas ─────────────────────────────────────────────────────────
@@ -36,6 +36,10 @@ export async function smartSearch(query, mediaType, keys = {}) {
   const ck = cacheKey(query, mediaType);
   if (CACHE.has(ck)) return CACHE.get(ck);
 
+  // "autor: Nome" só faz sentido nos livros; nos outros tipos não há resultados
+  const ap = parseAuthorQuery(query);
+  if (ap.author && mediaType !== "livros") return [];
+
   let results = null;
   try {
     if (mediaType === "anime") results = await searchAniList(query, "anime", keys.workerUrl);
@@ -45,10 +49,10 @@ export async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
     else if (mediaType === "livros") {
-      results = await searchGoogleBooks(query, keys.workerUrl);
+      results = await searchGoogleBooks(ap.q, keys.workerUrl, { author: ap.author });
       // Poucos resultados no Google → junta o Open Library (sem repetir títulos já encontrados)
       if ((results?.length || 0) < 3) {
-        const ol = await searchOpenLibrary(query, keys.workerUrl).catch(() => null);
+        const ol = await searchOpenLibrary(ap.q, keys.workerUrl, { author: ap.author }).catch(() => null);
         if (ol?.length) {
           const have = new Set((results || []).map((r) => normalizeForMatch(r.title)));
           results = [...(results || []), ...ol.filter((r) => !have.has(normalizeForMatch(r.title)))];
@@ -65,7 +69,7 @@ export async function smartSearch(query, mediaType, keys = {}) {
   }
 
   if (results?.length) {
-    results = sortByRelevance(results, query);
+    if (!ap.author) results = sortByRelevance(results, query);
     CACHE.set(ck, results);
     if (CACHE.size > 50) CACHE.delete(CACHE.keys().next().value);
     return results;

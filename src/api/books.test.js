@@ -41,3 +41,15 @@ describe("mergeBookExtras", () => {
     expect(m.score).toBeNull();
   });
 });
+
+import { parseAuthorQuery } from "./books";
+describe("parseAuthorQuery", () => {
+  it("reconhece o prefixo autor: / author:", () => {
+    expect(parseAuthorQuery("autor: Stephen King")).toEqual({ author: true, q: "Stephen King" });
+    expect(parseAuthorQuery("Author:Frank Herbert")).toEqual({ author: true, q: "Frank Herbert" });
+  });
+  it("pesquisa normal não é de autor", () => {
+    expect(parseAuthorQuery("Dune")).toEqual({ author: false, q: "Dune" });
+    expect(parseAuthorQuery("o autor desconhecido")).toEqual({ author: false, q: "o autor desconhecido" });
+  });
+});

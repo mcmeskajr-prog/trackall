@@ -440,7 +440,14 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     {currentItem.title}
                   </h2>
                   {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
-                  {currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
+                  {currentItem.extra && currentItem.type === "livros" ? (
+                    <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra.split(", ").map((a, i, arr) => (
+                      <span key={a + i}>
+                        <button type="button" title={`Ver livros de ${a}`} onClick={() => { try { window.dispatchEvent(new CustomEvent("trackall:search-author", { detail: a })); } catch {} }}
+                          style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(139,148,158,0.4)", textUnderlineOffset: 3 }}>{a}</button>{i < arr.length - 1 ? ", " : ""}
+                      </span>
+                    ))}</p>
+                  ) : currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
                   {!isMobileDevice && currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                       {currentItem.genres.slice(0, 6).map((g) => (

@@ -165,7 +165,23 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
         issueCount: vol.countOfIssues || null,
         firstIssue: issueTxt(vol.firstIssue) || null,
         lastIssue: issueTxt(vol.lastIssue) || null,
-        cast: [],
+        cast: (vol.characters || []).map((c) => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image || null, role: "CHARACTER" })),
+      };
+    }
+
+    // ComicVine — arco narrativo / evento (story arc)
+    if (id.startsWith("cva-")) {
+      const arcId = id.replace("cva-", "");
+      if (!/^\d+$/.test(arcId)) return null;
+      const res = await fetch(`${wUrl}/comicvine-arc?id=${arcId}`).catch(() => null);
+      if (!res || !res.ok) return null;
+      const arc = await res.json();
+      if (!arc || arc.error) return null;
+      return {
+        synopsis: arc.description || null,
+        publisher: arc.publisher || null,
+        issueCount: arc.issueCount || null,
+        firstIssue: arc.firstIssue ? [arc.firstIssue.number ? `#${arc.firstIssue.number}` : "", arc.firstIssue.name || ""].filter(Boolean).join(" ") : null,
       };
     }
 

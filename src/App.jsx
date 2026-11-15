@@ -1846,6 +1846,21 @@ export default function TrackAll() {
     }
   }, [tmdbKey, workerUrl]);
 
+  // Clicar no nome de um autor (no detalhe de um livro) pesquisa os livros dele
+  useEffect(() => {
+    const onAuthor = (e) => {
+      const name = String(e.detail || "").trim();
+      if (!name) return;
+      setSelectedItem(null);
+      setActiveTab("livros");
+      const q = `autor: ${name}`;
+      setSearchQuery(q);
+      doSearch(q, "livros");
+    };
+    window.addEventListener("trackall:search-author", onAuthor);
+    return () => window.removeEventListener("trackall:search-author", onAuthor);
+  }, [doSearch]);
+
   // Log quick-add search — respects quickSearchType filter
   const doLogSearch = useCallback(async (q) => {
     if (!q.trim()) { setLogResults([]); return; }

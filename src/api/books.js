@@ -1,8 +1,15 @@
 // ─── Google Books — Livros ─────────────────────────────────────────────────────
 
-export async function searchGoogleBooks(query, workerUrl) {
+// Pesquisa por autor: o utilizador escreve "autor: Nome" (o seletor Título | Autor da pesquisa põe o prefixo)
+export function parseAuthorQuery(q) {
+  const m = /^\s*(?:autor|author)\s*:\s*(.+?)\s*$/i.exec(q || "");
+  return m ? { author: true, q: m[1] } : { author: false, q: (q || "").trim() };
+}
+
+export async function searchGoogleBooks(query, workerUrl, { author = false } = {}) {
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
-  const res = await fetch(`${wUrl}/books?q=${encodeURIComponent(query)}&maxResults=24`);
+  const gq = author ? `inauthor:"${query.replace(/"/g, "")}"` : query;
+  const res = await fetch(`${wUrl}/books?q=${encodeURIComponent(gq)}&maxResults=24`);
   if (!res.ok) return null;
   const data = await res.json();
   if (!data.items?.length) return null;
@@ -62,8 +69,8 @@ export function pickMatch(results, title, author) {
   return null;
 }
 
-export async function searchOpenLibrary(query, workerUrl) {
-  const data = await getJson(`${wBase(workerUrl)}/openlibrary/search?q=${encodeURIComponent(query)}&limit=12`);
+export async function searchOpenLibrary(query, workerUrl, { author = false } = {}) {
+  const data = await getJson(`${wBase(workerUrl)}/openlibrary/search?${author ? "author" : "q"}=${encodeURIComponent(query)}&limit=${author ? 24 : 12}`);
   if (!data?.results?.length) return null;
   return data.results
     .filter((b) => b.key && b.title)
