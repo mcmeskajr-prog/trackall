@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { bannerFit, bannerFilter } from "../lib/bannerColors";
 
@@ -9,7 +9,8 @@ export function BannerFraming({ url, style, onStyle, lang, initialDevice = "pc",
   const th = useTheme();
   const accent = accentProp || th.accent, darkMode = th.darkMode;
   const en = lang === "en";
-  const [dev, setDev] = useState(initialDevice);
+  // Cada dispositivo só edita o seu: no telemóvel o do telemóvel, no PC o do PC
+  const dev = (initialDevice === "mobile" || th.isMobileDevice) ? "mobile" : "pc";
   const mob = dev === "mobile";
   const kx = mob ? "mfx" : "fx", ky = mob ? "mfy" : "fy", kz = mob ? "mz" : "z";
   const cur = (k, pk, d) => style[k] ?? (mob ? style[pk] : undefined) ?? d; // telemóvel sem valor próprio herda o do PC
@@ -36,17 +37,10 @@ export function BannerFraming({ url, style, onStyle, lang, initialDevice = "pc",
   };
   const up = () => { drag.current = null; };
   const fit = bannerFit(style, dev);
-  const btnSeg = (id, label) => {
-    const on = dev === id;
-    return <button key={id} type="button" onClick={() => setDev(id)} style={{ flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, background: on ? accent : "transparent", color: on ? "#fff" : muted }}>{label}</button>;
-  };
   return (
     <div>
-      <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 12, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)", border: `1px solid ${line}` }}>
-        {btnSeg("pc", "PC")}{btnSeg("mobile", en ? "Mobile" : "Telemóvel")}
-      </div>
       <div ref={frame} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        style={{ position: "relative", marginTop: 14, width: "100%", maxWidth: mob ? 340 : "100%", marginLeft: "auto", marginRight: "auto", height: mob ? 150 : 110, borderRadius: mob ? 18 : 12, overflow: "hidden", cursor: "grab", touchAction: "none", userSelect: "none", border: `1px solid ${line}`, opacity: shown ? 1 : 0.35 }}>
+        style={{ position: "relative", marginTop: 0, width: "100%", maxWidth: mob ? 340 : "100%", marginLeft: "auto", marginRight: "auto", height: mob ? 150 : 110, borderRadius: mob ? 18 : 12, overflow: "hidden", cursor: "grab", touchAction: "none", userSelect: "none", border: `1px solid ${line}`, opacity: shown ? 1 : 0.35 }}>
         <img src={url} alt="" draggable={false} onLoad={(e) => { nat.current = { w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight }; }}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...fit, filter: bannerFilter(style), pointerEvents: "none" }} />
         <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", padding: "6px 12px", borderRadius: 99, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 12, fontWeight: 700, pointerEvents: "none", whiteSpace: "nowrap", opacity: drag.current ? 0 : 0.9 }}>{en ? "Drag to frame" : "Arrasta para enquadrar"}</div>

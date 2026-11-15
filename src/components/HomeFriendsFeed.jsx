@@ -7,6 +7,9 @@ import { fetchFriendHighlights, timeAgo } from "../lib/friendHighlights";
 import { CoverImg } from "./CoverImg";
 import { FriendAvatar } from "./FriendAvatar";
 import { TypeIcon } from "./TypeIcon";
+import { MEDIA_TYPES, mediaLabel } from "../config/constants";
+
+const ratingText = (v) => { const n = v > 10 ? v / 10 : v; return Number.isInteger(n) ? String(n) : n.toFixed(1); };
 
 // Cópia em memória (voltar à Home não refaz os pedidos durante 2 min)
 let cache = { uid: "", ts: 0, rows: [], infoById: {}, hi: { fav: new Set(), hall: new Set() } };
@@ -19,8 +22,9 @@ const stripPersonal = (it) => {
 
 // Faixa «Amigos acabaram de completar» da Home: capas com nota, quem, quando, e etiquetas ♥ / 🌸
 export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
-  const { accent, darkMode } = useTheme();
+  const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang } = useLang();
+  const cardW = isMobileDevice ? "clamp(90px, 26vw, 130px)" : 150;
   const en = lang === "en";
   const fresh = cache.uid === user?.id && Date.now() - cache.ts < 120000;
   const [state, setState] = useState(cache.uid === user?.id ? cache : null);
@@ -38,7 +42,9 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
         const ids = Object.keys(infoById);
         if (!ids.length) { cache = { uid: user.id, ts: Date.now(), rows: [], infoById, hi: { fav: new Set(), hall: new Set() } }; if (!dead) setState(cache); return; }
         const [act, hi] = await Promise.all([supa.getFriendsActivity(ids, 60), fetchFriendHighlights(supabase, ids)]);
-        const rows = act.filter(i => i.userStatus === "completo").slice(0, 10);
+        // No máximo 2 por amigo, para o feed não ser só uma pessoa
+        const perFriend = {};
+        const rows = act.filter(i => i.userStatus === "completo" && (perFriend[i.userId] = (perFriend[i.userId] || 0) + 1) <= 2).slice(0, 10);
         cache = { uid: user.id, ts: Date.now(), rows, infoById, hi };
         if (!dead) setState(cache);
       } catch (e) { console.warn("[TrackAll] feed da Home:", e?.message || e); }
@@ -58,37 +64,46 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
 
   if (!rows.length) return null;
   return (
-    <div style={{ padding: "16px 0 8px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 800, color: text }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
-        {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0" }}>{en ? "See all ›" : "Ver tudo ›"}</button>}
+    <div style={{ padding: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 800, color: muted, whiteSpace: "nowrap" }}>{en ? "Friends just completed" : "Amigos acabaram de completar"}</div>
+        <span style={{ flex: 1, height: 1, background: darkMode ? "rgba(255,255,255,0.09)" : "rgba(15,23,42,0.12)" }} />
+        {onSeeAll && <button type="button" onClick={onSeeAll} style={{ background: "none", border: "none", color: accent, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>{en ? "See all →" : "Ver tudo →"}</button>}
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingTop: 14, paddingBottom: 30, paddingLeft: 16, paddingRight: 16, marginLeft: -16, marginTop: -14, marginBottom: -22 }}>
+      <style>{`.home-rail .card{border-radius:3px !important}.home-rail .media-thumb,.home-rail .media-thumb .rating-hover{border-radius:2px !important}`}</style>
+      <div className="recents-row home-rail" style={{ display: "flex", gap: isMobileDevice ? 8 : 14, overflowX: "auto", scrollbarWidth: "none", padding: "18px 16px 30px", margin: "-18px -16px -30px" }}>
         {rows.map(it => {
           const info = state.infoById[it.userId] || {};
           const src = it.customCover || it.cover || it.thumbnailUrl;
           const tag = tagOf(it);
           return (
-            <div key={`${it.userId}|${it.id}`} style={{ width: 108, flexShrink: 0 }}>
-              <div className="recent-card" style={{ width: 108, height: 162 }}>
-                <div onClick={() => onOpenItem && onOpenItem(stripPersonal(it))} role="button" tabIndex={0} title={it.title}
-                onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }}
-                style={{ position: "relative", width: 108, height: 162, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id), boxShadow: "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
-                {src ? <CoverImg src={src} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
-                {it.userRating > 0 && <div className="no-tc" style={{ position: "absolute", top: 8, right: 8, padding: "2px 8px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fbbf24", fontSize: 12, fontWeight: 800 }}>★ {it.userRating}</div>}
-                <div className="recent-hover-overlay no-tc" style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "34px 8px 8px", opacity: 0, transition: "opacity 0.18s ease", background: "linear-gradient(transparent, rgba(0,0,0,0.9))", color: "#fff", fontSize: 11.5, fontWeight: 800, lineHeight: 1.15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{it.title}</div>
-              </div>
+            <div key={`${it.userId}|${it.id}`} style={{ width: cardW, flexShrink: 0 }}>
+              {/* Mesmo cartão dos «Completados»: capa 2:3 + linha de categoria/ano por baixo */}
+              <div className="card" role="button" tabIndex={0} title={it.title} onClick={() => onOpenItem && onOpenItem(stripPersonal(it))}
+                onKeyDown={e => { if (e.key === "Enter") onOpenItem && onOpenItem(stripPersonal(it)); }} style={{ cursor: "pointer" }}>
+                <div className="media-thumb" style={{ width: "100%", aspectRatio: "2/3", background: gradientFor(it.id) }}>
+                  {src ? <CoverImg src={src} alt={it.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+                    : <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><TypeIcon id={it.type} /></div>}
+                  <div className="rating-hover no-tc">
+                    <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{it.title}</p>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: accent, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{en ? `${info.name || info.username || "Friend"}'s rating` : `Nota de ${info.name || info.username || "amigo"}`}</div>
+                      {it.userRating > 0 ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span style={{ fontSize: 16, color: "#f59e0b" }}>★</span><span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{ratingText(it.userRating)}</span></div> : <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{en ? "no rating" : "sem nota"}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="card-info" style={{ padding: "6px 8px 8px" }}>
+                  <p className="card-info-title card-title-text" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginBottom: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</p>
+                  <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>{(() => { const t = MEDIA_TYPES.find(x => x.id === it.type); return t ? mediaLabel(t, lang) : ""; })()}{it.year ? ` · ${it.year}` : ""}</p>
+                </div>
               </div>
               <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""}
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
                 <FriendAvatar src={info.avatar} name={info.name || info.username} size={20} ring={accent} ringWidth={1.5} />
                 <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
+                {tag && <span className="no-tc" title={tag.label} aria-label={tag.label} style={{ flexShrink: 0, fontSize: 12, lineHeight: 1, color: tag.c }}>{tag.icon}</span>}
                 <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>
               </button>
-              <div style={{ marginTop: 1, minHeight: 14 }}>
-                {tag && <span className="no-tc" style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "0 0 0 3px", fontSize: 10, fontWeight: 700, color: tag.c, opacity: 0.8 }}>{tag.icon} {tag.label}</span>}
-              </div>
             </div>
           );
         })}

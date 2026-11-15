@@ -293,13 +293,13 @@ export function ProfileView(props) {
       return (
         <div key={item.id} className={mobile ? undefined : "recent-card fav-card-wrap"} onClick={() => onOpen && onOpen(item)} title={item.title} style={{ position: "relative", cursor: "pointer", ...(mobile ? { width: "clamp(96px, 27vw, 112px)", flexShrink: 0 } : {}) }}>
           {mobile ? (
-            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 12, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 22px -10px rgba(0,0,0,0.8)" }}>
+            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 22px -10px rgba(0,0,0,0.8)" }}>
               {coverSrc && <CoverImg hi src={coverSrc} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
               {r > 0 && <div style={{ position: "absolute", right: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 10.5, fontWeight: 800, pointerEvents: "none" }}>★ {r}</div>}
             </div>
           ) : (
             <>
-              <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)" }}>
+              <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ width: "100%", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", position: "relative", background: gradientFor(item.id), boxShadow: "0 12px 24px -10px rgba(0,0,0,0.7)" }}>
                 {coverSrc
                   ? <CoverImg hi src={coverSrc} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}><TypeIcon id={t?.id} /></div>}
@@ -422,7 +422,7 @@ export function ProfileView(props) {
                   style={{ cursor: "pointer", ...(isMobileDevice ? { width: 110, flexShrink: 0 } : { minWidth: 0 }) }}
                 >
                   <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{
-                    position: "relative", aspectRatio: "2/3", borderRadius: isMobileDevice ? 10 : 14, overflow: "hidden",
+                    position: "relative", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden",
                     background: darkMode ? "#11151b" : "#e2e8f0",
                     boxShadow: "0 18px 30px -16px rgba(0,0,0,0.8)",
                   }}>
@@ -726,7 +726,7 @@ export function ProfileView(props) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {cursoList.map(it => (
                         <div key={it.id} onClick={() => onOpen && onOpen(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
-                          <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
+                          <div style={{ width: 34, height: 50, borderRadius: 3, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
                             {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                           </div>
                           <div style={{ minWidth: 0 }}>

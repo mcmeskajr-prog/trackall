@@ -7,7 +7,7 @@ import { TypeIcon } from "./TypeIcon";
 import { CoverImg } from "./CoverImg";
 import { prefetchMediaDetails } from "../api/details";
 
-export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent }) {
+export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent, hideStatus }) {
   const { lang, useT } = useLang();
   const libItem = findLibraryEntry(library, item.id, item.type)?.item;
   const inLib = !!libItem;
@@ -73,7 +73,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
                 <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>★ sem nota</span>
               </div>
             )}
-            {status && (
+            {status && !hideStatus && (
               <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
                 {status.emoji} {statusLabel(status, lang)}
               </span>

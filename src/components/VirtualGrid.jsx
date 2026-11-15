@@ -29,7 +29,8 @@ export const VirtualGrid = memo(function VirtualGrid({ items, library, onOpen, a
 
   return (
     <>
-      <div className="media-grid" style={size === "large" ? { gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" } : undefined}>
+      <style>{`.lib-sharp .card{border-radius:3px !important}.lib-sharp .media-thumb,.lib-sharp .media-thumb .rating-hover{border-radius:2px !important}`}</style>
+      <div className="media-grid lib-sharp" style={size === "large" ? { gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" } : undefined}>
         {visible.map((item) => (
           <MediaCard key={item.id} item={item} library={library} onOpen={onOpen} accent={accent} />
         ))}

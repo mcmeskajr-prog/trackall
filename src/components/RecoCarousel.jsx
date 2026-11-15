@@ -12,9 +12,9 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
 
   // Esqueleto só no primeiro carregamento (loading E ainda sem dados). Com dados já na lista, mostra-os mesmo durante um refresh.
   if (loading && (!items || items.length === 0)) return (
-    <div style={{ padding: "0 16px 28px" }} aria-busy="true">
+    <div style={{ padding: `0 ${isMobileDevice ? 16 : 24}px 24px` }} aria-busy="true">
       <SkeletonStyles />
-      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+      <h3 style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.005em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}><span aria-hidden style={{ color: accent, fontSize: 13 }}>{icon}</span>{title}</h3>
       <div style={{ display: "flex", gap: 10, overflow: "hidden" }}>
         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
           <div key={i} style={{ flexShrink: 0, width: 100 }}>
@@ -32,8 +32,8 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
   if (toShow.length === 0) return null;
 
   return (
-    <div style={{ padding: "0 16px 28px" }}>
-      <h2 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>{icon} {title}</h2>
+    <div style={{ padding: `0 ${isMobileDevice ? 16 : 24}px 24px` }}>
+      <h3 style={{ fontSize: 14, fontWeight: 800, letterSpacing: "-0.005em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}><span aria-hidden style={{ color: accent, fontSize: 13 }}>{icon}</span>{title}</h3>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {toShow.map(item => (
           <div key={item.id}
@@ -41,12 +41,12 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
             style={{ flexShrink: 0, width: 100, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}
             onMouseEnter={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1.05)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="1"; }}
             onMouseLeave={e => { const img = e.currentTarget.querySelector(".reco-img"); if(img) img.style.transform="scale(1)"; const ov = e.currentTarget.querySelector(".reco-overlay"); if(ov) ov.style.opacity="0"; }}>
-            <div style={{ width: 100, height: 148, borderRadius: 10, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
+            <div style={{ width: 100, height: 148, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), marginBottom: 6, position: "relative" }}>
               {item.cover
                 ? <img className="reco-img" src={item.cover} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s ease", pointerEvents: "none" }} onError={e => e.currentTarget.style.display="none"} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, pointerEvents: "none" }}><TypeIcon id={item.type} /></div>
               }
-              <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 10, pointerEvents: "none" }}>
+              <div className="reco-overlay" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity 0.18s", borderRadius: 3, pointerEvents: "none" }}>
                 <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                 </div>
@@ -55,7 +55,7 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
                 const libItem = findLibraryEntry(library, item.id, item.type)?.item;
                 const score = libItem?.userRating > 0 ? libItem.userRating : item.score;
                 return score > 0 ? (
-                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700, pointerEvents: "none" }}>
+                  <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.75)", borderRadius: 2, padding: "2px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 700, pointerEvents: "none" }}>
                     ★ {score}
                   </div>
                 ) : null;

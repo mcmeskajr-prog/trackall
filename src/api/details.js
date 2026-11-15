@@ -186,6 +186,15 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
       const d = aniResults.find(r => r.status === "fulfilled" && r.value?.data?.Media)?.value || null;
       const m = d?.data?.Media;
       if (!m) return null;
+      // Sem banner no AniList? Tenta a imagem larga do Kitsu (ligação pelo ID do AniList). Falha em silêncio.
+      let kitsuBanner = null;
+      if (!m.bannerImage) {
+        try {
+          const kind = (id.startsWith("al-manga-") || (item.type && item.type !== "anime" && !id.startsWith("al-anime-"))) ? "manga" : "anime";
+          const kr = await fetchWithTimeout(`https://kitsu.io/api/edge/mappings?filter[externalSite]=anilist/${kind}&filter[externalId]=${alId}&include=item`, { headers: { Accept: "application/vnd.api+json" } }, 4000);
+          if (kr.ok) { const kj = await kr.json(); const ci = kj?.included?.[0]?.attributes?.coverImage; kitsuBanner = ci?.large || ci?.original || null; }
+        } catch { /* ignorar */ }
+      }
       const cast = (m.characters?.edges || []).map(e => ({
         id: e.node?.id,
         name: e.node?.name?.full || "",
@@ -202,7 +211,7 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
         status: e.node?.status || "",
         mediaType: (e.node?.type || "").toLowerCase(),
       })).filter(r => ["PREQUEL","SEQUEL","SOURCE","ALTERNATIVE","SIDE_STORY","PARENT"].includes(r.type));
-      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null, bannerImage: m.bannerImage || null, cast, relations };
+      return { episodes: m.episodes, chapters: m.chapters, volumes: m.volumes, runtime: m.duration ? `${m.duration} min/ep` : null, score: m.averageScore, status: m.status, synopsis: m.description ? m.description.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim() : null, bannerImage: m.bannerImage || kitsuBanner || null, cast, relations };
     }
   } catch (err) {
     console.error('[fetchMediaDetails] Erro:', err);

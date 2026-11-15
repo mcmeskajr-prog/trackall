@@ -39,7 +39,7 @@ export function ProfileTabCompletos({ items, library, accent, darkMode, isMobile
             const cover = item.customCover || item.cover || item.thumbnailUrl;
             return (
               <div key={item.id} onClick={() => onOpen && onOpen(item)} style={{ cursor: "pointer" }}>
-                <div className="ec-card" style={{ aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
+                <div className="ec-card" style={{ aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), position: "relative" }}>
                   {cover && <CoverImg src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display="none"} />}
                   {item.userRating > 0 && <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(0,0,0,0.85)", borderRadius: 5, padding: "1px 5px", fontSize: 10, color: "#f59e0b", fontWeight: 800 }}>★{item.userRating}</div>}
                 </div>
