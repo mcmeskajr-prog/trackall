@@ -1,6 +1,6 @@
 // ─── ComicVine via Proxy Worker — Comics ───────────────────────────────────────
 // O Worker resolve o CORS que bloqueia chamadas diretas de browser/webview.
-// Pesquisa séries (volumes, id "cv-…") e arcos/eventos (story arcs, id "cva-…").
+// Pesquisa séries (volumes, id "cv-…"). Itens "cva-…" (arcos) já guardados continuam a abrir.
 
 async function cvFetch(workerUrl, query, resources) {
   const url = workerUrl.replace(/\/$/, "") + `/comicvine?q=${encodeURIComponent(query)}${resources ? `&resources=${resources}` : ""}`;
@@ -37,11 +37,8 @@ export function cleanVolumes(list) {
 
 export async function searchComicVine(query, workerUrl) {
   if (!workerUrl) return null;
-  // As séries são o essencial; os arcos são um extra que pode falhar sem estragar nada
-  const [vols, arcs] = await Promise.all([
-    cvFetch(workerUrl, query, "").catch(() => null),
-    cvFetch(workerUrl, query, "story_arc").catch(() => null),
-  ]);
+  // Só séries (volumes). Os arcos ficaram de fora da pesquisa: repetiam a série.
+  const vols = await cvFetch(workerUrl, query, "").catch(() => null);
   const volumes = cleanVolumes(vols || []).map((c) => ({
     id: `cv-${c.id}`,
     title: c.name || "",
@@ -54,19 +51,5 @@ export async function searchComicVine(query, workerUrl) {
     extra: [c.publisher?.name, c.count_of_issues ? `${c.count_of_issues} ed.` : ""].filter(Boolean).join(" · "),
     source: "ComicVine",
   }));
-  const arcSeen = new Set();
-  const arcos = (arcs || []).filter((c) => { const k = normName(c.name); if (!k || arcSeen.has(k)) return false; arcSeen.add(k); return true; }).slice(0, 4).map((c) => ({
-    id: `cva-${c.id}`,
-    title: c.name || "",
-    cover: c.image?.medium_url || c.image?.small_url || "",
-    type: "comics",
-    year: "",
-    score: null,
-    synopsis: (c.deck || "").slice(0, 220),
-    genres: [],
-    extra: ["Arco", c.publisher?.name].filter(Boolean).join(" · "),
-    source: "ComicVine (arco)",
-  }));
-  const all = [...volumes, ...arcos];
-  return all.length ? all : null;
+  return volumes.length ? volumes : null;
 }
