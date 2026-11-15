@@ -166,6 +166,7 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
         firstIssue: issueTxt(vol.firstIssue) || null,
         lastIssue: issueTxt(vol.lastIssue) || null,
         cast: (vol.characters || []).map((c) => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image || null, role: "CHARACTER" })),
+        creators: (vol.creators || []).map((p) => ({ id: `cvperson-${p.id}`, name: p.name, image: p.image || null, role: p.role || "" })),
       };
     }
 
@@ -182,6 +183,8 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
         publisher: arc.publisher || null,
         issueCount: arc.issueCount || null,
         firstIssue: arc.firstIssue ? [arc.firstIssue.number ? `#${arc.firstIssue.number}` : "", arc.firstIssue.name || ""].filter(Boolean).join(" ") : null,
+        cast: (arc.characters || []).map((c) => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image || null, role: "CHARACTER" })),
+        creators: (arc.creators || []).map((p) => ({ id: `cvperson-${p.id}`, name: p.name, image: p.image || null, role: p.role || "" })),
       };
     }
 

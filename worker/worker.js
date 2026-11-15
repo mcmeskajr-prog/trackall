@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// TrackAll proxy (Cloudflare Worker) — v7.1
+// TrackAll proxy (Cloudflare Worker) — v7.2
 //
 // Este ficheiro é a cópia versionada do worker. NÃO é publicado pela Vercel:
 // para entrar em vigor, cola-o em Cloudflare → Workers → trackall-proxy → Edit code → Deploy.
@@ -9,6 +9,7 @@
 //  • /openlibrary/search e /openlibrary/work  (livros — sem chave)
 //  • /comicvine-volume                         (detalhe completo de uma série de comics)
 //  • /hardcover/search                         (livros — precisa do segredo HARDCOVER_TOKEN)
+//  • v7.2: /comicvine-volume e /comicvine-arc vão buscar personagens, criadores e sinopse à 1.ª edição (?debug=1 no volume mostra o que o ComicVine devolve)
 //  • v7.1: /comicvine aceita resources=story_arc (arcos), /comicvine-volume devolve personagens (com imagem) e usa a
 //          descrição da 1.ª edição quando a da série vem vazia, /comicvine-arc (detalhe de um arco),
 //          /openlibrary/search aceita author= (pesquisa por autor)
@@ -225,48 +226,71 @@ export default {
       }
     }
 
+    // Ajudante ComicVine: lê uma edição e devolve descrição, personagens e criadores (com imagens)
+    const cvIssueExtras = async (cv, issueId) => {
+      const out = { description: "", characters: [], creators: [] };
+      if (!issueId) return out;
+      try {
+        const ij = await cv(`issue/4000-${issueId}/?field_list=description,deck,character_credits,person_credits`);
+        const ir = (ij && ij.results) || {};
+        out.description = htmlToText(ir.description) || ir.deck || "";
+        out.characters = (Array.isArray(ir.character_credits) ? ir.character_credits : []).map((c) => ({ id: c.id, name: c.name || "" }));
+        const wanted = /writer|penciler|artist|inker|colorist|cover|plotter|script/i;
+        const seen = new Set();
+        out.creators = (Array.isArray(ir.person_credits) ? ir.person_credits : [])
+          .filter((p) => p.id && wanted.test(p.role || "") && !seen.has(p.id) && seen.add(p.id))
+          .slice(0, 10)
+          .map((p) => ({ id: p.id, name: p.name || "", role: String(p.role || "").split(",")[0].trim() }));
+      } catch (e) {
+      }
+      return out;
+    };
+    const cvImages = async (cv, kind, list) => {
+      if (!list.length) return list.map((x) => ({ ...x, image: null }));
+      try {
+        const cj = await cv(`${kind}/?filter=id:${list.map((x) => x.id).join("|")}&field_list=id,name,image&limit=${list.length}`);
+        const byId = {};
+        for (const c of ((cj && cj.results) || [])) byId[c.id] = c;
+        return list.map((x) => ({ ...x, image: (byId[x.id] && byId[x.id].image && (byId[x.id].image.medium_url || byId[x.id].image.small_url)) || null }));
+      } catch (e) {
+        return list.map((x) => ({ ...x, image: null }));
+      }
+    };
+
     // NOVO — detalhe completo de uma série (volume) do ComicVine, com personagens e descrição de recurso
     if (path === "/comicvine-volume" && request.method === "GET") {
       const id = url.searchParams.get("id") || "";
       if (!/^\d{1,9}$/.test(id)) return json({ error: "Parametro id invalido" }, 400, corsHeaders);
       try {
         if (!env.COMICVINE_KEY) return json({ error: "ComicVine nao configurado." }, 500, corsHeaders);
-        const data = await cached(`cvvol2:${id}`, 7 * DAY, async () => {
-          const cv = (p) => fetchJson(`https://comicvine.gamespot.com/api/${p}${p.includes("?") ? "&" : "?"}api_key=${env.COMICVINE_KEY}&format=json`, { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
-          const j = await cv(`volume/4050-${id}/?field_list=id,name,description,deck,image,start_year,publisher,count_of_issues,first_issue,last_issue,characters`);
+        const cv = (p) => fetchJson(`https://comicvine.gamespot.com/api/${p}${p.includes("?") ? "&" : "?"}api_key=${env.COMICVINE_KEY}&format=json`, { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+        if (url.searchParams.get("debug") === "1") {
+          const j = await cv(`volume/4050-${id}/?field_list=id,name,description,deck,count_of_issues,first_issue,last_issue,characters,people`);
+          const r = (j && j.results) || {};
+          const ex = await cvIssueExtras(cv, r.first_issue && r.first_issue.id);
+          return json({ volumeKeys: Object.keys(r), firstIssue: r.first_issue || null, volumeCharacters: Array.isArray(r.characters) ? r.characters.length : r.characters, volumePeople: Array.isArray(r.people) ? r.people.length : r.people, issueDescriptionLen: ex.description.length, issueCharacters: ex.characters.length, issueCreators: ex.creators }, 200, corsHeaders);
+        }
+        const data = await cached(`cvvol3:${id}`, 3 * DAY, async () => {
+          const j = await cv(`volume/4050-${id}/?field_list=id,name,description,deck,image,start_year,publisher,count_of_issues,first_issue,last_issue,characters,people`);
           const r = j && j.results;
           if (!r || Array.isArray(r)) throw new UpstreamError(404, "ComicVine: volume nao encontrado");
-          let description = htmlToText(r.description);
-          // Descrição da série vazia → usa a da 1.ª edição (costuma estar preenchida)
-          if (!description && r.first_issue && r.first_issue.id) {
-            try {
-              const ij = await cv(`issue/4000-${r.first_issue.id}/?field_list=description,deck`);
-              description = htmlToText(ij.results && ij.results.description) || (ij.results && ij.results.deck) || "";
-            } catch (e) {
-            }
-          }
-          // Personagens: as 12 com mais aparições; uma segunda chamada traz as imagens
-          const chars = (Array.isArray(r.characters) ? r.characters : [])
+          const ex = await cvIssueExtras(cv, r.first_issue && r.first_issue.id);
+          const description = htmlToText(r.description) || ex.description || r.deck || "";
+          // Personagens: as da série (mais aparições primeiro) + as da 1.ª edição, sem repetir
+          const fromVol = (Array.isArray(r.characters) ? r.characters : [])
             .sort((x, y) => (parseInt(y.count, 10) || 0) - (parseInt(x.count, 10) || 0))
-            .slice(0, 12);
-          let characters = chars.map((c) => ({ id: c.id, name: c.name || "", image: null }));
-          if (chars.length) {
-            try {
-              const cj = await cv(`characters/?filter=id:${chars.map((c) => c.id).join("|")}&field_list=id,name,image&limit=12`);
-              const byId = {};
-              for (const c of (cj.results || [])) byId[c.id] = c;
-              characters = chars.map((c) => ({
-                id: c.id,
-                name: (byId[c.id] && byId[c.id].name) || c.name || "",
-                image: (byId[c.id] && byId[c.id].image && (byId[c.id].image.medium_url || byId[c.id].image.small_url)) || null
-              }));
-            } catch (e) {
-            }
-          }
+            .map((c) => ({ id: c.id, name: c.name || "" }));
+          const seen = new Set();
+          const chars = [...fromVol, ...ex.characters].filter((c) => c.id && !seen.has(c.id) && seen.add(c.id)).slice(0, 12);
+          const characters = await cvImages(cv, "characters", chars);
+          // Criadores: os da 1.ª edição (com função) ou, se não houver, os da série
+          let cre = ex.creators;
+          if (!cre.length) cre = (Array.isArray(r.people) ? r.people : []).slice(0, 8).map((p) => ({ id: p.id, name: p.name || "", role: "" }));
+          const creators = await cvImages(cv, "people", cre);
           return {
             id: r.id,
             name: r.name || "",
-            description: description || r.deck || "",
+            description,
             deck: r.deck || "",
             image: r.image || null,
             startYear: r.start_year || "",
@@ -274,7 +298,8 @@ export default {
             countOfIssues: r.count_of_issues || 0,
             firstIssue: r.first_issue ? { name: r.first_issue.name || "", number: r.first_issue.issue_number || "" } : null,
             lastIssue: r.last_issue ? { name: r.last_issue.name || "", number: r.last_issue.issue_number || "" } : null,
-            characters
+            characters,
+            creators
           };
         });
         return json(data, 200, corsHeaders);
@@ -289,22 +314,24 @@ export default {
       if (!/^\d{1,9}$/.test(id)) return json({ error: "Parametro id invalido" }, 400, corsHeaders);
       try {
         if (!env.COMICVINE_KEY) return json({ error: "ComicVine nao configurado." }, 500, corsHeaders);
-        const data = await cached(`cvarc:${id}`, 7 * DAY, async () => {
-          const j = await fetchJson(
-            `https://comicvine.gamespot.com/api/story_arc/4045-${id}/?api_key=${env.COMICVINE_KEY}&format=json&field_list=id,name,description,deck,image,publisher,first_appeared_in_issue,issues`,
-            { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+        const data = await cached(`cvarc2:${id}`, 3 * DAY, async () => {
+          const cv = (p) => fetchJson(`https://comicvine.gamespot.com/api/${p}${p.includes("?") ? "&" : "?"}api_key=${env.COMICVINE_KEY}&format=json`, { headers: { "User-Agent": "TrackAll/1.0" } }, "ComicVine");
+          const j = await cv(`story_arc/4045-${id}/?field_list=id,name,description,deck,image,publisher,first_appeared_in_issue,issues`);
           const r = j && j.results;
           if (!r || Array.isArray(r)) throw new UpstreamError(404, "ComicVine: arco nao encontrado");
           const issues = Array.isArray(r.issues) ? r.issues : [];
+          const ex = await cvIssueExtras(cv, r.first_appeared_in_issue && r.first_appeared_in_issue.id);
           return {
             id: r.id,
             name: r.name || "",
-            description: htmlToText(r.description) || r.deck || "",
+            description: htmlToText(r.description) || r.deck || ex.description || "",
             deck: r.deck || "",
             image: r.image || null,
             publisher: (r.publisher && r.publisher.name) || "",
             issueCount: issues.length,
-            firstIssue: r.first_appeared_in_issue ? { name: r.first_appeared_in_issue.name || "", number: r.first_appeared_in_issue.issue_number || "" } : null
+            firstIssue: r.first_appeared_in_issue ? { name: r.first_appeared_in_issue.name || "", number: r.first_appeared_in_issue.issue_number || "" } : null,
+            characters: await cvImages(cv, "characters", ex.characters.slice(0, 12)),
+            creators: await cvImages(cv, "people", ex.creators)
           };
         });
         return json(data, 200, corsHeaders);
@@ -562,7 +589,7 @@ export default {
     if (path === "/health") {
       return json({
         status: "ok",
-        version: "v7.1",
+        version: "v7.2",
         igdb: !!(env.IGDB_CLIENT_ID && (env.IGDB_ACCESS_TOKEN || env.IGDB_CLIENT_SECRET)),
         igdbAutoRefresh: !!env.IGDB_CLIENT_SECRET,
         comicvine: !!env.COMICVINE_KEY,

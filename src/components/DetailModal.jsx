@@ -59,7 +59,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const isIGDB = (currentItem.id || "").startsWith("igdb-");
   const isFilme = currentItem.type === "filmes";
   const isSerie = currentItem.type === "series";
-  const hasCast = isAniList || isTMDB || currentItem?.id?.startsWith("cv-");
+  const hasCast = isAniList || isTMDB || currentItem?.id?.startsWith("cv-") || currentItem?.id?.startsWith("cva-");
   const hasRelations = isAniList;
   const hasMedia = isTMDB || isIGDB || detailExtra?.videos?.length > 0 || detailExtra?.artworks?.length > 0;
 
@@ -771,7 +771,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
                       <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
-                  ) : !detailExtra?.cast?.length && !detailExtra?.director ? (
+                  ) : !detailExtra?.cast?.length && !detailExtra?.director && !detailExtra?.creators?.length ? (
                     <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No cast information available." : "Sem informação de cast disponível."}</p>
                   ) : isAniList ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -816,18 +816,35 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                           </div>
                         </div>
                       )}
+                      {/* Comics: criadores (argumento, desenho…) */}
+                      {detailExtra.creators?.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "CREATORS" : "CRIADORES"}</p>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
+                            {detailExtra.creators.map((c) => (
+                              <div key={c.id} style={{ textAlign: "center" }}>
+                                <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
+                                  {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>✍️</div>}
+                                </div>
+                                <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
+                                {c.role && <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3, textTransform: "capitalize" }}>{c.role}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* Cast grid — clicável */}
                       {detailExtra.cast?.length > 0 && (
                         <div>
-                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "CAST" : "ELENCO"}</p>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{detailExtra.creators ? (lang === "en" ? "CHARACTERS" : "PERSONAGENS") : (lang === "en" ? "CAST" : "ELENCO")}</p>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
                             {detailExtra.cast.map((c) => (
-                              <div key={c.id} onClick={() => setSelectedPerson(c)} style={{ textAlign: "center", cursor: "pointer" }}>
+                              <div key={c.id} onClick={String(c.id).startsWith("cvchar-") ? undefined : () => setSelectedPerson(c)} style={{ textAlign: "center", cursor: String(c.id).startsWith("cvchar-") ? "default" : "pointer" }}>
                                 <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
                                   {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>👤</div>}
                                 </div>
                                 <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
-                                <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character}</p>
+                                <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character || (c.role === "CHARACTER" ? (lang === "en" ? "Character" : "Personagem") : "")}</p>
                               </div>
                             ))}
                           </div>
