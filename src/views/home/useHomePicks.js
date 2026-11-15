@@ -40,8 +40,11 @@ export function useHomePicks(items) {
   const gc = {};
   completed.forEach((i) => (i.genres || []).forEach((g) => { gc[g] = (gc[g] || 0) + 1; }));
   const planned = items.filter(isPlanned);
+  // Itens sem nota usam a média dos planeados com nota (6.5 se não houver nenhuma), menos 0.5 por serem uma incógnita
+  const known = planned.map(ratingOf10).filter((v) => v > 0);
+  const neutral = (known.length ? known.reduce((a, b) => a + b, 0) / known.length : 6.5) - 0.5;
   const score = (i) => {
-    const r = ratingOf10(i);
+    const r = ratingOf10(i) || neutral;
     const aff = (i.genres || []).reduce((s, g) => s + (gc[g] || 0), 0);
     const wait = Math.min(12, (now - (i.addedAt || now)) / (1000 * 60 * 60 * 24 * 30));
     return r + Math.min(aff, 10) * 0.6 + wait * 0.25;
