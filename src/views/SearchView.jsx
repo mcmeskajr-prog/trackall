@@ -24,22 +24,6 @@ export function SearchView({ view, activeTab, setActiveTab, searchQuery, setSear
                 </button>
               ))}
             </div>
-            {activeTab === "livros" && (() => {
-              const isAuthor = /^\s*(autor|author)\s*:/i.test(searchQuery);
-              const base = searchQuery.replace(/^\s*(autor|author)\s*:\s*/i, "");
-              const go = (author) => {
-                const q = author ? `autor: ${base}` : base;
-                setSearchQuery(q);
-                if (base.trim()) doSearch(q, "livros");
-              };
-              const seg = (active) => ({ padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "none", background: active ? accent : "transparent", color: active ? "#fff" : "#8b949e" });
-              return (
-                <div style={{ display: "inline-flex", marginBottom: 16, border: `1px solid ${darkMode ? "#30363d" : "#d0d7de"}`, borderRadius: 3, overflow: "hidden" }} role="group" aria-label="Pesquisar livros por">
-                  <button type="button" style={seg(!isAuthor)} onClick={() => go(false)}>Título</button>
-                  <button type="button" style={seg(isAuthor)} onClick={() => go(true)}>Autor</button>
-                </div>
-              );
-            })()}
             {isSearching && <div style={{ padding: "8px 0" }}><PosterGridSkeleton count={12} /></div>}
             {searchError && (
               <div style={{ textAlign: "center", padding: "40px 20px" }}>
