@@ -9,6 +9,8 @@ import { FriendAvatar } from "./FriendAvatar";
 import { TypeIcon } from "./TypeIcon";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 
+const ratingText = (v) => { const n = v > 10 ? v / 10 : v; return Number.isInteger(n) ? String(n) : n.toFixed(1); };
+
 // Cópia em memória (voltar à Home não refaz os pedidos durante 2 min)
 let cache = { uid: "", ts: 0, rows: [], infoById: {}, hi: { fav: new Set(), hall: new Set() } };
 
@@ -85,7 +87,8 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
                   <div className="rating-hover no-tc">
                     <div style={{ textAlign: "center", padding: "0 8px", width: "100%" }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6, opacity: 0.9 }}>{it.title}</p>
-                      {it.userRating > 0 ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span style={{ fontSize: 16, color: "#f59e0b" }}>★</span><span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{it.userRating}</span></div> : <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>★ {en ? "no rating" : "sem nota"}</span>}
+                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: accent, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{en ? `${info.name || info.username || "Friend"}'s rating` : `Nota de ${info.name || info.username || "amigo"}`}</div>
+                      {it.userRating > 0 ? <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span style={{ fontSize: 16, color: "#f59e0b" }}>★</span><span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 900 }}>{ratingText(it.userRating)}</span></div> : <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{en ? "no rating" : "sem nota"}</span>}
                     </div>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ export function HomeWhenToConsume({ items, setSelectedItem, setView, setFilterSt
     <HomeSection fill title={lang === "en" ? "When to consume?" : "Quando consumir?"} action={canShuffle ? `↻ ${lang === "en" ? "Others" : "Outras"}` : null} onAction={() => setShift((v) => v + 1)} style={embedded ? { padding: 0 } : { padding: `0 ${pad}px 28px` }}>
       <style>{homeRowCss(accent)}</style>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", border: `1px solid ${line}`, borderRadius: HOME_R, background: homePanel(darkMode, panelBg), overflow: "hidden" }}>
-        <div style={{ display: "flex", borderBottom: `1px solid ${line}`, padding: "0 6px", overflowX: "auto", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", borderBottom: `1px solid ${line}`, padding: "0 6px", ...(isMobileDevice ? { overflowX: "auto", scrollbarWidth: "none" } : null) }}>
           {slots.map((s) => {
             const on = s.key === activeKey;
             return (

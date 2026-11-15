@@ -5,6 +5,8 @@ import { useLang } from "../../contexts/LangContext";
 import { MEDIA_TYPES, getMediaTypeLabel } from "../../config/constants";
 import { HOME_R, homeLine, homeLineStrong, homeMuted, homePanel, homeText, itemBanner, itemSynopsis, cleanText, monthsSince, seededRandom, dayNumber, ratingOf10 } from "./homeUtils";
 import { useHomePicks } from "./useHomePicks";
+import { TiltCard } from "../../components/TiltCard";
+import { useBannerPalette, bannerAccentHex, hexToRgb } from "../../lib/bannerColors";
 
 function Cover({ item, w, h, darkMode }) {
   const typeObj = MEDIA_TYPES.find((t) => t.id === item.type);
@@ -43,6 +45,11 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroId]);
   const heroExtra = extra.id === heroId ? extra.d : null;
+  // Cor da obra (tirada do banner, ou da capa) para tingir o cartão; sem cor → o acento do tema
+  const heroBgUrl = hero ? (itemBanner(hero) || heroExtra?.bannerImage || hero.customCover || hero.cover || "") : "";
+  const pal = useBannerPalette(heroBgUrl);
+  const tone = bannerAccentHex(null, pal) || accent;
+  const dark = pal?.[4]?.hex ? hexToRgb(pal[4].hex).join(",") : "0,0,0";
 
   const shortcuts = [
     focus && { key: "focus", label: lang === "en" ? "Current focus" : "Foco atual", item: focus },
@@ -64,38 +71,54 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
     const waited = monthsSince(hero.addedAt);
     const chips = [...(hero.genres || []).slice(0, 3), waited >= 1 ? (lang === "en" ? `Planned ${waited}m ago` : `Planeado há ${waited}m`) : null].filter(Boolean);
     const r = rating(hero);
-    return (
+    // Imagem que se esbate nos 4 lados (máscara vertical por fora, horizontal por dentro) e escurecimento com a cor da obra
+    const maskV = "linear-gradient(180deg, transparent 0, #000 18%, #000 74%, transparent 100%)";
+    const maskH = isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 26%, #000 60%, #000 88%, rgba(0,0,0,0.2) 100%)";
+    const ext = isMobileDevice ? 10 : 26;
+    const card = (
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
-        style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, minHeight: isMobileDevice ? 160 : 256 }}>
-        {bg && <div aria-hidden style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: isMobileDevice ? "100%" : "74%", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.32 : (banner ? 0.92 : 0.7), WebkitMaskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 68%)", maskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 68%)", pointerEvents: "none" }} />}
-        {bg && !isMobileDevice && <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0) 62%)", pointerEvents: "none" }} />}
+        style={{ position: "relative", cursor: "pointer", borderRadius: HOME_R, minHeight: isMobileDevice ? 160 : 256 }}>
+        {bg && !isMobileDevice && <div aria-hidden style={{ position: "absolute", left: "30%", right: "-2%", top: "55%", height: "150%", background: `radial-gradient(ellipse at 70% 20%, ${tone}40, transparent 65%)`, filter: "blur(24px)", pointerEvents: "none" }} />}
+        {bg && (
+          <div aria-hidden style={{ position: "absolute", top: -ext, bottom: -ext, right: 0, width: isMobileDevice ? "100%" : "82%", WebkitMaskImage: maskV, maskImage: maskV, pointerEvents: "none" }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.34 : (banner ? 0.95 : 0.7), WebkitMaskImage: maskH, maskImage: maskH }} />
+          </div>
+        )}
+        {bg && !isMobileDevice && <div aria-hidden style={{ position: "absolute", top: -ext, bottom: -ext, left: 0, right: 0, WebkitMaskImage: maskV, maskImage: maskV, background: `linear-gradient(90deg, rgba(${dark},0.9) 0%, rgba(${dark},0.72) 36%, rgba(${dark},0) 68%)`, pointerEvents: "none" }} />}
+        {!isMobileDevice && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: 0, height: 1, background: `linear-gradient(90deg, ${tone}, ${tone}00 80%)`, pointerEvents: "none" }} />}
 
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
-          <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>
+          <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px", borderRadius: HOME_R, boxShadow: `0 0 0 1px ${tone}55` }}>
             <Cover item={hero} w={isMobileDevice ? 84 : 140} h={isMobileDevice ? 126 : 210} darkMode={darkMode} />
           </div>
-          <div style={{ minWidth: 0, flex: 1, maxWidth: 600, textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 16px rgba(0,0,0,0.55)", padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: accent, border: `1px solid ${accent}66`, background: `${accent}14`, borderRadius: HOME_R, padding: "4px 10px" }}>{lang === "en" ? "Best for today" : "Melhor para hoje"}</span>
-              <span style={{ fontSize: 12, color: muted }}>{meta}</span>
-              {r > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#e8b04a" }}>★ {r}</span>}
+          <div style={{ minWidth: 0, flex: 1, maxWidth: 640, textShadow: "0 1px 3px rgba(0,0,0,0.75), 0 0 16px rgba(0,0,0,0.55)", padding: isMobileDevice ? "14px 44px 14px 14px" : "24px 56px 24px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: tone }}>
+                <i style={{ width: 18, height: 1, background: tone, display: "inline-block" }} />{lang === "en" ? "Best for today" : "Melhor para hoje"}
+              </span>
+              <span style={{ fontSize: 12, color: darkMode ? "#c3c9d3" : muted }}>{meta}</span>
             </div>
-            <h3 style={{ fontSize: isMobileDevice ? 22 : 38, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.06, margin: isMobileDevice ? "8px 0 4px" : "10px 0 8px", color: homeText(darkMode) }}>{hero.title}</h3>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", margin: isMobileDevice ? "8px 0 4px" : "8px 0 10px" }}>
+              <h3 style={{ fontSize: isMobileDevice ? 22 : 40, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.05, margin: 0, color: homeText(darkMode) }}>{hero.title}</h3>
+              {r > 0 && <span style={{ fontSize: isMobileDevice ? 13 : 16, fontWeight: 800, color: "#e8b04a" }}>★ {r}</span>}
+            </div>
             {chips.length > 0 && !isMobileDevice && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                {chips.map((c) => <span key={c} style={{ fontSize: 11.5, fontWeight: 700, color: darkMode ? "#c3c9d3" : "#475569", border: `1px solid ${homeLineStrong(darkMode)}`, borderRadius: HOME_R, padding: "3px 9px" }}>{c}</span>)}
+                {chips.map((c) => <span key={c} style={{ fontSize: 11.5, fontWeight: 700, color: tone, border: `1px solid ${tone}66`, borderRadius: HOME_R, padding: "3px 9px" }}>{c}</span>)}
               </div>
             )}
-            {syn ? <p style={{ fontSize: isMobileDevice ? 12 : 13.5, lineHeight: 1.55, color: darkMode ? "#d0d6df" : "#334155", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>
+            {syn ? <p style={{ fontSize: isMobileDevice ? 12 : 13.5, lineHeight: 1.55, color: darkMode ? "#d0d6df" : "#334155", margin: 0, display: "-webkit-box", WebkitLineClamp: isMobileDevice ? 3 : 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{syn}</p>
               : !isMobileDevice && <p style={{ fontSize: 13.5, lineHeight: 1.55, color: darkMode ? "#b9c0cb" : "#475569", margin: 0 }}>{lang === "en" ? "Your strongest pick right now, based on your ratings, favourite genres and how long it has been waiting." : "A tua aposta mais forte neste momento, pela tua média, os teus géneros e o tempo que está à espera."}</p>}
           </div>
         </div>
         {(picks.today) && (
           <button onClick={(e) => { e.stopPropagation(); picks.rerollToday(); }} title={lang === "en" ? "Another suggestion" : "Outra sugestão"} aria-label={lang === "en" ? "Another suggestion" : "Outra sugestão"}
-            style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: HOME_R, border: `1px solid ${homeLineStrong(darkMode)}`, background: darkMode ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)", color: darkMode ? "#c3c9d3" : "#475569", cursor: "pointer", fontSize: 15, fontFamily: "inherit", WebkitTapHighlightColor: "transparent" }}>↻</button>
+            style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: HOME_R, border: `1px solid ${darkMode ? "rgba(255,255,255,0.34)" : homeLineStrong(darkMode)}`, background: darkMode ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)", color: darkMode ? "#e6edf3" : "#475569", cursor: "pointer", fontSize: 15, fontFamily: "inherit", WebkitTapHighlightColor: "transparent", zIndex: 3 }}>↻</button>
         )}
       </div>
     );
+    // No PC o cartão inclina-se ao seguir o rato (como no Hall of Fame), de forma subtil por ser largo
+    return isMobileDevice ? card : <TiltCard maxTilt={2.2} scale={1.004} glare glareOpacity={0.05} style={{ borderRadius: HOME_R }}>{card}</TiltCard>;
   })();
 
   const shortcutRow = shortcuts.length > 0 && (

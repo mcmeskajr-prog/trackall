@@ -31,7 +31,7 @@ function hslToHex(h, s, l) {
 function tilePalette(accent) {
   const [h, s0, l0] = hexToHsl(accent);
   const s = Math.min(0.85, Math.max(0.5, s0)), l = Math.min(0.66, Math.max(0.58, l0));
-  return [accent, hslToHex(h + 15, s, l), hslToHex(h + 30, s, l), hslToHex(h - 15, s, l)];
+  return [accent, hslToHex(h + 6, s, l), hslToHex(h + 12, s, l), hslToHex(h - 6, s, l)];
 }
 const MASK = (src) => ({ WebkitMaskImage: `url(${JSON.stringify(src)})`, maskImage: `url(${JSON.stringify(src)})`, WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "right center", maskPosition: "right center", WebkitMaskSize: "contain", maskSize: "contain" });
 const FADE = "linear-gradient(90deg, rgba(0,0,0,0.05) 42%, #000 84%)";
