@@ -587,9 +587,10 @@ export default function TrackAll() {
     if (lib) setLibrary(lib); // primeiro: nada do que vem a seguir pode impedir a biblioteca de aparecer
     bootCacheRef.current = { prof: prof || bootCacheRef.current.prof, hr: hr ? { data: hr.data || null, error: null } : bootCacheRef.current.hr };
       if (prof) {
-        const _savedHall = (() => { try { const s = localStorage.getItem("trackall_hall_of_fame"); return s ? JSON.parse(s) : null; } catch { return null; } })();
+        // (as chaves antigas SEM id de utilizador deixaram de ser lidas: noutra conta do mesmo browser traziam o Hall of Fame da conta anterior)
+        const _savedHall = null;
         // Tentar ler Hall of Fame da library (mais fiável que coluna profiles)
-        let _featuredData = (() => { try { const s = localStorage.getItem("trackall_featured"); return s ? JSON.parse(s) : null; } catch { return null; } })();
+        let _featuredData = null;
         const _scoped = (k) => { try { const v = localStorage.getItem(`${k}_${userId}`); return v ? JSON.parse(v) : null; } catch { return null; } };
         const _cands = [];
         let _rowHall = null, _rowErr = false;
@@ -866,6 +867,10 @@ export default function TrackAll() {
     await supa.signOut();
     cacheClearAll();
     try { localStorage.removeItem(BOOT_THEME_KEY); } catch {}
+    // dados pessoais guardados no dispositivo: não podem passar para a próxima conta que entrar
+    try { ["trackall_home_picks", "trackall_search_history"].forEach(k => localStorage.removeItem(k)); } catch {}
+    try { ["trackall_personal_recos", "trackall_trending_recos"].forEach(k => sessionStorage.removeItem(k)); } catch {}
+    setSearchHistory([]); setPersonalRecos([]); personalRecosLoadedRef.current = false; recosFetchedRef.current = false;
     libDirtyRef.current = false;
     setDataFresh(false);
     bootCacheRef.current = { prof: null, hr: null };

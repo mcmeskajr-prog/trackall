@@ -293,6 +293,7 @@ export function ProfileSettings(props) {
     })()}
 
           </>)}
+          <p style={{ fontSize: 11, color: "#484f58", marginTop: 24, textAlign: isMobileDevice ? "center" : "left" }}>{lang === "en" ? "Version" : "Versão"} {typeof __APP_BUILD__ === "string" ? __APP_BUILD__ : "dev"}</p>
         </div>
       </div>
   );
