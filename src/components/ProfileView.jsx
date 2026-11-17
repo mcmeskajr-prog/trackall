@@ -67,7 +67,7 @@ function SectionAccordion({ title, right, open, onToggle, darkMode, children }) 
 const SECTION_DEFAULTS = { atividade: true, favoritos: true, recentes: false, curso: false };
 
 export function ProfileView(props) {
-  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportMal, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null, onSaveFeaturedNote = null } = props;
+  const { profile, library, accent, bgColor, bgColorMobile, bgImage, bgImageMobile, bgSeparateDevices, onBgSeparateDevices, onBgImageMobile, onBgColorMobile, isMobileDevice, bgOverlay, bgBlur, bgParallax, legiblePanels, onLegiblePanels, darkMode, panelBg, panelOpacity, textContrast, textContrastMobile, sidebarColor, onUpdateProfile, onAccentChange, onBgChange, onBgImage, onBgOverlay, onBgBlur, onBgParallax, onPanelBg, onPanelOpacity, onTextContrast, onTextContrastMobile, onSidebarColor, onSavedThemes, onTmdbKey, tmdbKey, workerUrl, onWorkerUrl, onSignOut, userEmail, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onImportMihon, onImportPaperback, onImportLetterboxd, onImportAniList, onImportMal, onImportNotes, onImportGoodreads, onOpen, diaryPanel = null, lang = "en", useT = (k) => k, onChangeLang, userTierlists = [], userLikes = [], currentUserId = null, onCreateTierlist, onViewTierlist, onLikeTierlist, onDeleteTierlist, userCollections = [], userCollectionLikes = [], onCreateCollection, onViewCollection, onLikeCollection, onDeleteCollection, featuredItem = null, onSetFeatured, onOpenLibrary = null, onReorderHallOfFame = null, onReorderFavorites = null, onSaveFeaturedNote = null } = props;
   const { panelDark } = useTheme() || {};
   const panelDM = panelBg ? (panelDark ?? darkMode) : darkMode;
   const [tabsBg, setTabsBg] = useState(() => { try { return localStorage.getItem(TABS_BG_KEY) || ""; } catch { return ""; } });
@@ -375,8 +375,8 @@ export function ProfileView(props) {
 
   const personalizeProps = {
     profile, currentUserId, onUpdateProfile, lang, savedThemes: onSavedThemes,
-    accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity, bgOverlay, bgBlur,
-    onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgOverlay, onBgBlur, onBgSeparateDevices,
+    accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity, bgOverlay, bgBlur, legiblePanels,
+    onLegiblePanels, onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgOverlay, onBgBlur, onBgSeparateDevices,
   };
   const pageBg = (bgSeparateDevices ? bgColorMobile : bgColor) || bgColor || "#0d1117";
   const flatProfile = isMobileDevice && !editing && !!profile.banner && !profile.hideBannerMobile; // perfil sem moldura (banner a toda a largura)
