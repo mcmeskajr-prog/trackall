@@ -239,7 +239,8 @@ const supa = {
     let { data, error } = await supabase.from('library').select(cols)
       .in('user_id', ids).neq('media_id', '__hall_of_fame__')
       .in('data->>userStatus', ['completo', 'assistindo'])
-      .order('data->>addedAt', { ascending: false }).limit(limit);
+      .not('data->>addedAt', 'is', null)
+      .order('data->>addedAt', { ascending: false, nullsFirst: false }).limit(limit);
     if (error) {
       console.warn('getFriendsActivity: consulta otimizada falhou, a usar fallback —', error.message);
       const res = await supabase.from('library').select(cols).in('user_id', ids).neq('media_id', '__hall_of_fame__').limit(1500);
