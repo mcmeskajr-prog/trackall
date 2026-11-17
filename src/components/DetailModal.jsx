@@ -59,7 +59,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const isIGDB = (currentItem.id || "").startsWith("igdb-");
   const isFilme = currentItem.type === "filmes";
   const isSerie = currentItem.type === "series";
-  const hasCast = isAniList || isTMDB || currentItem?.id?.startsWith("cv-");
+  const hasCast = isAniList || isTMDB || currentItem?.id?.startsWith("cv-") || currentItem?.id?.startsWith("cva-");
   const hasRelations = isAniList;
   const hasMedia = isTMDB || isIGDB || detailExtra?.videos?.length > 0 || detailExtra?.artworks?.length > 0;
 
@@ -440,7 +440,14 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     {currentItem.title}
                   </h2>
                   {currentItem.titleEn && currentItem.titleEn !== currentItem.title && <p style={{ color: "#8b949e", fontSize: 13 }}>{currentItem.titleEn}</p>}
-                  {currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
+                  {currentItem.extra && currentItem.type === "livros" ? (
+                    <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra.split(", ").map((a, i, arr) => (
+                      <span key={a + i}>
+                        <button type="button" title={`Ver livros de ${a}`} onClick={() => { try { window.dispatchEvent(new CustomEvent("trackall:search-author", { detail: a })); } catch {} }}
+                          style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(139,148,158,0.4)", textUnderlineOffset: 3 }}>{a}</button>{i < arr.length - 1 ? ", " : ""}
+                      </span>
+                    ))}</p>
+                  ) : currentItem.extra && <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra}</p>}
                   {!isMobileDevice && currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                       {currentItem.genres.slice(0, 6).map((g) => (
@@ -551,6 +558,18 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     <div style={{ marginTop: 8 }}>
                       <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Páginas:</span>
                       <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.pages}</span>
+                    </div>
+                  )}
+                  {detailExtra?.series && (
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Série:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.series}</span>
+                    </div>
+                  )}
+                  {detailExtra?.firstIssue && (
+                    <div style={{ marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Edições:</span>
+                      <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.firstIssue}{detailExtra.lastIssue && detailExtra.lastIssue !== detailExtra.firstIssue ? ` → ${detailExtra.lastIssue}` : ""}</span>
                     </div>
                   )}
                   {detailExtra?.publisher && (
@@ -752,7 +771,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       <div className="spin" style={{ fontSize: 24, marginBottom: 8 }}>⟳</div>
                       <p style={{ fontSize: 13 }}>{lang === "en" ? "Loading..." : "A carregar..."}</p>
                     </div>
-                  ) : !detailExtra?.cast?.length && !detailExtra?.director ? (
+                  ) : !detailExtra?.cast?.length && !detailExtra?.director && !detailExtra?.creators?.length ? (
                     <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No cast information available." : "Sem informação de cast disponível."}</p>
                   ) : isAniList ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -797,18 +816,35 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                           </div>
                         </div>
                       )}
+                      {/* Comics: criadores (argumento, desenho…) */}
+                      {detailExtra.creators?.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "CREATORS" : "CRIADORES"}</p>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
+                            {detailExtra.creators.map((c) => (
+                              <div key={c.id} style={{ textAlign: "center" }}>
+                                <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
+                                  {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>✍️</div>}
+                                </div>
+                                <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
+                                {c.role && <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3, textTransform: "capitalize" }}>{c.role}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* Cast grid — clicável */}
                       {detailExtra.cast?.length > 0 && (
                         <div>
-                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{lang === "en" ? "CAST" : "ELENCO"}</p>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#6e7681", marginBottom: 8, letterSpacing: "0.5px" }}>{detailExtra.creators ? (lang === "en" ? "CHARACTERS" : "PERSONAGENS") : (lang === "en" ? "CAST" : "ELENCO")}</p>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 12 }}>
                             {detailExtra.cast.map((c) => (
-                              <div key={c.id} onClick={() => setSelectedPerson(c)} style={{ textAlign: "center", cursor: "pointer" }}>
+                              <div key={c.id} onClick={String(c.id).startsWith("cvchar-") ? undefined : () => setSelectedPerson(c)} style={{ textAlign: "center", cursor: String(c.id).startsWith("cvchar-") ? "default" : "pointer" }}>
                                 <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 8, overflow: "hidden", background: "#21262d", marginBottom: 6 }}>
                                   {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>👤</div>}
                                 </div>
                                 <p style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3, marginBottom: 2 }}>{c.name}</p>
-                                <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character}</p>
+                                <p style={{ fontSize: 10, color: "#6e7681", lineHeight: 1.3 }}>{c.character || (c.role === "CHARACTER" ? (lang === "en" ? "Character" : "Personagem") : "")}</p>
                               </div>
                             ))}
                           </div>

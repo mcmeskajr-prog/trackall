@@ -1,7 +1,7 @@
 import { searchAniList } from './anilist';
 import { searchTMDB } from './tmdb';
 import { searchIGDB, searchSteam } from './igdb';
-import { searchGoogleBooks } from './books';
+import { searchGoogleBooks, searchOpenLibrary, parseAuthorQuery } from './books';
 import { searchComicVine } from './comicvine';
 
 // ─── Cache de pesquisas ─────────────────────────────────────────────────────────
@@ -36,7 +36,12 @@ export async function smartSearch(query, mediaType, keys = {}) {
   const ck = cacheKey(query, mediaType);
   if (CACHE.has(ck)) return CACHE.get(ck);
 
+  // "autor: Nome" só faz sentido nos livros; nos outros tipos não há resultados
+  const ap = parseAuthorQuery(query);
+  if (ap.author && mediaType !== "livros") return [];
+
   let results = null;
+  let authorMode = false;
   try {
     if (mediaType === "anime") results = await searchAniList(query, "anime", keys.workerUrl);
     else if (mediaType === "manga") results = await searchAniList(query, "manga", keys.workerUrl);
@@ -44,7 +49,40 @@ export async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "lightnovels") { const r = await searchAniList(query, "lightnovels", keys.workerUrl, "NOVEL"); results = r; }
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
-    else if (mediaType === "livros") results = await searchGoogleBooks(query, keys.workerUrl);
+    else if (mediaType === "livros") {
+      // "autor: Nome" força autor; senão, se o texto parece um nome de pessoa, pesquisa-se também por autor
+      // e os livros desse autor aparecem primeiro.
+      const tokens = normalizeForMatch(ap.q).split(/\s+/).filter(Boolean);
+      const looksLikeName = !ap.author && tokens.length >= 2 && tokens.length <= 4 && !/\d/.test(ap.q);
+      const authorHits = (list) => (list || []).filter((r) => { const a = normalizeForMatch(r.extra); return tokens.every((t) => a.includes(t)); });
+      const [byTitle, byAuthor] = await Promise.all([
+        searchGoogleBooks(ap.q, keys.workerUrl, { author: ap.author }).catch(() => null),
+        looksLikeName ? searchGoogleBooks(ap.q, keys.workerUrl, { author: true }).catch(() => null) : Promise.resolve(null),
+      ]);
+      results = byTitle;
+      if (looksLikeName) {
+        let mine = authorHits(byAuthor);
+        if (mine.length < 3) {
+          const ol = await searchOpenLibrary(ap.q, keys.workerUrl, { author: true }).catch(() => null);
+          mine = [...mine, ...authorHits(ol)];
+        }
+        const seen = new Set();
+        mine = mine.filter((r) => { const k = normalizeForMatch(r.title); if (seen.has(k)) return false; seen.add(k); return true; });
+        if (mine.length >= 3) {
+          const rest = (byTitle || []).filter((r) => !seen.has(normalizeForMatch(r.title)));
+          results = [...mine, ...rest];
+          authorMode = true;
+        }
+      }
+      // Poucos resultados no Google → junta o Open Library (sem repetir títulos já encontrados)
+      if (!authorMode && (results?.length || 0) < 3) {
+        const ol = await searchOpenLibrary(ap.q, keys.workerUrl, { author: ap.author }).catch(() => null);
+        if (ol?.length) {
+          const have = new Set((results || []).map((r) => normalizeForMatch(r.title)));
+          results = [...(results || []), ...ol.filter((r) => !have.has(normalizeForMatch(r.title)))];
+        }
+      }
+    }
     else if (mediaType === "jogos") {
       results = await searchIGDB(query, keys.workerUrl);
       if (!results?.length) results = await searchSteam(query, keys.workerUrl);
@@ -55,7 +93,7 @@ export async function smartSearch(query, mediaType, keys = {}) {
   }
 
   if (results?.length) {
-    results = sortByRelevance(results, query);
+    if (!ap.author && !authorMode) results = sortByRelevance(results, query);
     CACHE.set(ck, results);
     if (CACHE.size > 50) CACHE.delete(CACHE.keys().next().value);
     return results;

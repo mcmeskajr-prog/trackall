@@ -2,6 +2,8 @@
 // Deteta a fonte pelo prefixo do id (tmdb-, igdb-, gb-, cv-, al-) e busca
 // detalhes adicionais que a pesquisa inicial não trouxe.
 
+import { enrichBook, fetchOpenLibraryWork } from "./books";
+
 async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
   const fetchWithTimeout = (url, opts, ms = 8000) => {
@@ -123,8 +125,8 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
       }, items[0] || null);
       const vol = best?.volumeInfo;
       if (!vol) return null;
-      return {
-        synopsis: vol.description || null,
+      const base = {
+        synopsis: (vol.description || "").replace(/<[^>]*>/g, "").trim() || null,
         genres: vol.categories || [],
         pages: vol.pageCount || null,
         publisher: vol.publisher || null,
@@ -132,24 +134,57 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
         language: vol.language || null,
         score: vol.averageRating || null,
       };
+      // Completa com Open Library e Hardcover (se o worker já os tiver); se falhar, fica o que o Google deu
+      try { return await enrichBook(item, base, workerUrl); } catch { return { ...base, score: base.score ? Math.round(base.score * 20) / 10 : null }; }
     }
 
-    // ComicVine
+    // Open Library (pesquisa de livros de recurso)
+    if (id.startsWith("ol-")) {
+      const ol = await fetchOpenLibraryWork(`/works/${id.replace("ol-", "")}`, workerUrl);
+      if (!ol) return null;
+      return {
+        synopsis: ol.description || null,
+        genres: ol.subjects?.slice(0, 6) || [],
+        score: ol.rating || null,
+      };
+    }
+
+    // ComicVine — detalhe completo da série pelo id (rota /comicvine-volume do worker v7)
     if (id.startsWith("cv-")) {
       const cvId = id.replace("cv-", "");
-      const [volRes, charsRes] = await Promise.allSettled([
-        fetch(`${wUrl}/comicvine?q=${cvId}&resource=volume`).then(r => r.json()),
-        fetch(`${wUrl}/comicvine-char?q=${cvId}`).then(r => r.json()),
-      ]);
-      const vol = volRes.status === "fulfilled" ? volRes.value?.results?.[0] : null;
-      const chars = charsRes.status === "fulfilled" && Array.isArray(charsRes.value) ? charsRes.value.slice(0, 12) : [];
-      if (!vol && chars.length === 0) return null;
+      if (!/^\d+$/.test(cvId)) return null;
+      const res = await fetch(`${wUrl}/comicvine-volume?id=${cvId}`).catch(() => null);
+      if (!res || !res.ok) return null;
+      const vol = await res.json();
+      if (!vol || vol.error) return null;
+      const issueTxt = (i) => (i ? [i.number ? `#${i.number}` : "", i.name || ""].filter(Boolean).join(" ") : "");
       return {
-        synopsis: vol?.description?.replace(/<[^>]*>/g, "").slice(0, 800) || null,
-        publisher: vol?.publisher?.name || null,
-        startYear: vol?.start_year || null,
-        issueCount: vol?.count_of_issues || null,
-        cast: chars.map(c => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image?.medium_url || null, role: "CHARACTER" })),
+        synopsis: vol.description || null,
+        publisher: vol.publisher || null,
+        startYear: vol.startYear || null,
+        issueCount: vol.countOfIssues || null,
+        firstIssue: issueTxt(vol.firstIssue) || null,
+        lastIssue: issueTxt(vol.lastIssue) || null,
+        cast: (vol.characters || []).map((c) => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image || null, role: "CHARACTER" })),
+        creators: (vol.creators || []).map((p) => ({ id: `cvperson-${p.id}`, name: p.name, image: p.image || null, role: p.role || "" })),
+      };
+    }
+
+    // ComicVine — arco narrativo / evento (story arc)
+    if (id.startsWith("cva-")) {
+      const arcId = id.replace("cva-", "");
+      if (!/^\d+$/.test(arcId)) return null;
+      const res = await fetch(`${wUrl}/comicvine-arc?id=${arcId}`).catch(() => null);
+      if (!res || !res.ok) return null;
+      const arc = await res.json();
+      if (!arc || arc.error) return null;
+      return {
+        synopsis: arc.description || null,
+        publisher: arc.publisher || null,
+        issueCount: arc.issueCount || null,
+        firstIssue: arc.firstIssue ? [arc.firstIssue.number ? `#${arc.firstIssue.number}` : "", arc.firstIssue.name || ""].filter(Boolean).join(" ") : null,
+        cast: (arc.characters || []).map((c) => ({ id: `cvchar-${c.id}`, name: c.name, image: c.image || null, role: "CHARACTER" })),
+        creators: (arc.creators || []).map((p) => ({ id: `cvperson-${p.id}`, name: p.name, image: p.image || null, role: p.role || "" })),
       };
     }
 
