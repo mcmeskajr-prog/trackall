@@ -1,16 +1,16 @@
 export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, changeLang }) {
   const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
   const features = [
-    { icon: "📚", title: useT("feature1Title"), desc: "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
-    { icon: "⭐", title: useT("feature2Title"), desc: "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
-    { icon: "👥", title: useT("feature3Title"), desc: "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
-    { icon: "🎨", title: useT("feature4Title"), desc: "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
-    { icon: "📊", title: useT("feature5Title"), desc: "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
-    { icon: "🔍", title: useT("feature6Title"), desc: "Pesquisa em AniList, TMDB, IGDB, Google Books e ComicVine ao mesmo tempo." },
-    { icon: "🏆", title: "Tier Lists", desc: "Cria e partilha tier lists da tua mídia favorita. Arrasta, ordena e dá like nas listas da comunidade." },
-    { icon: "🎭", title: "Personagens & Cast", desc: "Vê o elenco completo, personagens, voice actors e explora a filmografia de cada ator ou realizador." },
+    { icon: "📚", title: useT("feature1Title"), desc: lang === "en" ? "Anime, manga, movies, series, games, books, comics and more — in one unified library." : "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
+    { icon: "⭐", title: useT("feature2Title"), desc: lang === "en" ? "Rating system, custom statuses and a diary with the history of everything you have finished." : "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
+    { icon: "👥", title: useT("feature3Title"), desc: lang === "en" ? "Follow friends, see what they are watching and discover new media through the activity feed." : "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
+    { icon: "🎨", title: useT("feature4Title"), desc: lang === "en" ? "Colours, backgrounds, sidebar — make the app yours and save multiple themes." : "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
+    { icon: "📊", title: useT("feature5Title"), desc: lang === "en" ? "See how many you have completed, your average rating and your month-by-month history in the diary." : "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
+    { icon: "🔍", title: useT("feature6Title"), desc: lang === "en" ? "Search AniList, TMDB, IGDB, Google Books and ComicVine at the same time." : "Pesquisa em AniList, TMDB, IGDB, Google Books e ComicVine ao mesmo tempo." },
+    { icon: "🏆", title: "Tier Lists", desc: lang === "en" ? "Create and share tier lists of your favourite media. Drag, rank and like the community's lists." : "Cria e partilha tier lists da tua mídia favorita. Arrasta, ordena e dá like nas listas da comunidade." },
+    { icon: "🎭", title: lang === "en" ? "Characters & Cast" : "Personagens & Cast", desc: lang === "en" ? "See the full cast, characters and voice actors, and explore each actor's or director's filmography." : "Vê o elenco completo, personagens, voice actors e explora a filmografia de cada ator ou realizador." },
   ];
-  const mediaTypes = ["🎌 Anime", "📖 Manga", "🎬 Filmes", "📺 Séries", "🎮 Jogos", "📚 Livros", "🇰🇷 Manhwa", "💬 Comics"];
+  const mediaTypes = lang === "en" ? ["🎌 Anime", "📖 Manga", "🎬 Movies", "📺 Series", "🎮 Games", "📚 Books", "🇰🇷 Manhwa", "💬 Comics"] : ["🎌 Anime", "📖 Manga", "🎬 Filmes", "📺 Séries", "🎮 Jogos", "📚 Livros", "🇰🇷 Manhwa", "💬 Comics"];
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d1117", fontFamily: "'Outfit', 'Segoe UI', sans-serif", overflowX: "hidden" }}>
@@ -51,20 +51,20 @@ export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) =
         </div>
         <div className="land-fade" style={{ animationDelay: "0.2s", opacity: 0 }}>
           <h1 style={{ fontSize: "clamp(42px, 7vw, 80px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px", marginBottom: 24, backgroundImage: `linear-gradient(135deg, #e6edf3 30%, ${accent} 70%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            Toda a tua mídia.<br/>Num só lugar.
+            {lang === "en" ? <>All your media.<br/>In one place.</> : <>Toda a tua mídia.<br/>Num só lugar.</>}
           </h1>
         </div>
         <div className="land-fade" style={{ animationDelay: "0.35s", opacity: 0 }}>
           <p style={{ fontSize: 20, color: "#8b949e", maxWidth: 560, margin: "0 auto 48px", lineHeight: 1.7, fontWeight: 400 }}>
-            Anime, manga, filmes, séries, jogos, livros e comics — acompanha tudo, avalia, partilha com amigos.
+            {useT("landingDesc")}
           </p>
         </div>
         <div className="land-fade" style={{ animationDelay: "0.5s", opacity: 0, display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={onEnter} className="land-btn" style={{ padding: "16px 40px", borderRadius: 14, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 16, fontWeight: 800, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 8px 32px rgba(${accentRgb},0.4)` }}>
-            Começar grátis →
+            {useT("landingCTA")}
           </button>
           <button onClick={onDemo} className="land-btn2" style={{ padding: "16px 36px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>
-            Ver demonstração
+            {useT("landingDemo")}
           </button>
         </div>
 
@@ -111,13 +111,13 @@ export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) =
       <section style={{ padding: "80px 20px", textAlign: "center" }}>
         <div style={{ maxWidth: 600, margin: "0 auto", background: `linear-gradient(135deg, ${accent}18 0%, #8b5cf618 100%)`, border: `1px solid ${accent}33`, borderRadius: 24, padding: "60px 40px" }}>
           <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 16 }}>{useT("landingReadyTitle")}</h2>
-          <p style={{ color: "#8b949e", fontSize: 16, marginBottom: 36, lineHeight: 1.6 }}>Cria a tua conta gratuita e começa a organizar a tua biblioteca hoje.</p>
+          <p style={{ color: "#8b949e", fontSize: 16, marginBottom: 36, lineHeight: 1.6 }}>{lang === "en" ? "Create your free account and start organising your library today." : "Cria a tua conta gratuita e começa a organizar a tua biblioteca hoje."}</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={onEnter} className="land-btn" style={{ padding: "14px 36px", borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, border: "none", color: "white", cursor: "pointer", fontSize: 15, fontWeight: 800, fontFamily: "inherit", transition: "all 0.2s", boxShadow: `0 6px 24px rgba(${accentRgb},0.35)` }}>
-              Criar conta grátis
+              {useT("landingCreateFree")}
             </button>
             <button onClick={onDemo} className="land-btn2" style={{ padding: "14px 28px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid #30363d", color: "#e6edf3", cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit", transition: "all 0.2s" }}>
-              Ver demo primeiro
+              {useT("landingDemoFirst")}
             </button>
           </div>
         </div>

@@ -224,7 +224,7 @@ export function ProfileSettings(props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
-            <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
+            <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll</p>
           </div>
         </div>
       </div>
@@ -263,26 +263,26 @@ export function ProfileSettings(props) {
       return (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
-            ZONA DE PERIGO
+            {lang === "en" ? "DANGER ZONE" : "ZONA DE PERIGO"}
             <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
           </h3>
           <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
             <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
-              Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+              {lang === "en" ? "Deleting your account permanently removes your whole library, profile and data. This cannot be undone." : "Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita."}
             </p>
             {!confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                Apagar conta
+                {lang === "en" ? "Delete account" : "Apagar conta"}
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+                <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>{lang === "en" ? "⚠️ Are you sure? This cannot be undone." : "⚠️ Tens a certeza? Esta ação é irreversível."}</p>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                    {deleting ? useT("deleting") : "Sim, apagar tudo"}
+                    {deleting ? useT("deleting") : (lang === "en" ? "Yes, delete everything" : "Sim, apagar tudo")}
                   </button>
                   <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                    Cancelar
+                    {lang === "en" ? "Cancel" : "Cancelar"}
                   </button>
                 </div>
               </div>

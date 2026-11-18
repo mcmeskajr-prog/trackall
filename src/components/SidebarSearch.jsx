@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { useLang } from "../contexts/LangContext";
 
 export function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearchQuery, setView, useT }) {
+  const { lang } = useLang();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const inputRef = useRef(null);
@@ -48,7 +50,7 @@ export function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearch
             }}
             placeholder={useT("search") + "..."}
             style={{ flex: 1, background: "transparent", border: "none", boxShadow: "none", borderRadius: 0, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 14, outline: "none", padding: 0, margin: 0, height: "auto", minWidth: 0, width: "100%" }} />
-          <button onClick={() => { setOpen(false); setQ(""); }} aria-label="Fechar" style={{ background: "none", border: "none", color: darkMode ? "#8b949e" : "#64748b", cursor: "pointer", fontSize: 15, lineHeight: 1, flexShrink: 0, padding: "6px 4px", margin: "-6px -4px" }}>✕</button>
+          <button onClick={() => { setOpen(false); setQ(""); }} aria-label={lang === "en" ? "Close" : "Fechar"} style={{ background: "none", border: "none", color: darkMode ? "#8b949e" : "#64748b", cursor: "pointer", fontSize: 15, lineHeight: 1, flexShrink: 0, padding: "6px 4px", margin: "-6px -4px" }}>✕</button>
         </div>
       )}
     </>

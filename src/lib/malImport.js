@@ -3,6 +3,7 @@
 //   1) ler o XML (parseMalXml, puro)  2) descobrir o título equivalente no AniList pelo id do MAL (idMal)
 //   3) montar itens iguais aos do AniList (mapAniListEntry) → ficam ligados às APIs e entram no mesmo circuito de importação.
 import { mapAniListEntry } from "./anilistImport";
+import { tr } from "../translations";
 
 const MAL_STATUS = {
   watching: "CURRENT", reading: "CURRENT", completed: "COMPLETED", "on-hold": "PAUSED", onhold: "PAUSED",
@@ -60,7 +61,7 @@ export async function readMalFile(file) {
   const buf = await file.arrayBuffer();
   const u8 = new Uint8Array(buf);
   if (u8[0] === 0x1f && u8[1] === 0x8b) {
-    if (typeof DecompressionStream === "undefined") throw new Error("Este navegador não consegue abrir ficheiros .gz. Descompacta o ficheiro e escolhe o .xml.");
+    if (typeof DecompressionStream === "undefined") throw new Error(tr("Este navegador não consegue abrir ficheiros .gz. Descompacta o ficheiro e escolhe o .xml.", "This browser cannot open .gz files. Unzip the file and choose the .xml."));
     const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"));
     return await new Response(stream).text();
   }
@@ -106,10 +107,10 @@ export async function resolveMalEntries(entries, { workerUrl, onProgress } = {})
         if (res?.status === 429) await new Promise(r => setTimeout(r, 4000 * (attempt + 1)));
         else if (!res?.d?.data?.Page && attempt < 2) await new Promise(r => setTimeout(r, 1200));
       }
-      if (!res) throw new Error("Não consegui ligar ao AniList. Verifica a ligação e tenta outra vez.");
+      if (!res) throw new Error(tr("Não consegui ligar ao AniList. Verifica a ligação e tenta outra vez.", "Could not reach AniList. Check your connection and try again."));
       if (res.status === 429) throw new Error("O AniList pediu para abrandar. Espera um minuto e tenta outra vez.");
       const page = res.d?.data?.Page;
-      if (!page) throw new Error("O AniList não respondeu como esperado. Tenta outra vez dentro de instantes.");
+      if (!page) throw new Error(tr("O AniList não respondeu como esperado. Tenta outra vez dentro de instantes.", "AniList did not respond as expected. Try again in a moment."));
       for (const m of page.media || []) if (m.idMal) mediaByKey[type + m.idMal] = m;
       done += Math.min(50, ids.length - i);
       onProgress && onProgress(done, entries.length);

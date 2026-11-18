@@ -43,7 +43,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, textAlign: "center", gap: 6 }}>
             <span style={{ fontSize: 28 }}><TypeIcon id={item.type} /></span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{(item.title || "Sem título").slice(0, 40)}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600, lineHeight: 1.3 }}>{(item.title || (lang === "en" ? "Untitled" : "Sem título")).slice(0, 40)}</span>
           </div>
         )}
         {/* Badges — status + score sem ícone de tipo */}
@@ -92,7 +92,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
           </p>
         )}
         {!inLib && (
-          <div style={{ marginTop: 8, padding: "5px 0", borderTop: "1px solid #21262d", fontSize: 11, color: accent, fontWeight: 600 }}>+ Adicionar</div>
+          <div style={{ marginTop: 8, padding: "5px 0", borderTop: "1px solid #21262d", fontSize: 11, color: accent, fontWeight: 600 }}>{lang === "en" ? "+ Add" : "+ Adicionar"}</div>
         )}
       </div>
     </div>

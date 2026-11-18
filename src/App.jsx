@@ -1523,7 +1523,7 @@ export default function TrackAll() {
       added++;
     });
     saveLibrary(lib);
-    showNotif(`Notas: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`, "#ea580c", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+    showNotif((lang === "en" ? `Notes: ${added} added${had ? `, ${had} already yours` : ""} ✓` : `Notas: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`), "#ea580c", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
   };
 
   // Goodreads: livros já ligados ao Google Books (ids gb-…). Só "completo" com data de leitura leva addedAt (entra no Diário).
@@ -1539,7 +1539,7 @@ export default function TrackAll() {
       added++;
     });
     saveLibrary(lib);
-    showNotif(`Goodreads: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`, "#7c5a3a", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
+    showNotif((lang === "en" ? `Goodreads: ${added} added${had ? `, ${had} already yours` : ""} ✓` : `Goodreads: ${added} adicionados${had ? `, ${had} já tinhas` : ""} ✓`), "#7c5a3a", { label: lang === "en" ? "Undo" : "Desfazer", onClick: () => saveLibrary(before) });
   };
 
   const importMihon = async (items) => {
@@ -1715,7 +1715,7 @@ export default function TrackAll() {
     if (matched.key !== canonicalId) delete next[matched.key];
     next[canonicalId] = { ...matched.item, id: canonicalId, lastChapter: chapter };
     saveLibrary(next);
-    showNotif(`Capítulo: ${chapter} ✓`, accent);
+    showNotif(`${lang === "en" ? "Chapter" : "Capítulo"}: ${chapter} ✓`, accent);
   }, [library, accent]);
   const updateRating = (id, rating) => {
    const matched = findLibraryEntry(libraryRef.current, id);
@@ -1771,7 +1771,7 @@ export default function TrackAll() {
       const sameType = favorites.filter(f => f.type === normalizedItem.type).length;
       if (sameType >= MAX_FAVORITES_PER_TYPE) {
         const t = MEDIA_TYPES.find(x => x.id === normalizedItem.type);
-        showNotif(`Já tens ${MAX_FAVORITES_PER_TYPE} favoritos de ${t ? mediaLabel(t, lang) : "este tipo"}. Remove um para adicionar este.`, "#ef4444");
+        showNotif(lang === "en" ? `You already have ${MAX_FAVORITES_PER_TYPE} favorites for ${t ? mediaLabel(t, lang) : "this type"}. Remove one to add this.` : `Já tens ${MAX_FAVORITES_PER_TYPE} favoritos de ${t ? mediaLabel(t, lang) : "este tipo"}. Remove um para adicionar este.`, "#ef4444");
         return;
       }
       const libItem = getLibraryMatch(normalizedItem.id, normalizedItem.type)?.item;
@@ -1845,7 +1845,7 @@ export default function TrackAll() {
         });
       }
     } catch (e) {
-      if (searchSeqRef.current === mySeq) setSearchError("Erro ao pesquisar. Verifica a tua ligação à internet.");
+      if (searchSeqRef.current === mySeq) setSearchError(lang === "en" ? "Search failed. Check your internet connection." : "Erro ao pesquisar. Verifica a tua ligação à internet.");
     } finally {
       if (searchSeqRef.current === mySeq) setIsSearching(false);
     }
@@ -2057,10 +2057,10 @@ export default function TrackAll() {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#0d1117", color: "#e6edf3", fontFamily: "'Outfit', 'Segoe UI', sans-serif" }}>
         <div style={{ maxWidth: 420, width: "100%", textAlign: "center", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 34 }}>📡</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800 }}>Não consegui ligar ao servidor</h2>
-          <p style={{ fontSize: 14, color: "#8b949e", lineHeight: 1.6 }}>Os teus dados estão seguros, mas não chegaram agora. Pode ser a ligação ou o serviço estar indisponível. Tenta outra vez dentro de instantes.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800 }}>{lang === "en" ? "Could not reach the server" : "Não consegui ligar ao servidor"}</h2>
+          <p style={{ fontSize: 14, color: "#8b949e", lineHeight: 1.6 }}>{lang === "en" ? "Your data is safe, it just didn't load right now. It may be your connection or the service being unavailable. Try again in a moment." : "Os teus dados estão seguros, mas não chegaram agora. Pode ser a ligação ou o serviço estar indisponível. Tenta outra vez dentro de instantes."}</p>
           <button onClick={() => window.location.reload()} style={{ padding: "13px", borderRadius: 12, background: accent, border: "none", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Tentar novamente</button>
-          <button onClick={hardLogout} style={{ padding: "11px", borderRadius: 12, background: "transparent", border: "1px solid rgba(255,255,255,0.14)", color: "#8b949e", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Terminar sessão e entrar de novo</button>
+          <button onClick={hardLogout} style={{ padding: "11px", borderRadius: 12, background: "transparent", border: "1px solid rgba(255,255,255,0.14)", color: "#8b949e", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{lang === "en" ? "Sign out and sign in again" : "Terminar sessão e entrar de novo"}</button>
         </div>
       </div>
     );
@@ -2161,9 +2161,9 @@ export default function TrackAll() {
         {/* Demo mode banner */}
         {demoMode && (
           <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999, background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-            <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>👀 Modo Demonstração — os dados são fictícios</span>
+            <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{lang === "en" ? "👀 Demo mode — the data is fictional" : "👀 Modo Demonstração — os dados são fictícios"}</span>
             <button onClick={() => { setDemoMode(false); setShowLanding(false); }} style={{ padding: "5px 14px", borderRadius: 8, background: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.4)", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{useT("landingCreateFree")}</button>
-            <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>✕ Sair</button>
+            <button onClick={() => { setDemoMode(false); setShowLanding(true); }} style={{ padding: "5px 14px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{lang === "en" ? "✕ Exit" : "✕ Sair"}</button>
           </div>
         )}
         <WallpaperLayer src={activeBgImage} blur={activeBlur} />
@@ -2258,7 +2258,7 @@ export default function TrackAll() {
                     {profile.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>👤</span>}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 15, fontWeight: 800, color: sbDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || "Utilizador"}</p>
+                    <p style={{ fontSize: 15, fontWeight: 800, color: sbDark ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name || (lang === "en" ? "User" : "Utilizador")}</p>
                     <p style={{ fontSize: 11.5, color: "#8b949e", marginTop: 1 }}>{Object.keys(library).length} {useT("inLibraryCount")}</p>
                   </div>
                   <span style={{ color: sbDark ? "#484f58" : "#94a3b8", fontSize: 16 }}>›</span>
@@ -2647,7 +2647,7 @@ export default function TrackAll() {
                 autoFocus={isMobileDevice && mobileSearchOpen}
                 onSubmit={(q) => { doSearch(q, activeTab); setMobileSearchOpen(false); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }}
                 onEscape={() => setMobileSearchOpen(false)}
-                placeholder="Pesquisar..."
+                placeholder={lang === "en" ? "Search..." : "Pesquisar..."}
                 style={{ width: "100%", padding: "9px 36px 9px 36px", fontSize: 13 }}
               />
               {searchQuery && (
@@ -2892,7 +2892,7 @@ export default function TrackAll() {
               <div style={{ position: "relative" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={darkMode ? "#6e7681" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
                 <input ref={logInputRef} type="text" value={logQuery} onChange={e => setLogQuery(e.target.value)}
-                  placeholder={quickSearchType ? `Pesquisar ${MEDIA_TYPES.find(t => t.id === quickSearchType)?.label || ""}...` : "Pesquisar qualquer título..."}
+                  placeholder={quickSearchType ? `${lang === "en" ? "Search" : "Pesquisar"} ${(() => { const m = MEDIA_TYPES.find(t => t.id === quickSearchType); return m ? mediaLabel(m, lang) : ""; })()}...` : (lang === "en" ? "Search any title..." : "Pesquisar qualquer título...")}
                   style={{ width: "100%", padding: "14px 16px 14px 42px", borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.05)" : "#f8fafc", border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"}`, color: darkMode ? "#e6edf3" : "#0d1117", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box", transition: "border-color 0.15s, box-shadow 0.15s" }}
                   onFocus={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${accent}26`; }}
                   onBlur={e => { e.currentTarget.style.borderColor = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }} />
@@ -2973,7 +2973,7 @@ export default function TrackAll() {
           </button>
           <button className={`nav-btn${view === "profile" ? " active" : ""}`} onClick={() => goTab("profile")} style={{ color: view === "profile" ? accent : undefined }}>
             <span style={{ fontSize: 22 }}>◉</span>
-            Perfil
+            {lang === "en" ? "Profile" : "Perfil"}
           </button>
         </nav>
       </div>

@@ -2,12 +2,14 @@ import { createPortal } from "react-dom";
 import { TIER_LEVELS } from "../config/constants";
 import { gradientFor } from "../lib/utils";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLang } from "../contexts/LangContext";
 
 export const TIER_NAMES = { S: "Obra-prima", A: "Excelente", B: "Bom", C: "Fraco", D: "Evitar" };
 
 // Visualizador de tier list: linhas limpas, capas grandes
 export function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEdit, onOpenItem }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
+  const { lang } = useLang();
   const text = darkMode ? "#e6edf3" : "#0f172a";
   const muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.07)" : "#e2e8f0";
@@ -36,14 +38,14 @@ export function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEd
               <h2 style={{ fontSize: isMobileDevice ? 24 : 32, fontWeight: 800, lineHeight: 1.1, color: text }}>{tl.title}</h2>
               {author && <p style={{ fontSize: 13, color: muted, marginTop: 8 }}>por <b style={{ color: text }}>@{author}</b></p>}
             </div>
-            <button onClick={onClose} aria-label="Fechar" style={{ width: 36, height: 36, borderRadius: 999, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`, background: "transparent", color: muted, cursor: "pointer", fontSize: 16, flexShrink: 0 }}>✕</button>
+            <button onClick={onClose} aria-label={lang === "en" ? "Close" : "Fechar"} style={{ width: 36, height: 36, borderRadius: 999, border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`, background: "transparent", color: muted, cursor: "pointer", fontSize: 16, flexShrink: 0 }}>✕</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <button onClick={() => onLike && onLike(tl.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : (darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0")}`, borderRadius: 12, padding: "8px 14px", color: liked ? accent : muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
               {liked ? "♥" : "♡"} {tl.likes_count || 0}
             </button>
             {currentUserId === tl.user_id && onEdit && (
-              <button onClick={() => { onClose(); onEdit(tl); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`, borderRadius: 12, padding: "8px 14px", color: muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✎ Editar</button>
+              <button onClick={() => { onClose(); onEdit(tl); }} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0"}`, borderRadius: 12, padding: "8px 14px", color: muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>{lang === "en" ? "✎ Edit" : "✎ Editar"}</button>
             )}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { tr } from '../translations';
 
 // ─── Supabase Config ─────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://kgclapivcpjqxbtomaue.supabase.co';
@@ -35,7 +36,7 @@ const supa = {
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { invite_code: inviteCode, username: username || undefined } } });
     if (error) {
       // O Supabase esconde a mensagem do trigger atrás de "Database error saving new user"
-      if (/database error/i.test(error.message)) throw new Error("Código de convite inválido ou já utilizado.");
+      if (/database error/i.test(error.message)) throw new Error(tr("Código de convite inválido ou já utilizado.", "Invalid or already used invite code."));
       throw new Error(error.message);
     }
     supa._user = data.user;
@@ -89,7 +90,7 @@ const supa = {
       const { data, error } = await supabase.from('profiles')
         .update({ ...pub, updated_at: new Date().toISOString() }).eq('id', userId).select('id');
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('Perfil não encontrado ou sem permissão para atualizar');
+      if (!data || data.length === 0) throw new Error(tr("Perfil não encontrado ou sem permissão para atualizar", "Profile not found or no permission to update"));
     }
   },
 
@@ -328,8 +329,8 @@ const supa = {
   // (isso é o que fazia o guardar do banner/avatar encravar).
   async uploadImage(userId, blob, filename) {
     const path = `${userId}/${filename}`;
-    if (!blob || blob.size > 5 * 1024 * 1024) throw new Error('Imagem demasiado grande (máx. 5 MB)');
-    if (blob.type && !/^image\/(jpeg|png|webp|gif)$/.test(blob.type)) throw new Error('Formato de imagem não suportado');
+    if (!blob || blob.size > 5 * 1024 * 1024) throw new Error(tr("Imagem demasiado grande (máx. 5 MB)", "Image too large (max 5 MB)"));
+    if (blob.type && !/^image\/(jpeg|png|webp|gif)$/.test(blob.type)) throw new Error(tr("Formato de imagem não suportado", "Unsupported image format"));
     const { error } = await supabase.storage.from('profile-images').upload(path, blob, {
       upsert: true,
       contentType: blob.type || 'image/jpeg',

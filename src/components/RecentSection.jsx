@@ -66,7 +66,7 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
             {!bare && <h3 style={isMobileDevice ? { fontSize: 18, fontWeight: 800, margin: 0, color: darkMode ? "#e6edf3" : "#0f172a" } : { fontSize: 11, fontWeight: 800, color: darkMode ? "#8b949e" : "#64748b", letterSpacing: "0.12em", textTransform: "uppercase" }}>{isMobileDevice ? (lang === "en" ? "Recent" : "Recentes") : (lang === "en" ? "Recent" : "Recentes").toUpperCase()}</h3>}
             {!compactHead && completados.length > (isMobileDevice ? 6 : 7) && (
               <button onClick={() => setShowAllCompleto(v => !v)} style={{ background: "none", border: (isMobileDevice || compactHead) ? "none" : `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                {showAllCompleto ? "↑ Menos" : `Ver todos (${completados.length})`}
+                {showAllCompleto ? (lang === "en" ? "↑ Less" : "↑ Menos") : (lang === "en" ? `See all (${completados.length})` : `Ver todos (${completados.length})`)}
               </button>
             )}
           </div>
@@ -171,7 +171,7 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
               }}>
                 {showDiaryAll
                   ? "↑ Mostrar menos"
-                  : `Ver mais — ${hiddenCount} entr${hiddenCount === 1 ? "ada" : "adas"} em ${sortedGroups.length - 2} mes${sortedGroups.length - 2 === 1 ? "" : "es"} anteriores`}
+                  : (lang === "en" ? `Show more — ${hiddenCount} ${hiddenCount === 1 ? "entry" : "entries"} from ${sortedGroups.length - 2} earlier ${sortedGroups.length - 2 === 1 ? "month" : "months"}` : `Ver mais — ${hiddenCount} entr${hiddenCount === 1 ? "ada" : "adas"} em ${sortedGroups.length - 2} mes${sortedGroups.length - 2 === 1 ? "" : "es"} anteriores`)}
               </button>
             )}
           </div>
@@ -186,7 +186,7 @@ export function RecentSection({ items, onOpen, showDiary = true, part = "all", b
             {!bare && <h3 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", letterSpacing: "0.12em", textTransform: "uppercase" }}>{useT("inProgressLabel").toUpperCase()}</h3>}
             {inCurso.length > 10 && (
               <button onClick={() => setShowAllCurso(v => !v)} style={{ background: "none", border: `1px solid ${accent}44`, color: accent, padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
-                {showAllCurso ? "↑ Menos" : `Ver todos (${inCurso.length})`}
+                {showAllCurso ? "↑ Menos" : (lang === "en" ? `See all (${inCurso.length})` : `Ver todos (${inCurso.length})`)}
               </button>
             )}
           </div>
