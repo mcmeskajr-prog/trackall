@@ -28,6 +28,7 @@ export function ProfileSettings(props) {
   };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   return (
       <div style={{ padding: isMobileDevice ? "16px 16px 40px" : "24px 32px 48px", display: "flex", flexDirection: isMobileDevice ? "column" : "row", gap: isMobileDevice ? 16 : 32, alignItems: "flex-start" }}>
@@ -237,27 +238,40 @@ export function ProfileSettings(props) {
       const handleDeleteAccount = async () => {
         if (!confirmDelete) { setConfirmDelete(true); return; }
         setDeleting(true);
+        setDeleteError("");
         try {
           // Função do servidor: apaga dados, imagens e a própria conta de login (ver docs/supabase_delete_account.sql)
           const { error: rpcError } = await supabase.rpc("delete_my_account");
           if (rpcError) {
             // Sem a função instalada: apaga pelo menos os dados (a conta de login fica)
             console.warn("[TrackAll] delete_my_account indisponível, a apagar tabelas:", rpcError.message);
-            await supabase.from("collection_likes").delete().eq("user_id", currentUserId);
-            await supabase.from("tierlist_likes").delete().eq("user_id", currentUserId);
-            await supabase.from("collections").delete().eq("user_id", currentUserId);
-            await supabase.from("tierlists").delete().eq("user_id", currentUserId);
-            await supabase.from("library").delete().eq("user_id", currentUserId);
-            await supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
-            await supabase.from("profile_private").delete().eq("id", currentUserId);
-            await supabase.from("profiles").delete().eq("id", currentUserId);
+            const steps = [
+              supabase.from("collection_likes").delete().eq("user_id", currentUserId),
+              supabase.from("tierlist_likes").delete().eq("user_id", currentUserId),
+              supabase.from("collections").delete().eq("user_id", currentUserId),
+              supabase.from("tierlists").delete().eq("user_id", currentUserId),
+              supabase.from("library").delete().eq("user_id", currentUserId),
+              supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`),
+              supabase.from("profile_private").delete().eq("id", currentUserId),
+              supabase.from("profiles").delete().eq("id", currentUserId),
+            ];
+            const results = [];
+            for (const q of steps) results.push(await q); // por ordem: o perfil só no fim
+            const failed = results.find(r => r?.error);
+            if (failed) {
+              // Não terminar sessão como se estivesse tudo apagado: dizer a verdade e deixar tentar de novo
+              console.error("[TrackAll] apagar conta falhou:", failed.error.message);
+              setDeleteError(lang === "en" ? "Could not delete everything. Nothing was signed out — check your connection and try again." : "Não foi possível apagar tudo. A sessão não foi terminada — verifica a ligação e tenta outra vez.");
+              setDeleting(false);
+              return;
+            }
           }
           await supabase.auth.signOut();
           onSignOut && onSignOut();
         } catch (e) {
           console.error(e);
+          setDeleteError(lang === "en" ? "Something went wrong while deleting. Try again." : "Algo correu mal ao apagar. Tenta outra vez.");
           setDeleting(false);
-          setConfirmDelete(false);
         }
       };
       return (
@@ -270,6 +284,7 @@ export function ProfileSettings(props) {
             <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
               {lang === "en" ? "Deleting your account permanently removes your whole library, profile and data. This cannot be undone." : "Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita."}
             </p>
+            {deleteError && <p role="alert" style={{ fontSize: 12, color: "#f87171", marginBottom: 10 }}>{deleteError}</p>}
             {!confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                 {lang === "en" ? "Delete account" : "Apagar conta"}
