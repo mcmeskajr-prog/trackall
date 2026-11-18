@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { imageStats, needsLegibility, LEGIBLE_MIN_OVERLAY } from "../lib/contrast";
 import { pickImage } from "../lib/imageCheck";
 import { ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { compressImage } from "../lib/utils";
@@ -34,7 +35,11 @@ export function AppearanceSettings({
   savedThemes, computedPanelBg,
   onAccentChange, onBgChange, onBgColorMobile, onSidebarColor, onTextContrast, onTextContrastMobile,
   onPanelBg, onPanelOpacity, onBgImage, onBgImageMobile, onBgOverlay, onBgBlur, onBgParallax, onBgSeparateDevices,
+  legiblePanels = false, onLegiblePanels,
 }) {
+  const [brightImg, setBrightImg] = useState(false);
+  const _wp = isMobileDevice && bgSeparateDevices ? bgImageMobile : bgImage;
+  useEffect(() => { let alive = true; setBrightImg(false); if (_wp) imageStats(_wp).then((st) => { if (alive) setBrightImg(needsLegibility(st)); }); return () => { alive = false; }; }, [_wp]);
   const [themeName, setThemeName] = useState("");
   const [advOpen, setAdvOpen] = useState(false);
   const [sbMode, setSbMode] = useUiPref("trackall_sidebar_mode");
@@ -245,6 +250,17 @@ export function AppearanceSettings({
               <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{en ? "Blur" : "Desfoque"} — {bgBlur}px</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{[0, 2, 4, 8, 12].map(v => <button key={v} type="button" onClick={() => onBgBlur(v)} style={chip(bgBlur === v)}>{v === 0 ? (en ? "None" : "Nenhum") : `${v}px`}</button>)}</div>
             </div>
+            {onLegiblePanels && (
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{en ? "Guarantee readability over wallpaper" : "Garantir leitura sobre wallpaper"}</p>
+                <p style={{ fontSize: 12, color: sub, lineHeight: 1.5, marginBottom: 8 }}>{en ? "Panels become dark glass and text stays light, whatever the image. It also darkens the wallpaper to at least 70% when turned on." : "Os painéis passam a vidro escuro e o texto fica claro, seja qual for a imagem. Ao ligar, a película sobe para pelo menos 70%."}</p>
+                {brightImg && !legiblePanels && <p style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", marginBottom: 8 }}>⚠ {en ? "This image is bright: turn this on to keep text readable." : "Esta imagem é clara: liga isto para o texto se continuar a ler."}</p>}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" onClick={() => onLegiblePanels(true)} style={chip(!!legiblePanels)}>{en ? "On" : "Ligado"}</button>
+                  <button type="button" onClick={() => onLegiblePanels(false)} style={chip(!legiblePanels)}>{en ? "Off" : "Desligado"}</button>
+                </div>
+              </div>
+            )}
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{useT("scroll")}</p>
               <div style={{ display: "flex", gap: 6 }}>
