@@ -241,7 +241,14 @@ export function ProfileSettings(props) {
         setDeleting(true);
         setDeleteError("");
         try {
-          // Função do servidor: apaga dados, imagens e a própria conta de login (ver docs/supabase_delete_account.sql)
+          // 1) Imagens pela API do Storage (apagar linhas de storage.objects por SQL não remove o ficheiro de facto,
+          //    e em projetos recentes é bloqueado). Falhar aqui não impede o resto.
+          try {
+            const bucket = supabase.storage.from("profile-images");
+            const { data: files } = await bucket.list(currentUserId, { limit: 100 });
+            if (files?.length) await bucket.remove(files.map(f => `${currentUserId}/${f.name}`));
+          } catch (e) { console.warn("[TrackAll] apagar imagens:", e?.message); }
+          // 2) Função do servidor: apaga os dados e a própria conta de login
           const { error: rpcError } = await supabase.rpc("delete_my_account");
           if (rpcError) {
             // Sem a função instalada: apaga pelo menos os dados (a conta de login fica)
