@@ -24,7 +24,7 @@ const tintFrom = (hex) => { const [h, s0] = rgbToHsl(...(hexRgb(hex) || [90, 90,
 export function PersonalizeMobile({
   profile, currentUserId, onUpdateProfile, lang, savedThemes,
   accent, bgColor, bgColorMobile, bgSeparateDevices, bgImage, bgImageMobile, panelBg, panelOpacity, bgOverlay, bgBlur,
-  onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgSeparateDevices, onBgOverlay, onBgBlur,
+  onAccentChange, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onPanelBg, onPanelOpacity, onBgSeparateDevices, onBgOverlay, onBgBlur, legiblePanels = false, onLegiblePanels,
 }) {
   const { darkMode } = useTheme();
   const theme = useTheme();
@@ -40,8 +40,8 @@ export function PersonalizeMobile({
   const initial = useMemo(() => ({
     url: saved.url, style: saved.style, hide: !!profile.hideBannerMobile, accent, bgMode: saved.url && saved.style.g !== 0 ? "auto" : (curImg ? "image" : ((curBg || "").toLowerCase() === tintFrom(accent).bg ? "accent" : "color")),
     bgColor: curBg, bgImage: curImg || "", panel: panelBg, opacity: panelOpacity,
-    ov: Math.round(overlayAlpha(bgOverlay) * 100), blur: bgBlur || 0,
-  }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity, bgOverlay, bgBlur]); // eslint-disable-line
+    ov: Math.round(overlayAlpha(bgOverlay) * 100), blur: bgBlur || 0, legible: !!legiblePanels,
+  }), [profile.banner, accent, curBg, curImg, panelBg, panelOpacity, bgOverlay, bgBlur, legiblePanels]); // eslint-disable-line
   const [d, setD] = useState(initial);
   const [sheet, setSheet] = useState(null); // "banner" | "color" | "bg" | "picker"
   const [crop, setCrop] = useState(null);   // { src, type }
@@ -61,7 +61,7 @@ export function PersonalizeMobile({
   const followChanged = d.style.a !== initial.style.a, urlChanged = d.url !== initial.url;
   // a cor do banner só entra quando o banner (ou a opção "acompanha") muda; senão mantém-se a cor da app
   const effAccent = follow && d.url && bannerAcc && (urlChanged || followChanged) ? bannerAcc : d.accent;
-  const pick4 = (x) => JSON.stringify({ u: x.url, h: x.hide, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity, v: x.ov, l: x.blur });
+  const pick4 = (x) => JSON.stringify({ u: x.url, h: x.hide, s: x.style, m: x.bgMode, c: x.bgColor, i: x.bgImage, p: x.panel, o: x.opacity, v: x.ov, l: x.blur, g: x.legible });
   const dirty = pick4(d) !== pick4(initial) || effAccent !== accent;
   const tint = tintFrom(effAccent);
   const bgEff = d.bgMode === "accent" ? tint.bg : d.bgColor;
@@ -136,6 +136,7 @@ export function PersonalizeMobile({
     if (d.opacity !== panelOpacity) onPanelOpacity(d.opacity);
     if (d.ov !== initial.ov && onBgOverlay) onBgOverlay(`rgba(0,0,0,${d.ov / 100})`);
     if (d.blur !== initial.blur && onBgBlur) onBgBlur(d.blur);
+    if (d.legible !== initial.legible && onLegiblePanels) onLegiblePanels(d.legible, { raiseOverlay: false });
     flash(en ? "Changes saved" : "Alterações guardadas", async () => {
       await onUpdateProfile({ ...profile, banner: profile.banner || "" });
       onAccentChange(before.accent);
@@ -143,6 +144,7 @@ export function PersonalizeMobile({
       bgSeparateDevices ? onBgImageMobile(before.bgImage) : onBgImage(before.bgImage);
       onPanelBg(before.panel); onPanelOpacity(before.opacity);
       if (onBgOverlay) onBgOverlay(`rgba(0,0,0,${before.ov / 100})`); if (onBgBlur) onBgBlur(before.blur);
+      if (onLegiblePanels) onLegiblePanels(before.legible, { raiseOverlay: false });
     });
   };
 
@@ -291,6 +293,18 @@ export function PersonalizeMobile({
                 <input type="range" min={35} max={100} step={1} value={d.opacity} onChange={(e) => set({ opacity: parseInt(e.target.value, 10) })} style={{ width: "100%", accentColor: A }} aria-label={en ? "Panel transparency" : "Transparência dos painéis"} />
                 <div style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>{en ? "Text colour adjusts automatically." : "A cor do texto ajusta-se automaticamente."}</div>
               </div>
+              {/* Leitura garantida */}
+              {onLegiblePanels && d.bgMode === "image" && d.bgImage && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{en ? "Guarantee readability" : "Garantir leitura"}</div>
+                  <div style={{ fontSize: 11.5, color: muted, marginBottom: 8, lineHeight: 1.45 }}>{en ? "Dark glass panels and light text over any wallpaper. Darkens to at least 70% when turned on." : "Painéis em vidro escuro e texto claro sobre qualquer wallpaper. Ao ligar, escurece para pelo menos 70%."}</div>
+                  <div style={{ display: "flex", gap: 6, padding: 4, borderRadius: 14, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)" }}>
+                    {[[true, en ? "On" : "Ligado"], [false, en ? "Off" : "Desligado"]].map(([v, l]) => (
+                      <button key={String(v)} type="button" onClick={() => set(v ? { legible: true, ov: Math.max(d.ov, 70) } : { legible: false })} style={{ flex: 1, height: 38, borderRadius: 10, border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer", background: d.legible === v ? A : "transparent", color: d.legible === v ? onAccentColor(A) : muted }}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {/* Sincronização */}
               {onBgSeparateDevices && (
                 <div style={{ marginTop: 18 }}>

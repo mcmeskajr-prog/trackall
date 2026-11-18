@@ -21,7 +21,7 @@ const rating = ratingOf10;
 
 // «Melhor para hoje» (cartão clicável, com fundo) + 4 atalhos em linha.
 export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelectedItem }) {
-  const { accent, darkMode, panelBg, isMobileDevice } = useTheme();
+  const { accent, darkMode, panelBg, isMobileDevice, legible } = useTheme();
   const { lang } = useLang();
   const picks = useHomePicks(items);
   const dash = homeDashboard.quickPicks || [];
@@ -69,6 +69,7 @@ export function HomeQuickPicks({ items, homeDashboard, personalRecos, setSelecte
       <div onClick={() => setSelectedItem(hero)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(hero); }}
         style={{ position: "relative", cursor: "pointer", overflow: "hidden", borderRadius: HOME_R, minHeight: isMobileDevice ? 160 : 256 }}>
         {bg && <div aria-hidden style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: isMobileDevice ? "100%" : "74%", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center center", filter: banner ? "none" : "blur(22px) saturate(1.15)", transform: banner ? "none" : "scale(1.15)", opacity: isMobileDevice ? 0.32 : (banner ? 0.92 : 0.7), WebkitMaskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 68%)", maskImage: isMobileDevice ? "linear-gradient(90deg, transparent 0%, #000 100%)" : "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 68%)", pointerEvents: "none" }} />}
+        {legible && <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.38) 40%, rgba(0,0,0,0) 66%)", pointerEvents: "none" }} />}
 
         <div style={{ position: "relative", display: "flex", alignItems: "stretch" }}>
           <div style={{ alignSelf: "center", flexShrink: 0, margin: isMobileDevice ? "14px 0 14px 14px" : "22px 0 22px 24px" }}>

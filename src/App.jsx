@@ -25,7 +25,7 @@ import { MEDIA_TYPES, STATUS_OPTIONS, TIER_LEVELS, TYPE_COLORS, MONTH_PT, MONTH_
 import { MAX_FAVORITES_PER_TYPE } from './config/limits';
 import { lazyNamed, prefetchIdle } from './lib/lazyNamed';
 import { ACCENT_PRESETS, BG_PRESETS, isColorDark, accentShade, accentVariant } from './config/theme';
-import { imageLuminance, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
+import { imageLuminance, imageStats, needsLegibility, legibleTheme, isLightOverlay, LEGIBLE_MIN_OVERLAY, overlayAlpha, isDarkLum, hexRgb, relLum, onAccent as onAccentColor } from './lib/contrast';
 import { appBgPaint } from './lib/bannerColors';
 import { useUiPref } from './lib/uiPrefs';
 import { usePersistedState } from './lib/usePersistedState';
@@ -269,6 +269,7 @@ export default function TrackAll() {
   const [bgImageMobile, setBgImageMobile] = useState("");
   const [bgSeparateDevices, setBgSeparateDevices] = useState(!!_bt.bgSeparateDevices);
   const [bgOverlay, setBgOverlay] = useState("rgba(0,0,0,0.55)");
+  const [legiblePanels, setLegiblePanels] = useState(false); // «Garantir leitura sobre wallpaper» (por conta)
   const [bgBlur, setBgBlur] = useState(0);
   const [bgParallax, setBgParallax] = useState(true);
   const [bgLum, setBgLum] = useState({ url: "", lum: null });
@@ -628,6 +629,7 @@ export default function TrackAll() {
         if (prof.bg_image_mobile) setBgImageMobile(prof.bg_image_mobile);
         if (prof.bg_separate_devices) setBgSeparateDevices(true);
         if (prof.bg_overlay !== undefined) setBgOverlay(prof.bg_overlay);
+        setLegiblePanels(!!prof.legible_panels);
         if (prof.bg_blur !== undefined) setBgBlur(prof.bg_blur);
         if (prof.bg_parallax !== undefined) setBgParallax(prof.bg_parallax);
         if (prof.tmdb_key) setTmdbKey(prof.tmdb_key);
@@ -1150,6 +1152,24 @@ export default function TrackAll() {
     setBgOverlay(o);
     if (user) try { await supa.upsertProfile(user.id, { bg_overlay: o }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_overlay:", err); }
   };
+  // «Garantir leitura sobre wallpaper»: ao ligar, a película sobe para pelo menos 70% (só uma vez; depois podes baixá-la)
+  const saveLegiblePanels = async (on, { raiseOverlay = true } = {}) => {
+    setLegiblePanels(!!on);
+    if (user) try { await supa.upsertProfile(user.id, { legible_panels: !!on }); } catch (err) { console.error("[TrackAll] Erro ao guardar legible_panels:", err); }
+    if (on && raiseOverlay && !isLightOverlay(bgOverlay) && overlayAlpha(bgOverlay) < LEGIBLE_MIN_OVERLAY) await saveBgOverlay(`rgba(0,0,0,${LEGIBLE_MIN_OVERLAY})`);
+  };
+  // Imagem clara ou muito contrastada carregada agora → liga a leitura garantida sozinha, com «Desfazer»
+  const autoLegibleForImage = async (img) => {
+    if (!img || legiblePanels) return;
+    const st = await imageStats(img);
+    if (!needsLegibility(st)) return;
+    const prevOverlay = bgOverlay;
+    await saveLegiblePanels(true);
+    showNotifRef.current(lang === "en" ? "Bright image: readability guarantee turned on" : "Imagem clara: ativámos a leitura garantida", undefined, {
+      label: lang === "en" ? "Undo" : "Desfazer",
+      onClick: async () => { await saveLegiblePanels(false, { raiseOverlay: false }); await saveBgOverlay(prevOverlay); },
+    });
+  };
   const saveBgBlur = async (v) => {
     setBgBlur(v);
     if (user) try { await supa.upsertProfile(user.id, { bg_blur: v }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_blur:", err); }
@@ -1358,10 +1378,12 @@ export default function TrackAll() {
       setBgImageMobile(img);
       if (user) try { await supa.upsertProfile(user.id, { bg_image: img, bg_image_mobile: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image:", err); }
     }
+    autoLegibleForImage(img);
   };
   const saveMobileBgImage = async (img) => {
     setBgImageMobile(img);
     if (user) try { await supa.upsertProfile(user.id, { bg_image_mobile: img }); } catch (err) { console.error("[TrackAll] Erro ao guardar bg_image_mobile:", err); }
+    autoLegibleForImage(img);
   };
   const saveBgSeparateDevices = async (val) => {
     setBgSeparateDevices(val);
@@ -2094,9 +2116,12 @@ export default function TrackAll() {
     : darkMode;
   // Com wallpaper, o modo claro/escuro (texto e ícones) segue a luminância real da imagem já escurecida pela película
   const _imgLum = activeBgImage && bgLum.url === activeBgImage ? bgLum.lum : null;
-  const activeDarkMode = _imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(activeOverlay))) : _colorDark;
-  const activePanelBg = friendTheme ? friendTheme.panelBg : panelBg;
-  const activePanelOpacity = friendTheme ? friendTheme.panelOpacity : panelOpacity;
+  // «Garantir leitura»: com wallpaper (e película escura) o texto é claro e os painéis são vidro escuro, seja qual for a imagem
+  const legibleActive = !friendTheme && !!legiblePanels && !!activeBgImage && !isLightOverlay(activeOverlay);
+  const activeDarkMode = legibleActive ? true : (_imgLum != null ? isDarkLum(_imgLum * (1 - overlayAlpha(activeOverlay))) : _colorDark);
+  const _lg = legibleTheme({ on: legibleActive, hasImage: !!activeBgImage, overlay: activeOverlay, panelBg: friendTheme ? friendTheme.panelBg : panelBg, panelOpacity: friendTheme ? friendTheme.panelOpacity : panelOpacity });
+  const activePanelBg = _lg.panelBg;
+  const activePanelOpacity = _lg.panelOpacity;
   // Modo claro/escuro DOS PAINÉIS: segue a cor real do painel (misturada com o fundo por baixo), não a do fundo da página.
   // Assim um painel escuro sobre fundo branco (ou o contrário) continua a ter texto legível.
   const panelDark = (() => {
@@ -2147,12 +2172,13 @@ export default function TrackAll() {
   const baseTextColor = activeDarkMode ? "#e6edf3" : "#0d1117";
 
   return (
-    <ThemeBridge accent={accent} bg={activeBgColor} darkMode={activeDarkMode} panelDark={panelDark} isMobileDevice={isMobileDevice} panelBg={activePanelBg ? computedPanelBgCSS : null} setFriendTheme={setFriendTheme}>
+    <ThemeBridge accent={accent} bg={activeBgColor} darkMode={activeDarkMode} legible={legibleActive} panelDark={panelDark} isMobileDevice={isMobileDevice} panelBg={activePanelBg ? computedPanelBgCSS : null} setFriendTheme={setFriendTheme}>
       <LangBridge lang={lang}>
       <div style={{
         minHeight: "100vh",
         backgroundColor: activeBgColor, backgroundImage: activeBgPaint, backgroundRepeat: "no-repeat", transition: "background-color 0.4s ease, color 0.3s ease",
         color: baseTextColor,
+        textShadow: legibleActive ? "0 1px 2px rgba(0,0,0,0.4)" : undefined,
         fontFamily: "'Outfit', 'Segoe UI', sans-serif",
         paddingBottom: 96,
         position: "relative",
@@ -2302,7 +2328,7 @@ export default function TrackAll() {
           ::-webkit-scrollbar-thumb { background: ${activeDarkMode ? "#30363d" : "#cbd5e1"}; border-radius: 3px; }
           .btn-accent { background: linear-gradient(135deg, ${accent}, ${accent}cc); color: ${onAccentTxt}; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; transition: all 0.2s; }
           .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(${accentRgb},0.4); }
-          .card { background: ${activeDarkMode ? "rgba(22,27,34,0.4)" : "rgba(255,252,247,0.55)"}; backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; -webkit-backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+          .card { background: ${activeDarkMode ? (legibleActive ? "rgba(13,17,23,0.66)" : "rgba(22,27,34,0.4)") : "rgba(255,252,247,0.55)"}; backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; -webkit-backdrop-filter: ${activeBgImage ? "blur(10px)" : "none"}; border: 1px solid ${activeDarkMode ? "#21262d" : "#e8e0d5"}; border-radius: 12px; overflow: hidden; transition: all 0.2s; }
           .card:hover .card-overlay { opacity: 1 !important; }
           .media-thumb { position: relative; overflow: hidden; border-radius: 10px; }
           .media-thumb .rating-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.52); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s ease, transform 0.18s ease; border-radius: 10px; }
@@ -2317,7 +2343,7 @@ export default function TrackAll() {
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
           .modal-bg { font-family: 'Outfit', 'Segoe UI', sans-serif; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
           .modal { background: ${activeDarkMode ? "#161b22" : "#ffffff"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 16px; width: 100%; overflow: hidden; }
-          .modal-glass { background: ${activeDarkMode ? "rgba(22,27,34,0.42)" : "rgba(255,255,255,0.5)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+          .modal-glass { background: ${activeDarkMode ? (legibleActive ? "rgba(13,17,23,0.72)" : "rgba(22,27,34,0.42)") : "rgba(255,255,255,0.5)"} !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
           .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
           @media (max-width: 480px) { .media-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
           .recents-row { -webkit-overflow-scrolling: touch; scroll-snap-type: none; scroll-padding-inline: 12px; overscroll-behavior-x: contain; }
@@ -2746,6 +2772,8 @@ export default function TrackAll() {
             onBgColorMobile={saveBgColorMobile}
             isMobileDevice={isMobileDevice}
             onBgOverlay={saveBgOverlay}
+            legiblePanels={legiblePanels}
+            onLegiblePanels={saveLegiblePanels}
             onBgBlur={saveBgBlur}
             onBgParallax={saveBgParallax}
             panelBg={panelBg}

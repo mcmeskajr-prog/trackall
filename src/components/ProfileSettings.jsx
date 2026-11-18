@@ -8,7 +8,7 @@ import { PersonalizeMobile } from "./PersonalizeMobile";
 // Recebe os mesmos props do ProfileView (tema/ações) + o estado que vive lá (secção aberta, modais de importação).
 export function ProfileSettings(props) {
   const {
-    accent, bgBlur, bgColor, bgColorMobile, bgImage, bgImageMobile, bgOverlay, bgParallax, bgSeparateDevices, currentUserId, darkMode, isMobileDevice,
+    accent, bgBlur, bgColor, bgColorMobile, bgImage, bgImageMobile, bgOverlay, bgParallax, bgSeparateDevices, legiblePanels, onLegiblePanels, currentUserId, darkMode, isMobileDevice,
     onAccentChange, onBgBlur, onBgChange, onBgColorMobile, onBgImage, onBgImageMobile, onBgOverlay, onBgParallax, onBgSeparateDevices, onChangeLang,
     onPanelBg, onPanelOpacity, onSavedThemes, onSidebarColor, onSignOut, onTextContrast, onTextContrastMobile, panelBg, panelOpacity, sidebarColor,
     textContrast, textContrastMobile, userEmail, profile, library, favorites = [], hallOfFame = [],
@@ -75,6 +75,7 @@ export function ProfileSettings(props) {
                 onTextContrast={onTextContrast} onTextContrastMobile={onTextContrastMobile} onPanelBg={onPanelBg} onPanelOpacity={onPanelOpacity}
                 onBgImage={onBgImage} onBgImageMobile={onBgImageMobile} onBgOverlay={onBgOverlay} onBgBlur={onBgBlur} onBgParallax={onBgParallax}
                 onBgSeparateDevices={onBgSeparateDevices}
+                legiblePanels={legiblePanels} onLegiblePanels={onLegiblePanels}
               />
               )}
             </>
