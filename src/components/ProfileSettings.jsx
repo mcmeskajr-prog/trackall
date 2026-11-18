@@ -206,9 +206,9 @@ export function ProfileSettings(props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
-            <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
+            <p style={{ fontSize: 11, color: "#8b949e" }}>{lang === "en" ? "How we handle your data · GDPR" : "Como tratamos os teus dados · RGPD"}</p>
           </div>
-          <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
+          <a href={`/privacy.html#${lang === "en" ? "en" : "pt"}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
             {lang === "en" ? "View →" : "Ver →"}
           </a>
         </div>
