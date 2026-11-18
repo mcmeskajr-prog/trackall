@@ -22,10 +22,10 @@ export function PaperbackImportModal({ onClose, onImport }) {
     setLoading(true); setError('');
     try {
       const parsed = await parsePaperbackBackup(file);
-      if (!parsed.length) { setError('Nenhum item encontrado. Certifica-te que é um backup Paperback (.zip) válido.'); setLoading(false); return; }
+      if (!parsed.length) { setError(lang === "en" ? "No items found. Make sure it is a valid Paperback backup (.zip)." : "Nenhum item encontrado. Certifica-te que é um backup Paperback (.zip) válido."); setLoading(false); return; }
       const sel = {}; parsed.forEach(m => { sel[m.id] = true; });
       setItems(parsed); setSelected(sel); setStep('preview');
-    } catch (err) { setError('Erro: ' + err.message); }
+    } catch (err) { setError((lang === "en" ? "Error: " : "Erro: ") + err.message); }
     setLoading(false);
   };
 

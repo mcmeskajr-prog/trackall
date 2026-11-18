@@ -63,7 +63,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
           tryFetchChar("https://graphql.anilist.co"),
         ]);
         const data = charResults.find(r => r.status === "fulfilled" && r.value)?.value;
-        if (!data) throw new Error("Não foi possível ligar ao AniList. Tenta novamente.");
+        if (!data) throw new Error(lang === "en" ? "Could not reach AniList. Try again." : "Não foi possível ligar ao AniList. Tenta novamente.");
         const chars = (data?.data?.Page?.characters || []).map(c => {
           const firstMedia = c.media?.nodes?.[0];
           return {
@@ -141,16 +141,16 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, flexShrink: 0 }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>
-            {initialData ? "✏️ Editar Coleção" : "📋 Nova Coleção"}
+            {initialData ? (lang === "en" ? "✏️ Edit Collection" : "✏️ Editar Coleção") : (lang === "en" ? "📋 New Collection" : "📋 Nova Coleção")}
           </h3>
           <input
-            placeholder="Nome da coleção..."
+            placeholder={lang === "en" ? "Collection name..." : "Nome da coleção..."}
             value={title}
             onChange={e => setTitle(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 14, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }}
           />
           <textarea
-            placeholder="Descrição (opcional)..."
+            placeholder={lang === "en" ? "Description (optional)..." : "Descrição (opcional)..."}
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={2}
@@ -165,7 +165,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
                 color: visibility === v ? "#fff" : "#8b949e",
                 cursor: "pointer", fontFamily: "inherit",
               }}>
-                {v === "public" ? "🌐 Pública" : v === "friends" ? "👥 Amigos" : "🔒 Privada"}
+                {v === "public" ? (lang === "en" ? "🌐 Public" : "🌐 Pública") : v === "friends" ? (lang === "en" ? "👥 Friends" : "👥 Amigos") : (lang === "en" ? "🔒 Private" : "🔒 Privada")}
               </button>
             ))}
             <button onClick={() => setShowNumbers(v => !v)} style={{
@@ -196,7 +196,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
               ))}
             </div>
             <input
-              placeholder={searchType === "library" ? "Pesquisar na biblioteca..." : searchType === "character" ? "Nome do personagem ou da série/anime..." : searchType === "person" ? "Nome do ator ou realizador..." : "Nome do personagem comic..."}
+              placeholder={searchType === "library" ? (lang === "en" ? "Search your library..." : "Pesquisar na biblioteca...") : searchType === "character" ? (lang === "en" ? "Character or series/anime name..." : "Nome do personagem ou da série/anime...") : searchType === "person" ? (lang === "en" ? "Actor or director name..." : "Nome do ator ou realizador...") : (lang === "en" ? "Comic character name..." : "Nome do personagem comic...")}
               value={searchQ}
               onChange={e => setSearchQ(e.target.value)}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: darkMode ? "#0d1117" : "#f8fafc", color: darkMode ? "#e6edf3" : "#0d1117", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
@@ -207,7 +207,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
                 {searchLoading ? (
                   <div style={{ padding: "12px 16px", color: "#8b949e", fontSize: 13 }}>A pesquisar...</div>
                 ) : searchError ? (
-                  <div style={{ padding: "12px 16px", color: "#ef4444", fontSize: 13 }}>Erro ao pesquisar. Verifica a ligação.</div>
+                  <div style={{ padding: "12px 16px", color: "#ef4444", fontSize: 13 }}>{lang === "en" ? "Search failed. Check your connection." : "Erro ao pesquisar. Verifica a ligação."}</div>
                 ) : searchResults.length === 0 ? (
                   <div style={{ padding: "12px 16px", color: "#8b949e", fontSize: 13 }}>Nenhum resultado para "{searchQ}"</div>
                 ) : searchResults.map(r => {
@@ -240,7 +240,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
           {colItems.length === 0 ? (
             <div style={{ textAlign: "center", padding: "24px 0", color: "#484f58" }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
-              <p style={{ fontSize: 13 }}>Pesquisa e adiciona itens à coleção</p>
+              <p style={{ fontSize: 13 }}>{lang === "en" ? "Search and add items to the collection" : "Pesquisa e adiciona itens à coleção"}</p>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 12 }}>
@@ -262,7 +262,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.25, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{item.title}</div>
                   <input
-                    placeholder="Nota (opcional)..."
+                    placeholder={lang === "en" ? "Note (optional)..." : "Nota (opcional)..."}
                     value={item.note || ""}
                     onChange={e => updateNote(item.id, e.target.value)}
                     style={{ width: "100%", padding: "3px 6px", fontSize: 10, borderRadius: 5, border: `1px solid ${darkMode ? "#30363d" : "#e2e8f0"}`, background: "transparent", color: "#8b949e", fontFamily: "inherit", boxSizing: "border-box" }}
@@ -278,10 +278,10 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
         {/* Footer */}
         <div style={{ padding: "12px 24px", paddingBottom: isMobileDevice ? 24 : 14, borderTop: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, display: "flex", gap: 10, flexShrink: 0 }}>
           <button className="btn-accent" style={{ flex: 1, padding: "12px" }} onClick={handleSave} disabled={saving || !title.trim()}>
-            {saving ? "A guardar..." : "💾 Guardar Coleção"}
+            {saving ? (lang === "en" ? "Saving..." : "A guardar...") : (lang === "en" ? "💾 Save Collection" : "💾 Guardar Coleção")}
           </button>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", background: darkMode ? "#21262d" : "#e2e8f0", border: "none", borderRadius: 10, color: darkMode ? "#e6edf3" : "#0d1117", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 14 }}>
-            Cancelar
+            {lang === "en" ? "Cancel" : "Cancelar"}
           </button>
         </div>
       </div>

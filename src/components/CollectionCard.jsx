@@ -1,6 +1,8 @@
 import { useTheme } from "../contexts/ThemeContext";
+import { useLang } from "../contexts/LangContext";
 
 export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDelete }) {
+  const { lang } = useLang();
   const { accent, darkMode, isMobileDevice } = useTheme();
   const items = col.items || [];
   const covers = items.slice(0, 8).map(i => i.cover).filter(Boolean);
@@ -80,7 +82,7 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
         <div>
           <div style={{ fontWeight: 800, fontSize: 14, color: darkMode ? "#e6edf3" : "#0d1117", marginBottom: 2, lineHeight: 1.2 }}>{col.title}</div>
           <div style={{ fontSize: 11, color: "#8b949e", marginBottom: col.description ? 4 : 0 }}>
-            {items.length} {items.length === 1 ? "item" : "itens"} · {col.visibility === "private" ? "🔒 Privada" : col.visibility === "friends" ? "👥 Amigos" : "🌐 Pública"}
+            {items.length} {items.length === 1 ? "item" : (lang === "en" ? "items" : "itens")} · {col.visibility === "private" ? (lang === "en" ? "🔒 Private" : "🔒 Privada") : col.visibility === "friends" ? (lang === "en" ? "👥 Friends" : "👥 Amigos") : (lang === "en" ? "🌐 Public" : "🌐 Pública")}
           </div>
           {col.description ? (
             <div style={{ fontSize: 11, color: darkMode ? "#8b949e" : "#64748b", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>

@@ -17,12 +17,12 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
     if (!email.trim() || !password.trim()) { setError("Preenche todos os campos."); return; }
     if (password.length < 6) { setError("A password deve ter pelo menos 6 caracteres."); return; }
     const uname = username.trim().toLowerCase();
-    if (mode === "register" && !/^[a-z0-9_.]{3,20}$/.test(uname)) { setError("Escolhe um nome de utilizador com 3 a 20 caracteres (letras, números, _ ou .)."); return; }
-    if (mode === "register" && !inviteCode.trim()) { setError("Precisas de um código de convite para criar conta."); return; }
+    if (mode === "register" && !/^[a-z0-9_.]{3,20}$/.test(uname)) { setError(lang === "en" ? "Choose a username of 3 to 20 characters (letters, numbers, _ or .)." : "Escolhe um nome de utilizador com 3 a 20 caracteres (letras, números, _ ou .)."); return; }
+    if (mode === "register" && !inviteCode.trim()) { setError(lang === "en" ? "You need an invite code to create an account." : "Precisas de um código de convite para criar conta."); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
       if (mode === "register") {
-        if (!(await supa.usernameAvailable(uname))) { setError("Esse nome de utilizador já está a ser usado. Escolhe outro."); setLoading(false); return; }
+        if (!(await supa.usernameAvailable(uname))) { setError(lang === "en" ? "That username is already taken. Pick another one." : "Esse nome de utilizador já está a ser usado. Escolhe outro."); setLoading(false); return; }
         // O código é validado e consumido no servidor (trigger enforce_invite); se for inválido o registo falha com erro
         const { user: u, session } = await supa.signUp(email.trim(), password, inviteCode.trim().toUpperCase(), uname);
         // Sem sessão = o Supabase está à espera da confirmação do email: não entrar (senão fica «dentro» mas sem permissões na BD)
@@ -30,14 +30,14 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
           onAuth(u);
         } else {
           setAwaitingVerification(true);
-          setSuccess(`Email de confirmação enviado para ${email.trim()}.`);
+          setSuccess(lang === "en" ? `Confirmation email sent to ${email.trim()}.` : `Email de confirmação enviado para ${email.trim()}.`);
         }
       } else {
         const { user: u } = await supa.signIn(email.trim(), password);
         onAuth(u);
       }
     } catch (e) {
-      setError(e.message || "Erro desconhecido.");
+      setError(e.message || (lang === "en" ? "Unknown error." : "Erro desconhecido."));
     } finally {
       setLoading(false);
     }
@@ -60,9 +60,9 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
               Enviámos um link de confirmação para<br/>
               <strong style={{ color: accent }}>{email}</strong>
             </p>
-            <p style={{ color: "#484f58", fontSize: 12, marginBottom: 24 }}>Clica no link no email para ativar a tua conta. Verifica também a pasta de spam.</p>
+            <p style={{ color: "#484f58", fontSize: 12, marginBottom: 24 }}>{lang === "en" ? "Click the link in the email to activate your account. Check your spam folder too." : "Clica no link no email para ativar a tua conta. Verifica também a pasta de spam."}</p>
             <button onClick={() => { setAwaitingVerification(false); setMode("login"); setSuccess(""); }} style={{ padding: "10px 24px", borderRadius: 10, background: `${accent}22`, border: `1px solid ${accent}44`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
-              Já verifiquei — Entrar
+              {lang === "en" ? "I've verified — Sign in" : "Já verifiquei — Entrar"}
             </button>
           </div>
         ) : (
@@ -94,7 +94,7 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
                 <div>
                   <label style={{ fontSize: 12, color: "#8b949e", fontWeight: 600, display: "block", marginBottom: 6 }}>CÓDIGO DE CONVITE</label>
                   <input type="text" value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Ex: TRACKALL-XXXX" onKeyDown={e => e.key === "Enter" && handleSubmit()} style={{ width: "100%", padding: "11px 14px", fontSize: 14, borderRadius: 10, background: "#0d1117", border: `1px solid ${accent}44`, color: "#e6edf3", fontFamily: "inherit", letterSpacing: "1px", boxSizing: "border-box" }} />
-                  <p style={{ fontSize: 11, color: "#484f58", marginTop: 5 }}>O TrackAll está em acesso antecipado. Precisas de um código para criar conta.</p>
+                  <p style={{ fontSize: 11, color: "#484f58", marginTop: 5 }}>{lang === "en" ? "TrackAll is in early access. You need a code to create an account." : "O TrackAll está em acesso antecipado. Precisas de um código para criar conta."}</p>
                 </div>
               )}
             </div>
@@ -106,7 +106,7 @@ export function AuthScreen({ onAuth, accent, onBack, lang = "en", useT = (k) => 
           </div>
         )}
         <p style={{ textAlign: "center", color: "#30363d", fontSize: 11, marginTop: 20 }}>
-          Os teus dados ficam guardados em segurança na nuvem
+          {useT("secureData")}
         </p>
       </div>
     </div>

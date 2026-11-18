@@ -114,7 +114,7 @@ export function CropModal({imageSrc, aspectRatio = 1, outputWidth, onSave, onClo
           <button onClick={() => handleZoom(0.1)} disabled={loading || loadError} style={{ padding: "6px 16px", background: "#21262d", border: "none", borderRadius: 8, color: "#e6edf3", cursor: "pointer", fontSize: 18, fontFamily: "inherit", opacity: loading || loadError ? 0.4 : 1 }}>+</button>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={handleSave} disabled={loading || loadError} style={{ flex: 1, padding: 12, background: "#f97316", border: "none", borderRadius: 10, color: "white", cursor: loading || loadError ? "default" : "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14, opacity: loading || loadError ? 0.5 : 1 }}>✓ Guardar</button>
+          <button onClick={handleSave} disabled={loading || loadError} style={{ flex: 1, padding: 12, background: "#f97316", border: "none", borderRadius: 10, color: "white", cursor: loading || loadError ? "default" : "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14, opacity: loading || loadError ? 0.5 : 1 }}>{lang === "en" ? "✓ Save" : "✓ Guardar"}</button>
           <button onClick={onClose} style={{ flex: 1, padding: 12, background: "#21262d", border: "none", borderRadius: 10, color: "#e6edf3", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
         </div>
       </div>

@@ -594,6 +594,9 @@ export function detectLang() {
   }
 }
 
+// Escolhe PT/EN fora de componentes (mensagens de erro em libs): tr("português", "english")
+export function tr(pt, en) { return detectLang() === "en" ? en : pt; }
+
 // Save language preference
 export function saveLang(lang) {
   try { localStorage.setItem("trackall_lang", lang); } catch {}

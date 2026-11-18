@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { imageStats, needsLegibility, LEGIBLE_MIN_OVERLAY } from "../lib/contrast";
 import { pickImage } from "../lib/imageCheck";
-import { ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
+import { ACCENT_PRESETS, BG_PRESETS, colorName } from "../config/theme";
 import { compressImage } from "../lib/utils";
 import { persistImage } from "../lib/imageStore";
 import { useUiPref } from "../lib/uiPrefs";
@@ -170,7 +170,7 @@ export function AppearanceSettings({
   );
   const colorRow = (presets, current, onPick, onCustom, round) => (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-      {presets.map(p => <button key={p.name || p} type="button" onClick={() => onPick(p.value || p.color || p)} title={p.name || p} aria-label={p.name || p} style={{ ...sw(current === (p.value || p.color || p), round), background: p.value || p.color || p }} />)}
+      {presets.map(p => <button key={p.name || p} type="button" onClick={() => onPick(p.value || p.color || p)} title={colorName(p.name, lang) || p} aria-label={colorName(p.name, lang) || p} style={{ ...sw(current === (p.value || p.color || p), round), background: p.value || p.color || p }} />)}
       <label style={{ ...sw(false, round), border: `2px dashed ${line}`, display: "flex", alignItems: "center", justifyContent: "center", color: sub, fontSize: 16, position: "relative", cursor: "pointer" }}>+
         <input type="color" value={/^#[0-9a-f]{6}$/i.test(current) ? current : "#888888"} onChange={e => onCustom(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
       </label>
@@ -206,7 +206,7 @@ export function AppearanceSettings({
                     <div style={{ flex: 1, borderRadius: 6, background: pn, border: `1px solid ${ln}`, position: "relative" }}><div style={{ position: "absolute", left: 6, bottom: 6, width: 24, height: 5, borderRadius: 9, background: p.accent }} /></div>
                   </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, padding: "0 4px 2px" }}>{p.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, padding: "0 4px 2px" }}>{colorName(p.name, lang)}</div>
               </button>
             );
           })}
@@ -317,7 +317,7 @@ export function AppearanceSettings({
           {sbModeEff === "solid" && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
               <button type="button" onClick={() => onSidebarColor("")} title={useT("sameAsBg")} style={{ ...sw(!sidebarColor, false), background: bgColor, color: sub, fontSize: 10, fontFamily: "inherit" }}>≡</button>
-              {BG_PRESETS.map(p => <button key={p.name} type="button" onClick={() => onSidebarColor(p.value)} title={p.name} aria-label={p.name} style={{ ...sw(sidebarColor === p.value, false), background: p.value }} />)}
+              {BG_PRESETS.map(p => <button key={p.name} type="button" onClick={() => onSidebarColor(p.value)} title={colorName(p.name, lang)} aria-label={colorName(p.name, lang)} style={{ ...sw(sidebarColor === p.value, false), background: p.value }} />)}
               <label style={{ ...sw(false, false), border: `2px dashed ${line}`, display: "flex", alignItems: "center", justifyContent: "center", color: sub, fontSize: 16, position: "relative", cursor: "pointer" }}>+
                 <input type="color" value={sidebarColor || bgColor} onChange={e => onSidebarColor(e.target.value)} style={{ position: "absolute", opacity: 0, width: 0, height: 0 }} />
               </label>

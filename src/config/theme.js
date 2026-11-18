@@ -94,3 +94,6 @@ export function accentVariant(hex, index) {
     return hex; 
   }
 }
+// Nomes das cores em inglês (os presets guardam o nome PT, usado só para mostrar)
+const COLOR_NAMES_EN = { Laranja: "Orange", Roxo: "Purple", Ciano: "Cyan", Rosa: "Pink", Verde: "Green", Azul: "Blue", Amarelo: "Yellow", Vermelho: "Red", Preto: "Black", Escuro: "Dark", "Ardósia": "Slate", Grafite: "Graphite", Papel: "Paper", Creme: "Cream", Nuvem: "Cloud", Branco: "White" };
+export const colorName = (name, lang) => (lang === "en" ? (COLOR_NAMES_EN[name] || name) : name);

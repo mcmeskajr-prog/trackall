@@ -1,10 +1,12 @@
 import { useTheme } from "../contexts/ThemeContext";
+import { useLang } from "../contexts/LangContext";
 import { gradientFor } from "../lib/utils";
 import { TIER_LEVELS } from "../config/constants";
 
 // Cartão da galeria: mosaico com os melhores itens + título, autor, itens e gostos
 export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelete }) {
   const { accent, darkMode: pageDark, panelDark, panelBg, isMobileDevice } = useTheme();
+  const { lang } = useLang();
   const darkMode = panelBg ? (panelDark ?? pageDark) : pageDark;
   const all = TIER_LEVELS.flatMap(t => (tl.tiers[t.id] || []).map(i => ({ ...i, _tier: t })));
   const COLS = 6; // mobile: grelha fixa, linhas sempre completas
@@ -49,7 +51,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
             {liked ? "♥" : "♡"} {tl.likes_count || 0}
           </button>
           {currentUserId === tl.user_id && onDelete && (
-            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} title="Apagar" aria-label="Apagar" style={{ background: "none", border: "none", color: "#6e7681", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>🗑</button>
+            <button onClick={e => { e.stopPropagation(); onDelete(tl.id); }} title={lang === "en" ? "Delete" : "Apagar"} aria-label={lang === "en" ? "Delete" : "Apagar"} style={{ background: "none", border: "none", color: "#6e7681", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>🗑</button>
           )}
         </div>
       </div>

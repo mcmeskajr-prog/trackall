@@ -253,7 +253,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
           setDlcs(dlcRes.value.map(g => ({
             id: `igdb-${g.id}`, title: g.name || "",
             cover: g.cover?.image_id ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${g.cover.image_id}.jpg` : null,
-            category: g.category === 1 ? "DLC" : "Expansão",
+            category: g.category === 1 ? "DLC" : (lang === "en" ? "Expansion" : "Expansão"),
           })));
         }
       }
@@ -349,7 +349,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {(personData?.image || selectedPerson.image) && <img src={personData?.image || selectedPerson.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                 </div>
                 <div style={{ paddingTop: 56 }}>
-                  <button onClick={() => { setSelectedPerson(null); setPersonData(null); }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: 0, marginBottom: 6 }}>← Voltar</button>
+                  <button onClick={() => { setSelectedPerson(null); setPersonData(null); }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: 0, marginBottom: 6 }}>{lang === "en" ? "← Back" : "← Voltar"}</button>
                   <h2 style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>{personData?.name || selectedPerson.name}</h2>
                   {personData?.birthday && <p style={{ fontSize: 11, color: "#6e7681", marginTop: 3 }}>🎂 {personData.birthday}{personData.placeOfBirth ? ` · ${personData.placeOfBirth}` : ""}</p>}
                 </div>
@@ -443,7 +443,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {currentItem.extra && currentItem.type === "livros" ? (
                     <p style={{ color: "#8b949e", fontSize: 13 }}>✍ {currentItem.extra.split(", ").map((a, i, arr) => (
                       <span key={a + i}>
-                        <button type="button" title={`Ver livros de ${a}`} onClick={() => { try { window.dispatchEvent(new CustomEvent("trackall:search-author", { detail: a })); } catch {} }}
+                        <button type="button" title={lang === "en" ? `See books by ${a}` : `Ver livros de ${a}`} onClick={() => { try { window.dispatchEvent(new CustomEvent("trackall:search-author", { detail: a })); } catch {} }}
                           style={{ background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(139,148,158,0.4)", textUnderlineOffset: 3 }}>{a}</button>{i < arr.length - 1 ? ", " : ""}
                       </span>
                     ))}</p>
@@ -556,19 +556,19 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {/* Google Books — páginas e publisher */}
                   {detailExtra?.pages && (
                     <div style={{ marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Páginas:</span>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>{lang === "en" ? "Pages:" : "Páginas:"}</span>
                       <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.pages}</span>
                     </div>
                   )}
                   {detailExtra?.series && (
                     <div style={{ marginTop: 4 }}>
-                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Série:</span>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>{lang === "en" ? "Series:" : "Série:"}</span>
                       <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.series}</span>
                     </div>
                   )}
                   {detailExtra?.firstIssue && (
                     <div style={{ marginTop: 4 }}>
-                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>Edições:</span>
+                      <span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>{lang === "en" ? "Editions:" : "Edições:"}</span>
                       <span style={{ fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151", fontWeight: 600 }}>{detailExtra.firstIssue}{detailExtra.lastIssue && detailExtra.lastIssue !== detailExtra.firstIssue ? ` → ${detailExtra.lastIssue}` : ""}</span>
                     </div>
                   )}
@@ -639,7 +639,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {/* DLCs e Expansões (jogos) */}
                   {dlcs.length > 0 && (
                     <div style={{ marginTop: 20 }}>
-                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>🎮 DLCs & Expansões</h4>
+                      <h4 style={{ fontSize: 11, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>{lang === "en" ? "🎮 DLCs & Expansions" : "🎮 DLCs & Expansões"}</h4>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {dlcs.map(d => (
                           <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: darkMode ? "#161b22" : "#f1f5f9" }}>
@@ -756,7 +756,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                         </div>
                       )}
                       {!detailExtra?.videos?.length && !detailExtra?.artworks?.length && !screenshots.length && (
-                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>Sem media disponível.</p>
+                        <p style={{ color: "#484f58", fontSize: 13, textAlign: "center", padding: "32px 0" }}>{lang === "en" ? "No media available." : "Sem media disponível."}</p>
                       )}
                     </div>
                   )}
@@ -901,7 +901,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       />
                       {isChapterType && libItem.userStatus === "assistindo" && (
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>📖 Capítulo:</span>
+                          <span style={{ fontSize: 12, color: "#8b949e", whiteSpace: "nowrap" }}>{lang === "en" ? "📖 Chapter:" : "📖 Capítulo:"}</span>
                           <input type="text" value={chapterInput} onChange={e => setChapterInput(e.target.value)} placeholder="ex: Cap. 42" onKeyDown={e => e.key === "Enter" && onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ flex: 1, minWidth: 0, background: darkMode ? "#21262d" : "#f1f5f9", border: `1px solid ${accent}44`, borderRadius: 8, padding: "6px 10px", color: darkMode ? "#e6edf3" : "#0f172a", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
                           <button onClick={() => onUpdateLastChapter && onUpdateLastChapter(currentItem.id, chapterInput.trim())} style={{ background: accent, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>✓</button>
                         </div>
@@ -935,7 +935,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                           return (<>
                             {onToggleFavorite && (
                               <button onClick={pop(() => onToggleFavorite(currentItem))}
-                                aria-label={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : favBlockedLabel}
+                                aria-label={isFavorite ? (lang === "en" ? "Remove from favorites" : "Remover dos favoritos") : canAddFavorite ? (lang === "en" ? "Add to favorites" : "Adicionar aos favoritos") : favBlockedLabel}
                                 aria-pressed={isFavorite}
                                 style={{ ...base, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", border: `1px solid ${isFavorite ? accent : idle}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}>{favIcon}</button>
                             )}
@@ -964,7 +964,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       {onToggleFavorite && (
                         <button onClick={(e) => { const el=e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); onToggleFavorite(currentItem); }}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", flex: isMobileDevice ? 1 : "none", minWidth: 0, borderRadius: 10, fontFamily: "inherit", fontWeight: 700, fontSize: 12, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", opacity: !canAddFavorite && !isFavorite ? 0.4 : 1, border: `1px solid ${isFavorite ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}
-                          title={isFavorite ? "Remover dos favoritos" : canAddFavorite ? "Adicionar aos favoritos" : favBlockedLabel}>
+                          title={isFavorite ? (lang === "en" ? "Remove from favorites" : "Remover dos favoritos") : canAddFavorite ? (lang === "en" ? "Add to favorites" : "Adicionar aos favoritos") : favBlockedLabel}>
                           {favIcon}<span style={{ whiteSpace: "nowrap" }}>Favorito</span>
                         </button>
                       )}

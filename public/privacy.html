@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TrackAll — Política de Privacidade / Privacy Policy</title>
+<title>TrackAll — Privacy Policy / Política de Privacidade</title>
 <meta name="robots" content="noindex">
 <style>
   :root { color-scheme: dark; }
@@ -13,124 +13,177 @@
   h2 { font-size: 19px; margin: 30px 0 8px; color: #fff; }
   p, li { color: #b7c0cc; }
   a { color: #f87171; }
-  .nav { display: flex; gap: 14px; margin: 18px 0 8px; font-size: 14px; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .lang { display: inline-flex; border: 1px solid #2a323c; border-radius: 8px; overflow: hidden; }
+  .lang button { background: transparent; color: #9aa4b2; border: 0; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .lang button.on { background: #f8717122; color: #f87171; font-weight: 700; }
   .muted { color: #7d8794; font-size: 14px; }
   hr { border: none; border-top: 1px solid #222a33; margin: 44px 0 0; }
   table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 8px 0; }
   td, th { text-align: left; padding: 8px 10px; border-bottom: 1px solid #222a33; vertical-align: top; }
   th { color: #fff; }
+  /* com JavaScript só se mostra uma língua; sem JavaScript (e ao imprimir) mostram-se as duas */
+  body[data-lang="en"] #pt, body[data-lang="pt"] #en, body[data-lang="en"] hr, body[data-lang="pt"] hr { display: none; }
+  @media print { body[data-lang] #pt, body[data-lang] #en { display: block !important; } body[data-lang] hr { display: block !important; } .lang, .top a { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <a href="/" style="font-size:14px">← TrackAll</a>
-  <div class="nav"><a href="#pt">Português</a><a href="#en">English</a></div>
+  <div class="top">
+    <a href="/">← TrackAll</a>
+    <span class="lang" role="group" aria-label="Language / Idioma">
+      <button type="button" data-l="en">English</button><button type="button" data-l="pt">Português</button>
+    </span>
+  </div>
 
-  <section id="pt">
-    <h1>Política de Privacidade</h1>
-    <p class="muted">Última atualização: novembro de 2026</p>
-    <p>O TrackAll é um projeto pessoal para registar anime, manga, filmes, séries, jogos, livros e BDs. Esta página explica que dados são guardados, para quê, com quem são partilhados e como os podes exportar ou apagar.</p>
-
-    <h2>1. Que dados guardamos</h2>
-    <ul>
-      <li><b>Conta:</b> email e palavra-passe (gerida pelo serviço de autenticação; nunca vemos a palavra-passe em texto).</li>
-      <li><b>Perfil:</b> nome, nome de utilizador, bio, avatar, banner, cores e temas que escolhes.</li>
-      <li><b>Biblioteca:</b> os títulos que adicionas, com estado, nota, datas, notas pessoais, favoritos, Hall of Fame, listas, tier lists e coleções.</li>
-      <li><b>Amigos:</b> os pedidos e ligações de amizade.</li>
-      <li><b>Definições privadas (opcionais):</b> chaves e endereços que tu próprio indicas (por exemplo, uma chave do TMDB ou o endereço de um proxy). Só tu as vês.</li>
-    </ul>
-
-    <h2>2. Para quê</h2>
-    <p>Apenas para fazer a app funcionar: mostrar a tua biblioteca em qualquer dispositivo, o teu perfil, o feed e o perfil dos teus amigos. Não vendemos dados, não fazemos publicidade e não usamos ferramentas de análise ou de seguimento.</p>
-
-    <h2>3. Quem vê o quê</h2>
-    <p>A tua biblioteca e o teu perfil podem ser vistos pelos utilizadores com quem tens uma amizade aceite (e, no que respeita ao perfil público, conforme as opções que escolheres). As definições privadas e o teu email não são mostrados a outros utilizadores.</p>
-
-    <h2>4. Serviços que usamos</h2>
-    <table>
-      <tr><th>Serviço</th><th>Para quê</th></tr>
-      <tr><td>Supabase</td><td>Autenticação, base de dados e armazenamento de imagens do perfil.</td></tr>
-      <tr><td>Vercel</td><td>Alojamento da aplicação (recebe o endereço IP dos pedidos, como qualquer servidor web).</td></tr>
-      <tr><td>Cloudflare Workers</td><td>Proxy para algumas pesquisas externas.</td></tr>
-      <tr><td>AniList, TMDB, IGDB, Steam, Google Books, ComicVine</td><td>Pesquisa de títulos e capas. Recebem o texto que pesquisas, não os teus dados de conta.</td></tr>
-      <tr><td>Google Fonts</td><td>Carrega o tipo de letra (o teu IP é visto pela Google).</td></tr>
-    </table>
-    <p class="muted">Este produto usa a API do TMDB mas não é por ela aprovado nem certificado.</p>
-
-    <h2>5. No teu dispositivo</h2>
-    <p>A app guarda no browser preferências (tema, idioma) e uma cópia para funcionar mais depressa e sem rede (cache do service worker). Podes limpá-las nas definições do browser.</p>
-
-    <h2>6. Os teus direitos (RGPD)</h2>
-    <ul>
-      <li><b>Acesso e portabilidade:</b> em Perfil → Definições → Geral → «Exportar os meus dados» descarregas tudo num ficheiro JSON.</li>
-      <li><b>Retificação:</b> podes editar o teu perfil e a tua biblioteca a qualquer momento.</li>
-      <li><b>Apagamento:</b> em Perfil → Definições → Zona de perigo → «Apagar conta» removes a conta e todos os dados associados.</li>
-      <li><b>Outros pedidos</b> (oposição, limitação, reclamação): abre um pedido em <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>. Tens ainda o direito de reclamar à CNPD (cnpd.pt).</li>
-    </ul>
-
-    <h2>7. Conservação</h2>
-    <p>Mantemos os dados enquanto a conta existir. Ao apagar a conta, são removidos da base de dados e do armazenamento.</p>
-
-    <h2>8. Menores</h2>
-    <p>O TrackAll não se destina a menores de 16 anos.</p>
-
-    <h2>9. Alterações</h2>
-    <p>Se esta política mudar de forma relevante, a data acima será atualizada.</p>
-  </section>
-
-  <hr>
-
-  <section id="en">
+  <section id="en" lang="en">
     <h1>Privacy Policy</h1>
     <p class="muted">Last updated: November 2026</p>
     <p>TrackAll is a personal project for tracking anime, manga, movies, series, games, books and comics. This page explains what data is stored, why, who it is shared with, and how you can export or delete it.</p>
 
-    <h2>1. Data we store</h2>
+    <h2>1. Who is responsible</h2>
+    <p>TrackAll is built and run by an individual developer in Portugal, who is the controller of your data. To contact us about your data, open an issue at <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>.</p>
+
+    <h2>2. Data we store</h2>
     <ul>
       <li><b>Account:</b> email and password (handled by the authentication service; we never see the password in clear text).</li>
-      <li><b>Profile:</b> name, username, bio, avatar, banner, colours and themes you choose.</li>
+      <li><b>Profile:</b> name, username, bio, avatar, banner, colours, wallpaper and themes you choose.</li>
       <li><b>Library:</b> the titles you add, with status, rating, dates, personal notes, favourites, Hall of Fame, lists, tier lists and collections.</li>
       <li><b>Friends:</b> friend requests and connections.</li>
       <li><b>Private settings (optional):</b> keys and addresses you enter yourself (for example a TMDB key or a proxy address). Only you can see them.</li>
     </ul>
 
-    <h2>2. Purpose</h2>
-    <p>Only to make the app work: showing your library on any device, your profile, and your friends' feed and profiles. We do not sell data, run ads, or use analytics or tracking tools.</p>
+    <h2>3. Why, and on what basis</h2>
+    <p>Only to make the app work: showing your library on any device, your profile, and your friends' feed and profiles (performance of the service you asked for, GDPR Art. 6(1)(b)). We do not sell data, run ads, or use analytics or tracking tools, and we do not build profiles about you.</p>
 
-    <h2>3. Who sees what</h2>
-    <p>Your library and profile can be seen by users you have an accepted friendship with (and, for the public profile, according to the options you choose). Private settings and your email are not shown to other users.</p>
+    <h2>4. Who sees what</h2>
+    <ul>
+      <li><b>Other signed-in users</b> can see your basic profile (name, username, avatar, banner, bio and theme), so people can find and add you as a friend.</li>
+      <li><b>Accepted friends</b> can also see your library, favourites, Hall of Fame and activity.</li>
+      <li><b>Collections and tier lists</b> have the visibility you choose; the ones you make public can be seen by other users.</li>
+      <li><b>Never shown to other users:</b> your email, your password and your private settings.</li>
+      <li><b>Images:</b> avatars and banners are stored in a public bucket. Anyone who has the image link can open it, even without an account.</li>
+    </ul>
 
-    <h2>4. Services we use</h2>
+    <h2>5. Services we use</h2>
     <table>
       <tr><th>Service</th><th>Purpose</th></tr>
       <tr><td>Supabase</td><td>Authentication, database and profile image storage.</td></tr>
       <tr><td>Vercel</td><td>Hosting (receives the IP address of requests, like any web server).</td></tr>
-      <tr><td>Cloudflare Workers</td><td>Proxy for some external searches.</td></tr>
-      <tr><td>AniList, TMDB, IGDB, Steam, Google Books, ComicVine</td><td>Title and cover search. They receive the text you search, not your account data.</td></tr>
+      <tr><td>Cloudflare Workers</td><td>Proxy for some external searches. It does not store your data.</td></tr>
+      <tr><td>AniList, TMDB, OMDb, IGDB, Steam, Google Books, Open Library, Hardcover, ComicVine</td><td>Title, cover and detail search. They receive the text you search (and, for imports, the username or titles you submit), not your account data.</td></tr>
       <tr><td>Google Fonts</td><td>Loads the typeface (Google sees your IP).</td></tr>
     </table>
     <p class="muted">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p>Some of these providers may process data outside the European Economic Area, relying on safeguards such as standard contractual clauses.</p>
 
-    <h2>5. On your device</h2>
-    <p>The app stores preferences (theme, language) and a cache so it loads faster and works offline (service worker cache). You can clear them in your browser settings.</p>
+    <h2>6. On your device</h2>
+    <p>The app stores in your browser your sign-in session, preferences (theme, language, layout) and a cache so it loads faster and works offline (service worker). We do not use advertising or tracking cookies. You can clear this in your browser settings; signing out also clears your personal data from the device.</p>
 
-    <h2>6. Your rights (GDPR)</h2>
+    <h2>7. Your rights (GDPR)</h2>
     <ul>
       <li><b>Access and portability:</b> Profile → Settings → General → “Export my data” downloads everything as a JSON file.</li>
       <li><b>Rectification:</b> you can edit your profile and library at any time.</li>
-      <li><b>Erasure:</b> Profile → Settings → Danger zone → “Delete account” removes your account and all associated data.</li>
-      <li><b>Other requests</b> (objection, restriction, complaints): open an issue at <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>. You may also complain to your national data protection authority.</li>
+      <li><b>Erasure:</b> Profile → Settings → Danger zone → “Delete account” removes your account, your data and your images.</li>
+      <li><b>Other requests</b> (objection, restriction, questions): open an issue at <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>. Please do not post personal data in a public issue; say you have a data request and we will arrange another way.</li>
+      <li><b>Complaints:</b> you may complain to your data protection authority (in Portugal, the CNPD — cnpd.pt).</li>
     </ul>
 
-    <h2>7. Retention</h2>
-    <p>Data is kept while the account exists. When you delete the account it is removed from the database and storage.</p>
+    <h2>8. Retention</h2>
+    <p>Data is kept while the account exists. When you delete the account it is removed from the database and from storage. Backups kept by our provider may hold a copy for a limited time before they are overwritten.</p>
 
-    <h2>8. Children</h2>
+    <h2>9. Security</h2>
+    <p>Data is protected by access rules in the database, so each user can only change their own data, and traffic is encrypted (HTTPS). No online service is perfectly secure; if a breach affecting your data occurs, we will tell you without undue delay.</p>
+
+    <h2>10. Children</h2>
     <p>TrackAll is not intended for children under 16.</p>
 
-    <h2>9. Changes</h2>
+    <h2>11. Changes</h2>
     <p>If this policy changes in a meaningful way, the date above will be updated.</p>
   </section>
+
+  <hr>
+
+  <section id="pt" lang="pt">
+    <h1>Política de Privacidade</h1>
+    <p class="muted">Última atualização: novembro de 2026</p>
+    <p>O TrackAll é um projeto pessoal para registar anime, manga, filmes, séries, jogos, livros e BDs. Esta página explica que dados são guardados, para quê, com quem são partilhados e como os podes exportar ou apagar.</p>
+
+    <h2>1. Quem é o responsável</h2>
+    <p>O TrackAll é criado e gerido por um programador individual em Portugal, que é o responsável pelo tratamento dos teus dados. Para falar connosco sobre os teus dados, abre um pedido em <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>.</p>
+
+    <h2>2. Que dados guardamos</h2>
+    <ul>
+      <li><b>Conta:</b> email e palavra-passe (gerida pelo serviço de autenticação; nunca vemos a palavra-passe em texto).</li>
+      <li><b>Perfil:</b> nome, nome de utilizador, bio, avatar, banner, cores, wallpaper e temas que escolhes.</li>
+      <li><b>Biblioteca:</b> os títulos que adicionas, com estado, nota, datas, notas pessoais, favoritos, Hall of Fame, listas, tier lists e coleções.</li>
+      <li><b>Amigos:</b> os pedidos e ligações de amizade.</li>
+      <li><b>Definições privadas (opcionais):</b> chaves e endereços que tu próprio indicas (por exemplo, uma chave do TMDB ou o endereço de um proxy). Só tu as vês.</li>
+    </ul>
+
+    <h2>3. Para quê, e com que base</h2>
+    <p>Apenas para fazer a app funcionar: mostrar a tua biblioteca em qualquer dispositivo, o teu perfil, o feed e o perfil dos teus amigos (execução do serviço que pediste, RGPD art. 6.º, n.º 1, al. b)). Não vendemos dados, não fazemos publicidade, não usamos ferramentas de análise ou de seguimento e não criamos perfis sobre ti.</p>
+
+    <h2>4. Quem vê o quê</h2>
+    <ul>
+      <li><b>Outros utilizadores com sessão iniciada</b> veem o teu perfil básico (nome, nome de utilizador, avatar, banner, bio e tema), para te poderem encontrar e adicionar como amigo.</li>
+      <li><b>Amigos aceites</b> veem também a tua biblioteca, favoritos, Hall of Fame e atividade.</li>
+      <li><b>Coleções e tier lists</b> têm a visibilidade que escolheres; as que tornares públicas podem ser vistas por outros utilizadores.</li>
+      <li><b>Nunca mostrados a outros utilizadores:</b> o teu email, a tua palavra-passe e as definições privadas.</li>
+      <li><b>Imagens:</b> avatares e banners ficam num armazenamento público. Quem tiver o link da imagem consegue abri-la, mesmo sem conta.</li>
+    </ul>
+
+    <h2>5. Serviços que usamos</h2>
+    <table>
+      <tr><th>Serviço</th><th>Para quê</th></tr>
+      <tr><td>Supabase</td><td>Autenticação, base de dados e armazenamento de imagens do perfil.</td></tr>
+      <tr><td>Vercel</td><td>Alojamento da aplicação (recebe o endereço IP dos pedidos, como qualquer servidor web).</td></tr>
+      <tr><td>Cloudflare Workers</td><td>Proxy para algumas pesquisas externas. Não guarda os teus dados.</td></tr>
+      <tr><td>AniList, TMDB, OMDb, IGDB, Steam, Google Books, Open Library, Hardcover, ComicVine</td><td>Pesquisa de títulos, capas e detalhes. Recebem o texto que pesquisas (e, nas importações, o nome de utilizador ou os títulos que enviares), não os teus dados de conta.</td></tr>
+      <tr><td>Google Fonts</td><td>Carrega o tipo de letra (o teu IP é visto pela Google).</td></tr>
+    </table>
+    <p class="muted">Este produto usa a API do TMDB mas não é por ela aprovado nem certificado.</p>
+    <p>Alguns destes fornecedores podem tratar dados fora do Espaço Económico Europeu, com garantias como as cláusulas contratuais-tipo.</p>
+
+    <h2>6. No teu dispositivo</h2>
+    <p>A app guarda no browser a tua sessão, preferências (tema, idioma, disposição) e uma cópia para funcionar mais depressa e sem rede (service worker). Não usamos cookies de publicidade nem de seguimento. Podes limpar isto nas definições do browser; terminar sessão também limpa do dispositivo os teus dados pessoais.</p>
+
+    <h2>7. Os teus direitos (RGPD)</h2>
+    <ul>
+      <li><b>Acesso e portabilidade:</b> em Perfil → Definições → Geral → «Exportar os meus dados» descarregas tudo num ficheiro JSON.</li>
+      <li><b>Retificação:</b> podes editar o teu perfil e a tua biblioteca a qualquer momento.</li>
+      <li><b>Apagamento:</b> em Perfil → Definições → Zona de perigo → «Apagar conta» removes a conta, os dados e as imagens.</li>
+      <li><b>Outros pedidos</b> (oposição, limitação, dúvidas): abre um pedido em <a href="https://github.com/mcmeskajr-prog/trackall/issues">github.com/mcmeskajr-prog/trackall/issues</a>. Não publiques dados pessoais num pedido público; diz que tens um pedido sobre dados e combinamos outra forma.</li>
+      <li><b>Reclamações:</b> podes reclamar à autoridade de proteção de dados (em Portugal, a CNPD — cnpd.pt).</li>
+    </ul>
+
+    <h2>8. Conservação</h2>
+    <p>Mantemos os dados enquanto a conta existir. Ao apagar a conta, são removidos da base de dados e do armazenamento. As cópias de segurança do fornecedor podem guardar uma cópia durante um tempo limitado até serem substituídas.</p>
+
+    <h2>9. Segurança</h2>
+    <p>Os dados são protegidos por regras de acesso na base de dados (cada utilizador só altera os seus) e a comunicação é cifrada (HTTPS). Nenhum serviço online é perfeito; se ocorrer uma violação que afete os teus dados, avisamos sem demora injustificada.</p>
+
+    <h2>10. Menores</h2>
+    <p>O TrackAll não se destina a menores de 16 anos.</p>
+
+    <h2>11. Alterações</h2>
+    <p>Se esta política mudar de forma relevante, a data acima será atualizada.</p>
+  </section>
 </main>
+<script>
+(function () {
+  var b = document.body, q = (location.hash || "").replace("#", "");
+  var l = q === "pt" || q === "en" ? q : null;
+  try { l = l || localStorage.getItem("trackall_lang"); } catch (e) {}
+  l = l === "pt" || l === "en" ? l : ((navigator.language || "").toLowerCase().indexOf("pt") === 0 ? "pt" : "en");
+  function set(x) {
+    b.setAttribute("data-lang", x); document.documentElement.lang = x;
+    document.querySelectorAll(".lang button").forEach(function (el) { el.className = el.getAttribute("data-l") === x ? "on" : ""; });
+    try { history.replaceState(null, "", "#" + x); } catch (e) {}
+  }
+  document.querySelectorAll(".lang button").forEach(function (el) { el.onclick = function () { set(el.getAttribute("data-l")); window.scrollTo(0, 0); }; });
+  set(l);
+})();
+</script>
 </body>
 </html>

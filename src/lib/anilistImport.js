@@ -1,6 +1,7 @@
 // ─── Importar a lista de um utilizador do AniList ───
 // Funções puras (mapeamento, testáveis) + o pedido GraphQL. Sem React.
 import { normalizeMediaId } from "./mediaIds";
+import { tr } from "../translations";
 
 const STATUS = {
   CURRENT: "assistindo", REPEATING: "assistindo", COMPLETED: "completo",
@@ -82,11 +83,11 @@ export async function fetchAniListUser(username, { workerUrl, types = ["ANIME", 
         try { res = await post(url, body); } catch { res = null; }
         if (res && (res.d?.data?.MediaListCollection || res.status === 404 || res.status === 429)) break;
       }
-      if (!res) throw new Error("Não consegui ligar ao AniList. Verifica a ligação e tenta outra vez.");
-      if (res.status === 404 || res.d?.errors?.some(e => e.status === 404)) throw new Error(`Não encontrei o utilizador "${user}" no AniList (ou a lista é privada).`);
+      if (!res) throw new Error(tr("Não consegui ligar ao AniList. Verifica a ligação e tenta outra vez.", "Could not reach AniList. Check your connection and try again."));
+      if (res.status === 404 || res.d?.errors?.some(e => e.status === 404)) throw new Error(tr(`Não encontrei o utilizador "${user}" no AniList (ou a lista é privada).`, `User "${user}" not found on AniList (or the list is private).`));
       if (res.status === 429) throw new Error("O AniList pediu para abrandar. Espera um minuto e tenta outra vez.");
       const col = res.d?.data?.MediaListCollection;
-      if (!col) throw new Error("O AniList não devolveu a lista. Tenta outra vez dentro de instantes.");
+      if (!col) throw new Error(tr("O AniList não devolveu a lista. Tenta outra vez dentro de instantes.", "AniList did not return the list. Try again in a moment."));
       all.push(...mapAniListLists(col.lists));
       if (!col.hasNextChunk) break;
     }

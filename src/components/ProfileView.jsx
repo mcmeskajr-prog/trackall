@@ -528,7 +528,7 @@ export function ProfileView(props) {
               <button onClick={() => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); }} style={{
                 padding: "8px 20px", borderRadius: 8, border: `1px solid ${accent}44`,
                 background: `${accent}15`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-              }}>✏ Editar Perfil</button>
+              }}>{lang === "en" ? "✏ Edit Profile" : "✏ Editar Perfil"}</button>
               {onSignOut && (
                 <button onClick={onSignOut} title={useT("signOut")} style={{
                   width: 34, height: 34, borderRadius: 8, border: "1px solid #30363d",

@@ -6,7 +6,7 @@ import { supa } from "../config/supabase";
 import { compressImage } from "../lib/utils";
 import { persistImage } from "../lib/imageStore";
 import { STYLE_PRESETS } from "./AppearanceSettings";
-import { BG_PRESETS } from "../config/theme";
+import { BG_PRESETS, colorName } from "../config/theme";
 import { Suspense } from "react";
 import { lazyNamed } from "../lib/lazyNamed";
 const CropModal = lazyNamed(() => import("./CropModal"), "CropModal");
@@ -218,7 +218,7 @@ export function PersonalizeMobile({
                 return (
                   <div key={p.id} onClick={() => applyPreset(p)} style={swBtn}>
                     {circle(isLight(p.bg) ? `linear-gradient(135deg, ${p.bg} 50%, ${p.accent} 50%)` : p.accent, on, () => applyPreset(p), p.id)}
-                    <span style={swLbl(on)}>{p.name}</span>
+                    <span style={swLbl(on)}>{colorName(p.name, lang)}</span>
                   </div>
                 );
               })}
@@ -243,7 +243,7 @@ export function PersonalizeMobile({
                 return (
                   <div key={p.name} onClick={() => set({ bgMode: "color", bgColor: p.value, bgImage: "" })} style={swBtn}>
                     {circle(p.value, on, () => set({ bgMode: "color", bgColor: p.value, bgImage: "" }), `bg-${p.name}`)}
-                    <span style={swLbl(on)}>{p.name}</span>
+                    <span style={swLbl(on)}>{colorName(p.name, lang)}</span>
                   </div>
                 );
               })}

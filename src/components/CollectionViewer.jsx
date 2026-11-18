@@ -66,14 +66,14 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
             background: "none", border: "none", color: accent,
             cursor: "pointer", fontFamily: "inherit", fontSize: 13,
             fontWeight: 700, padding: 0, display: "flex", alignItems: "center", gap: 4,
-          }}>← {isMobileDevice ? "" : "Voltar"}</button>
+          }}>← {isMobileDevice ? "" : (lang === "en" ? "Back" : "Voltar")}</button>
           <h2 style={{ flex: 1, fontSize: isMobileDevice ? 18 : 22, fontWeight: 900, color: darkMode ? "#e6edf3" : "#0d1117", lineHeight: 1.2, margin: 0 }}>{col.title}</h2>
           {currentUserId === col.user_id && (
             <button onClick={() => onEdit(col)} style={{
               background: "transparent", border: `1px solid ${accent}`, color: accent,
               borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",
-            }}>✏️ Editar</button>
+            }}>{lang === "en" ? "✏️ Edit" : "✏️ Editar"}</button>
           )}
         </div>
         {/* Meta row */}
@@ -86,10 +86,10 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
             cursor: "pointer", fontFamily: "inherit",
           }}>♥ {col.likes_count || 0}</button>
           <span style={{ fontSize: 12, color: "#8b949e" }}>{items.length} {items.length === 1 ? "item" : "itens"}</span>
-          <span style={{ fontSize: 11, color: "#8b949e" }}>{col.visibility === "private" ? "🔒 Privada" : col.visibility === "friends" ? "👥 Amigos" : "🌐 Pública"}</span>
+          <span style={{ fontSize: 11, color: "#8b949e" }}>{col.visibility === "private" ? (lang === "en" ? "🔒 Private" : "🔒 Privada") : col.visibility === "friends" ? (lang === "en" ? "👥 Friends" : "👥 Amigos") : (lang === "en" ? "🌐 Public" : "🌐 Pública")}</span>
           <div style={{ display: "flex", gap: 2, marginLeft: "auto", background: darkMode ? "#161b22" : "#f1f5f9", borderRadius: 8, padding: 2 }}>
             {[{ id: "small", label: "P" }, { id: "medium", label: "M" }, { id: "large", label: "G" }].map(s => (
-              <button key={s.id} onClick={() => setColSizePersist(s.id)} title={s.id === "small" ? "Pequeno" : s.id === "large" ? "Grande" : "Médio"} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, background: colSize === s.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: colSize === s.id ? accent : "#8b949e" }}>{s.label}</button>
+              <button key={s.id} onClick={() => setColSizePersist(s.id)} title={s.id === "small" ? (lang === "en" ? "Small" : "Pequeno") : s.id === "large" ? (lang === "en" ? "Large" : "Grande") : (lang === "en" ? "Medium" : "Médio")} style={{ width: 26, height: 24, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, background: colSize === s.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: colSize === s.id ? accent : "#8b949e" }}>{s.label}</button>
             ))}
           </div>
         </div>
@@ -101,7 +101,7 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
         {items.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#484f58" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 14 }}>Esta coleção está vazia</p>
+            <p style={{ fontSize: 14 }}>{lang === "en" ? "This collection is empty" : "Esta coleção está vazia"}</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobileDevice ? Math.max(colMinWidth - 40, 90) : colMinWidth}px, 1fr))`, gap: isMobileDevice ? 6 : 10 }}>
@@ -226,7 +226,7 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
                       </p>
                       <a href={`https://anilist.co/character/${selectedChar.id.replace("alchar-","")}`} target="_blank" rel="noreferrer"
                         style={{ fontSize: 12, color: accent, fontWeight: 700 }}>
-                        Ver no AniList →
+                        {lang === "en" ? "View on AniList →" : "Ver no AniList →"}
                       </a>
                     </div>
                   )}

@@ -143,7 +143,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 700, color: darkMode ? "#fca5a5" : accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selected.item.title} · {selected.from ? "mover para" : "colocar em"}</div>
             {selected.from && <button onClick={() => unplace(selected.item)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Tirar</button>}
-            <button onClick={() => setSelected(null)} aria-label="Cancelar" style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: 14 }}>✕</button>
+            <button onClick={() => setSelected(null)} aria-label={lang === "en" ? "Cancel" : "Cancelar"} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: 14 }}>✕</button>
           </div>
           <div style={{ display: "flex", gap: 6 }}>{TIER_LEVELS.map(tierBtn)}</div>
         </div>
@@ -170,7 +170,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
             </div>
           )}
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <input value={extSearch} onChange={e => setExtSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchExternal()} placeholder={poolTab === "personagens" ? "Nome da personagem…" : "Pesquisar título…"} style={{ ...field, flex: 1, width: "auto" }} />
+            <input value={extSearch} onChange={e => setExtSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchExternal()} placeholder={poolTab === "personagens" ? (lang === "en" ? "Character name…" : "Nome da personagem…") : (lang === "en" ? "Search title…" : "Pesquisar título…")} style={{ ...field, flex: 1, width: "auto" }} />
             <button onClick={searchExternal} disabled={extSearching} style={{ padding: "0 16px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{extSearching ? "…" : "Ir"}</button>
           </div>
         </>
@@ -178,9 +178,9 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
 
       {poolTab === "manual" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <p style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>Para qualquer coisa que não esteja nas pesquisas: um nome e, se quiseres, o endereço de uma imagem.</p>
+          <p style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>{lang === "en" ? "For anything not in the searches: a name and, if you like, an image address." : "Para qualquer coisa que não esteja nas pesquisas: um nome e, se quiseres, o endereço de uma imagem."}</p>
           <input value={manualTitle} onChange={e => setManualTitle(e.target.value)} placeholder="Nome" style={field} />
-          <input value={manualCover} onChange={e => setManualCover(e.target.value)} placeholder="Endereço da imagem (opcional)" style={field} />
+          <input value={manualCover} onChange={e => setManualCover(e.target.value)} placeholder={lang === "en" ? "Image address (optional)" : "Endereço da imagem (opcional)"} style={field} />
           <button onClick={addManual} disabled={!manualTitle.trim()} style={{ padding: "11px", borderRadius: 12, background: accent, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: manualTitle.trim() ? 1 : 0.5 }}>Criar e escolher tier</button>
         </div>
       ) : (
@@ -188,7 +188,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
           {extList.map(item => poster(item, pw, ph))}
           {extList.length === 0 && !extSearching && (
             <p style={{ fontSize: 12, color: muted, width: "100%", textAlign: "center", padding: "16px 0" }}>
-              {poolTab === "biblioteca" ? (libItems.length ? "Todos os itens já estão colocados." : "A biblioteca está vazia.") : (extSearch ? "Sem resultados." : "Pesquisa acima.")}
+              {poolTab === "biblioteca" ? (libItems.length ? (lang === "en" ? "All items are already placed." : "Todos os itens já estão colocados.") : (lang === "en" ? "Your library is empty." : "A biblioteca está vazia.")) : (extSearch ? (lang === "en" ? "No results." : "Sem resultados.") : (lang === "en" ? "Search above." : "Pesquisa acima."))}
             </p>
           )}
         </div>
@@ -232,13 +232,13 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: isMobileDevice ? "14px 16px" : "20px 28px", borderBottom: `1px solid ${line}`, flexShrink: 0 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.14em", color: muted, marginBottom: 2 }}>{initialData ? "EDITAR TIER LIST" : "NOVA TIER LIST"}</div>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Dá um nome à tier list…" maxLength={80}
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder={lang === "en" ? "Name your tier list…" : "Dá um nome à tier list…"} maxLength={80}
           style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", outline: "none", color: text, fontFamily: "inherit", fontSize: isMobileDevice ? 17 : 26, fontWeight: 800, padding: 0 }} />
       </div>
       {!isMobileDevice && <span style={{ padding: "7px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, color: muted, border: `1px solid ${line}`, whiteSpace: "nowrap" }}>{placed} colocados</span>}
-      {!isMobileDevice && <button onClick={onClose} style={{ padding: "11px 18px", borderRadius: 12, background: "transparent", border: `1px solid ${line}`, color: text, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>Cancelar</button>}
-      <button onClick={handleSave} disabled={!title.trim() || saving} style={{ padding: "11px 18px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, opacity: !title.trim() ? 0.5 : 1, whiteSpace: "nowrap" }}>{saving ? "A guardar…" : "Guardar"}</button>
-      {isMobileDevice && <button onClick={onClose} aria-label="Fechar" style={{ width: 36, height: 36, borderRadius: 99, background: "transparent", border: `1px solid ${line}`, color: muted, cursor: "pointer", fontSize: 15 }}>✕</button>}
+      {!isMobileDevice && <button onClick={onClose} style={{ padding: "11px 18px", borderRadius: 12, background: "transparent", border: `1px solid ${line}`, color: text, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>}
+      <button onClick={handleSave} disabled={!title.trim() || saving} style={{ padding: "11px 18px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, opacity: !title.trim() ? 0.5 : 1, whiteSpace: "nowrap" }}>{saving ? (lang === "en" ? "Saving…" : "A guardar…") : (lang === "en" ? "Save" : "Guardar")}</button>
+      {isMobileDevice && <button onClick={onClose} aria-label={lang === "en" ? "Close" : "Fechar"} style={{ width: 36, height: 36, borderRadius: 99, background: "transparent", border: `1px solid ${line}`, color: muted, cursor: "pointer", fontSize: 15 }}>✕</button>}
     </div>
   );
 

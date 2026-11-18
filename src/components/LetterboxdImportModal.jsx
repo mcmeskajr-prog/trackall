@@ -22,10 +22,10 @@ export function LetterboxdImportModal({ onClose, onImport }) {
     try {
       const text = await file.text();
       const parsed = parseLetterboxdCSV(text);
-      if (!parsed.length) { setError('Nenhum filme encontrado. Certifica-te que é o ficheiro diary.csv ou watched.csv do Letterboxd.'); setLoading(false); return; }
+      if (!parsed.length) { setError(lang === "en" ? "No movies found. Make sure it is the diary.csv or watched.csv file from Letterboxd." : "Nenhum filme encontrado. Certifica-te que é o ficheiro diary.csv ou watched.csv do Letterboxd."); setLoading(false); return; }
       const sel = {}; parsed.forEach(m => { sel[m.id] = true; });
       setItems(parsed); setSelected(sel); setStep('preview');
-    } catch (err) { setError('Erro: ' + err.message); }
+    } catch (err) { setError((lang === "en" ? "Error: " : "Erro: ") + err.message); }
     setLoading(false);
   };
 

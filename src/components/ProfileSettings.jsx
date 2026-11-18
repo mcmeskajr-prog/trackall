@@ -28,6 +28,7 @@ export function ProfileSettings(props) {
   };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   return (
       <div style={{ padding: isMobileDevice ? "16px 16px 40px" : "24px 32px 48px", display: "flex", flexDirection: isMobileDevice ? "column" : "row", gap: isMobileDevice ? 16 : 32, alignItems: "flex-start" }}>
@@ -205,9 +206,9 @@ export function ProfileSettings(props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("privacy")}</p>
-            <p style={{ fontSize: 11, color: "#8b949e" }}>Como tratamos os teus dados · RGPD</p>
+            <p style={{ fontSize: 11, color: "#8b949e" }}>{lang === "en" ? "How we handle your data · GDPR" : "Como tratamos os teus dados · RGPD"}</p>
           </div>
-          <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
+          <a href={`/privacy.html#${lang === "en" ? "en" : "pt"}`} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${accent}44`, background: `${accent}12`, color: accent, fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
             {lang === "en" ? "View →" : "Ver →"}
           </a>
         </div>
@@ -225,7 +226,7 @@ export function ProfileSettings(props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: panelDM ? "#e6edf3" : "#1a1a2e", marginBottom: 2 }}>{useT("version")}</p>
-            <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll v64 · março 2026</p>
+            <p style={{ fontSize: 11, color: "#8b949e" }}>TrackAll</p>
           </div>
         </div>
       </div>
@@ -238,52 +239,73 @@ export function ProfileSettings(props) {
       const handleDeleteAccount = async () => {
         if (!confirmDelete) { setConfirmDelete(true); return; }
         setDeleting(true);
+        setDeleteError("");
         try {
-          // Função do servidor: apaga dados, imagens e a própria conta de login (ver docs/supabase_delete_account.sql)
+          // 1) Imagens pela API do Storage (apagar linhas de storage.objects por SQL não remove o ficheiro de facto,
+          //    e em projetos recentes é bloqueado). Falhar aqui não impede o resto.
+          try {
+            const bucket = supabase.storage.from("profile-images");
+            const { data: files } = await bucket.list(currentUserId, { limit: 100 });
+            if (files?.length) await bucket.remove(files.map(f => `${currentUserId}/${f.name}`));
+          } catch (e) { console.warn("[TrackAll] apagar imagens:", e?.message); }
+          // 2) Função do servidor: apaga os dados e a própria conta de login
           const { error: rpcError } = await supabase.rpc("delete_my_account");
           if (rpcError) {
             // Sem a função instalada: apaga pelo menos os dados (a conta de login fica)
             console.warn("[TrackAll] delete_my_account indisponível, a apagar tabelas:", rpcError.message);
-            await supabase.from("collection_likes").delete().eq("user_id", currentUserId);
-            await supabase.from("tierlist_likes").delete().eq("user_id", currentUserId);
-            await supabase.from("collections").delete().eq("user_id", currentUserId);
-            await supabase.from("tierlists").delete().eq("user_id", currentUserId);
-            await supabase.from("library").delete().eq("user_id", currentUserId);
-            await supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
-            await supabase.from("profile_private").delete().eq("id", currentUserId);
-            await supabase.from("profiles").delete().eq("id", currentUserId);
+            const steps = [
+              supabase.from("collection_likes").delete().eq("user_id", currentUserId),
+              supabase.from("tierlist_likes").delete().eq("user_id", currentUserId),
+              supabase.from("collections").delete().eq("user_id", currentUserId),
+              supabase.from("tierlists").delete().eq("user_id", currentUserId),
+              supabase.from("library").delete().eq("user_id", currentUserId),
+              supabase.from("friendships").delete().or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`),
+              supabase.from("profile_private").delete().eq("id", currentUserId),
+              supabase.from("profiles").delete().eq("id", currentUserId),
+            ];
+            const results = [];
+            for (const q of steps) results.push(await q); // por ordem: o perfil só no fim
+            const failed = results.find(r => r?.error);
+            if (failed) {
+              // Não terminar sessão como se estivesse tudo apagado: dizer a verdade e deixar tentar de novo
+              console.error("[TrackAll] apagar conta falhou:", failed.error.message);
+              setDeleteError(lang === "en" ? "Could not delete everything. Nothing was signed out — check your connection and try again." : "Não foi possível apagar tudo. A sessão não foi terminada — verifica a ligação e tenta outra vez.");
+              setDeleting(false);
+              return;
+            }
           }
           await supabase.auth.signOut();
           onSignOut && onSignOut();
         } catch (e) {
           console.error(e);
+          setDeleteError(lang === "en" ? "Something went wrong while deleting. Try again." : "Algo correu mal ao apagar. Tenta outra vez.");
           setDeleting(false);
-          setConfirmDelete(false);
         }
       };
       return (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#ef4444", display: "flex", alignItems: "center", gap: 10 }}>
-            ZONA DE PERIGO
+            {lang === "en" ? "DANGER ZONE" : "ZONA DE PERIGO"}
             <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #ef444433, transparent)" }} />
           </h3>
           <div style={{ background: "#1a0a0a", border: "1px solid #ef444433", borderRadius: 12, padding: 16 }}>
             <p style={{ fontSize: 13, color: "#8b949e", marginBottom: 14 }}>
-              Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita.
+              {lang === "en" ? "Deleting your account permanently removes your whole library, profile and data. This cannot be undone." : "Apagar a conta remove permanentemente toda a tua biblioteca, perfil e dados. Esta ação não pode ser desfeita."}
             </p>
+            {deleteError && <p role="alert" style={{ fontSize: 12, color: "#f87171", marginBottom: 10 }}>{deleteError}</p>}
             {!confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)} style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #ef444455", background: "transparent", color: "#ef4444", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                Apagar conta
+                {lang === "en" ? "Delete account" : "Apagar conta"}
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>⚠️ Tens a certeza? Esta ação é irreversível.</p>
+                <p style={{ fontSize: 13, color: "#ef4444", fontWeight: 700 }}>{lang === "en" ? "⚠️ Are you sure? This cannot be undone." : "⚠️ Tens a certeza? Esta ação é irreversível."}</p>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={handleDeleteAccount} disabled={deleting} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "#ef4444", color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: deleting ? 0.6 : 1 }}>
-                    {deleting ? useT("deleting") : "Sim, apagar tudo"}
+                    {deleting ? useT("deleting") : (lang === "en" ? "Yes, delete everything" : "Sim, apagar tudo")}
                   </button>
                   <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #30363d", background: "transparent", color: "#8b949e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                    Cancelar
+                    {lang === "en" ? "Cancel" : "Cancelar"}
                   </button>
                 </div>
               </div>
