@@ -100,6 +100,7 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
               <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""} aria-label={info.name || info.username || ""}
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
                 <FriendAvatar src={info.avatar} name={info.name || info.username} size={26} ring={accent} ringWidth={1.5} />
+                {it.userRating > 0 && <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: "#f59e0b", whiteSpace: "nowrap" }}>★ {ratingText(it.userRating)}</span>}
                 {tag && <span className="no-tc" title={tag.label} aria-label={tag.label} style={{ flexShrink: 0, fontSize: 12, lineHeight: 1, color: tag.c }}>{tag.icon}</span>}
                 <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{timeAgo(it.addedAt, en)}</span>
               </button>
