@@ -2360,6 +2360,7 @@ export default function TrackAll() {
           .tab-btn { background: transparent; border: none; color: ${activeDarkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
           .tab-btn:hover { color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; background: ${activeDarkMode ? "#21262d" : "#e2e8f0"}; }
           .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
+          .glass-ctl { background: ${activeDarkMode ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.55)"} !important; -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); border: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}; box-shadow: inset 0 1px 0 ${activeDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.7)"}; }
           input, select, textarea { background: ${activeDarkMode ? "#0d1117" : "#ffffff"}; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }

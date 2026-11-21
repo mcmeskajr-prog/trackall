@@ -25,8 +25,9 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {/* Search input */}
                 <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 12, pointerEvents: "none" }}>🔍</span>
+                  <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#484f58", fontSize: 12, pointerEvents: "none", zIndex: 1 }}>🔍</span>
                   <input
+                    className="glass-ctl"
                     value={libSearch}
                     onChange={e => setLibSearch(e.target.value)}
                     placeholder={useT("filterPlaceholder")}
@@ -46,7 +47,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                     <span style={{ flexShrink: 0, color: darkMode ? "#484f58" : "#94a3b8", fontSize: 11, marginLeft: 2 }}>· {filteredLib.length}</span>
                   </div>
                 )}
-                <div style={{ display: "flex", background: darkMode ? "#21262d" : "#e8e0d5", borderRadius: 8, padding: 2 }}>
+                <div className="glass-ctl" style={{ display: "flex", borderRadius: 8, padding: 2 }}>
                   {[{id:"grid",icon:"▦"}, ...(isMobileDevice ? [] : [{id:"large",icon:"◻"}]), {id:"list",icon:"☰"}, {id:"compact",icon:isMobileDevice ? "▩" : "⊟"}].map(m => (
                     <button key={m.id} onClick={() => setLibViewModePersist(m.id)} title={m.id === "compact" ? (isMobileDevice ? "4 colunas" : "Compacto") : m.id === "large" ? "Grande" : undefined} style={{ width: 28, height: 26, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, background: libViewMode === m.id ? (darkMode ? "#30363d" : "#fff") : "transparent", color: libViewMode === m.id ? accent : "#8b949e", transition: "all 0.15s" }}>{m.icon}</button>
                   ))}

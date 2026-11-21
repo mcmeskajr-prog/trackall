@@ -38,7 +38,7 @@ export function SidebarSearch({ accent, darkMode, activeTab, doSearch, setSearch
           {useT("search")}
         </button>
       ) : (
-        <div ref={containerRef} style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 42, background: darkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9", borderRadius: 12, border: `1px solid ${accent}66`, boxShadow: `0 0 0 3px ${accent}1f`, minWidth: 0, width: "calc(100% - 16px)", boxSizing: "border-box" }}>
+        <div ref={containerRef} className="glass-ctl" style={{ margin: "2px 8px", display: "flex", alignItems: "center", gap: 10, padding: "0 14px", height: 42, borderRadius: 12, border: `1px solid ${accent}66`, boxShadow: `0 0 0 3px ${accent}1f`, minWidth: 0, width: "calc(100% - 16px)", boxSizing: "border-box" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
             <circle cx="10.5" cy="10.5" r="6.5" stroke={accent} strokeWidth="2"/>
             <line x1="15.5" y1="15.5" x2="21" y2="21" stroke={accent} strokeWidth="2" strokeLinecap="round"/>

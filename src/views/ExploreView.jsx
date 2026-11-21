@@ -61,8 +61,8 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
     load(1, true);
   }, [view === "explore", type, sort, year, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pill = (on) => ({ flex: "none", display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 999, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "#fff" : (darkMode ? "#aab4c0" : "#475569") });
-  const select = { padding: "7px 10px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${line}`, background: darkMode ? "#12161c" : "#fff", color: text, flex: "none" };
+  const pill = (on) => ({ flex: "none", display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 999, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", color: on ? "#fff" : (darkMode ? "#d2dae3" : "#475569"), ...(on ? { border: `1px solid ${accent}`, background: accent } : {}) });
+  const select = { padding: "7px 10px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", color: text, flex: "none" };
   const tabs = MEDIA_TYPES.filter((t) => EXPLORE_TYPES.includes(t.id));
 
   return (
@@ -78,19 +78,19 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
 
         <div className="xp-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
           {tabs.map((t) => (
-            <button key={t.id} type="button" onClick={() => setType(t.id)} style={pill(type === t.id)}><TypeIcon id={t.id} /> {mediaLabel(t, lang)}</button>
+            <button key={t.id} type="button" className={type === t.id ? "" : "glass-ctl"} onClick={() => setType(t.id)} style={pill(type === t.id)}><TypeIcon id={t.id} /> {mediaLabel(t, lang)}</button>
           ))}
         </div>
 
         <div className="xp-row" style={{ display: "flex", gap: 8, overflowX: "auto", margin: "12px 0 16px" }}>
-          <select aria-label={en ? "Sort" : "Ordenar"} value={sort} onChange={(e) => setSort(e.target.value)} style={select}>
+          <select className="glass-ctl" aria-label={en ? "Sort" : "Ordenar"} value={sort} onChange={(e) => setSort(e.target.value)} style={select}>
             {EXPLORE_SORTS.map((s) => <option key={s.id} value={s.id}>{en ? s.en : s.pt}</option>)}
           </select>
-          <select aria-label={en ? "Year" : "Ano"} value={year} onChange={(e) => setYear(e.target.value)} style={select}>
+          <select className="glass-ctl" aria-label={en ? "Year" : "Ano"} value={year} onChange={(e) => setYear(e.target.value)} style={select}>
             <option value="">{en ? "Year: all" : "Ano: todos"}</option>
             {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <select aria-label={en ? "Status" : "Estado"} value={status} onChange={(e) => setStatus(e.target.value)} style={select}>
+          <select className="glass-ctl" aria-label={en ? "Status" : "Estado"} value={status} onChange={(e) => setStatus(e.target.value)} style={select}>
             {EXPLORE_STATUS.map((s) => <option key={s.id} value={s.id}>{en ? `Status: ${s.en.toLowerCase()}` : `Estado: ${s.pt.toLowerCase()}`}</option>)}
           </select>
         </div>

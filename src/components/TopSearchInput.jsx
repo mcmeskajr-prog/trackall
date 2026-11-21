@@ -16,6 +16,7 @@ export function TopSearchInput({ value, onValue, onSubmit, onEscape, autoFocus, 
   };
   return (
     <input
+      className="glass-ctl"
       value={q}
       autoFocus={autoFocus}
       onChange={(e) => change(e.target.value)}
