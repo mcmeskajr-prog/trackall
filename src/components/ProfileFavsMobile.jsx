@@ -109,20 +109,34 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
   );
 });
 
-// ── Favoritos: uma pilha por tipo (capas sobrepostas), duas colunas; se sobrar uma, ocupa a largura toda ──
-const STEP = 0.30; // avanço entre capas, em largura de capa (as 7 à vista, cada uma parcialmente tapada pela seguinte)
+// ── Favoritos: um leque aberto por tipo; o #1 fica ao meio (à frente) e os outros abrem para a esquerda e direita ──
+const STEP = 0.42; // avanço horizontal entre capas, em largura de capa (as 7 cabem sempre)
+// Posição de cada ranking no leque, sempre simétrica: com nº ímpar o #1 fica ao meio (#2 à esquerda, #3 à direita…);
+// com nº par não há meio, por isso o #1 fica logo à esquerda do centro e o #2 logo à direita.
+const slotsFor = (n) => {
+  const out = [];
+  for (let k = 0; k < n; k++) { const m = n % 2 ? Math.ceil(k / 2) : Math.floor(k / 2) + 0.5; out.push(n % 2 ? (k % 2 ? -m : m) : (k % 2 ? m : -m)); }
+  return out;
+};
+const ARC_DROP = 1.4; // % da altura que cada capa desce por posição² (arco)
+const ARC_ROT = 3.5; // graus por posição
 function Stack({ items, wide }) {
-  // O tamanho das capas é sempre o de uma pilha cheia (7); com menos itens ficam centradas
-  const N = MAX_FAVORITES_PER_TYPE; // sempre as 7 possíveis à vista
+  // O tamanho das capas é sempre o de um leque cheio (7); com menos itens ficam centradas
+  const N = MAX_FAVORITES_PER_TYPE;
   const n = Math.min(items.length, N);
-  const w = 100 / (1 + (N - 1) * STEP);
-  const off = (100 - w * (1 + (Math.max(n, 1) - 1) * STEP)) / 2;
+  const SPAN = 1 + (N - 1) * STEP + 0.2; // folga lateral para as capas inclinadas
+  const w = 100 / SPAN;
+  const slots = slotsFor(n);
+  const mean = 0; // já simétrico
+  const H = 1.5 * (1 + ARC_DROP * 9 / 100); // altura do contentor ≈ capa + descida máxima do arco
   return (
-    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${1 + (N - 1) * STEP} / 1.5` }}>
+    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${SPAN.toFixed(3)} / ${H.toFixed(3)}` }}>
       {items.slice(0, n).map((it, j) => {
         const src = it.customCover || it.cover;
+        const pos = slots[j] - mean;
+        const dropPct = (ARC_DROP * slots[j] * slots[j]) / (H / 1.5);
         return (
-          <div key={it.id} style={{ position: "absolute", left: `${off + j * w * STEP}%`, top: 0, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "3px 0 8px rgba(0,0,0,0.4)", pointerEvents: "none" }}>
+          <div key={it.id} style={{ position: "absolute", left: `${50 - w / 2 + pos * w * STEP}%`, top: `${dropPct}%`, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "0 2px 8px rgba(0,0,0,0.45)", transform: `rotate(${(pos * ARC_ROT).toFixed(1)}deg)`, transformOrigin: "50% 100%", pointerEvents: "none" }}>
             {src && <CoverImg hi src={src} alt={it.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
           </div>
         );
@@ -236,7 +250,7 @@ export function FavStacksMobile({ favorites, library, accent, darkMode, lang, on
           const wide = known.length % 2 === 1 && i === known.length - 1;
           return (
             <div key={t.id} data-ridx={i} role="button" tabIndex={0} onClick={() => setOpenType(t.id)}
-              style={{ gridColumn: wide ? "1 / -1" : undefined, boxSizing: "border-box", borderRadius: 18, padding: 12, background: tileBg, border: `1px solid ${tileBd}`, cursor: "pointer", transition: "transform .15s" }}>
+              style={{ gridColumn: wide ? "1 / -1" : undefined, boxSizing: "border-box", borderRadius: 18, padding: 8, background: tileBg, border: `1px solid ${tileBd}`, cursor: "pointer", transition: "transform .15s" }}>
               <Stack items={list} wide={wide} />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13, fontWeight: 800, color: text }}>
                 {mediaLabel(t, lang)}<span style={{ color: muted, fontWeight: 700, fontSize: 12 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>

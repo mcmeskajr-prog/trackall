@@ -36,6 +36,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
     return () => { document.body.style.overflow = prev; };
   }, []);
   const [synOpen, setSynOpen] = useState(false);
+  const [barMenu, setBarMenu] = useState(null); // telemóvel: "status" | "rating" | "more" | null (um só aberto)
   const [barExtras, setBarExtras] = useState(false); // nota pessoal / capítulo na barra fixa
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [personData, setPersonData] = useState(null);
@@ -395,7 +396,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
               const useBanner = !!heroBg;
               const bgStyle = heroBg ? `url(${heroBg}) center/cover` : (coverSrc ? `url(${coverSrc}) center/cover` : gradientFor(currentItem.id));
               return (
-              <div style={{ height: isMobileDevice ? (useBanner ? 200 : 180) : 210, background: bgStyle, position: "relative", borderRadius: isMobileDevice ? "16px 16px 0 0" : "24px 24px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
+              <div style={{ height: isMobileDevice ? (useBanner ? 140 : 64) : 210, background: bgStyle, position: "relative", borderRadius: isMobileDevice ? "16px 16px 0 0" : "24px 24px 0 0", overflow: "hidden", transition: "height 0.3s ease" }}>
                 <div style={{ position: "absolute", inset: 0, background: useBanner ? `linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, ${modalSolid} 100%)` : `linear-gradient(to bottom, transparent 30%, ${modalSolid} 100%)` }} />
               {canGoBack && <button onClick={popItem} style={{ position: "absolute", top: 12, left: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>←</button>}
               <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
@@ -405,7 +406,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
 
             <div style={{ padding: isMobileDevice ? "0 20px 20px" : "0 32px 24px" }}>
               {/* Header: cover + title */}
-              <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? -60 : -90, position: "relative", zIndex: 2 }}>
+              <div style={{ display: "flex", gap: isMobileDevice ? 16 : 28, marginTop: isMobileDevice ? (!!(detailExtra?.bannerImage || currentItem.backdrop) ? -60 : -24) : -90, position: "relative", zIndex: 2 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{ width: isMobileDevice ? 110 : 170, height: isMobileDevice ? 160 : 255, borderRadius: isMobileDevice ? 10 : 16, overflow: "hidden", border: "3px solid " + modalSolid, background: gradientFor(currentItem.id), boxShadow: "0 14px 40px rgba(0,0,0,0.55)" }}>
                     {coverSrc && <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { const fb = currentItem.coverFallback; if (fb && e.currentTarget.src !== fb) { e.currentTarget.src = fb; } else { e.currentTarget.style.display = "none"; } }} />}
@@ -908,8 +909,8 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                       )}
                     </div>
                   )}
-                  {/* Estado */}
-                  <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 12, background: darkMode ? "rgba(0,0,0,0.35)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
+                  {/* Estado (PC) */}
+                  {!isMobileDevice && <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 12, background: darkMode ? "rgba(0,0,0,0.35)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`, overflowX: "auto", scrollbarWidth: "none" }}>
                     {STATUS_OPTIONS.map((st) => {
                       const on = libItem.userStatus === st.id;
                       return (
@@ -919,43 +920,72 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                         </button>
                       );
                     })}
-                  </div>
+                  </div>}
                   {libItem.userStatus === "completo" && (onUpdateDate || onRewatch) && (
                     <CompletedPanel libItem={libItem} accent={accent} darkMode={darkMode} lang={lang} onUpdateDate={onUpdateDate} onRewatch={onRewatch} />
                   )}
                   {/* Nota + ações */}
                   {isMobileDevice ? (
-                    <>
-                      <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={17} />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {(() => {
-                          const base = { flex: 1, minWidth: 0, height: 42, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", background: "transparent", transition: "background 0.15s, border-color 0.15s, color 0.15s", WebkitTapHighlightColor: "transparent" };
-                          const idle = darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0";
-                          const pop = (fn) => (e) => { const el = e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); fn(); };
-                          return (<>
-                            {onToggleFavorite && (
-                              <button onClick={pop(() => onToggleFavorite(currentItem))}
-                                aria-label={isFavorite ? (lang === "en" ? "Remove from favorites" : "Remover dos favoritos") : canAddFavorite ? (lang === "en" ? "Add to favorites" : "Adicionar aos favoritos") : favBlockedLabel}
-                                aria-pressed={isFavorite}
-                                style={{ ...base, cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", border: `1px solid ${isFavorite ? accent : idle}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}>{favIcon}</button>
-                            )}
+                    (() => {
+                      const cur = STATUS_OPTIONS.find((x) => x.id === libItem.userStatus) || STATUS_OPTIONS[0];
+                      const idle = darkMode ? "rgba(255,255,255,0.14)" : "#e2e8f0";
+                      const chip = { height: 42, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit", fontWeight: 700, fontSize: 13, background: "transparent", WebkitTapHighlightColor: "transparent", boxSizing: "border-box" };
+                      const pop = (fn) => (e) => { const el = e.currentTarget; el.classList.remove("ta-pop"); void el.offsetWidth; el.classList.add("ta-pop"); fn(); };
+                      const toggle = (k) => setBarMenu((m) => (m === k ? null : k));
+                      const panel = { display: "flex", flexDirection: "column", gap: 6, padding: 8, borderRadius: 12, background: darkMode ? "rgba(0,0,0,0.35)" : "#f1f5f9", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0"}` };
+                      const row = (on, c) => ({ display: "flex", alignItems: "center", gap: 10, minHeight: 42, padding: "0 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, textAlign: "left", background: on ? `${c}22` : "transparent", color: on ? c : (darkMode ? "#e6edf3" : "#0f172a") });
+                      return (<>
+                        {barMenu === "status" && (
+                          <div style={panel}>
+                            {STATUS_OPTIONS.map((st) => (
+                              <button key={st.id} onClick={() => { onUpdateStatus(currentItem.id, st.id); setBarMenu(null); }} style={row(libItem.userStatus === st.id, st.color)}>
+                                <span style={{ width: 18, textAlign: "center" }}>{st.emoji || "•"}</span>{statusLabel(st, lang)}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {barMenu === "rating" && (
+                          <div style={{ ...panel, alignItems: "center", gap: 4 }}>
+                            <StarRating value={libItem.userRating || 0} onChange={(v) => onUpdateRating(currentItem.id, v)} size={22} />
+                          </div>
+                        )}
+                        {barMenu === "more" && (
+                          <div style={panel}>
                             {onToggleHallOfFame && (
-                              <button onClick={pop(() => onToggleHallOfFame(currentItem))}
-                                aria-label={isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
-                                aria-pressed={isHallOfFame}
-                                style={{ ...base, cursor: canAddHallOfFame || isHallOfFame ? "pointer" : "not-allowed", border: `1px solid ${isHallOfFame ? "#fbbf24" : idle}`, background: isHallOfFame ? "#fbbf2422" : "transparent", color: isHallOfFame ? "#fbbf24" : "#8b949e" }}>{hofIcon}</button>
+                              <button onClick={() => { onToggleHallOfFame(currentItem); setBarMenu(null); }} disabled={!canAddHallOfFame && !isHallOfFame} style={{ ...row(isHallOfFame, "#fbbf24"), opacity: !canAddHallOfFame && !isHallOfFame ? 0.4 : 1 }}>
+                                <span style={{ width: 18, display: "flex", justifyContent: "center" }}>{hofIcon}</span>
+                                {isHallOfFame ? (lang === "en" ? "Remove from Hall of Fame" : "Remover do Hall of Fame") : canAddHallOfFame ? (lang === "en" ? "Add to Hall of Fame" : "Adicionar ao Hall of Fame") : (lang === "en" ? "Hall of Fame is full" : "Hall of Fame cheio")}
+                              </button>
                             )}
-                            <button onClick={() => setBarExtras(v => !v)} aria-label={lang === "en" ? "Note" : "Nota pessoal"} aria-pressed={barExtras}
-                              style={{ ...base, position: "relative", border: `1px solid ${barExtras ? accent : idle}`, background: barExtras ? `${accent}22` : "transparent", color: barExtras ? accent : "#8b949e" }}>
-                              <ActionIcon name="note" size={17} />
-                              {(noteInput || libItem.userNote) && !barExtras && <span style={{ position: "absolute", top: 8, right: 14, width: 6, height: 6, borderRadius: 99, background: accent }} />}
+                            <button onClick={() => { setBarExtras((v) => !v); setBarMenu(null); }} style={row(barExtras, accent)}>
+                              <span style={{ width: 18, display: "flex", justifyContent: "center" }}><ActionIcon name="note" size={17} /></span>
+                              {lang === "en" ? "Personal note" : "Nota pessoal"}{(noteInput || libItem.userNote) && <span style={{ width: 6, height: 6, borderRadius: 99, background: accent }} />}
                             </button>
-                            <button onClick={() => onRemove(currentItem.id)} aria-label={lang === "en" ? "Remove" : "Remover"}
-                              style={{ ...base, border: `1px solid ${idle}`, color: "#ef4444" }}><ActionIcon name="trash" size={17} /></button>
-                          </>);
-                        })()}
-                      </div>
-                    </>
+                            <button onClick={() => { setBarMenu(null); onRemove(currentItem.id); }} style={row(false, "#ef4444")}>
+                              <span style={{ width: 18, display: "flex", justifyContent: "center", color: "#ef4444" }}><ActionIcon name="trash" size={17} /></span>
+                              <span style={{ color: "#ef4444" }}>{lang === "en" ? "Remove from library" : "Remover da biblioteca"}</span>
+                            </button>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => toggle("status")} aria-expanded={barMenu === "status"} style={{ ...chip, flex: 1.5, minWidth: 0, padding: "0 12px", border: `1px solid ${cur.color}66`, background: `${cur.color}18`, color: cur.color }}>
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cur.emoji} {statusLabel(cur, lang)}</span><span style={{ fontSize: 10 }}>▾</span>
+                          </button>
+                          <button onClick={() => toggle("rating")} aria-expanded={barMenu === "rating"} aria-label={lang === "en" ? "Rating" : "Nota"} style={{ ...chip, flex: 1, minWidth: 0, padding: "0 10px", border: `1px solid ${barMenu === "rating" ? accent : idle}`, color: libItem.userRating ? "#fbbf24" : "#8b949e" }}>
+                            ★ {libItem.userRating || "—"}
+                          </button>
+                          {onToggleFavorite && (
+                            <button onClick={pop(() => onToggleFavorite(currentItem))}
+                              aria-label={isFavorite ? (lang === "en" ? "Remove from favorites" : "Remover dos favoritos") : canAddFavorite ? (lang === "en" ? "Add to favorites" : "Adicionar aos favoritos") : favBlockedLabel}
+                              aria-pressed={isFavorite}
+                              style={{ ...chip, width: 46, flex: "none", cursor: canAddFavorite || isFavorite ? "pointer" : "not-allowed", border: `1px solid ${isFavorite ? accent : idle}`, background: isFavorite ? `${accent}22` : "transparent", color: isFavorite ? accent : "#8b949e" }}>{favIcon}</button>
+                          )}
+                          <button onClick={() => toggle("more")} aria-expanded={barMenu === "more"} aria-label={lang === "en" ? "More" : "Mais"} style={{ ...chip, position: "relative", width: 46, flex: "none", border: `1px solid ${barMenu === "more" ? accent : idle}`, color: "#8b949e", fontSize: 18, letterSpacing: 1 }}>
+                            ⋯{(noteInput || libItem.userNote) && barMenu !== "more" && <span style={{ position: "absolute", top: 8, right: 9, width: 6, height: 6, borderRadius: 99, background: accent }} />}
+                          </button>
+                        </div>
+                      </>);
+                    })()
                   ) : (
                   <>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>

@@ -11,13 +11,13 @@ function useCells(items, stats, homeStatColors) {
   const rated = items.filter((i) => i.userRating > 0);
   const avg = rated.length ? (rated.reduce((s, i) => s + i.userRating, 0) / rated.length).toFixed(1) : null;
   return [
-    { l: lang === "en" ? "In progress" : "Em curso", v: stats.assistindo, c: homeStatColors.assistindo || accent },
-    { l: useT("completo"), v: stats.completo, c: homeStatColors.completo || accent },
+    { l: lang === "en" ? "In progress" : "Em curso", s: lang === "en" ? "Active" : null, v: stats.assistindo, c: homeStatColors.assistindo || accent },
+    { l: useT("completo"), s: lang === "en" ? "Done" : null, v: stats.completo, c: homeStatColors.completo || accent },
     { l: lang === "en" ? "Planned" : "Planeados", v: stats.planejado, c: homeStatColors.planejado || accent },
     { l: lang === "en" ? "Paused" : "Pausa", v: stats.pausa, c: homeStatColors.pausa || accent },
     { l: useT("dropado"), v: stats.largado, c: homeStatColors.largado || accent },
-    { l: lang === "en" ? "This month" : "Este mês", v: thisMonth, c: accentVariant(accent, 0) },
-    { l: lang === "en" ? "Avg rating" : "Média", v: avg, star: true, c: "#f5b83d" },
+    { l: lang === "en" ? "This month" : "Este mês", s: lang === "en" ? "Month" : null, v: thisMonth, c: accentVariant(accent, 0) },
+    { l: lang === "en" ? "Avg rating" : "Média", s: lang === "en" ? "Avg" : null, v: avg, star: true, c: "#f5b83d" },
   ].filter((c) => c.v !== null && c.v !== undefined && Number(c.v) > 0);
 }
 
@@ -27,6 +27,7 @@ export function HomeStatsStrip({ items, stats, homeStatColors = {}, inline = fal
   const cells = useCells(items, stats, homeStatColors);
   if (!cells.length) return null;
   const line = homeLine(darkMode);
+  const tight = isMobileDevice && cells.length <= 5; // 5 colunas estreitas no telemóvel: rótulos curtos (só inglês)
   if (inline) {
     return (
       <div style={{ display: "flex", flexShrink: 0 }}>
@@ -43,9 +44,9 @@ export function HomeStatsStrip({ items, stats, homeStatColors = {}, inline = fal
     <div style={{ padding: isMobileDevice ? "0 16px 16px" : "0 24px 16px" }}>
       <div style={{ display: "grid", gridTemplateColumns: isMobileDevice && cells.length <= 5 ? `repeat(${cells.length}, minmax(0, 1fr))` : `repeat(auto-fit, minmax(${isMobileDevice ? 96 : 130}px, 1fr))`, gap: 1, background: line, border: `1px solid ${line}`, borderRadius: HOME_R, overflow: "hidden" }}>
         {cells.map((c) => (
-          <div key={c.l} style={{ background: `linear-gradient(180deg, ${c.c}1f 0%, transparent 70%), ${homePanel(darkMode, panelBg)}`, borderTop: `2px solid ${c.c}`, padding: isMobileDevice ? "9px 8px" : "14px 18px 12px", minWidth: 0 }}>
+          <div key={c.l} style={{ background: `linear-gradient(180deg, ${c.c}1f 0%, transparent 70%), ${homePanel(darkMode, panelBg)}`, borderTop: `2px solid ${c.c}`, padding: isMobileDevice ? "9px 6px" : "14px 18px 12px", minWidth: 0 }}>
             <div style={{ fontSize: isMobileDevice ? 18 : 24, fontWeight: 800, color: c.c, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{c.star ? "★ " : ""}{c.v}</div>
-            <div style={{ fontSize: isMobileDevice ? 8.5 : 10, fontWeight: 700, letterSpacing: isMobileDevice ? "0.05em" : "0.1em", textTransform: "uppercase", color: homeMuted(darkMode), marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.l}</div>
+            <div style={{ fontSize: isMobileDevice ? 9 : 10, fontWeight: 700, letterSpacing: isMobileDevice ? "0.06em" : "0.1em", textTransform: "uppercase", color: homeMuted(darkMode), marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tight && c.s ? c.s : c.l}</div>
           </div>
         ))}
       </div>

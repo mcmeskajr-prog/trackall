@@ -75,6 +75,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: accent }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{featured.title}</div>
+          {featured.note && <div style={{ fontSize: 12.5, lineHeight: 1.4, fontStyle: "italic", marginTop: 4, color: sub, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{featured.note}</div>}
         </div>
         {featured.userRating > 0 && <div style={{ fontSize: 12.5, color: "#fbbf24", fontWeight: 800, marginRight: 6, flexShrink: 0 }}>★ {featured.userRating}</div>}
       </button>
@@ -200,6 +201,7 @@ export function ProfileCard({ profile, avatar, items, library, featuredItem, use
             <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, pointerEvents: "none", color: "white" }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.8 }}>{lang === "en" ? "Featured" : "Em destaque"}{typeDef ? ` · ${mediaLabel(typeDef, lang)}` : ""}</div>
               <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
+              {isMobileDevice && featured.note && <div style={{ fontSize: 12.5, lineHeight: 1.4, fontStyle: "italic", marginTop: 4, opacity: 0.9, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{featured.note}</div>}
             </div>
             {featured.userRating > 0 && (
               <div style={{ position: "absolute", top: 12, right: 12, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {featured.userRating}</div>
