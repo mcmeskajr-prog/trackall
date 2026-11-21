@@ -28,6 +28,7 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const reqId = useRef(0);
+  const [justAdded, setJustAdded] = useState(() => new Set()); // «Adicionado ✓» durante ~1,5 s depois de tocar
 
   const text = darkMode ? "#e6edf3" : "#0f172a", muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.16)";
@@ -66,7 +67,7 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
 
   return (
     <div style={{ display: view === "explore" ? "block" : "none" }}>
-      <style>{`.xp-card .xp-add{opacity:0;transition:opacity .15s}.xp-card:hover .xp-add,.xp-card:focus-within .xp-add{opacity:1}.xp-row{scrollbar-width:none}.xp-row::-webkit-scrollbar{display:none}`}</style>
+      <style>{`.xp-card .xp-add{opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s,background .2s,box-shadow .2s}.xp-card:hover .xp-add,.xp-card:focus-within .xp-add,.xp-card .xp-add.xp-done{opacity:1;transform:none}.xp-card .xp-add:hover{filter:brightness(1.1);box-shadow:0 8px 20px rgba(0,0,0,.5)}.xp-card .xp-add:active{transform:scale(.95)}.xp-card .xp-add.xp-done{background:#10b981!important;animation:xp-pop .35s ease}.xp-badge{animation:xp-pop .35s ease}@keyframes xp-pop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}.xp-row{scrollbar-width:none}.xp-row::-webkit-scrollbar{display:none}`}</style>
       <div style={{ padding: isMobileDevice ? "16px 16px 120px" : "24px 28px 60px", maxWidth: 1400, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           {isMobileDevice && onBack && (
@@ -104,12 +105,13 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
                   {it.cover && <CoverImg src={it.cover} alt={it.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                   <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 7px 6px", background: "linear-gradient(transparent, rgba(0,0,0,0.82))", color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.2, pointerEvents: "none", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</div>
                   {it.score > 0 && <span style={{ position: "absolute", top: 6, right: 6, padding: "2px 6px", borderRadius: 6, background: "rgba(0,0,0,0.65)", color: "#fbbf24", fontSize: 10.5, fontWeight: 800 }}>★ {it.score}</span>}
-                  {inLib && <span title={en ? "In your library" : "Na tua biblioteca"} style={{ position: "absolute", top: 6, left: 6, width: 20, height: 20, borderRadius: "50%", background: "#10b981", color: "#fff", fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>}
+                  {inLib && <span className="xp-badge" title={en ? "In your library" : "Na tua biblioteca"} style={{ position: "absolute", top: 6, left: 6, width: 20, height: 20, borderRadius: "50%", background: "#10b981", color: "#fff", fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>}
                 </div>
-                {!isMobileDevice && !inLib && (
-                  <button type="button" className="xp-add" onClick={() => addToLibrary(it, "planejado", 0)}
+                {!isMobileDevice && (!inLib || justAdded.has(it.id)) && (
+                  <button type="button" className={`xp-add${justAdded.has(it.id) ? " xp-done" : ""}`} disabled={justAdded.has(it.id)}
+                    onClick={() => { addToLibrary(it, "planejado", 0); setJustAdded((p) => new Set(p).add(it.id)); setTimeout(() => setJustAdded((p) => { const n = new Set(p); n.delete(it.id); return n; }), 1500); }}
                     style={{ position: "absolute", left: 8, right: 8, bottom: 40, padding: "7px 0", borderRadius: 9, border: "none", background: accent, color: "#fff", fontSize: 12, fontWeight: 800, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 6px 16px rgba(0,0,0,0.45)" }}>
-                    + {en ? "Planned" : "Planeado"}
+                    {justAdded.has(it.id) ? `✓ ${en ? "Added" : "Adicionado"}` : `+ ${en ? "Planned" : "Planeado"}`}
                   </button>
                 )}
               </div>

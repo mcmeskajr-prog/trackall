@@ -1665,6 +1665,22 @@ export default function TrackAll() {
     saveLibrary(next);
   }, [library]);
 
+  // Guarda os géneros e as keywords que o detalhe descobriu (só se faltarem), para as tags passarem a encontrar este item na Biblioteca
+  const updateTags = useCallback((id, type, tags) => {
+    const matched = findLibraryEntry(libraryRef.current, id, type);
+    if (!matched) return;
+    const genres = Array.isArray(tags?.genres) ? tags.genres.filter(Boolean) : [];
+    const keywords = Array.isArray(tags?.keywords) ? tags.keywords.filter(Boolean) : [];
+    const needG = genres.length > 0 && !(matched.item.genres?.length > 0);
+    const needK = keywords.length > 0 && !(matched.item.keywords?.length > 0);
+    if (!needG && !needK) return;
+    const canonicalId = normalizeMediaId(id, type);
+    const next = { ...libraryRef.current };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, ...(needG ? { genres } : {}), ...(needK ? { keywords } : {}) };
+    saveLibrary(next);
+  }, [library]);
+
   const updateNote = useCallback((id, note) => {
     const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched) return;
@@ -1946,7 +1962,8 @@ export default function TrackAll() {
     if (filterRating === "rated" ? !(i.userRating > 0) : (filterRating !== null && i.userRating !== filterRating)) return false;
     if (libSearch.trim()) {
       const q = libSearch.toLowerCase().trim(); // procura no título e também nos géneros (as tags do detalhe)
-      if (!i.title?.toLowerCase().includes(q) && !(Array.isArray(i.genres) && i.genres.some((g) => String(g).toLowerCase().includes(q)))) return false;
+      const hit = (arr) => Array.isArray(arr) && arr.some((g) => String(g).toLowerCase().includes(q));
+      if (!i.title?.toLowerCase().includes(q) && !hit(i.genres) && !hit(i.keywords)) return false;
     }
     return true;
   }), [items, filterStatus, activeTab, libSearch, filterRating]);
@@ -2629,6 +2646,7 @@ export default function TrackAll() {
             onRemove={(id) => { removeFromLibrary(id); setSelectedItem(null); }}
             onUpdateStatus={updateStatus}
             onUpdateDuration={updateDuration}
+            onUpdateTags={updateTags}
             onUpdateNote={updateNote}
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
