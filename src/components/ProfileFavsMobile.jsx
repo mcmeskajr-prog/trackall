@@ -111,7 +111,13 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
 
 // ── Favoritos: um leque aberto por tipo; o #1 fica ao meio (à frente) e os outros abrem para a esquerda e direita ──
 const STEP = 0.30; // avanço horizontal entre capas, em largura de capa (as 7 cabem sempre)
-const SLOTS = [0, -1, 1, -2, 2, -3, 3]; // posição de cada ranking no leque: #1 ao meio, #2 à esquerda, #3 à direita…
+// Posição de cada ranking no leque, sempre simétrica: com nº ímpar o #1 fica ao meio (#2 à esquerda, #3 à direita…);
+// com nº par não há meio, por isso o #1 fica logo à esquerda do centro e o #2 logo à direita.
+const slotsFor = (n) => {
+  const out = [];
+  for (let k = 0; k < n; k++) { const m = n % 2 ? Math.ceil(k / 2) : Math.floor(k / 2) + 0.5; out.push(n % 2 ? (k % 2 ? -m : m) : (k % 2 ? m : -m)); }
+  return out;
+};
 const ARC_DROP = 1.1; // % da altura que cada capa desce por posição² (arco)
 const ARC_ROT = 3.5; // graus por posição
 function Stack({ items, wide }) {
@@ -120,8 +126,8 @@ function Stack({ items, wide }) {
   const n = Math.min(items.length, N);
   const SPAN = 1 + (N - 1) * STEP + 0.35; // folga lateral para as capas inclinadas
   const w = 100 / SPAN;
-  const slots = SLOTS.slice(0, n);
-  const mean = n ? slots.reduce((a, b) => a + b, 0) / n : 0;
+  const slots = slotsFor(n);
+  const mean = 0; // já simétrico
   const H = 1.5 * (1 + ARC_DROP * 9 / 100); // altura do contentor ≈ capa + descida máxima do arco
   return (
     <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${SPAN.toFixed(3)} / ${H.toFixed(3)}` }}>
