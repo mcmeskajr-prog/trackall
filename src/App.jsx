@@ -2465,7 +2465,8 @@ export default function TrackAll() {
             .modal-bg { align-items: flex-end !important; padding: 0 !important; }
             .modal { border-radius: 24px 24px 0 0 !important; max-height: 88vh !important; max-height: 88dvh !important; width: 100% !important; max-width: 100% !important; overflow-y: auto !important; }
             .cover-modal { overflow: hidden !important; display: flex !important; flex-direction: column !important; max-height: calc(88vh - 64px) !important; margin-bottom: 64px !important; }
-            .modal::before { content: ""; display: block; width: 36px; height: 4px; background: #30363d; border-radius: 99px; margin: 12px auto 4px; }
+            .modal { position: relative; }
+            .modal::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 6; width: 36px; height: 4px; background: rgba(255,255,255,0.38); border-radius: 99px; pointer-events: none; }
             .modal-bottom-pad { padding-bottom: 80px !important; }
           }
           @keyframes spin { to { transform: rotate(360deg); } }

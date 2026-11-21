@@ -109,20 +109,28 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
   );
 });
 
-// ── Favoritos: uma pilha por tipo (capas sobrepostas), duas colunas; se sobrar uma, ocupa a largura toda ──
-const STEP = 0.30; // avanço entre capas, em largura de capa (as 7 à vista, cada uma parcialmente tapada pela seguinte)
+// ── Favoritos: um leque aberto por tipo; o #1 fica ao meio (à frente) e os outros abrem para a esquerda e direita ──
+const STEP = 0.30; // avanço horizontal entre capas, em largura de capa (as 7 cabem sempre)
+const SLOTS = [0, -1, 1, -2, 2, -3, 3]; // posição de cada ranking no leque: #1 ao meio, #2 à esquerda, #3 à direita…
+const ARC_DROP = 1.1; // % da altura que cada capa desce por posição² (arco)
+const ARC_ROT = 3.5; // graus por posição
 function Stack({ items, wide }) {
-  // O tamanho das capas é sempre o de uma pilha cheia (7); com menos itens ficam centradas
-  const N = MAX_FAVORITES_PER_TYPE; // sempre as 7 possíveis à vista
+  // O tamanho das capas é sempre o de um leque cheio (7); com menos itens ficam centradas
+  const N = MAX_FAVORITES_PER_TYPE;
   const n = Math.min(items.length, N);
-  const w = 100 / (1 + (N - 1) * STEP);
-  const off = (100 - w * (1 + (Math.max(n, 1) - 1) * STEP)) / 2;
+  const SPAN = 1 + (N - 1) * STEP + 0.35; // folga lateral para as capas inclinadas
+  const w = 100 / SPAN;
+  const slots = SLOTS.slice(0, n);
+  const mean = n ? slots.reduce((a, b) => a + b, 0) / n : 0;
+  const H = 1.5 * (1 + ARC_DROP * 9 / 100); // altura do contentor ≈ capa + descida máxima do arco
   return (
-    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${1 + (N - 1) * STEP} / 1.5` }}>
+    <div style={{ position: "relative", width: wide ? "56%" : "100%", margin: wide ? "0 auto" : 0, aspectRatio: `${SPAN.toFixed(3)} / ${H.toFixed(3)}` }}>
       {items.slice(0, n).map((it, j) => {
         const src = it.customCover || it.cover;
+        const pos = slots[j] - mean;
+        const dropPct = (ARC_DROP * slots[j] * slots[j]) / (H / 1.5);
         return (
-          <div key={it.id} style={{ position: "absolute", left: `${off + j * w * STEP}%`, top: 0, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "3px 0 8px rgba(0,0,0,0.4)", pointerEvents: "none" }}>
+          <div key={it.id} style={{ position: "absolute", left: `${50 - w / 2 + pos * w * STEP}%`, top: `${dropPct}%`, width: `${w}%`, aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", zIndex: n - j, background: gradientFor(it.id), boxShadow: "0 2px 8px rgba(0,0,0,0.45)", transform: `rotate(${(pos * ARC_ROT).toFixed(1)}deg)`, transformOrigin: "50% 100%", pointerEvents: "none" }}>
             {src && <CoverImg hi src={src} alt={it.title} loading="lazy" decoding="async" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
           </div>
         );

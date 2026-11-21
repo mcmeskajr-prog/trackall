@@ -102,8 +102,9 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
                 <FriendAvatar src={info.avatar} name={info.name || info.username} size={20} ring={accent} ringWidth={1.5} />
                 <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
                 {tag && <span className="no-tc" title={tag.label} aria-label={tag.label} style={{ flexShrink: 0, fontSize: 12, lineHeight: 1, color: tag.c }}>{tag.icon}</span>}
-                <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>
+                {!isMobileDevice && <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>}
               </button>
+              {isMobileDevice && <div style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", margin: "0 0 0 32px" }}>{timeAgo(it.addedAt, en)}</div>}
             </div>
           );
         })}
