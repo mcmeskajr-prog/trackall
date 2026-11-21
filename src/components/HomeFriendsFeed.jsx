@@ -97,14 +97,12 @@ export function HomeFriendsFeed({ user, onOpenItem, onOpenFriend, onSeeAll }) {
                   <p className="card-info-meta" style={{ fontSize: 11, color: "#484f58" }}>{(() => { const t = MEDIA_TYPES.find(x => x.id === it.type); return t ? mediaLabel(t, lang) : ""; })()}{it.year ? ` · ${it.year}` : ""}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""}
+              <button type="button" onClick={() => onOpenFriend && onOpenFriend(it.userId, info)} title={info.name || info.username || ""} aria-label={info.name || info.username || ""}
                 style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "2px 0 2px 3px", width: "100%", minWidth: 0, background: "none", border: "none", cursor: onOpenFriend ? "pointer" : "default", fontFamily: "inherit", textAlign: "left", color: "inherit" }}>
-                <FriendAvatar src={info.avatar} name={info.name || info.username} size={20} ring={accent} ringWidth={1.5} />
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{info.name || info.username || "—"}</span>
+                <FriendAvatar src={info.avatar} name={info.name || info.username} size={26} ring={accent} ringWidth={1.5} />
                 {tag && <span className="no-tc" title={tag.label} aria-label={tag.label} style={{ flexShrink: 0, fontSize: 12, lineHeight: 1, color: tag.c }}>{tag.icon}</span>}
-                {!isMobileDevice && <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo(it.addedAt, en)}</span>}
+                <span style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{timeAgo(it.addedAt, en)}</span>
               </button>
-              {isMobileDevice && <div style={{ fontSize: 10.5, color: muted, whiteSpace: "nowrap", margin: "0 0 0 32px" }}>{timeAgo(it.addedAt, en)}</div>}
             </div>
           );
         })}

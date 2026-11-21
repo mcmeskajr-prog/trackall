@@ -309,7 +309,7 @@ export function ProfileView(props) {
                 {r > 0 && <div style={{ position: "absolute", top: 7, right: 7, padding: "2px 7px", borderRadius: 7, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>★ {r}</div>}
               </TiltCard>
               <button className="fav-rm" aria-label={lang === "en" ? "Remove from favorites" : "Remover dos favoritos"} onClick={e => { e.stopPropagation(); onToggleFavorite && onToggleFavorite(item); }}
-                style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: "50%", border: "none", background: "#ef4444", color: "white", fontSize: 11, cursor: "pointer", display: "flex", opacity: 0, transition: "opacity 0.15s", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2 }}>✕</button>
+                style={{ position: "absolute", top: -5, right: -5, width: 18, height: 18, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.22)", background: "rgba(15,23,42,0.72)", color: "rgba(255,255,255,0.8)", fontSize: 9, cursor: "pointer", display: "flex", opacity: 0, transition: "opacity 0.15s", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2 }}>✕</button>
             </>
           )}
         </div>
