@@ -110,7 +110,7 @@ export const HofGridMobile = memo(function HofGridMobile({ list, accent, darkMod
 });
 
 // ── Favoritos: um leque aberto por tipo; o #1 fica ao meio (à frente) e os outros abrem para a esquerda e direita ──
-const STEP = 0.30; // avanço horizontal entre capas, em largura de capa (as 7 cabem sempre)
+const STEP = 0.42; // avanço horizontal entre capas, em largura de capa (as 7 cabem sempre)
 // Posição de cada ranking no leque, sempre simétrica: com nº ímpar o #1 fica ao meio (#2 à esquerda, #3 à direita…);
 // com nº par não há meio, por isso o #1 fica logo à esquerda do centro e o #2 logo à direita.
 const slotsFor = (n) => {
@@ -118,13 +118,13 @@ const slotsFor = (n) => {
   for (let k = 0; k < n; k++) { const m = n % 2 ? Math.ceil(k / 2) : Math.floor(k / 2) + 0.5; out.push(n % 2 ? (k % 2 ? -m : m) : (k % 2 ? m : -m)); }
   return out;
 };
-const ARC_DROP = 1.1; // % da altura que cada capa desce por posição² (arco)
+const ARC_DROP = 1.4; // % da altura que cada capa desce por posição² (arco)
 const ARC_ROT = 3.5; // graus por posição
 function Stack({ items, wide }) {
   // O tamanho das capas é sempre o de um leque cheio (7); com menos itens ficam centradas
   const N = MAX_FAVORITES_PER_TYPE;
   const n = Math.min(items.length, N);
-  const SPAN = 1 + (N - 1) * STEP + 0.35; // folga lateral para as capas inclinadas
+  const SPAN = 1 + (N - 1) * STEP + 0.2; // folga lateral para as capas inclinadas
   const w = 100 / SPAN;
   const slots = slotsFor(n);
   const mean = 0; // já simétrico
@@ -250,7 +250,7 @@ export function FavStacksMobile({ favorites, library, accent, darkMode, lang, on
           const wide = known.length % 2 === 1 && i === known.length - 1;
           return (
             <div key={t.id} data-ridx={i} role="button" tabIndex={0} onClick={() => setOpenType(t.id)}
-              style={{ gridColumn: wide ? "1 / -1" : undefined, boxSizing: "border-box", borderRadius: 18, padding: 12, background: tileBg, border: `1px solid ${tileBd}`, cursor: "pointer", transition: "transform .15s" }}>
+              style={{ gridColumn: wide ? "1 / -1" : undefined, boxSizing: "border-box", borderRadius: 18, padding: 8, background: tileBg, border: `1px solid ${tileBd}`, cursor: "pointer", transition: "transform .15s" }}>
               <Stack items={list} wide={wide} />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13, fontWeight: 800, color: text }}>
                 {mediaLabel(t, lang)}<span style={{ color: muted, fontWeight: 700, fontSize: 12 }}>{list.length}/{MAX_FAVORITES_PER_TYPE}</span>
