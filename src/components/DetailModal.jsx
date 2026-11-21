@@ -13,7 +13,7 @@ import { TypeIcon } from "./TypeIcon";
 import { ActionIcon } from "./ActionIcon";
 import { CompletedPanel } from "./CompletedPanel";
 
-export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onUpdateDate, onRewatch, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
+export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, onUpdateRating, onUpdateDate, onRewatch, onChangeCover, onUpdateLastChapter, onClose, favorites = [], onToggleFavorite, hallOfFame = [], onToggleHallOfFame, onUpdateDuration, onUpdateTags, onUpdateNote, tmdbKey, workerUrl, showNotif = () => {}, setView = () => {}, setLibSearch = () => {} }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
   const { lang, useT } = useLang();
   const modalScrollRef = useRef(null);
@@ -110,6 +110,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
     fetchMediaDetails(ci, tmdbKey, workerUrl).then(d => {
       setDetailExtra(d || {});
       setDetailLoading(false);
+      if (d && onUpdateTags && (d.genres?.length || d.keywords?.length)) { try { onUpdateTags(ci.id, ci.type, { genres: d.genres, keywords: d.keywords }); } catch {} }
       // Só guarda no cache se tiver dados reais
       if (d && (d.synopsis || d.cast?.length || d.episodes || d.chapters || d.pages || d.platforms)) {
         detailCacheRef.current[ci.id] = { ...detailCacheRef.current[ci.id], detailExtra: d };
@@ -585,7 +586,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     <div style={{ marginTop: 14 }}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Keywords</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        {detailExtra.keywords.map(k => <span key={k} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, color: darkMode ? "#8b949e" : "#64748b", padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 500 }}>{k}</span>)}
+                        {detailExtra.keywords.map(k => <button key={k} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(k); }, 150); }} title={lang === "en" ? "Search your library" : "Pesquisar na biblioteca"} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, color: darkMode ? "#8b949e" : "#64748b", padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>{k}</button>)}
                       </div>
                     </div>
                   )}

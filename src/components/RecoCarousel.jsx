@@ -28,7 +28,8 @@ export function RecoCarousel({ title, icon, items, library, onOpen, loading, isP
   if (!items || items.length === 0) return null;
 
   // Filter out items already in library — as user adds, new ones slide in
-  const toShow = items.filter(i => !findLibraryEntry(library, i.id, i.type));
+  const seenIds = new Set(); // a mesma obra pode vir duas vezes (ex.: em alta + personalizadas): chaves repetidas confundem o React
+  const toShow = items.filter(i => { if (seenIds.has(i.id)) return false; seenIds.add(i.id); return !findLibraryEntry(library, i.id, i.type); });
   if (toShow.length === 0) return null;
 
   return (

@@ -32,6 +32,7 @@ import { usePersistedState } from './lib/usePersistedState';
 import { WallpaperLayer } from './components/WallpaperLayer';
 import { supabase, supa } from './config/supabase';
 import { SearchView } from './views/SearchView';
+import { ExploreView } from './views/ExploreView';
 import { LibraryView } from './views/LibraryView';
 import { HomeView } from './views/HomeView';
 
@@ -1664,6 +1665,22 @@ export default function TrackAll() {
     saveLibrary(next);
   }, [library]);
 
+  // Guarda os géneros e as keywords que o detalhe descobriu (só se faltarem), para as tags passarem a encontrar este item na Biblioteca
+  const updateTags = useCallback((id, type, tags) => {
+    const matched = findLibraryEntry(libraryRef.current, id, type);
+    if (!matched) return;
+    const genres = Array.isArray(tags?.genres) ? tags.genres.filter(Boolean) : [];
+    const keywords = Array.isArray(tags?.keywords) ? tags.keywords.filter(Boolean) : [];
+    const needG = genres.length > 0 && !(matched.item.genres?.length > 0);
+    const needK = keywords.length > 0 && !(matched.item.keywords?.length > 0);
+    if (!needG && !needK) return;
+    const canonicalId = normalizeMediaId(id, type);
+    const next = { ...libraryRef.current };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...matched.item, id: canonicalId, ...(needG ? { genres } : {}), ...(needK ? { keywords } : {}) };
+    saveLibrary(next);
+  }, [library]);
+
   const updateNote = useCallback((id, note) => {
     const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched) return;
@@ -1943,7 +1960,11 @@ export default function TrackAll() {
     if (filterStatus !== "all" && i.userStatus !== filterStatus) return false;
     if (activeTab !== "all" && i.type !== activeTab) return false;
     if (filterRating === "rated" ? !(i.userRating > 0) : (filterRating !== null && i.userRating !== filterRating)) return false;
-    if (libSearch.trim() && !i.title?.toLowerCase().includes(libSearch.toLowerCase().trim())) return false;
+    if (libSearch.trim()) {
+      const q = libSearch.toLowerCase().trim(); // procura no título e também nos géneros (as tags do detalhe)
+      const hit = (arr) => Array.isArray(arr) && arr.some((g) => String(g).toLowerCase().includes(q));
+      if (!i.title?.toLowerCase().includes(q) && !hit(i.genres) && !hit(i.keywords)) return false;
+    }
     return true;
   }), [items, filterStatus, activeTab, libSearch, filterRating]);
 
@@ -2205,6 +2226,7 @@ export default function TrackAll() {
           const navItems = [
             { id: "home", icon: "⌂", label: useT("home") },
             { id: "library", icon: "▤", label: useT("library") },
+            { id: "explore", icon: "✦", label: lang === "en" ? "Explore" : "Explorar" },
             { id: "profile", icon: "◉", label: useT("profile") },
           ];
           return (
@@ -2338,6 +2360,7 @@ export default function TrackAll() {
           .tab-btn { background: transparent; border: none; color: ${activeDarkMode ? "#8b949e" : "#64748b"}; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.15s; }
           .tab-btn:hover { color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; background: ${activeDarkMode ? "#21262d" : "#e2e8f0"}; }
           .tab-btn.active { background: ${accent}; color: white; font-weight: 700; }
+          .glass-ctl { background: ${activeDarkMode ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.55)"} !important; -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); border: 1px solid ${activeDarkMode ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)"}; box-shadow: inset 0 1px 0 ${activeDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.7)"}; }
           input, select, textarea { background: ${activeDarkMode ? "#0d1117" : "#ffffff"}; color: ${activeDarkMode ? "#e6edf3" : "#0d1117"}; border: 1px solid ${activeDarkMode ? "#30363d" : "#e2e8f0"}; border-radius: 10px; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
           input::placeholder { color: ${activeDarkMode ? "#484f58" : "#94a3b8"}; }
           input:focus, select:focus { outline: none; border-color: ${accent}; box-shadow: 0 0 0 3px rgba(${accentRgb},0.1); }
@@ -2624,6 +2647,7 @@ export default function TrackAll() {
             onRemove={(id) => { removeFromLibrary(id); setSelectedItem(null); }}
             onUpdateStatus={updateStatus}
             onUpdateDuration={updateDuration}
+            onUpdateTags={updateTags}
             onUpdateNote={updateNote}
             onUpdateLastChapter={updateLastChapter}
             onUpdateRating={updateRating}
@@ -2657,6 +2681,10 @@ export default function TrackAll() {
           {isMobileDevice && !mobileSearchOpen ? (
             <>
               <div style={{ flex: 1 }} />
+              <button onClick={() => goTab("explore")} aria-label={lang === "en" ? "Explore" : "Explorar"}
+                style={{ width: 38, height: 38, borderRadius: 12, border: `1px solid ${view === "explore" ? accent : (activeDarkMode ? "rgba(255,255,255,0.10)" : "#e2e8f0")}`, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "transparent", color: view === "explore" ? accent : (activeDarkMode ? "#aab4c0" : "#475569"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginRight: 8, flex: "none" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></svg>
+              </button>
               <button onClick={() => setMobileSearchOpen(true)} aria-label={lang === "en" ? "Search" : "Pesquisar"}
                 style={{ width: 38, height: 38, borderRadius: 12, border: `1px solid ${activeDarkMode ? "rgba(255,255,255,0.10)" : "#e2e8f0"}`, background: activeDarkMode ? "rgba(255,255,255,0.04)" : "transparent", color: activeDarkMode ? "#c9d1d9" : "#334155", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
@@ -2732,6 +2760,7 @@ export default function TrackAll() {
 
         <HomeView onOpenFriendItem={setSelectedItem} onOpenFriend={(id, info) => { setOpenFriendRequest({ id, info }); setView("friends"); }} view={view} setView={setView} profile={profile} user={user} items={items} library={library} setLibrary={setLibrary} stats={stats} homeStatColors={homeStatColors} homeDashboard={homeDashboard} homeFilter={homeFilter} setHomeFilter={setHomeFilter} graveyardOpen={graveyardOpen} setGraveyardOpen={setGraveyardOpen} recos={recos} personalRecos={personalRecos} recoLoading={recoLoading} loadRecos={loadRecos} setFilterStatus={setFilterStatus} setSelectedItem={setSelectedItem} />
         {seen.current.search && <SearchView view={view} activeTab={activeTab} setActiveTab={setActiveTab} searchQuery={searchQuery} setSearchQuery={setSearchQuery} doSearch={doSearch} isSearching={isSearching} searchError={searchError} searchResultsByType={searchResultsByType} searchHistory={searchHistory} setSearchHistory={setSearchHistory} library={library} setSelectedItem={setSelectedItem} />}
+        {seen.current.explore && <ExploreView view={view} library={library} setSelectedItem={setSelectedItem} addToLibrary={addToLibrary} workerUrl={workerUrl} onBack={() => goTab("home")} />}
         {seen.current.library && <LibraryView view={view} setView={setView} items={items} filteredLib={filteredLib} sortedLib={sortedLib} library={library} activeTab={activeTab} setActiveTab={setActiveTab} filterStatus={filterStatus} setFilterStatus={setFilterStatus} filterRating={filterRating} setFilterRating={setFilterRating} libSearch={libSearch} setLibSearch={setLibSearch} libSort={libSort} setLibSort={setLibSort} libViewMode={libViewMode} setLibViewModePersist={setLibViewModePersist} searchQuery={searchQuery} doSearch={doSearch} setSelectedItem={setSelectedItem} />}
         <div style={{ display: view === "friends" ? "block" : "none" }}>{seen.current.friends && <>
         {/* ── FRIENDS ── */}
