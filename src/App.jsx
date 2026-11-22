@@ -2104,7 +2104,7 @@ export default function TrackAll() {
 
   // Auth screen
   if (!user && !demoMode) {
-    if (showLanding) return <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0c10" }} />}><LandingPage accent={accent} onEnter={() => setShowLanding(false)} onDemo={() => { setDemoMode(true); setShowLanding(false); }} lang={lang} useT={useT} changeLang={changeLang} /></Suspense>;
+    if (showLanding) return <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0c10" }} />}><LandingPage accent={accent} onEnter={() => setShowLanding(false)} onDemo={() => { setDemoMode(true); setShowLanding(false); }} lang={lang} useT={useT} changeLang={changeLang} workerUrl={workerUrl} /></Suspense>;
     return <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0a0c10" }} />}><AuthScreen onAuth={handleAuth} accent={accent} onBack={() => setShowLanding(true)} lang={lang} useT={useT} /></Suspense>;
   }
 

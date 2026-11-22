@@ -150,8 +150,8 @@ export const STRINGS = {
 
     // ── Landing ──
     landingTagline: "Toda a tua mídia num só lugar",
-    landingDesc: "Anime, manga, filmes, séries, jogos, livros e comics — acompanha tudo, avalia, partilha com amigos.",
-    landingFree: "✨ GRÁTIS PARA SEMPRE",
+    landingDesc: "Anime, manga, filmes, séries, jogos, visual novels, livros e comics. Acompanha tudo, avalia e partilha com amigos.",
+    landingStart: "Começar",
     landingCTA: "Começar grátis →",
     landingDemo: "Ver demonstração",
     landingDemoBtn: "Ver Demo",
@@ -438,8 +438,8 @@ export const STRINGS = {
 
     // ── Landing ──
     landingTagline: "All your media in one place.",
-    landingDesc: "Anime, manga, movies, series, games, books and comics — track everything, rate it, share with friends.",
-    landingFree: "✨ FREE FOREVER",
+    landingDesc: "Anime, manga, movies, series, games, visual novels, books and comics. Track everything, rate it and share it with friends.",
+    landingStart: "Get started",
     landingCTA: "Get started free →",
     landingDemo: "View demo",
     landingDemoBtn: "View Demo",
