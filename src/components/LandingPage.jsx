@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { TypeIcon } from "./TypeIcon";
-import { MEDIA_TYPES, TYPE_COLORS, mediaLabel } from "../config/constants";
+import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { fetchExplore } from "../api/explore";
 
 // Capas do ecrã de início: tipos variados para mostrar que há de tudo
@@ -28,12 +28,10 @@ function useLandingCovers(workerUrl) {
 }
 
 function LandCover({ type, item, idx, lang }) {
-  const t = MEDIA_TYPES.find((m) => m.id === type);
   const h = (COVER_HUE[type] ?? 220) + (idx >= 8 ? 14 : 0);
   return (
     <div className="land-cover" style={{ background: `linear-gradient(160deg, hsl(${h},50%,40%), hsl(${(h + 40) % 360},56%,12%))` }}>
       {item?.cover && <img src={item.cover} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
-      <span className="land-cover-tag" style={{ background: TYPE_COLORS[type] }}><TypeIcon id={type} /> {t ? mediaLabel(t, lang) : type}</span>
       {item?.score > 0 && <span className="land-cover-score">★ {item.score}</span>}
       {item?.title && <div className="land-cover-title">{item.title}</div>}
     </div>
@@ -67,14 +65,12 @@ export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) =
         .land-types span { display: inline-flex; align-items: center; gap: 7px; }
         .land-link:hover { color: #fff !important; border-bottom-color: #9ca3af !important; }
         .land-covers { position: absolute; right: 24px; top: -40px; bottom: 0; width: 50%; display: flex; gap: 16px; justify-content: flex-end; transform: rotate(6deg); transform-origin: top right; pointer-events: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 92%, transparent), linear-gradient(transparent, #000 4%, #000 82%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 14%, #000 92%, transparent), linear-gradient(transparent, #000 4%, #000 82%, transparent); mask-composite: intersect; }
-        .land-col { display: flex; flex-direction: column; gap: 16px; width: 168px; flex: none; }
+        .land-col { display: flex; flex-direction: column; gap: 16px; width: 168px; flex: none; align-self: flex-start; }
         .land-col-0 { margin-top: 20px; animation: landDrift 22s ease-in-out infinite alternate; }
         .land-col-1 { margin-top: -60px; animation: landDrift 26s ease-in-out infinite alternate-reverse; }
         .land-col-2 { margin-top: 60px; animation: landDrift 24s ease-in-out infinite alternate; }
         @keyframes landDrift { from { transform: translateY(-36px); } to { transform: translateY(36px); } }
-        .land-cover { position: relative; overflow: hidden; width: 100%; aspect-ratio: 2/3; border-radius: 10px; box-shadow: 0 18px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1); }
-        .land-cover-tag { position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 6px; border-radius: 99px; color: #fff; font-size: 10px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-        .land-cover-tag svg { width: 11px; height: 11px; }
+        .land-cover { position: relative; overflow: hidden; flex: none; width: 100%; aspect-ratio: 2/3; border-radius: 10px; box-shadow: 0 18px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1); }
         .land-cover-score { position: absolute; top: 8px; right: 8px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,0.65); color: #fbbf24; font-size: 10.5px; font-weight: 800; }
         .land-cover-title { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 9px 8px; background: linear-gradient(transparent, rgba(0,0,0,0.82)); font-size: 11.5px; font-weight: 800; color: #fff; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .land-nav button { white-space: nowrap; }
