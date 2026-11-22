@@ -55,16 +55,16 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
               </div>
             </div>
 
-            <div className="tabs-scroll" style={{ marginBottom: 14 }}>
+            <div className="tabs-scroll tabs-compact" style={{ marginBottom: 14 }}>
               {MEDIA_TYPES.map((t) => {
                 const isActive = activeTab === t.id;
                 const count = t.id === "all" ? items.length : items.filter((i) => i.type === t.id).length;
                 return (
-                  <button key={t.id} className={`tab-btn${isActive ? " active" : ""}`} onClick={() => {
+                  <button key={t.id} title={mediaLabel(t, lang)} className={`tab-btn${isActive ? " active" : ""}${count === 0 && !isActive ? " empty" : ""}`} onClick={() => {
                       setActiveTab(t.id);
                       if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id);
                     }}>
-                    <TypeIcon id={t.id} /> {mediaLabel(t, lang)}
+                    <TypeIcon id={t.id} /> <span className="tab-label">{mediaLabel(t, lang)}</span>
                     <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
                     </span>

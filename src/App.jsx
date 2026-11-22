@@ -2395,6 +2395,7 @@ export default function TrackAll() {
           .nav-btn.active { color: ${accent}; }
           .nav-btn:hover { color: ${activeDarkMode ? "#8b949e" : "#64748b"}; }
           .nav-center-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; height: 100%; position: relative; -webkit-tap-highlight-color: transparent; }
+          .tab-btn.empty { opacity: 0.5; }
           .tabs-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
           .tabs-scroll::-webkit-scrollbar { display: none; }
           .lib-layout { display: flex; gap: 20px; align-items: flex-start; }
@@ -2527,6 +2528,9 @@ export default function TrackAll() {
 
           /* ── Desktop layout ── */
           @media (min-width: 900px) {
+            /* Biblioteca no PC: só a aba ativa mostra o nome, as outras ficam com ícone + contagem (cabem todas sem scroll) */
+            .tabs-compact .tab-btn:not(.active) .tab-label { display: none; }
+            .tabs-compact .tab-btn:not(.active) { padding: 7px 11px; }
             .bottom-nav { display: none !important; }
             .top-nav-bar { display: none !important; }
             .desktop-sidebar { display: flex !important; }
