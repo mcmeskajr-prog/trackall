@@ -555,6 +555,14 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     </div>
                   )}
 
+                  {/* Visual Novels (VNDB) — duração e idiomas */}
+                  {(detailExtra?.length || detailExtra?.languages?.length > 0) && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: darkMode ? "#c9d1d9" : "#374151" }}>
+                      {detailExtra.length && <><span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>{lang === "en" ? "Length:" : "Duração:"}</span><span style={{ fontWeight: 600, marginRight: 14 }}>{detailExtra.length}</span></>}
+                      {detailExtra.languages?.length > 0 && <><span style={{ fontSize: 11, color: "#8b949e", marginRight: 6 }}>{lang === "en" ? "Languages:" : "Idiomas:"}</span><span style={{ fontWeight: 600 }}>{detailExtra.languages.slice(0, 6).join(", ")}</span></>}
+                    </div>
+                  )}
+
                   {/* Google Books — páginas e publisher */}
                   {detailExtra?.pages && (
                     <div style={{ marginTop: 8 }}>

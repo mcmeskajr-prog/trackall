@@ -389,6 +389,24 @@ export default {
       }
     }
 
+    if (path === "/vndb" && request.method === "POST") {
+      const body = await request.text();
+      try {
+        const resp = await fetch("https://api.vndb.org/kana/vn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "User-Agent": UA },
+          body
+        });
+        if (!resp.ok) {
+          const detail = (await resp.text().catch(() => "")).slice(0, 200);
+          return json({ error: `VNDB erro ${resp.status}`, detail }, resp.status, corsHeaders);
+        }
+        return json(await resp.json(), 200, corsHeaders);
+      } catch (e) {
+        return json({ error: "Erro interno VNDB", detail: e.message }, 500, corsHeaders);
+      }
+    }
+
     if (path === "/books" && request.method === "GET") {
       const query = url.searchParams.get("q");
       if (!query) return json({ error: "Parametro q obrigatorio" }, 400, corsHeaders);

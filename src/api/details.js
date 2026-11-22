@@ -3,6 +3,7 @@
 // detalhes adicionais que a pesquisa inicial não trouxe.
 
 import { enrichBook, fetchOpenLibraryWork } from "./books";
+import { fetchVndbDetails } from "./vndb";
 
 async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
   const wUrl = (workerUrl || "https://trackall-proxy.mcmeskajr.workers.dev").replace(/\/$/, "");
@@ -62,6 +63,9 @@ async function fetchMediaDetailsRaw(item, tmdbKey, workerUrl) {
       const seasonsList = (d.seasons || []).filter(s => s.season_number > 0).map(s => ({ number: s.season_number, name: s.name, episodes: s.episode_count, airDate: s.air_date?.slice(0,4) || null, poster: s.poster_path ? `https://image.tmdb.org/t/p/w185${s.poster_path}` : null }));
       return { seasons: d.number_of_seasons, episodes: d.number_of_episodes, runtime: d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : null, genres: d.genres?.map(g => g.name) || item.genres || [], synopsis: d.overview || item.synopsis || null, score: d.vote_average ? +d.vote_average.toFixed(1) : item.score, status: d.status, cast, director, videos, keywords, bannerImage: d.backdrop_path ? `https://image.tmdb.org/t/p/w1280${d.backdrop_path}` : null, seasonsList };
     }
+
+    // Visual Novels (VNDB)
+    if (id.startsWith("vndb-")) return await fetchVndbDetails(id, workerUrl, (typeof localStorage !== "undefined" && localStorage.getItem("trackall_lang") === "en") ? "en" : "pt");
 
     // IGDB jogos
     if (id.startsWith("igdb-")) {

@@ -1839,7 +1839,7 @@ export default function TrackAll() {
     if (isNewQuery) setSearchResultsByType({});
     try {
       if (type === "all") {
-        const [anime, manga, manhwa, lightnovels, livros, filmes, series, jogos, comics] = await Promise.allSettled([
+        const [anime, manga, manhwa, lightnovels, livros, filmes, series, jogos, visualnovels, comics] = await Promise.allSettled([
           smartSearch(q, "anime", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "manga", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "manhwa", { tmdb: tmdbKey, workerUrl }),
@@ -1848,6 +1848,7 @@ export default function TrackAll() {
           smartSearch(q, "filmes", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "series", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "jogos", { tmdb: tmdbKey, workerUrl }),
+          smartSearch(q, "visualnovels", { tmdb: tmdbKey, workerUrl }),
           smartSearch(q, "comics", { tmdb: tmdbKey, workerUrl }),
         ]);
         const byType = {
@@ -1859,6 +1860,7 @@ export default function TrackAll() {
           filmes: filmes.status === "fulfilled" ? filmes.value || [] : [],
           series: series.status === "fulfilled" ? series.value || [] : [],
           jogos: jogos.status === "fulfilled" ? jogos.value || [] : [],
+          visualnovels: visualnovels.status === "fulfilled" ? visualnovels.value || [] : [],
           comics: comics.status === "fulfilled" ? comics.value || [] : [],
         };
         // Ignorar se entretanto já foi disparada outra pesquisa mais recente
