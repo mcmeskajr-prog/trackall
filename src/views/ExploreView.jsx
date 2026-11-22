@@ -6,7 +6,7 @@ import { TypeIcon } from "../components/TypeIcon";
 import { CoverImg } from "../components/CoverImg";
 import { gradientFor } from "../lib/utils";
 import { findLibraryEntry } from "../lib/mediaIds";
-import { EXPLORE_TYPES, EXPLORE_SORTS, EXPLORE_STATUS, fetchExplore } from "../api/explore";
+import { EXPLORE_TYPES, EXPLORE_SORTS, EXPLORE_STATUS, EXPLORE_HAS_STATUS, fetchExplore } from "../api/explore";
 
 // ─── Explorar: grelha por tipo (AniList), com ordenação, ano e estado, e «Carregar mais» ───
 // A vista fica montada em segundo plano (como as outras): o estado dos filtros e as páginas já carregadas mantêm-se.
@@ -37,7 +37,7 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
     const id = ++reqId.current;
     setLoading(true); setError(false);
     try {
-      const r = await fetchExplore({ type, sort, year: year ? Number(year) : null, status, page: p }, workerUrl);
+      const r = await fetchExplore({ type, sort, year: year ? Number(year) : null, status: EXPLORE_HAS_STATUS.includes(type) ? status : "", page: p }, workerUrl);
       if (id !== reqId.current) return; // chegou uma resposta mais recente
       setItems((prev) => {
         if (reset) return r.items;
@@ -90,9 +90,9 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
             <option value="">{en ? "Year: all" : "Ano: todos"}</option>
             {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <select className="glass-ctl" aria-label={en ? "Status" : "Estado"} value={status} onChange={(e) => setStatus(e.target.value)} style={select}>
+          {EXPLORE_HAS_STATUS.includes(type) && <select className="glass-ctl" aria-label={en ? "Status" : "Estado"} value={status} onChange={(e) => setStatus(e.target.value)} style={select}>
             {EXPLORE_STATUS.map((s) => <option key={s.id} value={s.id}>{en ? `Status: ${s.en.toLowerCase()}` : `Estado: ${s.pt.toLowerCase()}`}</option>)}
-          </select>
+          </select>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobileDevice ? 8 : 14 }}>
