@@ -3,6 +3,25 @@ import { createPortal } from "react-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 
+// Nitidez leve (unsharp mask 4 vizinhos). Só RGB; o alfa fica igual.
+function sharpen(ctx, w, h, amount) {
+  try {
+    const src = ctx.getImageData(0, 0, w, h);
+    const d = src.data, o = new Uint8ClampedArray(d);
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          const avg = (d[i - 4 + c] + d[i + 4 + c] + d[i - w * 4 + c] + d[i + w * 4 + c]) / 4;
+          o[i + c] = d[i + c] + amount * (d[i + c] - avg) * 2;
+        }
+      }
+    }
+    src.data.set(o);
+    ctx.putImageData(src, 0, 0);
+  } catch { /* canvas protegido: segue sem nitidez */ }
+}
+
 export function CropModal({imageSrc, aspectRatio = 1, outputWidth, onSave, onClose, title = "Recortar imagem" }) {
   const { accent, darkMode, isMobileDevice } = useTheme();
 
@@ -80,15 +99,39 @@ export function CropModal({imageSrc, aspectRatio = 1, outputWidth, onSave, onClo
     setOffset(newOff);
   };
 
+  // Recorta a zona visível a partir da imagem ORIGINAL (uma só reamostragem) e, quando é preciso
+  // ampliar, sobe em passos de 2x com suavização "high" e aplica nitidez leve (só em ampliações).
+  const renderCrop = () => {
+    const img = imgRef.current;
+    const sx = -offset.x / scale, sy = -offset.y / scale;
+    const sw = CANVAS_W / scale, sh = CANVAS_H / scale;
+    let cur = img, cx = sx, cy = sy, cw = sw, ch = sh;
+    let w = Math.round(sw), h = Math.round(sh);
+    while (w * 2 < CANVAS_W) {
+      w *= 2; h *= 2;
+      const step = document.createElement("canvas");
+      step.width = w; step.height = h;
+      const c = step.getContext("2d");
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.drawImage(cur, cx, cy, cw, ch, 0, 0, w, h);
+      cur = step; cx = 0; cy = 0; cw = w; ch = h;
+    }
+    const out = document.createElement("canvas");
+    out.width = CANVAS_W; out.height = CANVAS_H;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(cur, cx, cy, cw, ch, 0, 0, CANVAS_W, CANVAS_H);
+    if (scale > 1.2) sharpen(ctx, CANVAS_W, CANVAS_H, Math.min(0.6, 0.2 + (scale - 1.2) * 0.15));
+    return out;
+  };
+
   const handleSave = () => {
     if (!imgRef.current) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = CANVAS_W; canvas.height = CANVAS_H;
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(imgRef.current, offset.x, offset.y, imgSize.w * scale, imgSize.h * scale);
+    const canvas = renderCrop();
     onSave(canvas.toDataURL("image/jpeg", outputWidth ? 0.97 : 0.95));
   };
+
+  const small = !loading && !loadError && scale > 1.25;
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -107,6 +150,7 @@ export function CropModal({imageSrc, aspectRatio = 1, outputWidth, onSave, onClo
             />
           )}
         </div>
+        {small && <p style={{ fontSize: 11.5, color: "#f59e0b", textAlign: "center", marginBottom: 8, lineHeight: 1.5 }}>{lang === "en" ? "This image is small for this size and may look a bit soft. A larger one will look sharper." : "Esta imagem é pequena para este tamanho e pode ficar um pouco suave. Uma maior fica mais nítida."}</p>}
         <p style={{ fontSize: 11, color: "#484f58", textAlign: "center", marginBottom: 12 }}>{lang === "en" ? "Drag to reposition" : "Arrasta para reposicionar"}</p>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16 }}>
           <button onClick={() => handleZoom(-0.1)} disabled={loading || loadError} style={{ padding: "6px 16px", background: "#21262d", border: "none", borderRadius: 8, color: "#e6edf3", cursor: "pointer", fontSize: 18, fontFamily: "inherit", opacity: loading || loadError ? 0.4 : 1 }}>−</button>
