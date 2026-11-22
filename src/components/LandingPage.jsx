@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { TypeIcon } from "./TypeIcon";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { fetchExplore } from "../api/explore";
+import { LandingSections } from "./LandingSections";
 
 // Capas do ecrã de início: tipos variados para mostrar que há de tudo
 const COVER_SLOTS = ["anime", "jogos", "filmes", "manga", "series", "visualnovels", "manhwa", "lightnovels", "anime", "jogos", "filmes", "manga", "series", "anime", "jogos"];
@@ -41,17 +42,6 @@ function LandCover({ type, item, idx, lang }) {
 export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) => k, changeLang, workerUrl }) {
   const covers = useLandingCovers(workerUrl);
   const accentRgb = `${parseInt(accent.slice(1,3),16)},${parseInt(accent.slice(3,5),16)},${parseInt(accent.slice(5,7),16)}`;
-  const features = [
-    { icon: "📚", title: useT("feature1Title"), desc: lang === "en" ? "Anime, manga, movies, series, games, books, comics and more — in one unified library." : "Anime, manga, filmes, séries, jogos, livros, comics e mais — numa biblioteca unificada." },
-    { icon: "⭐", title: useT("feature2Title"), desc: lang === "en" ? "Rating system, custom statuses and a diary with the history of everything you have finished." : "Sistema de rating, estados personalizados e diário com histórico de tudo o que concluíste." },
-    { icon: "👥", title: useT("feature3Title"), desc: lang === "en" ? "Follow friends, see what they are watching and discover new media through the activity feed." : "Segue amigos, vê o que estão a ver e descobre nova mídia através do feed de atividade." },
-    { icon: "🎨", title: useT("feature4Title"), desc: lang === "en" ? "Colours, backgrounds, sidebar — make the app yours and save multiple themes." : "Cores, fundos, sidebar — personaliza a app ao teu gosto e guarda múltiplos temas." },
-    { icon: "📊", title: useT("feature5Title"), desc: lang === "en" ? "See how many you have completed, your average rating and your month-by-month history in the diary." : "Vê quantos completaste, a tua média de rating e o teu histórico por mês no diário." },
-    { icon: "🔍", title: useT("feature6Title"), desc: lang === "en" ? "Search AniList, TMDB, IGDB, Google Books and ComicVine at the same time." : "Pesquisa em AniList, TMDB, IGDB, Google Books e ComicVine ao mesmo tempo." },
-    { icon: "🏆", title: "Tier Lists", desc: lang === "en" ? "Create and share tier lists of your favourite media. Drag, rank and like the community's lists." : "Cria e partilha tier lists da tua mídia favorita. Arrasta, ordena e dá like nas listas da comunidade." },
-    { icon: "🎭", title: lang === "en" ? "Characters & Cast" : "Personagens & Cast", desc: lang === "en" ? "See the full cast, characters and voice actors, and explore each actor's or director's filmography." : "Vê o elenco completo, personagens, voice actors e explora a filmografia de cada ator ou realizador." },
-  ];
-
   return (
     <div style={{ minHeight: "100vh", background: "#0d1117", fontFamily: "'Outfit', 'Segoe UI', sans-serif", overflowX: "hidden" }}>
       <style>{`
@@ -135,36 +125,7 @@ export function LandingPage({ accent, onEnter, onDemo, lang = "en", useT = (k) =
         </div>
       </section>
 
-      {/* Features */}
-      <section style={{ padding: "0 20px 40px", maxWidth: 900, margin: "0 auto" }}>
-        {/* Screenshot da app */}
-        <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${accent}33`, boxShadow: `0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px #21262d`, background: "#161b22", position: "relative" }}>
-          <div style={{ background: "#161b22", padding: "10px 16px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid #21262d" }}>
-            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#ef4444", opacity: 0.7 }} />
-            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#eab308", opacity: 0.7 }} />
-            <div style={{ width: 12, height: 12, borderRadius: 999, background: "#10b981", opacity: 0.7 }} />
-            <span style={{ fontSize: 11, color: "#484f58", marginLeft: 8 }}>trackall.app</span>
-          </div>
-          <img src="/og-image.png" alt="TrackAll app screenshot" style={{ width: "100%", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-        </div>
-      </section>
-
-      {/* Features */}
-      <section style={{ padding: "40px 20px 80px", maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 60 }}>
-          <h2 style={{ fontSize: 36, fontWeight: 900, color: "#e6edf3", letterSpacing: "-1px", marginBottom: 12 }}>{lang === "en" ? "Everything you need" : "Tudo o que precisas"}</h2>
-          <p style={{ color: "#484f58", fontSize: 16 }}>{lang === "en" ? "Made for those who take media seriously" : "Feito para quem leva a mídia a sério"}</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-          {features.map((f, i) => (
-            <div key={i} className="feat-card" style={{ background: "#161b22", border: "1px solid #21262d", borderRadius: 16, padding: "28px 24px" }}>
-              <div style={{ width: 48, height: 48, background: `${accent}18`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#e6edf3", marginBottom: 8 }}>{f.title}</h3>
-              <p style={{ color: "#8b949e", fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <LandingSections lang={lang} accent={accent} />
 
       {/* CTA Final */}
       <section style={{ padding: "80px 20px", textAlign: "center" }}>
