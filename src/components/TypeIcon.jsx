@@ -6,6 +6,7 @@ const PATHS = {
   series: <><rect x="3" y="7" width="18" height="13" rx="2.5" /><path d="M8 3l4 4 4-4" /></>,
   filmes: <><rect x="3" y="9" width="18" height="11" rx="2" /><path d="M3.4 9L19 4.6M7.5 7.8l2 3.4M12 6.5l2 3.4M16.4 5.3l1.6 2.8" /></>,
   jogos: <><path d="M6 8h12a4 4 0 0 1 3.9 4.9l-.9 3.8a2.4 2.4 0 0 1-4 1.2L15 16H9l-2 2a2.4 2.4 0 0 1-4-1.2l-.9-3.8A4 4 0 0 1 6 8z" /><path d="M8 11v3M6.5 12.5h3" /><circle cx="15.5" cy="11.6" r=".7" fill="currentColor" /><circle cx="17.5" cy="13.4" r=".7" fill="currentColor" /></>,
+  visualnovels: <><path d="M4 4.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H9.5L5 20.5V17H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1z" /><path d="M12 13.6s-3-1.7-3-3.7a1.6 1.6 0 0 1 3-.8 1.6 1.6 0 0 1 3 .8c0 2-3 3.7-3 3.7z" /></>,
   livros: <path d="M5 19.5V5a2.5 2.5 0 0 1 2.5-2.5H19v14.5H7.5A2.5 2.5 0 0 0 5 19.5zm0 0A2.5 2.5 0 0 0 7.5 22H19v-5" />,
   manhwa: <><rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M12 8v6M9.5 12l2.5 2.5 2.5-2.5" /></>,
   lightnovels: <><path d="M20 4c-6 0-11 4-12 11l-1.5 4.5L11 18c6-1 9-6 9-14z" /><path d="M8 15l6-6" /></>,

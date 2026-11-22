@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
@@ -64,10 +64,17 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
   const pill = (on) => ({ flex: "none", display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 999, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", color: on ? "#fff" : (darkMode ? "#d2dae3" : "#475569"), ...(on ? { border: `1px solid ${accent}`, background: accent } : {}) });
   const select = { padding: "7px 10px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", color: text, flex: "none" };
   const tabs = MEDIA_TYPES.filter((t) => EXPLORE_TYPES.includes(t.id));
+  // Pílula do tipo ativo que desliza de um separador para o outro
+  const tabRefs = useRef({});
+  const [ind, setInd] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const el = tabRefs.current[type];
+    if (el && el.offsetWidth) setInd({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [type, view === "explore", lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ display: view === "explore" ? "block" : "none" }}>
-      <style>{`.xp-card .xp-add{opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s,background .2s,box-shadow .2s}.xp-card:hover .xp-add,.xp-card:focus-within .xp-add,.xp-card .xp-add.xp-done{opacity:1;transform:none}.xp-card .xp-add:hover{filter:brightness(1.1);box-shadow:0 8px 20px rgba(0,0,0,.5)}.xp-card .xp-add:active{transform:scale(.95)}.xp-card .xp-add.xp-done{background:#10b981!important;animation:xp-pop .35s ease}.xp-badge{animation:xp-pop .35s ease}@keyframes xp-pop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}.xp-row{scrollbar-width:none}.xp-row::-webkit-scrollbar{display:none}`}</style>
+      <style>{`.xp-card .xp-add{opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s,background .2s,box-shadow .2s}.xp-card:hover .xp-add,.xp-card:focus-within .xp-add,.xp-card .xp-add.xp-done{opacity:1;transform:none}.xp-card .xp-add:hover{filter:brightness(1.1);box-shadow:0 8px 20px rgba(0,0,0,.5)}.xp-card .xp-add:active{transform:scale(.95)}.xp-card .xp-add.xp-done{background:#10b981!important;animation:xp-pop .35s ease}.xp-badge{animation:xp-pop .35s ease}@keyframes xp-pop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}.xp-in{animation:xp-in .42s cubic-bezier(.2,.7,.2,1) both}@keyframes xp-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}.xp-frame{transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s}.xp-frame img{transition:transform .35s cubic-bezier(.2,.7,.2,1)}@media (hover:hover){.xp-card:hover .xp-frame{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.14)!important}.xp-card:hover .xp-frame img{transform:scale(1.07)}}.xp-skel{aspect-ratio:2/3;border-radius:9px;background:linear-gradient(100deg,rgba(255,255,255,.05) 30%,rgba(255,255,255,.13) 50%,rgba(255,255,255,.05) 70%);background-size:300% 100%;animation:xp-shimmer 1.3s linear infinite}@keyframes xp-shimmer{from{background-position:100% 0}to{background-position:0 0}}.xp-ind{position:absolute;top:0;bottom:2px;border-radius:999px;transition:left .28s cubic-bezier(.3,.8,.3,1),width .28s cubic-bezier(.3,.8,.3,1);pointer-events:none}@media (prefers-reduced-motion:reduce){.xp-in,.xp-skel{animation:none}.xp-ind,.xp-frame,.xp-frame img{transition:none}}.xp-row{scrollbar-width:none}.xp-row::-webkit-scrollbar{display:none}`}</style>
       <div style={{ padding: isMobileDevice ? "16px 16px 120px" : "24px 28px 60px", maxWidth: 1400, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           {isMobileDevice && onBack && (
@@ -76,9 +83,10 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
           <h1 style={{ fontSize: isMobileDevice ? 22 : 26, fontWeight: 800, color: text, margin: 0 }}>{en ? "Explore" : "Explorar"}</h1>
         </div>
 
-        <div className="xp-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
+        <div className="xp-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, position: "relative" }}>
+          <span className="xp-ind" style={{ left: ind.left, width: ind.width, background: accent, opacity: ind.width ? 1 : 0 }} />
           {tabs.map((t) => (
-            <button key={t.id} type="button" className={type === t.id ? "" : "glass-ctl"} onClick={() => setType(t.id)} style={pill(type === t.id)}><TypeIcon id={t.id} /> {mediaLabel(t, lang)}</button>
+            <button key={t.id} ref={(el) => { if (el) tabRefs.current[t.id] = el; }} type="button" className={type === t.id ? "" : "glass-ctl"} onClick={() => setType(t.id)} style={{ ...pill(type === t.id), position: "relative", zIndex: 1, ...(type === t.id ? { background: "transparent", border: "1px solid transparent" } : {}) }}><TypeIcon id={t.id} /> {mediaLabel(t, lang)}</button>
           ))}
         </div>
 
@@ -96,11 +104,11 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobileDevice ? 8 : 14 }}>
-          {items.map((it) => {
+          {items.map((it, idx) => {
             const inLib = !!findLibraryEntry(library, it.id, it.type);
             return (
-              <div key={it.id} className="xp-card" style={{ position: "relative", minWidth: 0 }}>
-                <div role="button" tabIndex={0} title={it.title} onClick={() => setSelectedItem(it)} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(it); }}
+              <div key={it.id} className="xp-card xp-in" style={{ position: "relative", minWidth: 0, animationDelay: `${Math.min(idx % 24, 14) * 30}ms` }}>
+                <div role="button" tabIndex={0} className="xp-frame" title={it.title} onClick={() => setSelectedItem(it)} onKeyDown={(e) => { if (e.key === "Enter") setSelectedItem(it); }}
                   style={{ position: "relative", aspectRatio: "2/3", borderRadius: 9, overflow: "hidden", cursor: "pointer", background: gradientFor(it.id), boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }}>
                   {it.cover && <CoverImg src={it.cover} alt={it.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                   <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 7px 6px", background: "linear-gradient(transparent, rgba(0,0,0,0.82))", color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.2, pointerEvents: "none", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{it.title}</div>
@@ -119,7 +127,11 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
           })}
         </div>
 
-        {loading && items.length === 0 && <div style={{ textAlign: "center", padding: "50px 0", color: muted, fontSize: 14 }}>{en ? "Loading…" : "A carregar…"}</div>}
+        {loading && items.length === 0 && (
+          <div aria-busy="true" aria-label={en ? "Loading…" : "A carregar…"} style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobileDevice ? 8 : 14 }}>
+            {Array.from({ length: isMobileDevice ? 12 : 18 }, (_, i) => <div key={i} className="xp-skel" style={{ animationDelay: `${(i % 6) * 90}ms` }} />)}
+          </div>
+        )}
         {!loading && !error && items.length === 0 && opened.current && <div style={{ textAlign: "center", padding: "50px 0", color: muted, fontSize: 14 }}>{en ? "Nothing found with these filters." : "Nada encontrado com estes filtros."}</div>}
         {error && (
           <div style={{ textAlign: "center", padding: "30px 0" }}>

@@ -6,7 +6,7 @@ import { smartSearch } from "../api/smartSearch";
 import { parseNotes, resolveNotes, toLibraryItem, rankOptions, AUTO_TYPES } from "../lib/notesImport";
 
 const TYPES = [["auto", "Auto"], ["anime", "Anime"], ["manga", "Manga"], ["series", "Séries"], ["filmes", "Filmes"], ["jogos", "Jogos"], ["livros", "Livros"]];
-const TYPE_LABEL = { anime: "Anime", manga: "Manga", manhwa: "Manhwa", lightnovels: "Light novel", filmes: "Filme", series: "Série", jogos: "Jogo", livros: "Livro", comics: "Comic" };
+const TYPE_LABEL = { anime: "Anime", manga: "Manga", manhwa: "Manhwa", lightnovels: "Light novel", filmes: "Filme", series: "Série", jogos: "Jogo", visualnovels: "Visual Novel", livros: "Livro", comics: "Comic" };
 const STATE_COLOR = { completo: "#34d399", assistindo: "#fb923c", planejado: "#60a5fa", dropado: "#f87171", pausado: "#fbbf24" };
 const STATE_PT = { completo: "Completo", assistindo: "Em curso", planejado: "Planeado", dropado: "Dropado", pausado: "Pausado" };
 const STATE_EN = { completo: "Completed", assistindo: "In progress", planejado: "Planned", dropado: "Dropped", pausado: "Paused" };

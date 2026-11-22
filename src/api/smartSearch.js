@@ -3,6 +3,7 @@ import { searchTMDB } from './tmdb';
 import { searchIGDB, searchSteam } from './igdb';
 import { searchGoogleBooks, searchOpenLibrary, parseAuthorQuery } from './books';
 import { searchComicVine } from './comicvine';
+import { searchVNDB } from './vndb';
 
 // ─── Cache de pesquisas ─────────────────────────────────────────────────────────
 // Exportado porque o App.jsx apaga entradas diretamente (ao trocar de tipo, para
@@ -47,6 +48,7 @@ export async function smartSearch(query, mediaType, keys = {}) {
     else if (mediaType === "manga") results = await searchAniList(query, "manga", keys.workerUrl);
     else if (mediaType === "manhwa") { const r = await searchAniList(query, "manhwa", keys.workerUrl, null, "KR"); results = r; }
     else if (mediaType === "lightnovels") { const r = await searchAniList(query, "lightnovels", keys.workerUrl, "NOVEL"); results = r; }
+    else if (mediaType === "visualnovels") results = await searchVNDB(query, keys.workerUrl);
     else if (mediaType === "filmes") results = await searchTMDB(query, "filmes", keys.tmdb, keys.workerUrl);
     else if (mediaType === "series") results = await searchTMDB(query, "series", keys.tmdb, keys.workerUrl);
     else if (mediaType === "livros") {

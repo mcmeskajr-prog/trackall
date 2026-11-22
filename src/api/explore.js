@@ -1,12 +1,13 @@
 import { normalizeMediaId } from '../lib/mediaIds';
 import { fetchAniListSafe } from './anilist';
+import { fetchVndbExplore } from './vndb';
 
 // ─── Explorar: listas por tipo com ordenação, ano e estado, em páginas ───
 // Anime/manga/manhwa/light novels: AniList (pedido direto, sem chave; o Worker serve de reserva).
-// Séries/filmes: TMDB e jogos: IGDB, ambos pelo Worker (as chaves ficam lá).
+// Visual Novels: VNDB (direto, sem chave; Worker de reserva). Séries/filmes: TMDB e jogos: IGDB, ambos pelo Worker (as chaves ficam lá).
 // Cada página fica guardada em memória 5 min: voltar atrás / mudar de separador não repete pedidos.
 
-export const EXPLORE_TYPES = ["anime", "manga", "series", "filmes", "jogos", "manhwa", "lightnovels"];
+export const EXPLORE_TYPES = ["anime", "manga", "series", "filmes", "jogos", "visualnovels", "manhwa", "lightnovels"];
 // Só estes tipos têm «estado» (em publicação / terminados): no TMDB só as séries, e os filmes e jogos não
 export const EXPLORE_HAS_STATUS = ["anime", "manga", "manhwa", "lightnovels", "series"];
 export const EXPLORE_SORTS = [
@@ -168,6 +169,7 @@ export async function fetchExplore(opts, workerUrl) {
   let v;
   if (opts.type === "filmes" || opts.type === "series") { const r = await fetchTmdbPage(opts, workerUrl); v = { items: r.items, hasNext: r.hasNext }; }
   else if (opts.type === "jogos") v = await fetchIgdbPage(opts, workerUrl);
+  else if (opts.type === "visualnovels") v = await fetchVndbExplore(opts, workerUrl);
   else v = await fetchAniListPage(opts, workerUrl);
   cache.set(key, { t: Date.now(), v });
   return v;
