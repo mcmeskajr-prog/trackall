@@ -396,16 +396,7 @@ export default function TrackAll() {
     const attachEl = (el) => {
       if (el._scrollKeyOk) return;
       el._scrollKeyOk = true;
-      // wheel
-      if (!el._wheelOk) {
-        el._wheelOk = true;
-        el.addEventListener('wheel', (e) => {
-          if (el.scrollWidth <= el.clientWidth) return;
-          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-          e.preventDefault();
-          el.scrollLeft += e.deltaY;
-        }, { passive: false });
-      }
+      // (a roda do rato/trackpad já não é desviada para horizontal: o scroll vertical da página nunca fica preso nas filas)
       // keyboard hover
       el.addEventListener('mouseenter', () => { hoveredRow = el; });
       el.addEventListener('mouseleave', () => { if (hoveredRow === el) hoveredRow = null; });
