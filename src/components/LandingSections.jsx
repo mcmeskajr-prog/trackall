@@ -33,11 +33,11 @@ function Personalize({ T }) {
   const mini = (h, name, acc) => (
     <div key={name} className="ls-mini" style={{ background: `hsl(${h},35%,12%)` }}>
       <div style={{ height: 74, background: `linear-gradient(120deg, hsl(${h},55%,35%), hsl(${h + 30},60%,18%))` }} />
-      <div style={{ padding: "0 12px 12px", marginTop: -22 }}>
-        <div style={{ width: 42, height: 42, borderRadius: "50%", background: `hsl(${h + 80},40%,45%)`, border: `3px solid hsl(${h},35%,12%)` }} />
+      <div style={{ padding: "0 12px 12px", marginTop: -22, textAlign: "center" }}>
+        <div style={{ width: 42, height: 42, borderRadius: "50%", background: `hsl(${h + 80},40%,45%)`, border: `3px solid hsl(${h},35%,12%)`, margin: "0 auto" }} />
         <div style={{ fontSize: 12.5, fontWeight: 800, color: "#fff", marginTop: 6 }}>{name}</div>
         <div style={{ display: "flex", gap: 5, marginTop: 8 }}>{[0, 1, 2].map((i) => <span key={i} style={{ flex: 1, height: 22, borderRadius: 6, background: `${acc}33`, border: `1px solid ${acc}55` }} />)}</div>
-        <div style={{ display: "flex", gap: 4, marginTop: 10 }}>{[0, 1, 2, 3].map((i) => <P key={i} h={h + i * 30} w={30} r={3} />)}</div>
+        <div style={{ display: "flex", gap: 4, marginTop: 10, justifyContent: "center" }}>{[0, 1, 2, 3].map((i) => <P key={i} h={h + i * 30} w={30} r={3} />)}</div>
       </div>
     </div>
   );
@@ -182,8 +182,8 @@ export function LandingSections({ lang, accent }) {
           bullets={[T("MyAnimeList, AniList, Letterboxd, Goodreads, Mihon and Paperback", "MyAnimeList, AniList, Letterboxd, Goodreads, Mihon e Paperback"), T("Paste a list from your notes and we find each title", "Cola uma lista de notas e a app encontra cada obra"), T("Completion dates carry over to your diary where the source has them", "As datas de conclusão passam para o diário quando a origem as tem")]}
           visual={<Import T={T} />} />
         <Showcase flip color="#ec4899" kicker={T("PERSONALISATION", "PERSONALIZAÇÃO")} head={T("Your profile, your look", "O teu perfil, com a tua cara")}
-          desc={T("Accent colour, wallpaper, banner and panel transparency. Everything stays readable, even over very bright images.", "Cor de destaque, wallpaper, banner e transparência dos painéis. A leitura fica sempre clara, mesmo com imagens muito brilhantes.")}
-          bullets={[T("Colours and themes of your choice", "Cores e temas à escolha"), T("Wallpaper and profile banner", "Wallpaper e banner do perfil"), T("Readable on desktop and phone", "Legível em PC e telemóvel")]}
+          desc={T("Accent colour, wallpaper, banner and panel transparency. Make the app look like you.", "Cor de destaque, wallpaper, banner e transparência dos painéis. Faz a app ter a tua cara.")}
+          bullets={[T("Colours and themes of your choice", "Cores e temas à escolha"), T("Wallpaper and profile banner", "Wallpaper e banner do perfil"), T("Sync your look between desktop and phone", "Sincroniza o visual entre PC e telemóvel")]}
           visual={<Personalize T={T} />} />
         <Showcase color="#fbbf24" kicker="TIER LISTS" head={T("Rank what really matters", "Ordena o que realmente importa")}
           desc={T("Drag titles into S, A, B, C and D and build rankings of your media. Make one per type, per year or per theme, and share it with friends.", "Arrasta as obras para S, A, B, C e D e cria rankings da tua mídia. Faz uma por tipo, por ano ou por tema e partilha com amigos.")}
