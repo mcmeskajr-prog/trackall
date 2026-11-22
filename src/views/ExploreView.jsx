@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
@@ -28,6 +28,20 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const reqId = useRef(0);
+  // Colunas da grelha (muda com a largura): enquanto houver mais para carregar só mostramos filas completas,
+  // para não ficar um buraco no fim (o TMDB devolve 20 por página, o AniList 24, o IGDB 24)
+  const gridRef = useRef(null);
+  const [cols, setCols] = useState(0);
+  useLayoutEffect(() => {
+    const el = gridRef.current;
+    if (!el) return undefined;
+    const read = () => { const n = getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length; setCols((c) => (c === n ? c : n)); };
+    read();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [justAdded, setJustAdded] = useState(() => new Set()); // «Adicionado ✓» durante ~1,5 s depois de tocar
 
   const text = darkMode ? "#e6edf3" : "#0f172a", muted = darkMode ? "#8b949e" : "#64748b";
@@ -63,6 +77,8 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
 
   const pill = (on) => ({ flex: "none", display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 999, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", color: on ? "#fff" : (darkMode ? "#d2dae3" : "#475569"), ...(on ? { border: `1px solid ${accent}`, background: accent } : {}) });
   const select = { padding: "7px 10px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", color: text, flex: "none" };
+  const rest = hasNext && cols > 0 ? items.length % cols : 0;
+  const visibleItems = rest > 0 && items.length > rest ? items.slice(0, items.length - rest) : items;
   const tabs = MEDIA_TYPES.filter((t) => EXPLORE_TYPES.includes(t.id));
 
   return (
@@ -95,8 +111,8 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
           </select>}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobileDevice ? 8 : 14 }}>
-          {items.map((it) => {
+        <div ref={gridRef} style={{ display: "grid", gridTemplateColumns: isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobileDevice ? 8 : 14 }}>
+          {visibleItems.map((it) => {
             const inLib = !!findLibraryEntry(library, it.id, it.type);
             return (
               <div key={it.id} className="xp-card" style={{ position: "relative", minWidth: 0 }}>
@@ -132,7 +148,7 @@ export function ExploreView({ view, library, setSelectedItem, addToLibrary, work
             <button type="button" disabled={loading} onClick={() => load(page + 1, false)} style={{ padding: "11px 28px", borderRadius: 12, fontSize: 14, fontWeight: 800, fontFamily: "inherit", cursor: loading ? "default" : "pointer", border: `1px solid ${accent}88`, background: "transparent", color: accent, opacity: loading ? 0.6 : 1 }}>
               {loading ? (en ? "Loading…" : "A carregar…") : (en ? "Load more" : "Carregar mais")}
             </button>
-            <div style={{ fontSize: 11.5, color: muted, marginTop: 6 }}>{en ? `Showing ${items.length}` : `A mostrar ${items.length}`}</div>
+            <div style={{ fontSize: 11.5, color: muted, marginTop: 6 }}>{en ? `Showing ${visibleItems.length}` : `A mostrar ${visibleItems.length}`}</div>
           </div>
         )}
       </div>
