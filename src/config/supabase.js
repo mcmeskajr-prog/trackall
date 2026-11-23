@@ -56,7 +56,8 @@ const supa = {
   },
 
   async signOut() {
-    await supabase.auth.signOut();
+    // scope "local": termina só a sessão deste dispositivo (por defeito o Supabase termina em todos, ex.: o telemóvel)
+    await supabase.auth.signOut({ scope: "local" });
     supa._user = null;
   },
 
