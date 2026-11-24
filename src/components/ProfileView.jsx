@@ -703,8 +703,8 @@ export function ProfileView(props) {
         const favRows = favFilter === "all" ? Math.max(1, favTypesN) : 1;
         const diaryCount = Math.min(15, 5 + 5 * (favRows - 1));
         return (
-          <div style={{ padding: "16px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
-            {/* Experiência: caixas de números retiradas do topo do perfil (a decidir onde voltam) */}
+          <div style={{ padding: "8px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
+            <div style={{ margin: "0 0 12px" }}><ProfileStats compact items={items} panelBg={panelBg ? computedPanelBg : null} onFilter={onOpenLibrary} /></div>
             <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.pv2-aside{display:flex;flex-direction:column;gap:14px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
             <div className="pv2-grid">
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>

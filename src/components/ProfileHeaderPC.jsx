@@ -18,7 +18,7 @@ export function ProfileHeaderPC({ profile, avatar, items, userEmail, hideEmail, 
 
   return (
     <div style={{ position: "relative", color: text }}>
-      <div style={{ position: "relative", height: 160, overflow: "hidden", background: "transparent" }}>
+      <div style={{ position: "relative", height: 136, overflow: "hidden", background: "transparent" }}>
         {url && <img src={url} alt="" decoding="async" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", ...bannerFit(bst), filter: filt, WebkitMaskImage: mask, maskImage: mask, pointerEvents: "none" }} />}
         {!url && <div aria-hidden="true" style={{ position: "absolute", inset: 0, WebkitMaskImage: mask, maskImage: mask, background: darkMode ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))" : "linear-gradient(180deg, rgba(15,23,42,0.05), rgba(15,23,42,0.01))", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }} />}
         {leftSlot && <div style={{ position: "absolute", top: 16, left: 32, zIndex: 2 }}>{leftSlot}</div>}
