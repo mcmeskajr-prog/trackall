@@ -67,7 +67,7 @@ TrackAll/
     - components/ novos: `LandingSections` (blocos «What makes us different»), `MalImportModal`, `ProfileHeaderPC`, `BannerFraming`.
     - lib/ novos: `malImport.js` (+ teste), `usePersistedState.js`, `legibility.test.js`.
     - `worker/worker.js`: cópia versionada do Worker (v7.2 + rota `/vndb`). **Não é publicada pela Vercel** — ver «Cloudflare Worker».
-    - **Atenção:** existem cópias antigas de `DEV_GUIDE.md` e `CONTEXT_FOR_AI.md` em `src/components/` (ficaram desatualizadas). A cópia de referência é a da **raiz**.
+    - As cópias antigas de `DEV_GUIDE.md` e `CONTEXT_FOR_AI.md` que havia em `src/components/` foram apagadas: a referência é só a da **raiz**.
 
 ---
 
