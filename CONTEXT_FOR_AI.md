@@ -64,26 +64,50 @@
 16. **Hall of Fame ≠ favoritos, e o limite não apaga**
    Um item não está nos dois ao mesmo tempo (ver DEV_GUIDE). O Hall of Fame tem 10 (5 × 2), literal no código; não há constante de limite.
 
-15. **Hall of Fame e favoritos não se repetem**
+17. **Hall of Fame e favoritos não se repetem**
    Regra aplicada em `App.jsx` (`toggleFavorite` recusa; `toggleHallOfFame` move o item dos favoritos) e no `DetailModal` (botão desativado). Ao mexer num dos dois, manter a regra nos três sítios.
 
-16. **Arrastar para reordenar em grelha**
+18. **Arrastar para reordenar em grelha**
    `useDragReorder` usa `data-ridx` nos filhos e `elementFromPoint`; com `handle` arrasta logo pela pega (≡). Funciona em listas e grelhas, mas cada elemento arrastável precisa de `data-ridx`.
 
-17. **Registo de contas novas (Supabase)**
+19. **Registo de contas novas (Supabase)**
    Com confirmação de e-mail ligada, `signUp` devolve `user` mas **não** `session`: entrar logo "como se estivesse autenticado" faz falhar tudo o que passa por RLS (ex.: pedido de amizade → «new row violates row-level security policy for table friendships»). O `AuthScreen` só entra com `user && session`. O link do e-mail usa o **Site URL** do Supabase (já saiu `localhost:3000` por esquecimento).
 
-18. **`handle_new_user` tem de acompanhar as colunas**
+20. **`handle_new_user` tem de acompanhar as colunas**
    Ao mover `tmdb_key`/`worker_url` para `profile_private`, o trigger continuou a inserir nas colunas antigas e o registo falhava com «Código de convite inválido» (o erro real ficava escondido atrás do trigger `enforce_invite`). Mexeu em colunas de `profiles`? Rever `handle_new_user` e `upsertProfile`.
 
-19. **Service worker e imagens CORS**
+21. **Service worker e imagens CORS**
    Nunca pôr em cache respostas opacas de imagens pedidas com `mode: 'cors'` (canvas/`getImageData` deixa de funcionar e a consola enche-se de erros). O `sw.js` v2.1 deixa-as passar.
 
-20. **Um só `darkMode` não serve para tudo**
+22. **Um só `darkMode` não serve para tudo**
    A barra lateral sobre wallpaper ficava ilegível porque o texto seguia o `darkMode` da página. Cada superfície com fundo próprio calcula o seu (`sbDark` na barra, `panelDM` nos painéis).
 
-21. **Extrair código sem partir o ecrã**
+23. **Extrair código sem partir o ecrã**
    Mover blocos grandes (como se fez na Home e nas Definições) é seguro se: (1) ESLint com `no-undef` a 0 erros e (2) o HTML renderizado antes/depois for idêntico (`renderToStaticMarkup`). Só olhar para o diff não chega.
+
+24. **Não desviar o scroll vertical para horizontal**
+   Havia um handler `wheel` no `App.jsx` que convertia a roda/trackpad em scroll horizontal nas filas; apanhava o trackpad do PC e impedia descer a página. Foi removido (2026-11-22). Filas: gesto horizontal, shift+roda ou arrastar. Não voltar a pôr.
+
+25. **`auth.signOut()` é global por defeito**
+   Sair no PC fechava a sessão no telemóvel. `supa.signOut` usa `{ scope: "local" }`. Só a eliminação de conta usa o `signOut` global, de propósito.
+
+26. **Strings no bloco errado de `translations.js`**
+   ~100 textos em português apareciam na versão inglesa por estarem (ou faltarem) no bloco `en`. Toda a string nova tem de existir em `pt` **e** `en`. Em componentes novos, preferir `T(en, pt)`/`lang === "en"` apenas quando não vale a pena uma chave.
+
+27. **VNDB: CORS por confirmar, capas explícitas, uso não comercial**
+   `api/vndb.js` chama o VNDB direto e cai para o Worker `/vndb`; o CORS nunca foi testado em produção (a sandbox não tem rede). Capas com `image.sexual >= 1.5` escondem-se e ficam fora do Explorar. A API é gratuita só para uso **não comercial** (rever antes de aceitar doações/planos, tal como TMDB e Hardcover).
+
+28. **Ampliar uma imagem não cria detalhe**
+   O recorte (`CropModal`) reamostra uma só vez a partir do original, em passos de 2×, com nitidez leve, e avisa quando a imagem é pequena. Banner nítido = origem com ≥ 1600 px de largura (2:1). Não prometer mais do que isso; a ampliação com IA (botão opcional) ficou por fazer.
+
+29. **O Worker do repositório é só uma cópia**
+   `worker/worker.js` não é publicado pela Vercel: colar no Cloudflare (Edit code → Deploy) ou `npx wrangler deploy`. Rota nova no ficheiro sem deploy = a app continua a falhar nessa rota. O cabeçalho ainda diz v7.2 (a rota `/vndb` foi adicionada depois sem subir a versão).
+
+30. **Alarmes falsos do hook «commits por enviar»**
+   O hook diz «N commits por enviar e sem branch remota» mesmo quando já foi tudo para o GitHub. Confirmar com `git ls-remote origin <branch>` e `git rev-parse --short <branch>`; se coincidirem, não há nada a fazer.
+
+31. **Explorar, landing e capas: pedidos externos no arranque**
+   O Explorar e a landing chamam `fetchExplore` (AniList, TMDB, IGDB, VNDB). Têm sempre um fallback (gradientes) e cache em memória de 5 min; qualquer novo ecrã que use capas de APIs deve fazer o mesmo e nunca bloquear o desenho.
 
 ---
 
@@ -92,6 +116,11 @@
 - **Home e Perfil no PC ficam como estão** (rejeitou a coluna lateral na Home, o cartão fixo e a fusão de separadores no Perfil). Mexer só em detalhes pedidos por ele.
 - Mudanças de comportamento global → opção em Definições, **desligada por defeito**. Desenhos novos passam primeiro pelo canvas.
 - Hall of Fame = 10; `MAX_FAVORITES_PER_TYPE` = 7; HoF e favoritos nunca se repetem.
+- **Explorar:** sem menu de adicionar nem pré-visualização rápida nos cartões (o clique abre o detalhe normal).
+- **Landing:** não usar «grátis para sempre»; botões «Começar» e «Ver demonstração» sem pills; capas em proporção de póster e **sem etiqueta de tipo**; blocos em inglês (com versão PT); o avatar nos perfis de exemplo fica ao centro; não afirmar «legível em fundos claros».
+- **Landing, exemplos de personalização:** são exemplos **feitos pelo Noé** mostrados como demonstração (seletor «Try a look»), não um editor.
+- **Dicas e boas-vindas:** ecrã único após criar conta (só contas novas), máx. 3 dicas contextuais, **sem** opção nas Definições e sem «Skip tips».
+- Sessão: terminar sessão só afeta o dispositivo atual.
 
 ---
 
@@ -117,6 +146,8 @@
 
 **2–6 de novembro de 2026:** log rápido mais rápido e com Desfazer; banners de jogos (IGDB); pequenos detalhes (pré-carregar detalhes, `PwaHints`, `errorReporting`, estados vazios); exportar dados + apagar conta + política de privacidade feitos (falta só a chave Sentry e os limites de upload); personalização refeita (barra lateral vidro/sólida/transparente, brilho no topo só no Perfil, HoF centrado com poucos itens, Definições reorganizadas); correções de registo/amizades no Supabase; arrumação (`views/home/`, `ProfileSettings`). Detalhes no DEV_GUIDE («Ronda de 2 a 6 de novembro»). **Adiado pelo Noé:** limites de upload, atalhos de teclado, retrospetiva anual, lembrete de backup. **Por decidir:** nome de utilizador no registo (perguntar ou gerar do e-mail).
 
+**9–24 de novembro de 2026:** Home «sharp» (destaque sem caixa, notas na mesma escala, feed de amigos mais limpo); Livros com Open Library + Hardcover e Comics com séries/volumes/personagens (Worker v7.0–v7.2); isolamento entre contas e feed sem itens sem data; painéis legíveis sobre wallpaper claro (`profiles.legible_panels`); ~100 traduções corrigidas, apagar conta mais seguro e política de privacidade nova; ajustes de telemóvel; **separador Explorar** (AniList, TMDB, IGDB, VNDB; ordenar/ano/estado, vidro nos controlos); **Visual Novels (VNDB)**; separadores da Biblioteca compactos no PC; scroll natural; landing nova com capas de vários tipos e blocos «What makes us different»; sessão só no dispositivo atual; recorte de imagens com ampliação melhor e aviso. Detalhes no DEV_GUIDE («Ronda de 9 a 24 de novembro»). **Próximo:** ecrã de boas-vindas + 3 dicas; looks de demonstração na landing (aguardam as capturas do Noé); depois testes em produção (CORS do VNDB, capas da landing, sessão em dois dispositivos).
+
 **Por fazer nas importações:** função "Ligar" para itens antigos (`pb-`/`mihon-`/`lb-`) → registo da API; fazer Letterboxd/Mihon/Paperback resolverem para ids de API; MyAnimeList (XML/Jikan); possível limpeza de lotes por `importedFrom`.
 
 **28 de outubro de 2026:** Hall of Fame mantém 10 (8 e 6 estudados no canvas, não adotados) e flor de sakura mais pequena nas notas do telemóvel; ecrã da pilha de favoritos redesenhado (destaque grande + grelha); Hall of Fame e favoritos sem repetição; importador do Goodreads; primeira passagem de desempenho (code splitting). **Prioridades do Noé a seguir:** desempenho e otimização o máximo possível → checklist para partilhar → Conquistas no fim.
@@ -136,5 +167,6 @@ Inspiração vinda do site **Passportdex** (referência visual dada pelo Noé �
 ## 🗄️ Infraestrutura
 
 - **Supabase Storage**: bucket `profile-images` (público; o bucket `covers` já não é usado), policies de INSERT/UPDATE para `authenticated`, restritas à pasta `{auth.uid()}/...`. Usado para avatar e banner do perfil.
-- **Cloudflare Worker** (`trackall-proxy`): proxy para AniList, TMDB, IGDB, Steam, ComicVine, Google Books. Debug com `npx wrangler tail trackall-proxy` se aparecer 503 (muitas vezes é só cold start).
-- **Workflow do Noé**: edita no VS Code → `npm run build` local → commit/push no GitHub Desktop → deploy automático no Vercel. É uma PWA com service worker — se uma correção parecer não ter efeito nenhum mesmo depois de deploy, suspeitar de cache do service worker antes de mais nada (Application → Service Workers → Unregister, e/ou Clear site data).
+- **Cloudflare Worker** (`trackall-proxy`, cópia em `worker/worker.js`, publicada à mão): proxy para AniList, TMDB, IGDB, Steam, ComicVine, Google Books, Open Library, Hardcover, OMDb, HLTB e VNDB (`/vndb`). Segredos no Cloudflare: IGDB (`IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET`) e `HARDCOVER_TOKEN`. Debug com `npx wrangler tail trackall-proxy` se aparecer 503 (muitas vezes é só cold start).
+- **Workflow:** desde novembro de 2026 a IA trabalha numa branch por tema e abre uma **Pull Request**; o Noé testa (deploy de pré-visualização/produção na Vercel) e faz o merge. PRs #1 a #10 já na `main`. É uma PWA com service worker — se uma correção parecer não ter efeito mesmo depois de deploy, suspeitar de cache do service worker antes de mais nada (Application → Service Workers → Unregister, e/ou Clear site data).
+- **Documentação:** a referência é `DEV_GUIDE.md` e `CONTEXT_FOR_AI.md` **na raiz**. As cópias antigas que havia em `src/components/` foram apagadas.

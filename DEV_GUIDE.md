@@ -1,19 +1,19 @@
 # 📘 TrackAll — Developer Guide
 
-> **Última atualização:** 2026-10-26 (perfil de amigo igual ao próprio, tema imersivo do amigo, painéis legíveis em fundos claros; antes: 2026-10-16 (Fases 1–5 concluídas; fase atual: "pequenos detalhes" de UI/UX no PC e telemóvel; a seguir: parte social/amigos, Conquistas, preparação para partilhar))
-> **Estado:** App estável, em polimento visual. `App.jsx` ~2660 linhas.
+> **Última atualização:** 2026-11-24 (Explorar, Visual Novels, Home «sharp», Livros/Comics, landing nova, sessão só neste dispositivo, recorte de imagem; antes: 2026-11-06 arrumação do código; 2026-10-26 perfil de amigo igual ao próprio)
+> **Estado:** App estável. `App.jsx` ~3040 linhas. 137 testes (14 ficheiros). Trabalho feito por **branches + Pull Requests** no GitHub (PR #1 a #10 já na `main`).
 
 ---
 
 ## 🎯 Visão Geral
 
-**TrackAll** é uma aplicação web para tracking de media (anime, manga, séries, filmes, jogos, livros, manhwa, light novels, comics).
+**TrackAll** é uma aplicação web para tracking de media (anime, manga, séries, filmes, jogos, **visual novels**, livros, manhwa, light novels, comics).
 
 - **Stack:** React + Vite + Supabase
 - **Deploy:** Vercel (via GitHub)
 - **Língua:** PT/EN (i18n via `translations.js`)
 - **PWA:** instalável, com service worker; fundo escuro desde o 1.º frame (ver secção PWA)
-- **Estado:** `App.jsx` ~2660 linhas (CollectionViewer, TierListEditor, TierListViewer, RatingOverlay e SidebarSearch já extraídos para `components/`)
+- **Estado:** `App.jsx` ~3040 linhas (CollectionViewer, TierListEditor, TierListViewer, RatingOverlay e SidebarSearch já extraídos para `components/`)
 
 ---
 
@@ -61,6 +61,14 @@ TrackAll/
     - components/ novos desde a última listagem: `ProfileSettings` (separador Definições), `ProfileMenu`, `ProfileActivity`, `ProfileFavsMobile`, `PersonalizeMobile`, `FriendProfile`, `FriendAvatar`, `HomeFriendsFeed`, `PwaHints`, `CompletedPanel`, `ContextBridges`, `TopSearchInput`, `WallpaperLayer`, `BannerEditor`, `BannerHero`, `ColorPicker`
     - lib/ novos: `uiPrefs.js`, `imageCheck.js`, `exportData.js`, `errorReporting.js`, `friendHighlights.js`, `revisions.js`, `bannerColors.js`, `contrast.js`
 
+  - **Atualização 2026-11-24:**
+    - views/: `ExploreView` (separador Explorar). `views/home/` ganhou `HomeSection` e `useHomePicks` (escolha do destaque); `FeaturedCardPC` e `DiaryRecent` em `components/`.
+    - api/ novos: `explore.js` (Explorar), `vndb.js` (Visual Novels); `books.js` (Open Library/Hardcover) e `comicvine.js` com funções testadas (`*.test.js`).
+    - components/ novos: `LandingSections` (blocos «What makes us different»), `MalImportModal`, `ProfileHeaderPC`, `BannerFraming`.
+    - lib/ novos: `malImport.js` (+ teste), `usePersistedState.js`, `legibility.test.js`.
+    - `worker/worker.js`: cópia versionada do Worker (v7.2 + rota `/vndb`). **Não é publicada pela Vercel** — ver «Cloudflare Worker».
+    - As cópias antigas de `DEV_GUIDE.md` e `CONTEXT_FOR_AI.md` que havia em `src/components/` foram apagadas: a referência é só a da **raiz**.
+
 ---
 
 ## 🧩 Módulos — Fase 1 (Concluída)
@@ -102,7 +110,7 @@ TrackAll/
 **O que contém:**
 - `supabase` — Cliente oficial do Supabase (SDK)
 - `supa` — Wrapper com métodos de alto nível:
-  - **Auth:** `signUp`, `signIn`, `signOut`, `getSession`
+  - **Auth:** `signUp`, `signIn`, `signOut` (**só neste dispositivo**: `auth.signOut({ scope: "local" })`; o padrão do Supabase é global e fechava a sessão no telemóvel ao sair no PC), `getSession`
   - **Profile:** `getProfile`, `upsertProfile`, `updateUsername`
   - **Library:** `getLibrary`, `upsertLibraryItem`, `deleteLibraryItem`
   - **Favorites:** `updateFavorites`
@@ -206,7 +214,7 @@ Todas as chamadas a APIs externas saíram do `App.jsx` para `src/api/`. Ordem de
 - Todos os Contexts (Theme, Lang)
 - Lógica de routing/views
 - Modais e interações
-- **Estado atual:** ~2940 linhas (orquestração: estado global, auth/arranque, sincronização da biblioteca, navegação, gesto de deslizar entre separadores)
+- **Estado atual:** ~3040 linhas (orquestração: estado global, auth/arranque, sincronização da biblioteca, navegação, gesto de deslizar entre separadores)
 
 **Quando editar:**
 - Só editar diretamente se for lógica de orquestração
@@ -243,7 +251,7 @@ Definições (separador "Definições" do Perfil):
 
 Regras e dados:
 - O filtro `favFilter` filtra Recentes e Favoritos ao mesmo tempo.
-- Limites: Hall of Fame 10, Favoritos 30.
+- Limites: Hall of Fame **10**; Favoritos **7 por tipo** (`MAX_FAVORITES_PER_TYPE` em `config/limits.js`; favoritos que já excedam continuam visíveis até serem removidos).
 - **Persistência do Hall of Fame (importante):** guarda-se em `library` na linha `__hall_of_fame__` como `{ hall, featured }`, mais cópia local por utilizador (`trackall_hall_of_fame_<id>`, `trackall_featured_<id>`). `loadUserData` junta as fontes (BD, coluna `profiles`, localStorage) e fica com a lista **mais completa**; só se grava depois de carregado (`hallRef.loaded`) através de `persistHall` — nunca gravar `hall: []` por omissão. `saveLibrary` ignora ids que começam por `__`.
 - **Sincronização da biblioteca:** `saveLibrary` faz diff por item (`libraryRef`), escreve em fila (`saveQueueRef`) e mostra aviso se falhar. `upsertLibraryItem` tenta upsert por `(user_id, media_id)` e cai para update/insert; `deleteLibraryItem` lança erro.
 - Sem barras de cor nos posters (a cor do tipo só aparece em gráficos).
@@ -299,11 +307,11 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 - **Hover de cartões (tokens únicos):** 180 ms, `cubic-bezier(.2,.8,.2,1)`, `translateY(-4px) scale(1.03)`, anel `0 0 0 1px ${accent}88, 0 18px 30px -12px ${accent}80`. Seletores usam `> div:first-child` em `.recent-card` / `.fav-card-wrap` (o hover é na capa, não no texto). Desligado em toque (`@media (hover:none)`) e com `prefers-reduced-motion`.
 - **Filas com `overflow-x:auto` cortam sombras/scale** (e `overflow-y` passa a `auto` também). Solução: padding à volta + margem negativa igual (`.recents-row` na Home: `padding:12px 12px 20px; margin:-8px -12px -10px`) e brilho mais curto dentro da fila. **Nunca** usar `scroll-snap-type: x mandatory` em filas com padding: o snap alinha o 1.º item à borda e **esconde o padding** (era a causa do "hover cortado junto à barra lateral"). Usar `proximity` + `scroll-padding-inline` = padding (no PC o snap está desligado para a roda do rato deslizar continuamente).
-- **Roda do rato → scroll horizontal:** o `useEffect` do `App.jsx` liga a todos os `.recents-row, .tabs-scroll, [style*="overflowX: auto"]` (e setas ← → quando o rato está por cima).
+- **Roda do rato / trackpad (2026-11-22):** o scroll vertical **já não é convertido em horizontal** nas filas (o antigo `_wheelOk` foi removido do `App.jsx`: apanhava o trackpad e atrapalhava descer a página). As filas deslizam com o gesto horizontal normal, shift+roda ou arrastar. **Não voltar a pôr** um handler `wheel` que desvie o scroll vertical.
 - **Modais/overlays:** `createPortal(..., document.body)` sempre. `DetailModal` também passou a portal (z-index 160 tem de vencer `.bottom-nav` z 50; com o `transform` do conteúdo principal o `position:fixed` fica dentro de outro stacking context e a barra de ações ficava cortada pela navegação).
 - **Esqueletos:** `Skeleton` / `SkeletonStyles` (shimmer, respeita reduced-motion) em `Skeleton.jsx`; `CoverImg` (esqueleto por capa + fade; o pai tem `position:relative`; usa a classe `.sk-cover` definida no CSS do `App.jsx`) em MediaCard, ProfileView, RecentSection, ProfileTabCompletos, LibraryView; `RecoCarousel` mostra esqueleto de 8 capas **só quando `loading` e ainda sem itens** (1.º carregamento); com dados já na lista mostra-os mesmo durante um refresh.
 - **Ícones:** `TypeIcon` (SVG de linha por tipo de media, herda `currentColor` e `1em`) e `ActionIcon({name:'heart'|'star'|'note'|'trash', size, filled, slash, stroke})` (`slash` = risco por cima quando a ação está indisponível, ex.: Hall of Fame cheio). **Não usar emojis** em UI nova.
-- **Modal de detalhe no telemóvel:** barra A (classificação sempre visível para mudar na hora) + botões só-ícone `flex:1`, altura 42, `aria-label`/`aria-pressed`, animação `ta-pop` ao ativar; Favorito e Hall of Fame com o mesmo ícone do PC e risco quando cheio (10/30).
+- **Modal de detalhe no telemóvel:** barra A (classificação sempre visível para mudar na hora) + botões só-ícone `flex:1`, altura 42, `aria-label`/`aria-pressed`, animação `ta-pop` ao ativar; Favorito e Hall of Fame com o mesmo ícone do PC e risco quando cheio (HoF 10 / favoritos 7 por tipo).
 - **Painéis:** `const { panelBg } = useTheme()` → `background: panelBg || <default>`.
 - **Estilo visual aceite:** limpo e bonito, **não** exagerado; acento único (vermelho/carmim por defeito); cantos 12–18 px; vidro fosco leve. Evitar cores por nível/tipo a mais.
 
@@ -343,11 +351,14 @@ Backlog do Perfil: usar o mesmo "destaque dentro do Hall of Fame" no PC; redesen
 
 ## 🧰 Workflow de trabalho com a IA
 
-- Edita-se uma cópia em `/home/claude/<pasta>/src`; cada ficheiro alterado é entregue **com o caminho de destino** relativo ao `src/` do projeto (ex.: `ProfileView.jsx → src/components/`, `index.html → raiz`, `manifest.json → public/`). O Noé substitui os ficheiros, faz `npm run build`, commit e push.
-- **Antes de entregar:** `npx esbuild <ficheiro> --loader:.jsx=jsx --log-level=error` (sintaxe) **e** `npx eslint --no-eslintrc -c .eslintrc.json --ext .jsx,.js <ficheiros>` (imports/variáveis em falta). Os dois, sempre.
+- **Desde novembro de 2026:** a IA trabalha diretamente no repositório (`mcmeskajr-prog/trackall`) numa **branch por tema** (ex.: `explorar`, `visual-novels`, `landing-novo`) e abre uma **Pull Request**; o Noé testa e faz o merge. Cada PR diz o que mudou e o que **não** foi verificado. Antes entregavam-se ficheiros soltos com o caminho de destino — já não se usa.
+- **Antes de abrir a PR:** `npm test`, `npx vite build` e, para mudanças de UI, ver no browser (PC e telemóvel). Para sintaxe/imports: `npx eslint --no-eslintrc -c .eslintrc.json --ext .jsx,.js <ficheiros>` (`no-undef` ativo).
+- **O que a IA não consegue verificar daqui:** chamadas reais às APIs (a sandbox não chega à rede externa) e dispositivos reais. Fica dito na PR, para o Noé testar depois do deploy da Vercel.
 - **Memória e idioma:** responder sempre em português de Portugal.
 - **Desenhos:** propostas visuais no canvas Claude Design (artifact "TrackAll Perfil Redesign"); o Noé escolhe antes de se implementar.
+- **Regras do Noé:** estilo «limpo mas bonito»; sem mudar comportamentos para todos — casos especiais viram **opção, desligada por defeito**; dizer sempre o que não foi verificado; quando ele pede uma opinião, responder antes de fazer; nunca lhe pedir que cole chaves/segredos.
 - **Testar o telemóvel:** DevTools do browser em modo dispositivo (ver secção Telemóvel). Para a PWA instalada, reinstalar.
+- **Falsos alarmes do hook «commits por enviar»:** confirmar com `git ls-remote origin <branch>` contra `git rev-parse --short <branch>`.
 
 ---
 
@@ -382,7 +393,7 @@ Todas as tabelas de `public` têm RLS ligado. O que foi corrigido e as regras a 
 ## 🧪 Testes (desde 2026-10-26)
 
 - **Vitest 0.34.6** (devDependency; é a versão compatível com o Vite 4 — o Vitest mais recente exige Vite ≥ 6; **não** usar `--force`). Correr: `npm test` (= `vitest run`). Os `.test.js` não entram no bundle.
-- Ficheiros em `src/lib/`: `libraryDiff.test.js` (o que escrever/apagar no Supabase), `mediaIds.test.js` (`findLibraryEntry`, normalização), `contrast.test.js` (cores/contraste), `importParsers.test.js` (Letterboxd), `anilistImport.test.js`, `notesImport.test.js`, `goodreadsImport.test.js`. 90 testes.
+- Ficheiros em `src/lib/`: `libraryDiff.test.js` (o que escrever/apagar no Supabase), `mediaIds.test.js` (`findLibraryEntry`, normalização), `contrast.test.js` (cores/contraste), `importParsers.test.js` (Letterboxd), `anilistImport.test.js`, `notesImport.test.js`, `goodreadsImport.test.js`, `malImport.test.js`, `revisions.test.js`, `legibility.test.js`; em `src/api/`: `books.test.js`, `comicvine.test.js`, `explore.test.js`, `vndb.test.js`. **137 testes em 14 ficheiros** (2026-11-24).
 - `src/lib/libraryDiff.js`: `diffLibrary(prev, next) → { upserts, deletes }`, usado pelo `saveLibrary` do `App.jsx`. Nunca apaga ids que começam por `__`. **Regra:** lógica nova que se queira testar extrai-se para uma função pura em `src/lib/` (sem React, sem Supabase).
 - Correr `npm test` antes de cada push que mexa em `lib/`, sincronização ou importação. Ao corrigir um bug de lógica, escrever primeiro o teste que o reproduz.
 - `npm audit` mostra avisos nas dependências de desenvolvimento (Vitest/esbuild antigos); não correr `npm audit fix --force`. Resolvem-se ao subir o Vite.
@@ -471,6 +482,58 @@ Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas,
 
 ---
 
+## 🆕 Ronda de 9 a 24 de novembro de 2026
+
+**Home «sharp» (13–15 nov, PR #1)**
+- Topo v3: números ao lado da saudação, filtro em separadores, destaque sem caixa (banner em fade pelos 4 lados com a cor da obra, inclinação ao rato **só na capa**, sem zoom para manter a nitidez). Fallback de banner via Kitsu; sinopses sem HTML.
+- `views/home/useHomePicks.js`: escolha do destaque; itens **sem nota** usam a média dos planeados menos 0,5. Notas sempre na mesma escala; feed de amigos com no máx. 2 por amigo e sem informação repetida (só avatar/ícone junto ao nome; nota do amigo no hover).
+- Perfil e Biblioteca mais sóbrios; capas com cantos quadrados (3 px). O editor de banner mostra só o dispositivo atual. `npm run dev` **não** regista service worker.
+
+**Livros e Comics (15–17 nov, PR #2) — Worker v7.0 a v7.2**
+- Livros: Google Books + **Open Library** (sem chave) + **Hardcover** (segredo `HARDCOVER_TOKEN`, limitador de 45 pedidos/min) completam sinopse, géneros, nota 0–10 e série (`enrichBook`, `mergeBookExtras` em `api/books.js`). A pesquisa por autor é automática (`parseAuthorQuery`); o autor é clicável no detalhe.
+- Comics (`api/comicvine.js`, `cleanVolumes`): a pesquisa devolve só **séries** (sem arcos); junta volumes só com o **mesmo nome e ano**, os maiores primeiro; o detalhe usa as rotas `/comicvine-volume` e `/comicvine-arc` (personagens, criadores e sinopse vêm da 1.ª edição).
+- Worker: CORS com lista (`ALLOWED_ORIGIN` separado por vírgulas) e localhost sempre aceite.
+- **Feed dos amigos** ignora itens sem `addedAt` na consulta (ocupavam o topo e deixavam o feed vazio).
+- **Isolamento entre contas:** deixa de ler Hall of Fame/destaque antigos sem utilizador; ao terminar sessão limpa os dados pessoais locais. A versão do build (`__APP_BUILD__`) aparece nas Definições.
+
+**Leitura sobre wallpaper (17 nov, PR #3):** ao carregar uma imagem clara ou contrastada (`needsLegibility` em `lib/contrast.js`), os painéis passam a fundo escuro opaco para o texto ler-se (com «Desfazer»). Guardado em **`profiles.legible_panels`** (por conta); ligável em Aparência e no ecrã de personalização do telemóvel. **Requer a coluna `legible_panels` (boolean) em `profiles`.**
+
+**Traduções e conta (18 nov, PR #4):** ~100 textos em português que apareciam na versão inglesa foram corrigidos (`translations.js`: cada string tem de estar no bloco certo, `pt` ou `en`). Apagar conta: remove primeiro as imagens pela API do Storage e só depois chama a função do servidor; se falhar, **não** termina sessão e mostra o erro (esta ação mantém de propósito o `supabase.auth.signOut()` global). `public/privacy.html` foi reescrita (responsável, base legal, serviços como Hardcover, Open Library e OMDb; seletor EN/PT).
+
+**Ajustes de telemóvel (21 nov, PR #5):** pílulas com etiquetas curtas; banner do destaque a 140 px com pega sobreposta; barra única no detalhe (estado, nota, favorito, mais) com a data de «completo» sempre visível; leque de favoritos simétrico para qualquer número e mais espaçado; frase do destaque sob o título; avatar + nota do amigo no feed.
+
+**Explorar (21–22 nov, PR #6 e #7) — `views/ExploreView.jsx` + `api/explore.js`**
+- Separador novo (✦ «Explorar», com atalho no topo do telemóvel): grelha por tipo com **ordenação** (Em alta, Populares, Mais bem avaliados, Novos), **ano**, **estado** (só nos tipos que o têm: `EXPLORE_HAS_STATUS`) e «Carregar mais» (24 por página). Cada página fica em cache de memória 5 min.
+- Fontes por tipo: AniList (anime, manga, manhwa, light novels — filtros em `TYPE_RULES`), **TMDB** (séries e filmes: `buildTmdbRequest`/`mapTmdbMedia`), **IGDB** (jogos: `buildIgdbBody`/`mapIgdbGame`, via Worker `/igdb`) e **VNDB** (visual novels). `fetchExplore(opts, workerUrl)` despacha pelo tipo.
+- Interação: hover com elevação e zoom da capa (`@media (hover:hover)`), entrada escalonada (`.xp-in`), esqueleto (`.xp-skel`) e pílula de tipos com deslize (`.xp-ind`); tudo respeita `prefers-reduced-motion`. **Decisão do Noé:** sem menu de adicionar nem pré-visualização rápida no Explorar (o clique abre o detalhe normal).
+- A pesquisa na biblioteca conhece géneros/etiquetas (as «keyword chips» do detalhe são clicáveis e guardam as tags).
+- **Vidro nos controlos (opção A):** classe global `.glass-ctl` (CSS do `App.jsx`) nos filtros do Explorar, no filtro e na alternância de vista da Biblioteca e nos campos de pesquisa.
+
+**Visual Novels (22 nov, PR #8) — `api/vndb.js`**
+- Tipo novo `visualnovels` (cor `#f43f5e`, ícone em `TypeIcon`). Ids da biblioteca: **`vndb-v<id>`**. Pesquisa, detalhe (duração, idiomas, plataformas) e separador no Explorar.
+- API Kana do VNDB (`https://api.vndb.org/kana/vn`): leituras públicas **sem chave**; limites de 200 pedidos/5 min e ~1 s de execução por minuto; gratuito para uso **não comercial**. `vndbPost` chama **direto** e, se falhar, usa o Worker `/vndb` (cache de 5 min; erros `vndb-rate-limit` e `vndb-unavailable`). **Por verificar em produção:** se o VNDB aceita CORS a partir do domínio; se não aceitar, é preciso publicar o Worker com a rota `/vndb` (já está em `worker/worker.js`).
+- Capas explícitas (`image.sexual >= 1.5`) **escondem-se** (`isExplicitCover`) e o Explorar exclui-as.
+- Por verificar: visual novels em favoritos, estatísticas e Hall of Fame; termos do VNDB e do Hardcover antes de abrir ao público.
+
+**Biblioteca e scroll (22 nov, PR #9):** no PC, os separadores de tipo ficam **compactos** (só o ativo mostra o nome; `.tabs-compact` a partir de 900 px, tooltip `title`, `.tab-btn.empty` a 50 %), para caberem todos sem scroll. Na vista compacta com o filtro «Completos» ligado o visto verde nas capas **não aparece** (é redundante). Ver também «Padrões de UI» (roda do rato).
+
+**Landing nova (22 nov, PR #10) — `LandingPage.jsx` + `LandingSections.jsx`**
+- Hero com capas de **vários tipos de mídia** em movimento (3 colunas rodadas 6°, animação `landDrift`; capas em proporção de póster 2:3, sem etiqueta de tipo). As capas vêm de `fetchExplore` (em alta) por tipo, no arranque; se falhar ficam gradientes (`COVER_SLOTS`/`COVER_HUE`). O `App.jsx` passa `workerUrl`.
+- «What makes us different» (inglês e português): Import, Personalisation, Tier lists, Lists + grelha «Everything else». Botões «Começar»/«Get started» e «Ver demonstração» (sem pills). **Não usar «grátis para sempre».**
+- Os textos dos blocos usam `T(en, pt)` em `LandingSections`; `landingStart` substitui `landingFree`.
+- **Por verificar em produção:** capas reais na landing e algumas frases de marketing («Browse and like other people's lists», «Search 7 databases», «Quick log», «Sync your look between desktop and phone»).
+
+**Sessão só neste dispositivo (22 nov):** `supa.signOut()` usa `scope: "local"`. **Por testar:** sair no PC com o telemóvel ligado.
+
+**Recorte de imagens (22 nov) — `CropModal.jsx`:** o recorte do banner sai a 1600×800 em JPEG 97 %. Quando a imagem é ampliada, `renderCrop` reamostra **uma só vez a partir do original**, em passos de 2×, e aplica nitidez leve (`sharpen`, só com ampliação acima de 1,2×). Mostra aviso «imagem pequena» quando `scale > 1.25`. Não cria detalhe que a imagem não tem: o ideal é uma origem com **≥ 1600 px** de largura, na proporção 2:1.
+
+**Decisões e backlog**
+- Decisões: Hall of Fame = 10; favoritos = 7 por tipo; Home e Perfil no PC ficam como estão (ver 2026-11-05).
+- Desenhado no canvas, por implementar: **ecrã de boas-vindas** único depois de criar conta («Do you already have lists elsewhere?» com botões de importação, «Start empty» e «Skip»; só contas novas) + até 3 dicas (Explorar, Biblioteca, Perfil; botão «Got it», guardadas na conta), **sem** opção nas Definições; e, na landing, um seletor «Try a look» com 4–6 looks feitos pelo Noé (à espera das capturas do perfil e da Home).
+- Por fazer: testar a eliminação de conta com uma conta de teste; decidir o bucket `covers`; e-mail de contacto na política de privacidade e região do Supabase; perfil de amigo com separadores Listas/Tier Lists; teste real do importador do MAL; Hall of Fame com 8/6 (decisão); Conquistas (por último); termos do Hardcover/VNDB antes de ir a público; monitorização de erros (Sentry).
+
+---
+
 ## 🧩 Hall of Fame, favoritos e ecrã da pilha (2026-10-28)
 
 - **Limite do Hall of Fame:** 10 (5 × 2), escrito diretamente no código (`toggleHallOfFame`, `HofGridMobile`, `ProfileView`, `FriendProfile`, `DetailModal`). Sem ficheiro de limites para o Hall of Fame; só `MAX_FAVORITES_PER_TYPE` está em `config/limits.js`. 8 e 6 foram estudados no canvas e **não adotados**.
@@ -528,6 +591,8 @@ Origens: **AniList** (utilizador público, GraphQL), **Colar uma lista** (notas,
 - Para ver os logs do Worker em tempo real (o Cloudflare Dashboard tem os Workers Logs desativados por defeito): no terminal, dentro da pasta do projeto do Worker, correr `npx wrangler tail trackall-proxy`, autenticar via OAuth no browser quando pedido, e refazer o pedido que estava a falhar na app. O stream mostra os pedidos a chegar ao Worker em tempo real.
 - Muitas vezes, o simples facto de abrir o `wrangler tail` e repetir o pedido ja resolve (a instancia "acorda"). Se o 503 persistir mesmo com o tail aberto, ai sim o log mostra a causa real (erro na API de origem, variavel de ambiente em falta, etc.).
 
+
+**Worker versionado:** `worker/worker.js` no repositório é só uma **cópia**; publicar = colar no Cloudflare (Workers → trackall-proxy → Edit code → Deploy) ou `npx wrangler deploy`. Rotas atuais: `/tmdb`, `/igdb`, `/igdb-query`, `/steam`, `/anilist`, `/vndb`, `/books`, `/openlibrary/search`, `/openlibrary/work`, `/hardcover/search`, `/comicvine`, `/comicvine-volume`, `/comicvine-arc`, `/comicvine-char`, `/omdb`, `/hltb`, `/health` (o cabeçalho do ficheiro ainda diz v7.2).
 
 **IGDB (token automático):** o Worker renova o token sozinho com `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` (secrets do Cloudflare; client_credentials, cache em `caches.default`, repete o pedido se der 401). `/health` mostra `igdbAutoRefresh`. Publicar com `npx wrangler deploy` na pasta `trackall-worker` (precisa de `wrangler.toml` com `name = "trackall-proxy"`).
 
