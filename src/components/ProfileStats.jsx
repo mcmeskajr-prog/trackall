@@ -109,23 +109,23 @@ export function ProfileStats({ items, panelBg, stacked, onFilter, inline = false
           </button>
         )) : tiles.map(t => (
           <button key={t.l} type="button" className="st-int st-tile" onClick={() => go(t.f)}
-            style={{ ...reset, position: "relative", display: "block", containerType: "inline-size", minHeight: compact ? 76 : 112, boxSizing: "border-box", padding: compact ? "0 18px" : "14px 16px", borderRadius: compact ? 16 : 18, margin: compact ? 0 : 4, ...(compact ? { display: "flex", alignItems: "center", overflow: "hidden" } : {}),
+            style={{ ...reset, position: "relative", display: "block", containerType: "inline-size", minHeight: compact ? 54 : 112, boxSizing: "border-box", padding: compact ? "0 16px" : "14px 16px", borderRadius: compact ? 14 : 18, margin: compact ? 0 : 4, ...(compact ? { display: "flex", alignItems: "center", overflow: "hidden" } : {}),
               background: `linear-gradient(180deg, ${t.col}${darkMode ? "24" : "1c"}, ${darkMode ? "rgba(12,10,12,0.92)" : "rgba(255,255,255,0.7)"} 75%)`,
               boxShadow: compact ? `0 0 0 1px ${t.col}55` : `0 0 0 1px ${t.col}cc, 0 0 0 4px ${t.col}2e, 0 14px 28px -10px ${t.col}80`, color: text }}>
             <span aria-hidden="true" style={{ position: "absolute", left: "14%", right: "14%", top: 0, height: 2, background: `linear-gradient(90deg, transparent, ${t.col}, transparent)`, zIndex: 3, pointerEvents: "none" }} />
             <span aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "inherit", pointerEvents: "none", WebkitMaskImage: FADE, maskImage: FADE }}>
               <span style={compact
-                ? { position: "absolute", right: "3cqw", top: "50%", transform: "translateY(-50%)", height: 118, width: Math.round(118 * t.art.w / t.art.h), background: t.col, opacity: t.art.o, ...MASK(t.art.src) }
+                ? { position: "absolute", right: "3cqw", top: "50%", transform: "translateY(-50%)", height: 88, width: Math.round(88 * t.art.w / t.art.h), background: t.col, opacity: t.art.o, ...MASK(t.art.src) }
                 : { position: "absolute", right: `${t.art.r}cqw`, top: t.art.t, width: `${t.art.w}cqw`, height: `${t.art.h}cqw`, background: t.col, opacity: t.art.o, ...MASK(t.art.src) }} />
               <Flower col={t.col} size={13} rot={14} style={{ right: "9cqw", top: 12, opacity: 0.9 }} />
               <Flower col={t.col} size={9} rot={-20} style={{ right: "19cqw", top: 30, opacity: 0.75 }} />
               <Flower col={t.col} size={7} rot={40} style={{ right: "6cqw", top: 44, opacity: 0.65 }} />
             </span>
             <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ width: 38, height: 38, borderRadius: 12, background: `${t.col}38`, color: t.col, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ICONS[t.icon]}</span>
+              <span style={{ width: compact ? 32 : 38, height: compact ? 32 : 38, borderRadius: compact ? 10 : 12, background: `${t.col}38`, color: t.col, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ICONS[t.icon]}</span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 28, fontWeight: 800, lineHeight: 1.05, color: text }}>{t.n}</span>
-                <span style={{ display: "block", fontSize: 12, color: sub, marginTop: 3 }}>{t.l}</span>
+                <span style={{ display: "block", fontSize: compact ? 22 : 28, fontWeight: 800, lineHeight: 1.05, color: text }}>{t.n}</span>
+                <span style={{ display: "block", fontSize: compact ? 11 : 12, color: sub, marginTop: compact ? 2 : 3 }}>{t.l}</span>
               </span>
             </span>
             {!compact && <span style={{ position: "relative", zIndex: 2, display: "block", marginTop: 12, minHeight: 22 }}>
