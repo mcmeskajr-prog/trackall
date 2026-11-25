@@ -318,7 +318,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const diaryCountV2 = Math.min(15, 5 + 5 * (favRowsV2 - 1));
   const perfilV2 = (
     <div style={{ padding: "4px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
-      <div style={{ margin: "0 0 14px" }}><ProfileStats compact items={libItems} panelBg={panelBg} /></div>
+      <div style={{ margin: "0 0 12px" }}><ProfileStats compact items={libItems} panelBg={panelBg} /></div>
       <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.pv2-aside{display:flex;flex-direction:column;gap:14px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
       <div className="pv2-grid">
         <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>

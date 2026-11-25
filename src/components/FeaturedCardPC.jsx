@@ -6,6 +6,7 @@ import { gradientFor, hiRes } from "../lib/utils";
 import { MEDIA_TYPES, mediaLabel } from "../config/constants";
 import { TypeIcon } from "./TypeIcon";
 import { Sakura } from "./Sakura";
+import { TiltCard } from "./TiltCard";
 import higanLine from "../assets/higan-line.webp";
 
 const NOTE_MAX = 140;
@@ -34,11 +35,21 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
   }, [featuredItem, items, library]);
 
   const shell = {
-    borderRadius: 18, padding: 22, boxSizing: "border-box", color: text,
+    borderRadius: 10, padding: 22, boxSizing: "border-box", color: text,
     background: panelBg ? panelBg : (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"),
     border: `1px solid ${accent}44`, boxShadow: `0 0 26px -12px ${accent}77`,
     position: "relative", isolation: "isolate", overflow: "hidden",
   };
+  const hoverCss = (
+    <style>{`
+      .pv2-feat-title { transition: color 0.15s ease; }
+      @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+        .pv2-feat { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+        .pv2-feat:hover { transform: translateY(-3px); border-color: ${accent}99 !important; box-shadow: 0 0 0 1px ${accent}66, 0 18px 30px -14px ${accent}88 !important; }
+      }
+      @media (hover: hover) { .pv2-feat-title:hover { color: ${accent}; } }
+    `}</style>
+  );
   // Higanbana só em traço, na cor de destaque, por trás do conteúdo (canto superior direito)
   const flower = (
     <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: -1, pointerEvents: "none", WebkitMaskImage: "linear-gradient(180deg, #000 35%, transparent 100%)", maskImage: "linear-gradient(180deg, #000 35%, transparent 100%)" }}>
@@ -58,10 +69,10 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
 
   if (!featured) {
     return (
-      <div style={shell}>
+      <div className="pv2-feat" style={shell}>{hoverCss}
         {flower}
         {head}
-        <button type="button" onClick={onPickFeatured || undefined} style={{ width: "100%", minHeight: 120, borderRadius: 14, cursor: onPickFeatured ? "pointer" : "default", fontFamily: "inherit", fontSize: 13, color: sub, background: "transparent", border: `1.5px dashed ${line}` }}>
+        <button type="button" onClick={onPickFeatured || undefined} style={{ width: "100%", minHeight: 120, borderRadius: 8, cursor: onPickFeatured ? "pointer" : "default", fontFamily: "inherit", fontSize: 13, color: sub, background: "transparent", border: `1.5px dashed ${line}` }}>
           {en ? "+ Choose your featured item" : "+ Escolhe o teu item em destaque"}
         </button>
       </div>
@@ -78,17 +89,19 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
   const save = () => { onSaveNote(draft.trim().slice(0, NOTE_MAX)); setEditing(false); };
 
   return (
-    <div style={shell}>
+    <div className="pv2-feat" style={shell}>{hoverCss}
       {flower}
       {head}
       <div style={{ display: "flex", gap: 18 }}>
-        <div onClick={() => onOpen && onOpen(featured)} style={{ position: "relative", width: 128, aspectRatio: "2/3", borderRadius: 13, overflow: "hidden", flexShrink: 0, cursor: "pointer", background: gradientFor(featured.id), boxShadow: "0 14px 26px -14px rgba(0,0,0,0.8)" }}>
-          {coverSrc
-            ? <img src={hiRes(coverSrc)} alt={featured.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
-            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}><TypeIcon id={typeDef?.id} /></div>}
+        <div onClick={() => onOpen && onOpen(featured)} style={{ width: 128, flexShrink: 0, cursor: "pointer" }}>
+          <TiltCard maxTilt={8} glare glareOpacity={0.12} style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", background: gradientFor(featured.id), boxShadow: "0 14px 26px -14px rgba(0,0,0,0.8)" }}>
+            {coverSrc
+              ? <img src={hiRes(coverSrc)} alt={featured.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} onError={e => { if (e.currentTarget.src !== coverSrc && !e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = coverSrc; } else { e.currentTarget.style.display = "none"; } }} />
+              : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}><TypeIcon id={typeDef?.id} /></div>}
+          </TiltCard>
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div onClick={() => onOpen && onOpen(featured)} style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
+          <div className="pv2-feat-title" onClick={() => onOpen && onOpen(featured)} style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15, cursor: "pointer", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{featured.title}</div>
           <div style={{ fontSize: 13, color: sub, margin: "5px 0 12px" }}>{typeDef ? mediaLabel(typeDef, lang) : ""}{featured.year ? ` · ${featured.year}` : ""}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {status && <span style={chip}>{status}</span>}
