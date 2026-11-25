@@ -716,7 +716,22 @@ export function ProfileView(props) {
                 <FeaturedCardPC featuredItem={featuredItem} library={library} items={items} onOpen={onOpen}
                   onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null} />
                 {cursoList.length > 0 && (
-                  <div style={panel}>
+                  <div className="pv2-curso" style={{ ...panel, borderRadius: 10 }}>
+                    <style>{`
+                      .pv2-row { padding: 6px 8px; margin: -6px -8px; border-radius: 8px; }
+                      .pv2-row-cover img { transition: transform 0.3s ease; }
+                      @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+                        .pv2-curso { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+                        .pv2-curso:hover { border-color: ${accent}66 !important; box-shadow: 0 14px 26px -16px ${accent}77; }
+                        .pv2-row { transition: background 0.15s ease, transform 0.15s ease; }
+                        .pv2-row:hover { transform: translateX(3px); }
+                        .pv2-row:hover .pv2-row-cover img { transform: scale(1.08); }
+                      }
+                      @media (hover: hover) {
+                        .pv2-row:hover { background: ${accent}1f; }
+                        .pv2-row:hover .pv2-row-title { color: ${accent}; }
+                      }
+                    `}</style>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
                       <h3 style={eyebrow}>{lang === "en" ? "In progress" : "Em curso"}</h3>
                       {onOpenLibrary
@@ -725,12 +740,12 @@ export function ProfileView(props) {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {cursoList.map(it => (
-                        <div key={it.id} onClick={() => onOpen && onOpen(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
-                          <div style={{ width: 34, height: 50, borderRadius: 3, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
+                        <div key={it.id} className="pv2-row" onClick={() => onOpen && onOpen(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
+                          <div className="pv2-row-cover" style={{ width: 34, height: 50, borderRadius: 3, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
                             {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#0f172a" }}>{it.title}</div>
+                            <div className="pv2-row-title" style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: darkMode ? "#e6edf3" : "#0f172a", transition: "color 0.15s ease" }}>{it.title}</div>
                             <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#64748b", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(MEDIA_TYPES.find(t => t.id === it.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === it.type), lang) : "")}{it.lastChapter ? ` · ${String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}` : ""}</div>
                           </div>
                         </div>
