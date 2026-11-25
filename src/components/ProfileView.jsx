@@ -10,6 +10,7 @@ import { MEDIA_TYPES, STATUS_OPTIONS, TYPE_COLORS, mediaLabel } from "../config/
 import { MAX_FAVORITES_PER_TYPE } from "../config/limits";
 import { accentShade, accentVariant, ACCENT_PRESETS, BG_PRESETS } from "../config/theme";
 import { TiltCard } from "./TiltCard";
+import { InProgressHoverCss } from "./InProgressHoverCss";
 import { BannerEditor } from "./BannerEditor";
 import { EditProfileModal } from "./EditProfileModal";
 import { DiaryRecent } from "./DiaryRecent";
@@ -717,21 +718,7 @@ export function ProfileView(props) {
                   onPickFeatured={onSetFeatured ? () => setShowFeaturedPicker(true) : null} />
                 {cursoList.length > 0 && (
                   <div className="pv2-curso" style={{ ...panel, borderRadius: 10 }}>
-                    <style>{`
-                      .pv2-row { padding: 6px 8px; margin: -6px -8px; border-radius: 8px; }
-                      .pv2-row-cover img { transition: transform 0.3s ease; }
-                      @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-                        .pv2-curso { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
-                        .pv2-curso:hover { border-color: ${accent}66 !important; box-shadow: 0 14px 26px -16px ${accent}77; }
-                        .pv2-row { transition: background 0.15s ease, transform 0.15s ease; }
-                        .pv2-row:hover { transform: translateX(3px); }
-                        .pv2-row:hover .pv2-row-cover img { transform: scale(1.08); }
-                      }
-                      @media (hover: hover) {
-                        .pv2-row:hover { background: ${accent}1f; }
-                        .pv2-row:hover .pv2-row-title { color: ${accent}; }
-                      }
-                    `}</style>
+                    <InProgressHoverCss accent={accent} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
                       <h3 style={eyebrow}>{lang === "en" ? "In progress" : "Em curso"}</h3>
                       {onOpenLibrary

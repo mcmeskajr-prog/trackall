@@ -12,6 +12,7 @@ import { ProfileStats } from "./ProfileStats";
 import { ProfileTabCompletos } from "./ProfileTabCompletos";
 import { ProfileTabDiario } from "./ProfileTabDiario";
 import { TiltCard } from "./TiltCard";
+import { InProgressHoverCss } from "./InProgressHoverCss";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileActivity } from "./ProfileActivity";
 import { ProfileEstatisticas } from "./ProfileEstatisticas";
@@ -29,21 +30,34 @@ function Star({ size = 10 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="#fbbf24" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg>;
 }
 
-function Poster({ item, onOpen, darkMode, outline, badge }) {
+function Poster({ item, onOpen, darkMode, outline, badge, tilt = false }) {
   const src = item.customCover || item.cover || item.thumbnailUrl;
+  const shadow = outline ? `0 0 0 2px ${outline}, 0 14px 24px -14px rgba(0,0,0,0.85)` : "0 14px 24px -14px rgba(0,0,0,0.85)";
+  const frame = { position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), boxShadow: shadow };
+  const body = (
+    <>
+      {src ? <CoverImg hi src={src} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
+        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#fff" }}><TypeIcon id={item.type} /></div>}
+      {tilt ? (
+        // PC: como nos teus favoritos, o título só aparece ao passar o rato
+        <div className="recent-hover-overlay no-tc" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)", opacity: 0, transition: "opacity 0.2s", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "40px 10px 10px", pointerEvents: "none" }}>
+          <p style={{ fontSize: 12, color: "white", fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", margin: 0 }}>{item.title}</p>
+        </div>
+      ) : (
+        <>
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", left: 8, right: 8, bottom: 7, fontSize: 11.5, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>
+        </>
+      )}
+      {item.userRating > 0 && (
+        <div style={{ position: "absolute", right: 6, top: 6, display: "flex", alignItems: "center", gap: 3, padding: "2px 7px 2px 5px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 10.5, fontWeight: 800, pointerEvents: "none" }}><Star />{item.userRating}</div>
+      )}
+      {badge}
+    </>
+  );
   return (
     <div className="recent-card" onClick={() => onOpen && onOpen(item)} title={item.title} style={{ minWidth: 0, cursor: onOpen ? "pointer" : "default" }}>
-      <div style={{ position: "relative", width: "100%", aspectRatio: "2/3", borderRadius: 14, overflow: "hidden", background: gradientFor(item.id),
-        boxShadow: outline ? `0 0 0 2px ${outline}, 0 14px 24px -14px rgba(0,0,0,0.85)` : "0 14px 24px -14px rgba(0,0,0,0.85)" }}>
-        {src ? <CoverImg hi src={src} alt={item.title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />
-          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: "#fff" }}><TypeIcon id={item.type} /></div>}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "linear-gradient(to top, rgba(0,0,0,0.82), transparent)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", left: 8, right: 8, bottom: 7, fontSize: 11.5, fontWeight: 700, lineHeight: 1.25, color: "#fff", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", pointerEvents: "none" }}>{item.title}</div>
-        {item.userRating > 0 && (
-          <div style={{ position: "absolute", right: 6, top: 6, display: "flex", alignItems: "center", gap: 3, padding: "2px 7px 2px 5px", borderRadius: 8, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 10.5, fontWeight: 800, pointerEvents: "none" }}><Star />{item.userRating}</div>
-        )}
-        {badge}
-      </div>
+      {tilt ? <TiltCard maxTilt={8} glare glareOpacity={0.12} style={frame}>{body}</TiltCard> : <div style={frame}>{body}</div>}
     </div>
   );
 }
@@ -106,7 +120,8 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const featuredItem = useMemo(() => {
     if (!featuredId) return null;
     const it = data.library?.[featuredId] || (data.hall || []).find(h => h.id === featuredId) || data.featured;
-    return it && it.title ? it : null;
+    // A frase do destaque vive no registo do Hall of Fame (data.featured), não na biblioteca
+    return it && it.title ? { ...it, note: data.featured?.note || "" } : null;
   }, [featuredId, data.library, data.hall, data.featured]);
   const favs = Array.isArray(prof.favorites) ? prof.favorites : [];
 
@@ -134,7 +149,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
 
   const row = (list, cols = 15) => (
     <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
-      {list.slice(0, cols).map(it => <div key={it.id} style={{ width: isMobileDevice ? 104 : 124 }}><Poster item={it} onOpen={openItem} darkMode={darkMode} /></div>)}
+      {list.slice(0, cols).map(it => <div key={it.id} style={{ width: isMobileDevice ? 104 : 124 }}><Poster tilt={!isMobileDevice} item={it} onOpen={openItem} darkMode={darkMode} /></div>)}
     </div>
   );
 
@@ -142,7 +157,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     <Section title="Hall of Fame" count={`${hall.length}/10`} muted={muted} accent={accent}>
       {isMobileDevice ? (
         <div className="hscroll" style={{ padding: "4px 16px 14px", margin: "0 -16px", gap: 10, display: "grid", gridTemplateRows: "repeat(2, auto)", gridAutoFlow: "column", gridAutoColumns: "clamp(104px, 29vw, 128px)" }}>
-          {hall.map(h => <Poster key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
+          {hall.map(h => <Poster tilt={!isMobileDevice} key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
       ) : (
@@ -150,7 +165,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           // Poucos títulos: capas com tamanho normal, centradas (não encolhem nem ficam coladas à esquerda)
           ? { gridTemplateColumns: `repeat(${hall.length}, minmax(0, ${hall.length <= 4 ? 190 : 170}px))`, justifyContent: "center", gap: 18 }
           : { gridTemplateColumns: `repeat(${hall.length <= 6 ? 6 : hall.length <= 8 ? 4 : 5}, minmax(0, 1fr))`, gap: 14 }), padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
-          {hall.map(h => <Poster key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
+          {hall.map(h => <Poster tilt={!isMobileDevice} key={h.id} item={h} onOpen={openItem} darkMode={darkMode} outline={h.id === featuredId ? accent : null}
             badge={h.id === featuredId ? <div title={en ? "Featured" : "Em destaque"} aria-label={en ? "Featured" : "Em destaque"} style={{ position: "absolute", left: 6, top: 6, width: 20, height: 20, borderRadius: 7, background: accent, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3.2l2.5 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.8 19.6l1.2-6L3.5 9.5l6-.7z" /></svg></div> : null} />)}
         </div>
       )}
@@ -237,7 +252,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
               <span style={{ flex: 1, height: 1, background: line }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: `repeat(${MAX_FAVORITES_PER_TYPE}, minmax(0, 1fr))`, gap: isV2 ? 12 : 14, padding: "6px 4px 10px", margin: "-6px -4px -10px" }}>
-              {favByType[t.id].slice(0, MAX_FAVORITES_PER_TYPE).map(f => <Poster key={f.id} item={{ ...f, userRating: data.library?.[f.id]?.userRating ?? f.userRating }} onOpen={openItem} darkMode={darkMode} />)}
+              {favByType[t.id].slice(0, MAX_FAVORITES_PER_TYPE).map(f => <Poster tilt={!isMobileDevice} key={f.id} item={{ ...f, userRating: data.library?.[f.id]?.userRating ?? f.userRating }} onOpen={openItem} darkMode={darkMode} />)}
             </div>
           </div>
         ))}
@@ -253,7 +268,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
       <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
         {common.both.slice(0, 15).map(({ fi, m }) => (
           <div key={fi.id} style={{ width: 124 }}>
-            <Poster item={fi} onOpen={openItem} darkMode={darkMode}
+            <Poster tilt={!isMobileDevice} item={fi} onOpen={openItem} darkMode={darkMode}
               badge={m.userRating > 0 && fi.userRating > 0 && m.userRating !== fi.userRating ? (
                 <div style={{ position: "absolute", left: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>{en ? "you" : "tu"} ★{m.userRating}</div>
               ) : null} />
@@ -285,7 +300,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   );
 
   // ── PC, layout novo: igual ao teu perfil (cabeçalho com banner, números, duas colunas) ──
-  const panelV2 = { borderRadius: 16, padding: 20, boxSizing: "border-box", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${line}` };
+  const panelV2 = { borderRadius: 10, padding: 20, boxSizing: "border-box", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"), border: `1px solid ${line}` };
   const eyebrowV2 = { fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#8b95a1" : "#64748b", margin: 0 };
   const topGenresV2 = (() => {
     const cnt = {};
@@ -317,7 +332,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const favRowsV2 = favEff === "all" ? Math.max(1, favTypes.length) : 1;
   const diaryCountV2 = Math.min(15, 5 + 5 * (favRowsV2 - 1));
   const perfilV2 = (
-    <div style={{ padding: "4px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
+    <div style={{ padding: "8px 32px 0", maxWidth: 1600, margin: "0 auto", boxSizing: "border-box" }}>
       <div style={{ margin: "0 0 12px" }}><ProfileStats compact items={libItems} panelBg={panelBg} /></div>
       <style>{`.pv2-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}.pv2-aside{display:flex;flex-direction:column;gap:14px}@media (max-width:1180px){.pv2-grid{grid-template-columns:minmax(0,1fr)}.pv2-aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.pv2-aside>*:first-child{grid-column:1 / -1}}`}</style>
       <div className="pv2-grid">
@@ -331,19 +346,20 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           <FeaturedCardPC featuredItem={featuredItem} library={data.library || {}} items={libItems} onOpen={openItem} readOnly />
           {matchPill}
           {cursoV2.length > 0 && (
-            <div style={panelV2}>
+            <div className="pv2-curso" style={panelV2}>
+              <InProgressHoverCss accent={accent} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
                 <h3 style={eyebrowV2}>{en ? "In progress" : "Em curso"}</h3>
                 <span style={{ fontSize: 12, color: muted, fontWeight: 700 }}>{inProgress.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {cursoV2.map(it => (
-                  <div key={it.id} onClick={() => openItem(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
-                    <div style={{ width: 34, height: 50, borderRadius: 6, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
+                  <div key={it.id} className="pv2-row" onClick={() => openItem(it)} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer", minWidth: 0 }}>
+                    <div className="pv2-row-cover" style={{ width: 34, height: 50, borderRadius: 3, overflow: "hidden", position: "relative", flexShrink: 0, background: gradientFor(it.id) }}>
                       {(it.customCover || it.cover) && <CoverImg hi src={it.customCover || it.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>{it.title}</div>
+                      <div className="pv2-row-title" style={{ fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text, transition: "color 0.15s ease" }}>{it.title}</div>
                       <div style={{ fontSize: 12, color: muted, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(MEDIA_TYPES.find(t => t.id === it.type) ? mediaLabel(MEDIA_TYPES.find(t => t.id === it.type), lang) : "")}{it.lastChapter ? ` · ${String(it.lastChapter).replace(/chapter /i, "Cap. ").replace(/vol\.\d+\s*/i, "")}` : ""}</div>
                     </div>
                   </div>
@@ -446,7 +462,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
                       <div className="hscroll" style={{ padding: "6px 4px 12px", margin: "-6px -4px -8px", gap: 12 }}>
                         {common.both.slice(0, 15).map(({ fi, m }) => (
                           <div key={fi.id} style={{ width: 104 }}>
-                            <Poster item={fi} onOpen={openItem} darkMode={darkMode}
+                            <Poster tilt={!isMobileDevice} item={fi} onOpen={openItem} darkMode={darkMode}
                               badge={m.userRating > 0 && fi.userRating > 0 && m.userRating !== fi.userRating ? (
                                 <div style={{ position: "absolute", left: 6, top: 6, padding: "2px 7px", borderRadius: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 800, pointerEvents: "none" }}>{en ? "you" : "tu"} ★{m.userRating}</div>
                               ) : null} />
