@@ -274,6 +274,12 @@ export function ProfileSettings(props) {
               return;
             }
           }
+          if (rpcError) {
+            // Os dados foram apagados, mas sem a função do servidor a conta de login continua a existir
+            setDeleteError(lang === "en" ? "Your data was deleted, but the login itself could not be removed. Please contact support to finish deleting it." : "Os teus dados foram apagados, mas não foi possível remover o próprio login. Contacta o suporte para concluir a eliminação.");
+            setDeleting(false);
+            return;
+          }
           await supabase.auth.signOut();
           onSignOut && onSignOut();
         } catch (e) {
