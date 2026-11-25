@@ -22,6 +22,9 @@ begin
   delete from public.profile_private  where id = uid;
   delete from public.profiles         where id = uid;
 
+  -- o código de convite usado fica gasto, mas deixa de apontar para esta conta (senão a chave estrangeira impede apagar o login)
+  update public.invite_codes set used_by = null where used_by = uid;
+
   -- por fim, a conta de login
   delete from auth.users where id = uid;
 end;
