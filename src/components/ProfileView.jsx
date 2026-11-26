@@ -217,7 +217,7 @@ export function ProfileView(props) {
   const [profileLayout] = useUiPref("trackall_profile_layout");
   const v2 = !isMobileDevice && !editing && profileLayout !== "classic"; // layout novo do PC (banner + duas colunas)
   // No layout novo do PC o cabeçalho com banner mantém-se em todos os separadores (Diário, Listas, Definições…)
-  const showHeaderIdentity = editing || (profileTab !== "perfil" && !v2);
+  const showHeaderIdentity = editing || (profileTab !== "perfil" && (!v2 || profileTab === "definicoes"));
   const currentBanner = editing ? bannerPreview : (splitBanner(profile.banner).style.hpc ? "" : splitBanner(profile.banner).url);
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
@@ -551,8 +551,8 @@ export function ProfileView(props) {
       </>
       )}
 
-      {/* Layout novo do PC: banner + identidade (em todos os separadores) */}
-      {v2 && (
+      {/* Layout novo do PC: banner + identidade (em todos os separadores, menos Definições, que mantém o cabeçalho antigo) */}
+      {v2 && profileTab !== "definicoes" && (
         <ProfileHeaderPC profile={profile} avatar={currentAvatar} items={items} userEmail={userEmail} hideEmail={hideEmail}
           onEdit={openEditModal} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} panelBg={panelBg ? computedPanelBg : null} />
       )}
