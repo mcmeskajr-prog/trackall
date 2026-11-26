@@ -16,7 +16,7 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
       background: darkMode ? "rgba(22,27,34,0.35)" : "rgba(248,250,252,0.42)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`,
-      borderRadius: 14, overflow: "hidden", cursor: "pointer",
+      borderRadius: 12, overflow: "hidden", cursor: "pointer",
       transition: "transform 0.15s, box-shadow 0.15s",
       display: "flex", flexDirection: "column",
     }}
@@ -27,7 +27,7 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
       {isMobileDevice && covers.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 4, padding: 4, flexShrink: 0 }}>
           {covers.slice(0, 5).map((src, i) => (
-            <div key={i} style={{ aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", background: darkMode ? "#21262d" : "#c8cfd8" }}>
+            <div key={i} style={{ aspectRatio: "2/3", borderRadius: 3, overflow: "hidden", background: darkMode ? "#21262d" : "#c8cfd8" }}>
               <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.target.style.display = "none"; }} />
             </div>
           ))}
@@ -60,7 +60,7 @@ export function CollectionCard({ col, onOpen, onLike, liked, currentUserId, onDe
               width: COVER_W,
               minWidth: COVER_W,
               height: "100%",
-              borderRadius: 6,
+              borderRadius: 3,
               overflow: "hidden",
               background: darkMode ? "#21262d" : "#c8cfd8",
               flexShrink: 0,

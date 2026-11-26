@@ -119,7 +119,7 @@ export function AppearanceSettings({
   const pvPanel = { background: panel, border: `1px solid ${line}`, borderRadius: 14 };
 
   const preview = (
-    <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${line}`, position: "relative", background: pvBg, display: "flex" }}>
+    <div style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${line}`, position: "relative", background: pvBg, display: "flex" }}>
       {pvImg && <div style={{ position: "absolute", inset: 0, background: `url(${pvImg}) center/cover`, filter: bgBlur ? `blur(${bgBlur}px)` : undefined, transform: "scale(1.05)" }} />}
       {pvImg && <div style={{ position: "absolute", inset: 0, background: bgOverlay || "transparent" }} />}
       {!isMobileDevice && (() => {
@@ -420,7 +420,7 @@ export function AppearanceSettings({
         {themes.length > 0 ? (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {themes.map(t => (
-              <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 6, border: `1px solid ${line}`, borderRadius: 999, padding: "4px 6px 4px 12px" }}>
+              <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 6, border: `1px solid ${line}`, borderRadius: 8, padding: "4px 6px 4px 12px" }}>
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
                 <button type="button" onClick={() => applyTheme(t)} style={{ background: "none", border: "none", color: text, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "0 4px" }}>{t.name}</button>
                 <button type="button" aria-label={en ? "Delete" : "Apagar"} onClick={() => { try { localStorage.removeItem(`trackall_theme_img_${t.name}`); localStorage.removeItem(`trackall_theme_imgm_${t.name}`); } catch {} savedThemes?.save(themes.filter(x => x.name !== t.name)); }} style={{ background: "none", border: "none", color: sub, fontSize: 12, cursor: "pointer", padding: "0 6px" }}>✕</button>
@@ -440,7 +440,7 @@ export function AppearanceSettings({
           <div style={eyebrow}>{en ? "Live preview" : "Pré-visualização"}</div>
           {isMobileDevice && <button type="button" onClick={() => setPreviewOpen(o => !o)} style={{ ...chip(false), minHeight: 30, padding: "4px 12px", fontSize: 12 }}>{previewOpen ? (en ? "Collapse" : "Reduzir") : (en ? "Expand" : "Ver tudo")}</button>}
         </div>
-        <div style={isMobileDevice ? { maxHeight: previewOpen ? 520 : 168, overflow: "hidden", borderRadius: 20, position: "relative", transition: "max-height .25s ease", boxShadow: "0 12px 28px -12px rgba(0,0,0,0.6)" } : undefined}>
+        <div style={isMobileDevice ? { maxHeight: previewOpen ? 520 : 168, overflow: "hidden", borderRadius: 12, position: "relative", transition: "max-height .25s ease", boxShadow: "0 12px 28px -12px rgba(0,0,0,0.6)" } : undefined}>
           {preview}
           {isMobileDevice && !previewOpen && <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 36, background: `linear-gradient(to top, ${bgColor}, transparent)`, pointerEvents: "none" }} />}
         </div>

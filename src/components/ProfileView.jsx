@@ -229,7 +229,7 @@ export function ProfileView(props) {
         if (topGenres.length === 0) return null;
         const maxCount = topGenres[0][1];
         return (
-          <div style={panel ? { borderRadius: 20, padding: "16px 18px", background: darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` } : { marginBottom: 24 }}>
+          <div style={panel ? { borderRadius: 12, padding: "16px 18px", background: darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}` } : { marginBottom: 24 }}>
             <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
               {lang === "en" ? "TOP GENRES" : "TOP GÉNEROS"}
               <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
@@ -240,7 +240,7 @@ export function ProfileView(props) {
                 const size = idx === 0 ? 14 : idx < 3 ? 13 : 12;
                 const alpha = Math.max(20, intensity);
                 return (
-                  <div key={genre} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2,"0")}`, border: `1px solid ${accent}${Math.round(alpha*1.5).toString(16).padStart(2,"0")}`, borderRadius: 20, padding: idx === 0 ? "5px 12px" : "4px 10px", cursor: "default" }}>
+                  <div key={genre} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2,"0")}`, border: `1px solid ${accent}${Math.round(alpha*1.5).toString(16).padStart(2,"0")}`, borderRadius: 8, padding: idx === 0 ? "5px 12px" : "4px 10px", cursor: "default" }}>
                     <span style={{ fontSize: size, fontWeight: idx < 3 ? 800 : 600, color: idx === 0 ? accent : darkMode ? "#c9d1d9" : "#374151" }}>{genre}</span>
                     <span style={{ fontSize: 10, color: accent, fontWeight: 700, opacity: 0.8 }}>{count}</span>
                   </div>
@@ -272,7 +272,7 @@ export function ProfileView(props) {
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {[{ id: "all" }, ...typesWithFavs].map(t => {
               const on = fEff === t.id;
-              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : hair}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569") }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
             })}
           </div>
         )}
@@ -654,7 +654,7 @@ export function ProfileView(props) {
               const on = favFilter === t.id;
               return (
                 <button key={t.id} onClick={() => setFavFilter(t.id)} style={{
-                  flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                  flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                   border: `1px solid ${on ? accent : border}`, background: on ? accent : "transparent", color: on ? "white" : (darkMode ? "#aab4c0" : "#475569"),
                 }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>
               );
@@ -757,7 +757,7 @@ export function ProfileView(props) {
                 { tab: "tierlists", label: "Tier Lists", count: userTierlists.length, grad: "rgba(236,72,153,0.16)" },
                 { tab: "listas", label: lang === "en" ? "My Lists" : "Minhas Listas", count: userCollections.length, grad: "rgba(59,130,246,0.16)" },
               ].map(c => (
-                <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 20, padding: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
+                <button key={c.tab} onClick={() => setProfileTab(c.tab)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", borderRadius: 12, padding: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`, background: `linear-gradient(120deg, ${c.grad}, rgba(255,255,255,0.04))` }}>
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: darkMode ? "#aab4c0" : "#475569" }}>{c.label}</div>
                   <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>{c.count} {c.count === 1 ? (lang === "en" ? "list" : "lista") : (lang === "en" ? "lists" : "listas")}</div>
                   <div style={{ fontSize: 12, color: darkMode ? "#aab4c0" : "#475569", marginTop: 2 }}>{lang === "en" ? "Open" : "Abrir"} →</div>

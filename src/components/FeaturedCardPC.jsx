@@ -84,7 +84,7 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
   const status = featured.userStatus === "completo" ? (en ? "Completed" : "Completo") : featured.userStatus === "assistindo" ? (en ? "In progress" : "Em curso") : "";
   const when = featured.userStatus === "completo" && featured.addedAt ? new Date(featured.addedAt).toLocaleDateString(en ? "en-GB" : "pt-PT", { month: "short", year: "numeric" }) : "";
   const canEditNote = !readOnly && !featured._auto && onSaveNote;
-  const chip = { padding: "4px 12px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, color: sub, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)", border: `1px solid ${line}` };
+  const chip = { padding: "4px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: sub, background: darkMode ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.06)", border: `1px solid ${line}` };
 
   const save = () => { onSaveNote(draft.trim().slice(0, NOTE_MAX)); setEditing(false); };
 
@@ -108,7 +108,7 @@ export function FeaturedCardPC({ featuredItem, library, items, onOpen, onPickFea
             {when && <span style={chip}>{when}</span>}
           </div>
           {featured.userRating > 0 && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 12, padding: "5px 12px 5px 9px", borderRadius: 99, background: "rgba(244,114,182,0.14)", border: "1px solid rgba(244,114,182,0.35)", color: "#fbcfe8", fontSize: 15, fontWeight: 800 }}><Sakura size={16} />{featured.userRating}</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 12, padding: "5px 12px 5px 9px", borderRadius: 8, background: "rgba(244,114,182,0.14)", border: "1px solid rgba(244,114,182,0.35)", color: "#fbcfe8", fontSize: 15, fontWeight: 800 }}><Sakura size={16} />{featured.userRating}</div>
           )}
         </div>
       </div>

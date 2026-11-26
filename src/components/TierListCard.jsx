@@ -18,7 +18,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
   const border = darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0";
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: panelBg || glass, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `1px solid ${border}`, borderRadius: 20, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", transition: "transform 0.15s, border-color 0.15s" }}
+    <div onClick={() => onOpen(tl)} style={{ background: panelBg || glass, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `1px solid ${border}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", transition: "transform 0.15s, border-color 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = `${accent}88`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = border; }}>
       <style>{`
@@ -33,13 +33,13 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
         ) : top.map(item => {
           const cover = item.customCover || item.cover || item.thumbnailUrl;
           return (
-            <div key={item.id} className="tlc-p" title={item.title} style={{ position: "relative", ...(isMobileDevice ? { aspectRatio: "2/3" } : { width: 66, height: 100 }), borderRadius: 8, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id), boxShadow: `0 0 0 1.5px ${item._tier.color}66` }}>
+            <div key={item.id} className="tlc-p" title={item.title} style={{ position: "relative", ...(isMobileDevice ? { aspectRatio: "2/3" } : { width: 66, height: 100 }), borderRadius: 3, overflow: "hidden", flexShrink: 0, background: gradientFor(item.id), boxShadow: `0 0 0 1.5px ${item._tier.color}66` }}>
               {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
               <span style={{ position: "absolute", left: 4, top: 4, padding: "0 6px", borderRadius: 6, background: item._tier.color, fontSize: isMobileDevice ? 9 : 10, fontWeight: 800, color: "#fff", lineHeight: "16px" }}>{item._tier.id}</span>
             </div>
           );
         })}
-        {extra > 0 && <div style={{ ...(isMobileDevice ? { aspectRatio: "2/3" } : { width: 66, height: 100 }), borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1"}`, color: darkMode ? "#aab4c0" : "#64748b", fontSize: 15, fontWeight: 800, flexShrink: 0 }}>+{extra}</div>}
+        {extra > 0 && <div style={{ ...(isMobileDevice ? { aspectRatio: "2/3" } : { width: 66, height: 100 }), borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", border: `1.5px dashed ${darkMode ? "rgba(255,255,255,0.2)" : "#cbd5e1"}`, color: darkMode ? "#aab4c0" : "#64748b", fontSize: 15, fontWeight: 800, flexShrink: 0 }}>+{extra}</div>}
       </div>
       <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
         <p style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.2, color: darkMode ? "#e6edf3" : "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tl.title}</p>
@@ -47,7 +47,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
           {author && <><span style={{ width: 18, height: 18, borderRadius: 99, background: `linear-gradient(135deg, ${accent}, #3a1212)`, flexShrink: 0 }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{author}</span><span>·</span></>}
           <span style={{ whiteSpace: "nowrap" }}>{all.length} itens</span>
           <span style={{ flex: 1 }} />
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : border}`, borderRadius: 99, padding: "3px 9px", color: liked ? accent : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : border}`, borderRadius: 8, padding: "3px 9px", color: liked ? accent : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             {liked ? "♥" : "♡"} {tl.likes_count || 0}
           </button>
           {currentUserId === tl.user_id && onDelete && (

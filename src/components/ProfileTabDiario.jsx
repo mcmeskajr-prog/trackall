@@ -63,7 +63,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
   const sub = darkMode ? "#aab4c0" : "#475569";
   const muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)";
-  const card = { background: ctxPanelBg ? ctxPanelBg : darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)", borderRadius: 18, border: `1px solid ${line}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
+  const card = { background: ctxPanelBg ? ctxPanelBg : darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)", borderRadius: 12, border: `1px solid ${line}`, padding: "16px 18px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)" };
   const eyebrow = { fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: muted };
 
   const tiles = [
@@ -79,7 +79,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
         const on = activeFilter === t.id;
         return (
           <button key={t.id} onClick={() => setFilter(t.id)} style={{
-            flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+            flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
             border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "white" : sub,
           }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>
         );
@@ -154,24 +154,24 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
             const t = MEDIA_TYPES.find(x => x.id === item.type);
             return (
               <div key={item._k || item.id} onClick={() => onOpen && onOpen(item)} style={{
-                display: "flex", alignItems: "center", gap: isMobileDevice ? 12 : 18, padding: isMobileDevice ? 12 : "14px 16px", marginTop: 10, borderRadius: 16, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: isMobileDevice ? 12 : 18, padding: isMobileDevice ? 12 : "14px 16px", marginTop: 10, borderRadius: 10, cursor: "pointer",
                 background: darkMode ? "rgba(255,255,255,0.045)" : "rgba(15,23,42,0.04)", border: `1px solid ${darkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"}`,
               }}>
                 <div style={{ width: isMobileDevice ? 34 : 44, textAlign: "center", flexShrink: 0 }}>
                   <div style={{ fontSize: isMobileDevice ? 9 : 10, letterSpacing: "0.1em", textTransform: "uppercase", color: muted }}>{String(months[group.month] || "").slice(0, 3)}</div>
                   <div style={{ fontSize: isMobileDevice ? 20 : 24, fontWeight: 800, color: text }}>{item._day}</div>
                 </div>
-                <div style={{ width: isMobileDevice ? 40 : 46, height: isMobileDevice ? 58 : 68, borderRadius: 8, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
+                <div style={{ width: isMobileDevice ? 40 : 46, height: isMobileDevice ? 58 : 68, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), flexShrink: 0 }}>
                   {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: isMobileDevice ? 14 : 16, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
                   <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && (() => {
                     const label = `↺ ${lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}`;
-                    const chipStyle = { marginLeft: 8, padding: "1px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77`, fontFamily: "inherit" };
+                    const chipStyle = { marginLeft: 8, padding: "1px 8px", borderRadius: 8, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77`, fontFamily: "inherit" };
                     if (!onRemoveRevision) return <span style={chipStyle}>{label}</span>;
                     if (confirmKey === item._k) {
-                      const small = { marginLeft: 6, padding: "1px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" };
+                      const small = { marginLeft: 6, padding: "1px 9px", borderRadius: 8, fontSize: 10.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" };
                       return (
                         <span onClick={e => e.stopPropagation()} style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
                           <span style={{ color: sub, fontSize: 11 }}>{lang === "en" ? "Remove only this entry?" : "Remover só esta entrada?"}</span>
@@ -184,7 +184,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
                   })()}</div>
                 </div>
                 {item.userRating > 0 && (
-                  <div style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {item.userRating}</div>
+                  <div style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 8, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {item.userRating}</div>
                 )}
               </div>
             );

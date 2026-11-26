@@ -22,7 +22,7 @@ function RatingOverlayInner({ item, library, onDone, again = false, revCount = 0
   const atValue = () => when === "none" ? null : when === "yesterday" ? Date.now() - DAYMS : when === "custom" ? customAt : Date.now();
   const line = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0";
   const chip = (on, label, onClick) => (
-    <button type="button" onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+    <button type="button" onClick={onClick} style={{ padding: "7px 13px", borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
       border: `1px solid ${on ? accent : line}`, background: on ? `${accent}26` : "transparent", color: on ? accent : (darkMode ? "#c3ccd6" : "#475569") }}>{label}</button>
   );
   const lab = (t) => <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8b949e", margin: "16px 0 8px", textAlign: "left" }}>{t}</p>;
@@ -40,7 +40,7 @@ function RatingOverlayInner({ item, library, onDone, again = false, revCount = 0
             : <div style={{ width: 48, height: 68, borderRadius: 8, background: gradientFor(item.id), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}><TypeIcon id={item.type} /></div>
           }
           <div>
-            <div style={{ display: "inline-block", fontSize: 11, color: "#34d399", fontWeight: 700, marginBottom: 6, padding: "3px 10px", borderRadius: 99, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {again ? (en ? "Complete again" : "Completar outra vez") : (en ? "Marked as complete" : "Marcado como completo")}</div>
+            <div style={{ display: "inline-block", fontSize: 11, color: "#34d399", fontWeight: 700, marginBottom: 6, padding: "3px 10px", borderRadius: 8, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {again ? (en ? "Complete again" : "Completar outra vez") : (en ? "Marked as complete" : "Marcado como completo")}</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: darkMode ? "#e6edf3" : "#0f172a", lineHeight: 1.2 }}>{item.title}</div>
             <div style={{ fontSize: 12, color: "#8b949e" }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}</div>
           </div>

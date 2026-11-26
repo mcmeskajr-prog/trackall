@@ -115,7 +115,7 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
                 >
                   <div style={{
                     aspectRatio: "2/3",
-                    borderRadius: 8, overflow: "hidden", background: "#21262d", position: "relative",
+                    borderRadius: 3, overflow: "hidden", background: "#21262d", position: "relative",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                     transition: "transform 0.15s",
                   }}
@@ -197,7 +197,7 @@ export function CollectionViewer({ col, onClose, onLike, liked, currentUserId, o
                           const mId = `al-${mType}-${m.id}`;
                           return (
                             <div key={m.id} onClick={() => { setSelectedChar(null); setCharData(null); onOpenMedia && onOpenMedia({ id: mId, title: m.title?.romaji, type: mType, cover: m.coverImage?.medium }); }} style={{ flexShrink: 0, width: 80, cursor: "pointer" }}>
-                              <div style={{ width: 80, height: 112, borderRadius: 7, overflow: "hidden", background: "#21262d", marginBottom: 5 }}>
+                              <div style={{ width: 80, height: 112, borderRadius: 3, overflow: "hidden", background: "#21262d", marginBottom: 5 }}>
                                 {m.coverImage?.medium
                                   ? <img src={m.coverImage.medium} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎬</div>

@@ -73,7 +73,7 @@ export function GoodreadsImportModal({ onClose, onImport, library, workerUrl }) 
     onImport(out);
   };
 
-  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
+  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 8, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
   const stat = (n, label, color) => (
     <div style={{ flex: 1, minWidth: 90, padding: "12px 14px", borderRadius: 14, background: tile, border: `1px solid ${border}` }}>
       <div style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{n}</div>

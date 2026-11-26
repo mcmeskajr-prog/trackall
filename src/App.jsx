@@ -2952,7 +2952,7 @@ export default function TrackAll() {
               {/* Type filter pills */}
               <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginBottom: 10 }}>
                 {[{ id: null, icon: "🔍", label: "Todos" }, ...MEDIA_TYPES.filter(t => t.id !== "all")].map(t => (
-                  <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "7px 13px", borderRadius: 99, background: quickSearchType === t.id ? `${accent}26` : "transparent", border: `1px solid ${quickSearchType === t.id ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, color: quickSearchType === t.id ? (darkMode ? "#fca5a5" : accent) : (darkMode ? "#aab4c0" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                  <button key={t.id || "all"} onClick={() => setQuickSearchType(t.id)} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "7px 13px", borderRadius: 8, background: quickSearchType === t.id ? `${accent}26` : "transparent", border: `1px solid ${quickSearchType === t.id ? accent : (darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0")}`, color: quickSearchType === t.id ? (darkMode ? "#fca5a5" : accent) : (darkMode ? "#aab4c0" : "#64748b"), cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
                     <span><TypeIcon id={t.id} /></span> {mediaLabel(t, lang) || useT("all")}
                   </button>
                 ))}
@@ -2991,7 +2991,7 @@ export default function TrackAll() {
                         <p style={{ fontSize: 14, fontWeight: 700, color: darkMode ? "#e6edf3" : "#0d1117", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                         <p style={{ fontSize: 11, color: "#8b949e", marginTop: 2 }}>{MEDIA_TYPES.find(t => t.id === item.type)? mediaLabel(MEDIA_TYPES.find(t=>t.id===item.type), lang) : ''}{item.year ? ` · ${item.year}` : ""}</p>
                       </div>
-                      <span style={{ fontSize: 11, color: "#34d399", fontWeight: 700, flexShrink: 0, padding: "4px 10px", borderRadius: 99, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {lang === "en" ? "Complete" : "Completo"}</span>
+                      <span style={{ fontSize: 11, color: "#34d399", fontWeight: 700, flexShrink: 0, padding: "4px 10px", borderRadius: 8, background: "rgba(52,211,153,0.12)", border: "1px solid rgba(52,211,153,0.3)" }}>✓ {lang === "en" ? "Complete" : "Completo"}</span>
                     </div>
                   ))}
                 </div>

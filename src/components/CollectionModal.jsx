@@ -159,7 +159,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {["public", "friends", "private"].map(v => (
               <button key={v} onClick={() => setVisibility(v)} style={{
-                padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700,
                 background: visibility === v ? accent : "transparent",
                 border: `1px solid ${visibility === v ? accent : "#30363d"}`,
                 color: visibility === v ? "#fff" : "#8b949e",
@@ -169,7 +169,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
               </button>
             ))}
             <button onClick={() => setShowNumbers(v => !v)} style={{
-              padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+              padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700,
               background: showNumbers ? `${accent}22` : "transparent",
               border: `1px solid ${showNumbers ? accent : "#30363d"}`,
               color: showNumbers ? accent : "#8b949e",
@@ -187,7 +187,7 @@ export function CollectionModal({ initialData, library, onSave, onClose, workerU
             <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
               {searchTypeOpts.map(opt => (
                 <button key={opt.id} onClick={() => { setSearchType(opt.id); setSearchQ(""); setSearchResults([]); }} style={{
-                  flexShrink: 0, padding: "5px 11px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                  flexShrink: 0, padding: "5px 11px", borderRadius: 8, fontSize: 11, fontWeight: 700,
                   background: searchType === opt.id ? accent : "transparent",
                   border: `1px solid ${searchType === opt.id ? accent : "#30363d"}`,
                   color: searchType === opt.id ? "#fff" : "#8b949e",

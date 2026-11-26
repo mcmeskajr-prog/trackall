@@ -100,7 +100,7 @@ export function FeedTab({ accepted, getFriendInfo, library, onOpenFriend, onOpen
   if (accepted.length === 0) return empty(en ? "No friends yet" : "Ainda não tens amigos", en ? "Add friends to see what they complete and watch." : "Adiciona amigos para veres o que andam a completar e a ver.", onGoSearch && ctaBtn(en ? "Find friends" : "Procurar amigos", onGoSearch));
 
   const chip = (active, onClick, children) => (
-    <button onClick={onClick} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+    <button onClick={onClick} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
       border: `1px solid ${active ? accent : (darkMode ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.14)")}`, background: active ? `${accent}26` : "transparent", color: active ? accent : muted }}>{children}</button>
   );
 

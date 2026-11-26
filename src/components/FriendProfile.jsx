@@ -67,7 +67,7 @@ function Section({ title, count, children, muted, accent, right }) {
     <section style={{ marginBottom: 26 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <h3 style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, margin: 0 }}>{title}</h3>
-        {count != null && <span style={{ fontSize: 10, fontWeight: 800, color: accent, background: `${accent}1c`, padding: "1px 8px", borderRadius: 20 }}>{count}</span>}
+        {count != null && <span style={{ fontSize: 10, fontWeight: 800, color: accent, background: `${accent}1c`, padding: "1px 8px", borderRadius: 8 }}>{count}</span>}
         <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(255,255,255,0.14), transparent)" }} />
         {right}
       </div>
@@ -141,7 +141,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
   const muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)";
   const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
-  const card = { background: panelBg || glass, borderRadius: 20, border: `1px solid ${line}`, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" };
+  const card = { background: panelBg || glass, borderRadius: 12, border: `1px solid ${line}`, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" };
   const pad = isMobileDevice ? 16 : 0;
 
   const gridCols = isMobileDevice ? "repeat(3, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))";
@@ -239,7 +239,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
             {[{ id: "all" }, ...favTypes].map(t => {
               const on = favEff === t.id;
-              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "white" : muted }}>{t.id === "all" ? (en ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
+              return <button key={t.id} type="button" onClick={() => setFavFilter(t.id)} style={{ minHeight: 34, padding: "0 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "white" : muted }}>{t.id === "all" ? (en ? "All" : "Tudo") : mediaLabel(t, lang)}</button>;
             })}
           </div>
         )}
@@ -309,7 +309,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
     if (!top.length) return null;
     const mx = top[0][1];
     return (
-      <div style={{ borderRadius: 20, padding: "16px 18px", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"), border: `1px solid ${line}` }}>
+      <div style={{ borderRadius: 12, padding: "16px 18px", background: panelBg || (darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)"), border: `1px solid ${line}` }}>
         <h3 style={{ fontSize: 13, fontWeight: 800, color: "#8b949e", display: "flex", alignItems: "center", gap: 8, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 14px" }}>
           {en ? "TOP GENRES" : "TOP GÉNEROS"}
           <span style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #30363d, transparent)" }} />
@@ -318,7 +318,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
           {top.map(([g, c], idx) => {
             const alpha = Math.max(20, Math.round((c / mx) * 100));
             return (
-              <div key={g} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2, "0")}`, border: `1px solid ${accent}${Math.round(alpha * 1.5).toString(16).padStart(2, "0")}`, borderRadius: 20, padding: idx === 0 ? "5px 12px" : "4px 10px" }}>
+              <div key={g} style={{ display: "flex", alignItems: "center", gap: 5, background: `${accent}${alpha.toString(16).padStart(2, "0")}`, border: `1px solid ${accent}${Math.round(alpha * 1.5).toString(16).padStart(2, "0")}`, borderRadius: 8, padding: idx === 0 ? "5px 12px" : "4px 10px" }}>
                 <span style={{ fontSize: idx === 0 ? 14 : idx < 3 ? 13 : 12, fontWeight: idx < 3 ? 800 : 600, color: idx === 0 ? accent : (darkMode ? "#c9d1d9" : "#374151") }}>{g}</span>
                 <span style={{ fontSize: 10, color: accent, fontWeight: 700, opacity: 0.8 }}>{c}</span>
               </div>
@@ -387,7 +387,7 @@ export function FriendProfile({ info, data, library, onBack, onRemove, onOpenIte
             ? { color: "#e6edf3", background: "rgba(0,0,0,0.42)", border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }
             : { color: text, background: "transparent", border: `1px solid ${line}` };
           const backBtn = (
-            <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 999, ...btnBase, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px 7px 10px", borderRadius: 8, ...btnBase, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>{en ? "Friends" : "Amigos"}
             </button>
           );

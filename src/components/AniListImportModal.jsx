@@ -70,7 +70,7 @@ export function AniListImportModal({ onClose, onImport, library, workerUrl }) {
       <div style={{ fontSize: 11.5, color: muted, marginTop: 5 }}>{label}</div>
     </div>
   );
-  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
+  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 8, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
 
   return (
     <div className="modal-bg" onClick={onClose}>
@@ -117,7 +117,7 @@ export function AniListImportModal({ onClose, onImport, library, workerUrl }) {
             </div>
             <div style={{ display: "flex", gap: 6, margin: "18px 0 8px" }}>
               {[["all", en ? "All" : "Tudo"], ["anime", "Anime"], ["manga", "Manga"]].map(([id, label]) => (
-                <button key={id} onClick={() => setTypeFilter(id)} style={{ minHeight: 36, padding: "0 14px", borderRadius: 999, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${typeFilter === id ? accent : border}`, background: typeFilter === id ? accent : "transparent", color: typeFilter === id ? "#fff" : muted }}>{label}</button>
+                <button key={id} onClick={() => setTypeFilter(id)} style={{ minHeight: 36, padding: "0 14px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${typeFilter === id ? accent : border}`, background: typeFilter === id ? accent : "transparent", color: typeFilter === id ? "#fff" : muted }}>{label}</button>
               ))}
             </div>
             <div>

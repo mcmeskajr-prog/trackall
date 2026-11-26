@@ -74,7 +74,7 @@ export const MediaCard = memo(function MediaCard({ item, library, onOpen, accent
               </div>
             )}
             {status && !hideStatus && (
-              <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+              <span style={{ fontSize: 10, background: `${status.color}cc`, color: "white", padding: "2px 8px", borderRadius: 8, fontWeight: 700 }}>
                 {status.emoji} {statusLabel(status, lang)}
               </span>
             )}
