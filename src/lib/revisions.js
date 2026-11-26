@@ -18,6 +18,13 @@ export function addRevision(item, { at, rating } = {}) {
   return out;
 }
 
+// Remove só a revisão n.º `index` (posição em revisionsOf, ordenada por data). A entrada original e o item mantêm-se.
+export function removeRevision(item, index) {
+  const list = revisionsOf(item);
+  if (!(index >= 0 && index < list.length)) return item;
+  return { ...item, revisions: list.filter((_, i) => i !== index) };
+}
+
 // Para o Diário: lista de completados + uma linha extra por revisão (com _revision = 2, 3, …).
 // Cada linha leva _k (chave única). Ordem: mais recente primeiro.
 export function expandDiary(items) {
