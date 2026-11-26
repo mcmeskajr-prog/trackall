@@ -168,14 +168,14 @@ function TypeSheet({ t, list, accent, darkMode, lang, ratingOf, onOpen, onReorde
           const fr = first ? ratingOf(first) : 0;
           return (<>
             {first && (
-              <div data-ridx={0} style={{ position: "relative", borderRadius: 22, overflow: "hidden", padding: 16, background: darkMode ? `linear-gradient(135deg, ${accent}33, #161020 70%)` : `linear-gradient(135deg, ${accent}2e, #ffffff 75%)`, border: `1px solid ${accent}66`, transition: "transform .15s" }}>
+              <div data-ridx={0} style={{ position: "relative", borderRadius: 12, overflow: "hidden", padding: 16, background: darkMode ? `linear-gradient(135deg, ${accent}33, #161020 70%)` : `linear-gradient(135deg, ${accent}2e, #ffffff 75%)`, border: `1px solid ${accent}66`, transition: "transform .15s" }}>
                 <div style={{ position: "relative", display: "flex", gap: 16 }}>
                   <div onClick={() => onOpen && onOpen(first)} style={{ cursor: "pointer", flexShrink: 0 }}>
                     {cover(first, { width: 132, height: 198, borderRadius: 14, boxShadow: `0 0 0 2px ${accent}, 0 16px 30px -10px rgba(0,0,0,0.6)` })}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                      <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: "#1a0f18", background: accent }}>★ {lang === "en" ? "TOP PICK" : "DESTAQUE"}</span>
+                      <span style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 8, fontSize: 10.5, fontWeight: 800, color: "#1a0f18", background: accent }}>★ {lang === "en" ? "TOP PICK" : "DESTAQUE"}</span>
                       {handleBtn}
                     </div>
                     <div onClick={() => onOpen && onOpen(first)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>

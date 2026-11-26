@@ -139,7 +139,7 @@ export function ProfileStats({ items, panelBg, stacked, onFilter, inline = false
                   ))}
                 </span>
               ) : t.chip ? (
-                <span style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, fontWeight: 700, color: t.col, background: `${t.col}29`, borderRadius: 99, padding: "2px 9px" }}>{t.chip}</span>
+                <span style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, fontWeight: 700, color: t.col, background: `${t.col}29`, borderRadius: 8, padding: "2px 9px" }}>{t.chip}</span>
               ) : null}
             </span>}
           </button>

@@ -28,7 +28,7 @@ export function ProfileEstatisticas({ items, panelBg }) {
   const muted = darkMode ? "#8b949e" : "#64748b";
   const line = darkMode ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.08)";
   const glass = darkMode ? "linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015)), rgba(12,14,18,0.6)" : "rgba(255,255,255,0.85)";
-  const card = { background: panelBg || ctxPanelBg || glass, borderRadius: 22, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "22px 26px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", display: "flex", gap: 36, color: text };
+  const card = { background: panelBg || ctxPanelBg || glass, borderRadius: 12, border: `1px solid ${darkMode ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.1)"}`, padding: "22px 26px", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", display: "flex", gap: 36, color: text };
 
   const kpi = (value, label, extra) => (
     <div style={{ padding: "12px 0", borderBottom: `1px solid ${line}` }}>

@@ -65,7 +65,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                       if (view === "search" && searchQuery.trim()) doSearch(searchQuery, t.id);
                     }}>
                     <TypeIcon id={t.id} /> <span className="tab-label">{mediaLabel(t, lang)}</span>
-                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                    <span style={{ background: isActive ? "rgba(255,255,255,0.25)" : (darkMode ? "#30363d" : "#e2e8f0"), color: isActive ? "white" : "#8b949e", borderRadius: 8, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                       {count}
                     </span>
                   </button>
@@ -116,7 +116,7 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
               <div style={{ flex: 1, minWidth: 0 }}>
 
                 {filterRating !== null && setFilterRating && (
-                  <button onClick={() => setFilterRating(null)} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "5px 12px", borderRadius: 999, border: `1px solid ${accent}`, background: `${accent}22`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
+                  <button onClick={() => setFilterRating(null)} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "5px 12px", borderRadius: 8, border: `1px solid ${accent}`, background: `${accent}22`, color: accent, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>
                     {filterRating === "rated" ? (lang === "en" ? "Rated only" : "Só avaliados") : `★ ${filterRating}`} <span aria-hidden="true">✕</span>
                   </button>
                 )}
@@ -124,9 +124,9 @@ export function LibraryView({ view, setView, items, filteredLib, sortedLib, libr
                 {/* Mobile-only: filtros + sort compactos */}
                 <div className="lib-mobile-controls">
                   <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                    <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{useT("all")}</button>
+                    <button onClick={() => setFilterStatus("all")} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 8, border: `1px solid ${filterStatus === "all" ? accent : "#30363d"}`, background: filterStatus === "all" ? accent : "transparent", color: filterStatus === "all" ? "white" : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>{useT("all")}</button>
                     {STATUS_OPTIONS.map((s) => (
-                      <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
+                      <button key={s.id} onClick={() => setFilterStatus(s.id)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 8, border: `1px solid ${filterStatus === s.id ? s.color : "#30363d"}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : "#8b949e", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, WebkitTapHighlightColor: "transparent" }}>
                         {s.emoji} {statusLabel(s, lang)}
                       </button>
                     ))}

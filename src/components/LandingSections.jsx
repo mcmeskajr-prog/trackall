@@ -20,7 +20,7 @@ function Import({ T }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: "#e6edf3" }}>{T("Your library", "A tua biblioteca")}</span>
-            <span style={{ padding: "3px 10px", borderRadius: 99, background: "#10b98122", color: "#34d399", fontSize: 11.5, fontWeight: 800, whiteSpace: "nowrap" }}>✓ 184 {T("imported", "importados")}</span>
+            <span style={{ padding: "3px 10px", borderRadius: 8, background: "#10b98122", color: "#34d399", fontSize: 11.5, fontWeight: 800, whiteSpace: "nowrap" }}>✓ 184 {T("imported", "importados")}</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>{[235, 140, 35, 350, 190, 340, 265, 320].map((h) => <P key={h} h={h} />)}</div>
         </div>
@@ -137,7 +137,7 @@ const CSS = `
 .ls-arrow span { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: #8b949e; white-space: pre-line; text-align: center; }
 .ls-minis { display: flex; gap: 12px; }
 .ls-mini { flex: 1; min-width: 0; border-radius: 14px; overflow: hidden; border: 1px solid #2a313b; }
-.ls-chip { padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.06); border: 1px solid #2a313b; font-size: 12px; font-weight: 700; color: #c9d1d9; }
+.ls-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,.06); border: 1px solid #2a313b; font-size: 12px; font-weight: 700; color: #c9d1d9; }
 .ls-list { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid #2a313b; }
 .ls-more { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 30px; }
 .ls-more > div { padding: 20px; border-radius: 16px; background: #141a22; border: 1px solid #232b36; transition: transform .2s, border-color .2s; }

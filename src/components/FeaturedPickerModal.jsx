@@ -47,7 +47,7 @@ export function FeaturedPickerModal({ items, currentId, currentNote = "", onSele
           {MEDIA_TYPES.map(t => {
             const on = type === t.id;
             return (
-              <button key={t.id} onClick={() => setType(t.id)} style={{ padding: "8px 14px", borderRadius: 20, border: `1px solid ${border}`, background: on ? accent : "transparent", color: on ? "white" : text, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+              <button key={t.id} onClick={() => setType(t.id)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${border}`, background: on ? accent : "transparent", color: on ? "white" : text, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
                 {t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}
               </button>
             );

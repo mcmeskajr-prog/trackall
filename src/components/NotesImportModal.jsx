@@ -94,7 +94,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
     onImport(out);
   };
 
-  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
+  const chip = (t, c) => <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 8, fontSize: 11, fontWeight: 700, color: c, background: c + "22", border: `1px solid ${c}55`, whiteSpace: "nowrap" }}>{t}</span>;
   const cover = (c, w = 34, h = 48) => (
     <div style={{ width: w, height: h, borderRadius: 6, background: darkMode ? "#21262d" : "#e2e8f0", flexShrink: 0, overflow: "hidden" }}>
       {c?.cover && <img src={c.cover} alt="" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
@@ -128,7 +128,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, marginBottom: 8 }}>{en ? "Type" : "Tipo"}</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {TYPES.map(([id, label]) => (
-                <button key={id} onClick={() => setTypeChoice(id)} style={{ minHeight: 36, padding: "0 14px", borderRadius: 999, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${typeChoice === id ? accent : border}`, background: typeChoice === id ? accent : "transparent", color: typeChoice === id ? "#fff" : muted }}>{label}</button>
+                <button key={id} onClick={() => setTypeChoice(id)} style={{ minHeight: 36, padding: "0 14px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${typeChoice === id ? accent : border}`, background: typeChoice === id ? accent : "transparent", color: typeChoice === id ? "#fff" : muted }}>{label}</button>
               ))}
             </div>
             <p style={{ fontSize: 12, color: muted, margin: "8px 0 0", lineHeight: 1.5 }}>{en ? "In Auto the app searches everywhere and picks the likeliest. Choosing a type is faster." : "Em Auto a app procura em todos e escolhe o mais provável. Escolher um tipo é mais rápido."}</p>
@@ -172,7 +172,7 @@ export function NotesImportModal({ onClose, onImport, library, tmdbKey, workerUr
                 const e = r.entry;
                 const st = statusOf(r, i);
                 const extra = (<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
-                  <select value={st} onClick={ev => ev.stopPropagation()} onChange={ev => setStatusOv(o => ({ ...o, [i]: ev.target.value }))} aria-label={en ? "Status" : "Estado"} style={{ height: 26, padding: "0 6px", borderRadius: 999, fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: STATE_COLOR[st] || muted, background: (STATE_COLOR[st] || muted) + "22", border: `1px solid ${(STATE_COLOR[st] || muted)}55`, cursor: "pointer", outline: "none" }}>
+                  <select value={st} onClick={ev => ev.stopPropagation()} onChange={ev => setStatusOv(o => ({ ...o, [i]: ev.target.value }))} aria-label={en ? "Status" : "Estado"} style={{ height: 26, padding: "0 6px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: STATE_COLOR[st] || muted, background: (STATE_COLOR[st] || muted) + "22", border: `1px solid ${(STATE_COLOR[st] || muted)}55`, cursor: "pointer", outline: "none" }}>
                     {Object.keys(STATE_PT).map(k => <option key={k} value={k} style={{ color: "#000" }}>{stLabel(k)}</option>)}
                   </select>
                   {e.rating > 0 && <span style={{ fontSize: 12, fontWeight: 800, color: "#fbbf24" }}>★ {e.rating}</span>}</div>);

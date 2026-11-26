@@ -78,7 +78,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
         const on = activeFilter === t.id;
         return (
           <button key={t.id} onClick={() => setFilter(t.id)} style={{
-            flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+            flexShrink: 0, minHeight: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
             border: `1px solid ${on ? accent : line}`, background: on ? accent : "transparent", color: on ? "white" : sub,
           }}>{t.id === "all" ? (lang === "en" ? "All" : "Tudo") : mediaLabel(t, lang)}</button>
         );
@@ -165,7 +165,7 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: isMobileDevice ? 14 : 16, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && <span style={{ marginLeft: 8, padding: "1px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77` }}>↺ {lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}</span>}</div>
+                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && <span style={{ marginLeft: 8, padding: "1px 8px", borderRadius: 8, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77` }}>↺ {lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}</span>}</div>
                 </div>
                 {item.userRating > 0 && (
                   <div style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {item.userRating}</div>

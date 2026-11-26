@@ -18,7 +18,7 @@ export function CompletedPanel({ libItem, accent, darkMode, lang, onUpdateDate, 
   const muted = "#8b949e";
   const line = darkMode ? "rgba(255,255,255,0.12)" : "#e2e8f0";
   const chip = (on, label, onClick) => (
-    <button type="button" onClick={onClick} style={{ padding: "6px 12px", borderRadius: 999, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
+    <button type="button" onClick={onClick} style={{ padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
       border: `1px solid ${on ? accent : line}`, background: on ? `${accent}26` : "transparent", color: on ? accent : (darkMode ? "#c3ccd6" : "#475569") }}>{label}</button>
   );
   const dateInput = (value, onChange) => (

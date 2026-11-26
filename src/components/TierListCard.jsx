@@ -18,7 +18,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
   const border = darkMode ? "rgba(255,255,255,0.1)" : "#e2e8f0";
 
   return (
-    <div onClick={() => onOpen(tl)} style={{ background: panelBg || glass, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `1px solid ${border}`, borderRadius: 20, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", transition: "transform 0.15s, border-color 0.15s" }}
+    <div onClick={() => onOpen(tl)} style={{ background: panelBg || glass, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `1px solid ${border}`, borderRadius: 12, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", transition: "transform 0.15s, border-color 0.15s" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = `${accent}88`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = border; }}>
       <style>{`
@@ -47,7 +47,7 @@ export function TierListCard({ tl, onOpen, onLike, liked, currentUserId, onDelet
           {author && <><span style={{ width: 18, height: 18, borderRadius: 99, background: `linear-gradient(135deg, ${accent}, #3a1212)`, flexShrink: 0 }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{author}</span><span>·</span></>}
           <span style={{ whiteSpace: "nowrap" }}>{all.length} itens</span>
           <span style={{ flex: 1 }} />
-          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : border}`, borderRadius: 99, padding: "3px 9px", color: liked ? accent : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
+          <button onClick={e => { e.stopPropagation(); onLike && onLike(tl.id); }} style={{ display: "flex", alignItems: "center", gap: 4, background: liked ? `${accent}22` : "transparent", border: `1px solid ${liked ? accent : border}`, borderRadius: 8, padding: "3px 9px", color: liked ? accent : (darkMode ? "#8b949e" : "#64748b"), cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit" }}>
             {liked ? "♥" : "♡"} {tl.likes_count || 0}
           </button>
           {currentUserId === tl.user_id && onDelete && (

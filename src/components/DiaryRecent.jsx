@@ -50,7 +50,7 @@ export function DiaryRecent({ items, count = 5, onOpen, onSeeAll, panelStyle = n
               <div style={{ fontSize: 11.5, color: sub, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{typeDef ? mediaLabel(typeDef, lang) : ""}</div>
             </div>
             {it.userRating > 0 && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 6px", borderRadius: 99, flexShrink: 0, background: "rgba(244,114,182,0.14)", border: "1px solid rgba(244,114,182,0.4)", color: "#fbcfe8", fontSize: 11.5, fontWeight: 800 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 6px", borderRadius: 8, flexShrink: 0, background: "rgba(244,114,182,0.14)", border: "1px solid rgba(244,114,182,0.4)", color: "#fbcfe8", fontSize: 11.5, fontWeight: 800 }}>
                 <Sakura size={11} />{it.userRating}
               </span>
             )}

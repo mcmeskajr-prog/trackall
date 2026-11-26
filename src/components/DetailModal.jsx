@@ -453,7 +453,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                   {!isMobileDevice && currentItem.genres?.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                       {currentItem.genres.slice(0, 6).map((g) => (
-                        <button key={g} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(g); }, 150); }} style={{ background: `${accent}1a`, color: darkMode ? "#fca5a5" : accent, padding: "4px 11px", borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1px solid ${accent}40`, cursor: "pointer", fontFamily: "inherit" }}>{g}</button>
+                        <button key={g} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(g); }, 150); }} style={{ background: `${accent}1a`, color: darkMode ? "#fca5a5" : accent, padding: "4px 11px", borderRadius: 8, fontSize: 12, fontWeight: 600, border: `1px solid ${accent}40`, cursor: "pointer", fontFamily: "inherit" }}>{g}</button>
                       ))}
                     </div>
                   )}
@@ -594,7 +594,7 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
                     <div style={{ marginTop: 14 }}>
                       <div style={{ fontSize: 10, fontWeight: 800, color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Keywords</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        {detailExtra.keywords.map(k => <button key={k} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(k); }, 150); }} title={lang === "en" ? "Search your library" : "Pesquisar na biblioteca"} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, color: darkMode ? "#8b949e" : "#64748b", padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>{k}</button>)}
+                        {detailExtra.keywords.map(k => <button key={k} onClick={() => { onClose(); setTimeout(() => { setView("library"); setLibSearch(k); }, 150); }} title={lang === "en" ? "Search your library" : "Pesquisar na biblioteca"} style={{ background: darkMode ? "#161b22" : "#f1f5f9", border: `1px solid ${darkMode ? "#21262d" : "#e2e8f0"}`, color: darkMode ? "#8b949e" : "#64748b", padding: "3px 9px", borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>{k}</button>)}
                       </div>
                     </div>
                   )}

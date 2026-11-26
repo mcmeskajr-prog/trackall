@@ -153,7 +153,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
         <>
           <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
             {typeChips.map(c => (
-              <button key={c.id} onClick={() => setTypeFilter(c.id)} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 99, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${typeFilter === c.id ? accent : line}`, background: typeFilter === c.id ? `${accent}26` : "transparent", color: typeFilter === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
+              <button key={c.id} onClick={() => setTypeFilter(c.id)} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${typeFilter === c.id ? accent : line}`, background: typeFilter === c.id ? `${accent}26` : "transparent", color: typeFilter === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
             ))}
           </div>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={lang === "en" ? "Filter your library…" : "Filtrar a biblioteca…"} style={field} />
@@ -165,7 +165,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
           {poolTab === "pesquisar" && (
             <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
               {EXT_TYPES.map(c => (
-                <button key={c.id} onClick={() => { setExtType(c.id); setExtResults([]); }} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 99, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${extType === c.id ? accent : line}`, background: extType === c.id ? `${accent}26` : "transparent", color: extType === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
+                <button key={c.id} onClick={() => { setExtType(c.id); setExtResults([]); }} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${extType === c.id ? accent : line}`, background: extType === c.id ? `${accent}26` : "transparent", color: extType === c.id ? (darkMode ? "#fca5a5" : accent) : muted }}>{c.label}</button>
               ))}
             </div>
           )}
@@ -235,7 +235,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder={lang === "en" ? "Name your tier list…" : "Dá um nome à tier list…"} maxLength={80}
           style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", outline: "none", color: text, fontFamily: "inherit", fontSize: isMobileDevice ? 17 : 26, fontWeight: 800, padding: 0 }} />
       </div>
-      {!isMobileDevice && <span style={{ padding: "7px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, color: muted, border: `1px solid ${line}`, whiteSpace: "nowrap" }}>{placed} colocados</span>}
+      {!isMobileDevice && <span style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, color: muted, border: `1px solid ${line}`, whiteSpace: "nowrap" }}>{placed} colocados</span>}
       {!isMobileDevice && <button onClick={onClose} style={{ padding: "11px 18px", borderRadius: 12, background: "transparent", border: `1px solid ${line}`, color: text, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>}
       <button onClick={handleSave} disabled={!title.trim() || saving} style={{ padding: "11px 18px", borderRadius: 12, background: accent, border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, opacity: !title.trim() ? 0.5 : 1, whiteSpace: "nowrap" }}>{saving ? (lang === "en" ? "Saving…" : "A guardar…") : (lang === "en" ? "Save" : "Guardar")}</button>
       {isMobileDevice && <button onClick={onClose} aria-label={lang === "en" ? "Close" : "Fechar"} style={{ width: 36, height: 36, borderRadius: 99, background: "transparent", border: `1px solid ${line}`, color: muted, cursor: "pointer", fontSize: 15 }}>✕</button>}
@@ -257,7 +257,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: "flex", gap: 20, padding: "20px 28px" }}>
             <div style={{ flex: 1, minWidth: 0, overflowY: "auto", paddingRight: 4 }}>{rows}</div>
-            <div style={{ width: 370, flexShrink: 0, borderRadius: 20, padding: 16, background: glass, border: `1px solid ${line}`, display: "flex", flexDirection: "column", minHeight: 0 }}>{pool}</div>
+            <div style={{ width: 370, flexShrink: 0, borderRadius: 12, padding: 16, background: glass, border: `1px solid ${line}`, display: "flex", flexDirection: "column", minHeight: 0 }}>{pool}</div>
           </div>
         )}
       </div>
