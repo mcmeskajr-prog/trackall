@@ -61,7 +61,7 @@ export function TierListViewer({ tl, onClose, onLike, liked, currentUserId, onEd
                   ) : items.map(item => {
                     const cover = item.customCover || item.cover || item.thumbnailUrl;
                     return (
-                      <div key={item.id} className="tl-poster" title={item.title} onClick={() => onOpenItem && onOpenItem(item)} style={{ "--tc": tier.color, width: cw, height: ch, borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.35)", cursor: onOpenItem ? "pointer" : "default" }}>
+                      <div key={item.id} className="tl-poster" title={item.title} onClick={() => onOpenItem && onOpenItem(item)} style={{ "--tc": tier.color, width: cw, height: ch, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), boxShadow: "0 4px 14px rgba(0,0,0,0.35)", cursor: onOpenItem ? "pointer" : "default" }}>
                         {cover && <img src={cover} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={e => { e.currentTarget.style.display = "none"; }} />}
                         <div className="tl-cap">{item.title}</div>
                       </div>

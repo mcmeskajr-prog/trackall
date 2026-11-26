@@ -112,7 +112,7 @@ export function TierListEditor({ initialData, library, onSave, onClose, workerUr
         onDragStart={() => setDragItem(item)} onDragEnd={() => { setDragItem(null); setOverTier(null); }}
         onClick={() => setSelected(isSel ? null : { item, from: opts.from || null })}
         style={{ width: w, flexShrink: 0, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-        <div style={{ position: "relative", width: w, height: h, borderRadius: 9, overflow: "hidden", background: gradientFor(item.id), boxShadow: isSel ? `0 0 0 2.5px ${accent}, 0 0 16px ${accent}99` : "0 3px 10px rgba(0,0,0,0.3)", transition: "box-shadow 0.12s" }}>
+        <div style={{ position: "relative", width: w, height: h, borderRadius: 3, overflow: "hidden", background: gradientFor(item.id), boxShadow: isSel ? `0 0 0 2.5px ${accent}, 0 0 16px ${accent}99` : "0 3px 10px rgba(0,0,0,0.3)", transition: "box-shadow 0.12s" }}>
           {cover ? <img src={cover} alt="" loading="lazy" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }} onError={e => { e.currentTarget.style.display = "none"; }} />
             : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 4, fontSize: 10, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{item.title}</span>}
         </div>
