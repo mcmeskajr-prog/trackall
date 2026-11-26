@@ -214,9 +214,10 @@ export function ProfileView(props) {
   const closeEditModal = () => { setShowEditModal(false); resetBanner(); setAvatarPreview(profile.avatar||""); };
   const startEditing = () => { setName(profile.name||""); setBio(profile.bio||""); setAvatarPreview(profile.avatar||""); resetBanner(); setEditing(true); };
   // Na vista normal do separador Perfil, a identidade vive no ProfileCard; o cabeçalho antigo só aparece a editar ou noutros separadores.
-  const showHeaderIdentity = editing || profileTab !== "perfil";
   const [profileLayout] = useUiPref("trackall_profile_layout");
   const v2 = !isMobileDevice && !editing && profileLayout !== "classic"; // layout novo do PC (banner + duas colunas)
+  // No layout novo do PC o cabeçalho com banner mantém-se em todos os separadores (Diário, Listas, Definições…)
+  const showHeaderIdentity = editing || (profileTab !== "perfil" && (!v2 || profileTab === "definicoes"));
   const currentBanner = editing ? bannerPreview : (splitBanner(profile.banner).style.hpc ? "" : splitBanner(profile.banner).url);
   const currentAvatar = editing ? avatarPreview : profile.avatar;
 
@@ -550,8 +551,8 @@ export function ProfileView(props) {
       </>
       )}
 
-      {/* Layout novo do PC: banner + identidade (no separador Perfil) */}
-      {v2 && profileTab === "perfil" && (
+      {/* Layout novo do PC: banner + identidade (em todos os separadores, menos Definições, que mantém o cabeçalho antigo) */}
+      {v2 && profileTab !== "definicoes" && (
         <ProfileHeaderPC profile={profile} avatar={currentAvatar} items={items} userEmail={userEmail} hideEmail={hideEmail}
           onEdit={openEditModal} onSettings={() => setProfileTab("definicoes")} onFilter={onOpenLibrary} panelBg={panelBg ? computedPanelBg : null} />
       )}
@@ -862,7 +863,7 @@ export function ProfileView(props) {
 
       {/* Tab Diário */}
       {profileTab === "diario" && (
-        <ProfileTabDiario items={items} accent={accent} darkMode={panelDM} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
+        <ProfileTabDiario items={items} accent={accent} darkMode={panelDM} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} onRemoveRevision={props.onRemoveRevision} />
       )}
 
 

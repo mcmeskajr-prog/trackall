@@ -38,7 +38,7 @@ import { HomeView } from './views/HomeView';
 
 // ─── Lib imports ──────────────────────────────────────────────────────────────
 import { normalizeMediaId, mediaIdCandidates, findLibraryEntry, normalizeMediaItem } from './lib/mediaIds';
-import { addRevision } from './lib/revisions';
+import { addRevision, removeRevision } from './lib/revisions';
 import { initErrorReporting } from './lib/errorReporting';
 import { PwaHints } from './components/PwaHints';
 import { getConsumptionTime } from './lib/consumptionTime';
@@ -1737,6 +1737,18 @@ export default function TrackAll() {
     if (navigator.vibrate) navigator.vibrate(30);
   }, [library, accent, lang]);
 
+  // Remove só uma entrada de «Completar outra vez» (a n.ª revisão); o item fica na biblioteca
+  const removeRewatch = useCallback((id, index) => {
+    const matched = findLibraryEntry(libraryRef.current, id);
+    if (!matched) return;
+    const canonicalId = normalizeMediaId(id, matched.item?.type);
+    const next = { ...libraryRef.current };
+    if (matched.key !== canonicalId) delete next[matched.key];
+    next[canonicalId] = { ...removeRevision(matched.item, index), id: canonicalId };
+    saveLibrary(next);
+    showNotif(lang === "en" ? "Entry removed" : "Entrada removida", accent);
+  }, [library, accent, lang]);
+
   const updateLastChapter = useCallback((id, chapter) => {
     const matched = findLibraryEntry(libraryRef.current, id);
     if (!matched || !chapter) return;
@@ -2778,6 +2790,7 @@ export default function TrackAll() {
           <div className="profile-desktop-wrap" style={{ padding: 0, background: "transparent", minHeight: "100vh" }}>
           <Suspense fallback={null}><ProfileView
             onOpenLibrary={openLibraryFiltered}
+            onRemoveRevision={removeRewatch}
             profile={activeProfile}
             library={library}
             accent={accent}
