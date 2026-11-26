@@ -862,7 +862,7 @@ export function ProfileView(props) {
 
       {/* Tab Diário */}
       {profileTab === "diario" && (
-        <ProfileTabDiario items={items} accent={accent} darkMode={panelDM} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} />
+        <ProfileTabDiario items={items} accent={accent} darkMode={panelDM} isMobileDevice={isMobileDevice} lang={lang} onOpen={onOpen} onRemoveRevision={props.onRemoveRevision} />
       )}
 
 

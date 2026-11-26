@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addRevision, revisionsOf, expandDiary, dayStamp } from "./revisions";
+import { addRevision, revisionsOf, expandDiary, dayStamp, removeRevision } from "./revisions";
 
 describe("revisões («Completar outra vez»)", () => {
   const base = { id: "al-anime-1", title: "Frieren", userStatus: "completo", userRating: 9, addedAt: 1000 };
@@ -31,5 +31,20 @@ describe("revisões («Completar outra vez»)", () => {
   });
   it("dayStamp usa o meio-dia local", () => {
     expect(new Date(dayStamp(2026, 10, 1)).getHours()).toBe(12);
+  });
+});
+
+describe("removeRevision", () => {
+  it("remove só a revisão pedida e mantém o item", () => {
+    let it = { id: "a", userStatus: "completo", addedAt: 100 };
+    it = addRevision(it, { at: 200 }); it = addRevision(it, { at: 300 });
+    const out = removeRevision(it, 0);
+    expect(out.userStatus).toBe("completo");
+    expect(out.addedAt).toBe(100);
+    expect(revisionsOf(out).map(r => r.at)).toEqual([300]);
+  });
+  it("índice inválido não altera nada", () => {
+    const it = addRevision({ id: "a", userStatus: "completo", addedAt: 1 }, { at: 2 });
+    expect(removeRevision(it, 5)).toBe(it);
   });
 });

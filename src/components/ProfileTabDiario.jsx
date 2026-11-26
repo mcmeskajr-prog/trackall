@@ -5,9 +5,10 @@ import { expandDiary } from "../lib/revisions";
 import { MEDIA_TYPES, MONTH_PT, MONTH_EN, TYPE_COLORS, mediaLabel } from "../config/constants";
 
 // ─── Diário (v2): resumo do ano, atividade por mês, filtros por tipo e entradas por mês ───
-export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen }) {
+export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang, onOpen, onRemoveRevision }) {
   const { panelBg: ctxPanelBg } = useTheme() || {};
   const [filter, setFilter] = useState("all");
+  const [confirmKey, setConfirmKey] = useState(null); // entrada «outra vez» à espera de confirmação
 
   const completados = useMemo(
     () => expandDiary(items), // inclui as revisões («Completar outra vez») como linhas extra
@@ -165,7 +166,22 @@ export function ProfileTabDiario({ items, accent, darkMode, isMobileDevice, lang
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: isMobileDevice ? 14 : 16, fontWeight: 800, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && <span style={{ marginLeft: 8, padding: "1px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77` }}>↺ {lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}</span>}</div>
+                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{t ? mediaLabel(t, lang) : item.type}{item._revision > 1 && (() => {
+                    const label = `↺ ${lang === "en" ? `${item._revision}${["st","nd","rd"][item._revision - 1] || "th"} time` : `${item._revision}.ª vez`}`;
+                    const chipStyle = { marginLeft: 8, padding: "1px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: accent, background: `${accent}22`, border: `1px solid ${accent}77`, fontFamily: "inherit" };
+                    if (!onRemoveRevision) return <span style={chipStyle}>{label}</span>;
+                    if (confirmKey === item._k) {
+                      const small = { marginLeft: 6, padding: "1px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" };
+                      return (
+                        <span onClick={e => e.stopPropagation()} style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+                          <span style={{ color: sub, fontSize: 11 }}>{lang === "en" ? "Remove only this entry?" : "Remover só esta entrada?"}</span>
+                          <button type="button" onClick={() => { onRemoveRevision(item.id, item._revision - 2); setConfirmKey(null); }} style={{ ...small, color: "#fff", background: "#dc2626", border: "1px solid #dc2626" }}>{lang === "en" ? "Remove" : "Remover"}</button>
+                          <button type="button" onClick={() => setConfirmKey(null)} style={{ ...small, color: sub, background: "transparent", border: `1px solid ${darkMode ? "rgba(255,255,255,0.2)" : "rgba(15,23,42,0.2)"}` }}>{lang === "en" ? "Cancel" : "Cancelar"}</button>
+                        </span>
+                      );
+                    }
+                    return <button type="button" onClick={e => { e.stopPropagation(); setConfirmKey(item._k); }} title={lang === "en" ? "Remove only this entry" : "Remover só esta entrada"} style={{ ...chipStyle, cursor: "pointer" }}>{label}</button>;
+                  })()}</div>
                 </div>
                 {item.userRating > 0 && (
                   <div style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 9, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 12, fontWeight: 800 }}>★ {item.userRating}</div>
