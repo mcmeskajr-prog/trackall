@@ -308,6 +308,21 @@ export function DetailModal({ item, library, onAdd, onRemove, onUpdateStatus, on
   const matchedLib = findLibraryEntry(library, currentItem.id, currentItem.type);
   const inLib = !!matchedLib;
   const libItem = matchedLib?.item;
+
+  // Nota pessoal: guarda sozinha pouco depois de parares de escrever e ao fechar (antes só guardava ao sair do campo,
+  // por isso fechar com Esc/voltar podia perder o que escreveste). Vai para a conta como o resto da biblioteca.
+  const noteLatest = useRef({});
+  noteLatest.current = { id: currentItem?.id, note: noteInput.trim(), saved: libItem?.userNote || "", inLib, fn: onUpdateNote };
+  useEffect(() => {
+    const v = noteLatest.current;
+    if (!v.fn || !v.inLib || !v.id || v.note === v.saved) return;
+    const t = setTimeout(() => { const c = noteLatest.current; if (c.fn && c.inLib && c.note !== c.saved) c.fn(c.id, c.note); }, 700);
+    return () => clearTimeout(t);
+  }, [noteInput]);
+  useEffect(() => () => {
+    const c = noteLatest.current;
+    if (c.fn && c.inLib && c.id && c.note !== c.saved) c.fn(c.id, c.note);
+  }, []);
   const isChapterType = CHAPTER_TYPES.includes(currentItem.type);
   const coverSrc = libItem?.customCover || currentItem.customCover || currentItem.cover;
   const isFavorite = favorites.some(f => f.id === currentItem.id);
